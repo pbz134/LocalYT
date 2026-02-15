@@ -83,6 +83,7 @@ How does the algorithm actually work?
 What if I only have the video files and no metadata?
 - No metadata is no problem! All missing data, such as thumbnails, view counts, various stats and even channels' profile pictures are simply being generated.
 
+---
 
 ## TO DO
 - Add a search icon next to the search bar on all pages
