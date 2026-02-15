@@ -7,10 +7,10 @@ echo Generating missing sub counts...
 .\venv\python.exe createChannelsubs.py
 
 echo Fixing umlauts before moving metadata...
-.\venv\python.exe LocalYT-Rev-Files\FixUmlauts.py --apply
+.\venv\python.exe LocalYT-Rev-Files\FixUmlauts.py
 
 echo Generating thumbnails...
-node generateThumbnails.js
+.\venv\python.exe generateThumbnails.py
 
 echo Generating video stats...
 .\venv\python.exe createstats.py
@@ -114,4 +114,5 @@ echo ===========================================================================
 echo All metadata, thumbnails and playlists generated. Server is ready for launch.
 echo =============================================================================
 echo.
+
 pause
