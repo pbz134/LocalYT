@@ -31,18 +31,40 @@ From then on, I regularly worked on the program to further improve it, and 15 mo
   - Create a local account to track your watch history, liked videos and channels you spend the most time on
   - Resume your session on a different computer
 
+---
+
 ## Prerequisites
 - [Node.js](https://nodejs.org/en)
 - [FFmpeg](https://www.ffmpeg.org/download.html) (must be added to PATH!)
 - A few, or a lot of videos :)
+
+---
 
 ## Setup
 
 1. Download LocalYT-vXX.7z from the Releases tab and extract it (avoid special characters in the path to reduce the chance of errors)
 2. Copy any .mp4, .mkv or .mp3 files into subfolders of `/videos` (each subfolder represents a channel)
 3. Optionally, copy respective thumbnails, descriptions or other metadata into subfolders of their respective metadata folders
-3. Run `#Setup-or-Update.bat` and wait for the automatic setup to complete
-4. Launch the server with `#Launch-Server.bat`
+4. Run `#Setup-or-Update.bat` and wait for the automatic setup to complete
+5. Launch the server with `#Launch-Server.bat`
+
+---
+
+## Example Setups
+**Landing Page**
+[![Landing Page](https://github.com/pbz134/LocalYT/blob/main/.github/index_example.PNG)](#readme)
+
+**Video Page**
+[![Video Page](https://github.com/pbz134/LocalYT/blob/main/.github/video_example.PNG)](#readme)
+
+**Channel Page**
+[![Channel Page](https://github.com/pbz134/LocalYT/blob/main/.github/channel_example.PNG)](#readme)
+
+Channels used:
+https://www.youtube.com/@babylonian
+https://www.youtube.com/@pannenkoek2012/videos
+
+---
 
 ## FAQ
 No videos are being recommended on video.html! What can I do?
