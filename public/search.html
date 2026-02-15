@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
+    <style>
+        .channel-result {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+        .channel-result img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .channel-result .channel-name {
+            font-size: 16px;
+            color: #fff;
+        }
+        .channel-info {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .channel-pic {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .video-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 10px;
+            margin-left: -10px;
+            margin-top: 5px;
+        }
+        .video-title {
+            font-weight: bold;
+            font-family: 'RobotoRegular', sans-serif;
+            cursor: pointer;
+            color: #d2cfcf;
+            text-decoration: none;
+            transition: text-decoration 0.2s ease;
+            font-size: 16px;
+            margin-bottom: 5px;
+            margin-left: -20px;
+        }
+        .video-description {
+            font-family: 'RobotoRegular', sans-serif;
+            font-size: 14px;
+            color: #888;
+            margin-top: 5px;
+        }
+        .clickable-channel-name {
+            cursor: pointer;
+            color: #aaa;
+            transition: color 0.3s ease;
+        }
+        .clickable-channel-name:hover {
+            color: #ffffff;
+        }
+        .loading-indicator {
+            color: #aaa;
+            text-align: center;
+            padding: 20px;
+        }
+        .load-more {
+            color: #3ea6ff;
+            cursor: pointer;
+            text-align: center;
+            padding: 20px;
+            margin: 10px 0;
+            background: rgba(62, 166, 255, 0.1);
+            border-radius: 5px;
+        }
+        .load-more:hover {
+            background: rgba(62, 166, 255, 0.2);
+        }
+        .thumbnail-container {
+            position: relative;
+            display: inline-block;
+        }
+        .video-thumbnail {
+            width: 320px;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .video-length {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .video-item {
+            display: flex;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+    </style>
+</head>
+<body class="search-page">
+    <header class="top-bar">
+        <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search for videos..." value="">
+            <div id="searchSuggestions" class="search-suggestions"></div>
+        </div>
+    </header>
+    <div class="container search-results-container" id="searchResultsContainer">
+        <div class="loading-indicator">Loading search index...</div>
+    </div>
+
+    <script>
+// Handle logo clicks
+document.addEventListener('DOMContentLoaded', () => {
+    const mainLogo = document.getElementById('mainLogo');
+    
+    if (mainLogo) {
+        // Left click - navigate to homepage in same tab
+        mainLogo.addEventListener('click', (event) => {
+            if (event.button === 0) { // Left click
+                window.location.href = 'index.html';
+            }
+        });
+        
+        // Middle click (mouse wheel) - open homepage in new tab
+        mainLogo.addEventListener('mouseup', (event) => {
+            if (event.button === 1) { // Middle click
+                event.preventDefault();
+                window.open('index.html', '_blank');
+            }
+        });
+        
+        // Right click - open homepage in new tab (with context menu option)
+        mainLogo.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            window.open('index.html', '_blank');
+        });
+        
+        // Add title for accessibility
+        mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
+        
+        // Add cursor styling
+        mainLogo.style.cursor = 'pointer';
+    }
+});
+        // Helper function to strip file extension for thumbnail and metadata paths
+        function stripExtension(filename) {
+            return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+        }
+
+        // Helper function to get video file extension
+        function getVideoExtension(path) {
+            const match = path.match(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i);
+            return match ? match[1] : 'mp4'; // Default to mp4 if no extension found
+        }
+
+        // Search state management
+        const searchState = {
+            index: null,
+            worker: null,
+            lastSearchId: 0,
+            debounceTimer: null,
+            currentResults: [],
+            currentQuery: ''
+        };
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const initialQuery = decodeURIComponent(urlParams.get('q') || '').toLowerCase();
+            const searchInput = document.getElementById('searchInput');
+            searchInput.value = initialQuery;
+
+            // Initialize Web Worker if available
+            if (window.Worker) {
+                try {
+                    searchState.worker = new Worker('search-worker.js');
+                    searchState.worker.onmessage = handleWorkerResponse;
+                    
+                    // Load the search index through the worker
+                    const indexResponse = await fetch('/search-index');
+                    if (!indexResponse.ok) throw new Error('Failed to fetch search index');
+                    const indexData = await indexResponse.json();
+                    
+                    searchState.worker.postMessage({
+                        type: 'initialize',
+                        index: indexData
+                    });
+                    
+                    searchState.index = indexData; // Keep a reference on main thread too
+                } catch (error) {
+                    console.error('Worker initialization failed:', error);
+                    searchState.worker = null;
+                }
+            }
+
+            // Load search index directly if worker failed
+            if (!searchState.worker) {
+                try {
+                    const indexResponse = await fetch('/search-index');
+                    if (!indexResponse.ok) throw new Error('Failed to fetch search index');
+                    searchState.index = await indexResponse.json();
+                } catch (error) {
+                    console.error('Error loading search index:', error);
+                    showError('Error loading search. Please refresh.');
+                    return;
+                }
+            }
+
+            // Perform initial search if query exists
+            if (initialQuery) {
+                performSearch(initialQuery);
+            } else {
+                document.getElementById('searchResultsContainer').innerHTML = 
+                    '<div style="color: white; padding: 20px;">Enter a search term above</div>';
+            }
+
+            // Setup search input handlers
+            setupSearchInput();
+            
+            // Initialize lazy loading
+            setupLazyLoading();
+        });
+
+        function handleWorkerResponse(e) {
+            const { type, results, searchId, query } = e.data;
+            
+            // Ignore responses for older searches
+            if (searchId !== searchState.lastSearchId) return;
+            
+            if (type === 'search') {
+                searchState.currentResults = results;
+                searchState.currentQuery = query;
+                displaySearchResults(results);
+            } else if (type === 'suggestions') {
+                displaySearchSuggestions(results);
+            }
+        }
+
+        function performSearch(query, maxResults = 100) {
+            if (!query || !searchState.index) return;
+            
+            const resultsContainer = document.getElementById('searchResultsContainer');
+            resultsContainer.innerHTML = '<div class="loading-indicator">Searching...</div>';
+            
+            searchState.currentQuery = query.toLowerCase();
+            searchState.lastSearchId++;
+            
+            if (searchState.worker) {
+                searchState.worker.postMessage({
+                    type: 'search',
+                    query: searchState.currentQuery,
+                    searchId: searchState.lastSearchId,
+                    maxResults
+                });
+            } else {
+                // Fallback to main thread search
+                const results = localSearch(searchState.currentQuery, maxResults);
+                searchState.currentResults = results;
+                displaySearchResults(results);
+            }
+        }
+
+        function localSearch(query, maxResults = 100) {
+            if (!searchState.index || !query) return [];
+            
+            const queryTerms = query.toLowerCase().split(/\s+/).filter(term => term.length > 0);
+            const scoredResults = [];
+            
+            // Search through all videos
+            for (const video of searchState.index.videos) {
+                let score = 0;
+                const lowerTitle = video.displayName.toLowerCase();
+                const lowerChannel = video.path.split('/')[0].toLowerCase();
+                
+                // Exact matches score highest
+                if (lowerTitle === query) score += 100;
+                if (lowerChannel === query) score += 80;
+                
+                // Partial matches
+                for (const term of queryTerms) {
+                    if (lowerTitle.includes(term)) score += 10;
+                    if (lowerChannel.includes(term)) score += 5;
+                    if (video.description && video.description.toLowerCase().includes(term)) score += 2;
+                }
+                
+                if (score > 0) {
+                    scoredResults.push({ ...video, score });
+                }
+            }
+            
+            // Sort by score and return top results
+            scoredResults.sort((a, b) => b.score - a.score);
+            return scoredResults.slice(0, maxResults);
+        }
+
+        function displaySearchResults(results) {
+            const resultsContainer = document.getElementById('searchResultsContainer');
+            
+            if (!results || results.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div style="color: white; padding: 20px;">
+                        No results found for "${searchState.currentQuery}"
+                    </div>
+                `;
+                return;
+            }
+            
+            resultsContainer.innerHTML = '';
+            
+            // Group by channel for channel results
+            const channelCounts = {};
+            results.forEach(video => {
+                const channel = video.path.split('/')[0];
+                channelCounts[channel] = (channelCounts[channel] || 0) + 1;
+            });
+            
+            // Show channels with multiple matches first
+            for (const [channel, count] of Object.entries(channelCounts)) {
+                if (count >= 5) {
+                    const channelElement = document.createElement('div');
+                    channelElement.className = 'channel-result';
+                    channelElement.innerHTML = `
+                        <img src="/channelpic/${encodeURIComponent(channel)}.jpg" 
+                             alt="${channel}" 
+                             loading="lazy"
+                             data-src="/channelpic/${encodeURIComponent(channel)}.jpg">
+                        <div class="channel-name">${channel}</div>
+                    `;
+                    
+                    // Channel click handlers
+                    channelElement.addEventListener('click', () => navigateToChannel(channel));
+                    channelElement.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        openInNewTab(`channel.html?channel=${encodeURIComponent(channel)}`);
+                    });
+                    channelElement.addEventListener('mouseup', (e) => {
+                        if (e.button === 1) {
+                            e.preventDefault();
+                            openInNewTab(`channel.html?channel=${encodeURIComponent(channel)}`);
+                        }
+                    });
+                    
+                    resultsContainer.appendChild(channelElement);
+                }
+            }
+            
+            // Show individual video results
+            results.forEach(video => {
+                createVideoElement(video, resultsContainer);
+            });
+            
+            // Add "Load more" if there might be more results
+            if (results.length >= 100) {
+                const loadMore = document.createElement('div');
+                loadMore.className = 'load-more';
+                loadMore.textContent = 'Load more results...';
+                loadMore.addEventListener('click', () => {
+                    performSearch(searchState.currentQuery, 500);
+                });
+                resultsContainer.appendChild(loadMore);
+            }
+        }
+
+        function createVideoElement(video, container) {
+            const videoElement = document.createElement('div');
+            videoElement.className = 'video-item search-result-item';
+            const videoTitle = video.displayName;
+            const videoPath = video.path;
+            const channelName = video.path.split('/')[0];
+            const videoPathWithoutExt = stripExtension(videoPath);
+            
+            videoElement.innerHTML = `
+                <div class="thumbnail-container">
+                    <img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+                         alt="${videoTitle}" 
+                         class="video-thumbnail" 
+                         loading="lazy"
+                         data-src="/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg">
+                    <div class="video-length"></div>
+                </div>
+                <div class="video-info">
+                    <div class="video-title">${videoTitle}</div>
+                    <div class="channel-info">
+                        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+                             alt="${channelName}" 
+                             class="channel-pic" 
+                             loading="lazy"
+                             data-src="/channelpic/${encodeURIComponent(channelName)}.jpg">
+                        <div class="channel-name clickable-channel-name">${channelName}</div>
+                    </div>
+                    <div class="video-description">${video.viewCount} views • Uploaded on ${video.fileDate}</div>
+                </div>
+            `;
+            
+            container.appendChild(videoElement);
+
+            // Video click handlers
+            const videoUrl = `video.html?src=${encodeURIComponent(videoPath)}`;
+            videoElement.querySelector('.video-thumbnail').addEventListener('click', () => navigateToVideo(videoUrl));
+            videoElement.querySelector('.video-title').addEventListener('click', () => navigateToVideo(videoUrl));
+            
+            // Channel click handlers
+            const channelUrl = `channel.html?channel=${encodeURIComponent(channelName)}`;
+            videoElement.querySelector('.clickable-channel-name').addEventListener('click', (e) => {
+                e.stopPropagation();
+                navigateToChannel(channelName);
+            });
+
+            // Right-click and middle-click support
+            setupContextMenu(videoElement.querySelector('.video-thumbnail'), videoUrl);
+            setupContextMenu(videoElement.querySelector('.video-title'), videoUrl);
+            setupContextMenu(videoElement.querySelector('.clickable-channel-name'), channelUrl);
+
+            // Fetch and display video length
+            const videoFilename = video.path.split('/').pop();
+            const videoNameWithoutExt = stripExtension(videoFilename);
+            fetch(`/videolengths/${channelName}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
+                .then(response => response.text())
+                .then(length => {
+                    videoElement.querySelector('.video-length').textContent = length;
+                })
+                .catch(error => {
+                    console.error('Error fetching video length:', error);
+                });
+        }
+
+        function setupSearchInput() {
+            const searchInput = document.getElementById('searchInput');
+            let debounceTimer = null;
+            
+            searchInput.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                const query = searchInput.value.trim().toLowerCase();
+                
+                if (query.length < 2) {
+                    document.getElementById('searchSuggestions').innerHTML = '';
+                    return;
+                }
+                
+                debounceTimer = setTimeout(() => {
+                    if (searchState.worker) {
+                        const searchId = ++searchState.lastSearchId;
+                        searchState.worker.postMessage({
+                            type: 'suggestions',
+                            query,
+                            searchId,
+                            maxResults: 5
+                        });
+                    } else {
+                        showSearchSuggestions(query);
+                    }
+                }, 300);
+            });
+
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const query = searchInput.value.trim();
+                    if (query) {
+                        window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+                    }
+                }
+            });
+        }
+
+        function showSearchSuggestions(query) {
+            if (!searchState.index) return;
+            
+            const suggestions = searchState.index.videos
+                .filter(video => video.displayName.toLowerCase().includes(query.toLowerCase()))
+                .slice(0, 5);
+            
+            displaySearchSuggestions(suggestions);
+        }
+
+        function displaySearchSuggestions(suggestions) {
+            const suggestionsContainer = document.getElementById('searchSuggestions');
+            suggestionsContainer.innerHTML = '';
+            
+            suggestions.forEach(video => {
+                const suggestionElement = document.createElement('div');
+                suggestionElement.className = 'suggestion-item';
+                suggestionElement.textContent = video.displayName;
+                
+                suggestionElement.addEventListener('click', () => {
+                    navigateToVideo(`video.html?src=${encodeURIComponent(video.path)}`);
+                });
+                
+                setupContextMenu(suggestionElement, `video.html?src=${encodeURIComponent(video.path)}`);
+                
+                suggestionsContainer.appendChild(suggestionElement);
+            });
+        }
+
+        function setupLazyLoading() {
+            const lazyImageObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        if (img.dataset.src) {
+                            img.src = img.dataset.src;
+                            img.removeAttribute('data-src');
+                        }
+                        lazyImageObserver.unobserve(img);
+                    }
+                });
+            });
+
+            // Observe any existing lazy images
+            document.querySelectorAll('img[data-src]').forEach(img => {
+                lazyImageObserver.observe(img);
+            });
+
+            // Observe dynamically added images
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            node.querySelectorAll('img[data-src]').forEach(img => {
+                                lazyImageObserver.observe(img);
+                            });
+                        }
+                    });
+                });
+            });
+
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        }
+
+        function setupContextMenu(element, url) {
+            element.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                openInNewTab(url);
+            });
+            
+            element.addEventListener('mouseup', (e) => {
+                if (e.button === 1) { // Middle click
+                    e.preventDefault();
+                    openInNewTab(url);
+                }
+            });
+        }
+
+        function navigateToVideo(url) {
+            window.location.href = url;
+        }
+
+        function navigateToChannel(channel) {
+            window.location.href = `channel.html?channel=${encodeURIComponent(channel)}`;
+        }
+
+        function openInNewTab(url) {
+            window.open(url, '_blank');
+        }
+
+        function showError(message) {
+            document.getElementById('searchResultsContainer').innerHTML = 
+                `<div style="color: white; padding: 20px;">${message}</div>`;
+        }
+    </script>
+</body>
+</html>

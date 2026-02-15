@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playlist</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
+    <style>
+        .playlist-header {
+            padding: 20px;
+            margin-left: 200px;
+            background: #0f0f0f;
+            margin-top: 60px;
+        }
+        .playlist-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+        .playlist-info {
+            color: #888;
+            font-size: 14px;
+        }
+        .playlist-videos {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            padding: 20px;
+            margin-left: 180px;
+        }
+        .video-item {
+            margin: 10px;
+            background: #0f0f0f;
+            border-radius: 8px;
+            overflow: hidden;
+            width: 300px;
+            text-align: center;
+        }
+        .video-thumbnail {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 8px 8px 0 0;
+        }
+        .video-title {
+            padding: 10px;
+            text-align: left;
+            font-weight: bold;
+            font-family: 'RobotoRegular', sans-serif;
+            cursor: pointer;
+            color: #d2cfcf;
+        }
+        .video-description {
+            text-align: left;
+            padding: 0 10px 10px;
+            color: #888;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <header class="top-bar">
+        <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search">
+            <div id="searchSuggestions" class="search-suggestions"></div>
+        </div>
+    </header>
+
+    <div class="playlist-header">
+        <div class="playlist-title" id="playlistTitle"></div>
+        <div class="playlist-info" id="playlistInfo"></div>
+    </div>
+
+    <div class="playlist-videos" id="playlistVideosContainer"></div>
+
+    <script>
+// Handle logo clicks
+document.addEventListener('DOMContentLoaded', () => {
+    const mainLogo = document.getElementById('mainLogo');
+    
+    if (mainLogo) {
+        // Left click - navigate to homepage in same tab
+        mainLogo.addEventListener('click', (event) => {
+            if (event.button === 0) { // Left click
+                window.location.href = 'index.html';
+            }
+        });
+        
+        // Middle click (mouse wheel) - open homepage in new tab
+        mainLogo.addEventListener('mouseup', (event) => {
+            if (event.button === 1) { // Middle click
+                event.preventDefault();
+                window.open('index.html', '_blank');
+            }
+        });
+        
+        // Right click - open homepage in new tab (with context menu option)
+        mainLogo.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            window.open('index.html', '_blank');
+        });
+        
+        // Add title for accessibility
+        mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
+        
+        // Add cursor styling
+        mainLogo.style.cursor = 'pointer';
+    }
+});
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const channel = decodeURIComponent(urlParams.get('channel'));
+            const playlist = decodeURIComponent(urlParams.get('playlist'));
+            const playlistTitle = document.getElementById('playlistTitle');
+            const playlistInfo = document.getElementById('playlistInfo');
+            const videosContainer = document.getElementById('playlistVideosContainer');
+
+            playlistTitle.textContent = playlist;
+            document.title = `${playlist} - ${channel} - LocalYT`;
+
+            fetch(`/playlist-videos/${encodeURIComponent(channel)}/${encodeURIComponent(playlist)}`)
+                .then(response => response.json())
+                .then(videos => {
+                    playlistInfo.textContent = `${videos.length} videos`;
+                    
+                    videos.forEach(video => {
+                        const videoElement = document.createElement('div');
+                        videoElement.className = 'video-item';
+                        const videoTitle = video.displayName;
+                        const thumbnailSrc = `/thumbnails/${encodeURIComponent(video.path.replace(/\.mp4$/, ''))}.jpg`;
+                        
+                        videoElement.innerHTML = `
+                            <div class="thumbnail-container">
+                                <a href="video.html?src=${encodeURIComponent(video.path)}">
+                                    <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
+                                </a>
+                                <div class="video-length"></div>
+                            </div>
+                            <div class="video-title" onclick="openVideo('${encodeURIComponent(video.path)}')">${videoTitle}</div>
+                            <div class="video-description">${video.viewCount} views • Uploaded on ${video.fileDate}</div>
+                        `;
+                        
+                        videosContainer.appendChild(videoElement);
+
+                        // Get video length
+                        fetch(`/videolengths/${channel}/${encodeURIComponent(video.path.split('/').pop().replace(/\.mp4$/, ''))}.txt`)
+                            .then(response => response.text())
+                            .then(length => {
+                                videoElement.querySelector('.video-length').textContent = length;
+                            })
+                            .catch(error => {
+                                console.error('Error fetching video length:', error);
+                            });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching playlist videos:', error);
+                    videosContainer.innerHTML = '<p style="color: #888;">Error loading playlist videos</p>';
+                });
+
+            // Search functionality
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', () => {
+                const query = searchInput.value.toLowerCase();
+                fetch('/videos')
+                    .then(response => response.json())
+                    .then(videos => {
+                        const suggestions = videos
+                            .filter(video => video.displayName.toLowerCase().includes(query))
+                            .map(video => ({
+                                title: video.displayName,
+                                fullPath: video.path
+                            }));
+
+                        const suggestionsContainer = document.getElementById('searchSuggestions');
+                        suggestionsContainer.innerHTML = '';
+                        suggestions.forEach(suggestion => {
+                            const suggestionElement = document.createElement('div');
+                            suggestionElement.className = 'suggestion-item';
+                            suggestionElement.textContent = suggestion.title;
+                            suggestionElement.onclick = () => {
+                                window.location.href = `video.html?src=${encodeURIComponent(suggestion.fullPath)}`;
+                            };
+                            suggestionsContainer.appendChild(suggestionElement);
+                        });
+                    });
+            });
+
+            searchInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
+                }
+            });
+        });
+
+        function openVideo(videoSrc) {
+            window.location.href = `video.html?src=${videoSrc}`;
+        }
+    </script>
+</body>
+</html>

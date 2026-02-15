@@ -1,0 +1,437 @@
+@font-face {
+    font-family: 'RobotoRegular';
+    src: url('/LocalYT-Rev-Files/Roboto-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'RobotoThin';
+    src: url('/LocalYT-Rev-Files/Roboto-Thin.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Kaleko205Round';
+    src: url('/LocalYT-Rev-Files/Kaleko 205 Round W01 Bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+}
+
+body {
+    font-family: 'RobotoRegular', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #0f0f0f;
+    color: #fff;
+}
+
+.top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background-color: #0f0f0f;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.logo {
+    width: 175px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.search-container {
+    display: flex;
+    align-items: center;
+    justify-content: center; 
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto 0 25%;
+    position: relative; 
+}
+
+.top-bar input {
+    width: 100%; /* Make the search bar take full width of the container */
+    padding: 10px 15px;
+    font-size: 16px;
+    border: 2px solid #444; /* Darker border for better contrast */
+    background-color: #1a1a1a;
+    color: #fff;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2); /* Inner shadow for depth */
+    transition: border-color 0.3s ease; /* Smooth transition for border color */
+}
+
+.top-bar input:focus {
+    border-color: #fff; /* Change border color on focus */
+    outline: none; /* Remove default outline */
+}
+
+.search-suggestions {
+    position: absolute;
+    top: 100%; /* Position directly below the search bar */
+    left: 0;
+    right: 0;
+    background-color: #1a1a1a;
+    border: 1px solid #444; /* Darker border for better contrast */
+    max-height: 260px;
+    overflow-y: auto;
+    z-index: 1001;
+}
+
+.suggestion-item {
+    padding: 10px; /* Increase padding for better touch area */
+    cursor: pointer;
+}
+
+.container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    padding: 80px 20px 20px;
+}
+
+.video-thumbnail {
+    width: 100%;
+    height: 180px; /* Increased height */
+    display: block;
+    border-radius: 8px 8px 0 0;
+    transition: transform 0.2s ease;
+    cursor: pointer;
+}
+
+.video-item {
+    margin: 10px; /* Reduced margin to bring items closer together */
+    background: #0f0f0f;
+    border-radius: 8px;
+    overflow: hidden;
+    width: 320px; /* Increased width */
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+.video-item video {
+    width: 100%;
+    height: auto;
+    display: block;
+    border: none;
+    pointer-events: none;
+}
+
+.video-info {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px;
+    text-align: left;
+}
+
+.video-details {
+    display: flex;
+    flex-direction: column;
+    margin-left: 10px;
+}
+
+.video-title {
+    font-weight: bold;
+    font-family: 'RobotoRegular', sans-serif;
+    cursor: pointer;
+    color: #d2cfcf;
+    text-decoration: none;
+    transition: text-decoration 0.2s ease;
+    font-size: 14px;
+}
+
+.channel-name {
+    font-size: 12px; /* Smaller font size */
+    font-weight: light;
+    margin-top: 5px;
+    cursor: pointer;
+    color: #aaa;
+    transition: color 0.3s ease; /* Add transition for smooth color change */
+}
+
+.channel-name:hover {
+    color: #ffffff; /* Change to a brighter color on hover */
+}
+
+.video-description {
+    font-family: 'RobotoRegular', sans-serif;
+    font-size: 12px; /* Smaller font size */
+    color: #888;
+    margin-top: 5px;
+    padding-left: 48px;
+}
+
+.video-player-container {
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+    padding: 80px 0px 20px; /* Increase top padding to move the video player down */
+    background-color: #0f0f0f;
+    color: #fff;
+}
+
+video {
+    width: 1060px; /* Increased width */
+    height: 598px; /* Increased height */
+    display: block;
+    border: none;
+}
+
+.video-wrapper {
+    flex: 0 0 70%; /* Adjust this value if needed */
+    padding-right: 0px;
+    position: relative;
+}
+
+.current-video-title {
+    padding: 0px;
+    text-align: left;
+    font-weight: bold;
+    font-family: 'RobotoRegular', sans-serif;
+    margin-top: 13px;
+    color: #d2cfcf;
+    font-size: 16px;
+}
+
+.suggestions-wrapper {
+    background-color: #0f0f0f;
+    padding: z0px;
+    border-radius: 8px;
+}
+
+.video-suggestions {
+    display: flex;
+    flex-direction: column;
+}
+
+.suggestion-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 0px;
+}
+
+.suggestion-item img.video-thumbnail {
+    width: 135px;
+    height: 72px;
+    display: block;
+    border-radius: 0px; /* Remove thumbnail rounded corners */
+}
+
+.suggestion-title {
+
+    text-align: left;
+    font-weight: regular;
+    font-family: 'RobotoRegular', sans-serif;
+    cursor: pointer;
+    color: #ffffff;
+    text-decoration: none;
+    transition: text-decoration 0.2s ease;
+    font-size: 14px;
+}
+
+.search-results-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 80px 20px 20px;
+}
+
+.search-result-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px; /* Reduce the margin to put items closer together */
+    width: 70%; /* Make the items wider */
+    background: #0f0f0f;
+    border-radius: 0px;
+    overflow: hidden;
+    transition: transform 0.2s ease;
+}
+
+.search-result-item .video-thumbnail {
+    width: 280px; /* Increase the width of the thumbnail */
+    height: 160px; /* Increase the height of the thumbnail */
+    display: block;
+    border-radius: 0px;
+    margin-right: 20px; /* Increase the margin to the right */
+}
+
+.search-result-item .video-title {
+    flex: 1;
+    padding: 10px;
+    text-align: left;
+    font-weight: normal;
+    font-family: 'RobotoRegular', sans-serif;
+    cursor: pointer;
+    color: #ffffff;
+    text-decoration: none;
+    transition: text-decoration 0.2s ease;
+    font-size: 16px;
+    margin-top: -80px;
+}
+
+/* Specific styles for .video-description in index.html */
+.index-page .video-description {
+    margin-left: -50px;
+    max-width: calc(100% + 50px); /* Ensure the full width is available */
+}
+
+/* Specific styles for .video-description in search.html */
+.search-page .video-description {
+    margin-left: 0; /* or any other value you prefer */
+    max-width: 100%; /* Ensure the full width is available */
+}
+
+/* Ensure the video title and description are aligned properly */
+.search-result-item .video-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px;
+}
+
+.search-result-item .video-info .video-title {
+    margin-bottom: 5px;
+}
+
+.current-video-description {
+    font-family: 'RobotoRegular', sans-serif;
+    font-size: 15px;
+    color: #888;
+    margin-top: 20px;
+}
+
+.suggestion-item .channel-name {
+    font-size: 12px;
+    color: #888;
+    margin-left: 10px;
+    cursor: pointer;
+}
+
+.channel-info {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.channel-pic {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.thumbnail-container {
+    position: relative;
+    display: inline-block;
+}
+
+.video-length {
+    position: absolute;
+    bottom: 2px;
+    right: 12px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    padding: 2px 5px;
+    font-size: 10px;
+    border-radius: 3px;
+}
+
+.like-dislike-container {
+    display: flex;
+    align-items: center;
+    margin-left: 600px; /* Adjust the margin as needed */
+}
+
+.like-dislike-container img {
+    width: 25px;
+    height: 25px;
+    margin-right: 8px;
+    filter: invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%); /* Add this line to change the color of the SVGs */
+    cursor: pointer;
+}
+
+.like-dislike-container span {
+    font-family: 'Kaleko205Round', Arial, sans-serif;
+    font-size: 14px;
+    color: #aaa;
+    margin-right: 20px;
+}
+
+.like-dislike-container {
+    display: flex;
+    align-items: center;
+    margin-left: 600px; /* Adjust the margin as needed */
+}
+
+.share-container img {
+    width: 25px;
+    height: 25px;
+    margin-right: 8px;
+    filter: invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%); /* Add this line to change the color of the SVGs */
+}
+
+.share-container span {
+    font-family: 'Kaleko205Round', Arial, sans-serif;
+    font-size: 14px;
+    color: #aaa;
+}
+
+.subscribe-button {
+    padding: 5px 10px;
+    cursor: pointer;
+    font-family: 'RobotoRegular', Arial, sans-serif;
+    font-size: 12px;video {
+    width: 1280px; /* Increased width */
+    height: 720px; /* Increased height */
+    display: block;
+    border: none;
+}
+
+    color: #888;
+    background-color: red;
+    border: none;
+    border-radius: 3px;
+}
+
+.subscribe-button.subscribed {
+    background-color: lightgray;
+}
+
+.user-actions a.login-button {
+    padding: 10px 20px;
+    background-color: #ff0000;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    text-decoration: none;
+    font-family: 'RobotoRegular', Arial, sans-serif;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    position: absolute;
+    right: 85px;
+    margin-top: -18px;
+}
+
+.categories-container {
+    width: 200px;
+    float: left;
+    margin-right: 20px;
+}
+
+.category-item {
+    padding: 10px;
+    border: 1px solid #ccc;
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+.category-item:hover {
+    background-color: #f0f0f0;
+}

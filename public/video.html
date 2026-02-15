@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalYT</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
+    <script src="fluidplayer.min.js"></script>
+    <style>
+        .channel-info {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .channel-pic {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .channel-name {
+            font-size: 13px;
+            font-weight: regular;
+            cursor: pointer;
+            color: #ffffff;
+            margin-top: 0;
+            margin-left: 0;
+            margin-bottom: 2px; /* Small gap between name and sub count */
+            line-height: 1.2;
+        }
+        .channel-text-group {
+            display: flex;
+            flex-direction: column;
+            margin-right: 10px; /* Adds space between the text and the Subscribe button */
+        }
+        
+        .suggestion-item {
+            display: flex;
+            align-items: flex-start; /* This ensures the text aligns to the top of the thumbnail */
+            margin-left: 10px;
+            margin-bottom: 0px; /* Keeps your setting of 0 gap */
+        }
+        .suggestion-item img {
+            width: 80px;
+            height: 45px;
+            margin-right: 10px;
+            flex-shrink: 0; /* Prevents image from shrinking if text is long */
+        }
+
+        /* New wrapper to stack text vertically */
+        .suggestion-info {
+            display: flex;
+            flex-direction: column;
+            width: 200px;
+            margin-top: 0; /* Explicitly ensure no top margin */
+        }
+
+        .suggestion-title {
+            font-size: 12px;
+            cursor: pointer;
+            color: #d2cfcf;
+            margin-bottom: 12px; /* Space between title and channel */
+            line-height: 1.2;
+            /* Allows text to wrap to 2 lines with ellipsis */
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .suggestion-channel {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 2px; /* Space between channel and view count */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; /* Adds "..." if channel name is super long */
+        }
+        
+        .view-count {
+            font-size: 12px;
+            color: #888;
+            white-space: nowrap; /* Keeps view count on one line */
+        }
+
+        .content-wrapper {
+            margin-left: 70px;
+        }
+        .video-wrapper {
+            flex: 0 0 70%;
+            padding-right: 0px;
+            position: relative;
+            .video-stage {
+                position: relative; /* Establishes a new positioning context for the logo */
+                width: 100%;
+            }
+        }
+        .logo-overlay {
+            position: absolute;
+            top: 55%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 75px;
+            height: 150px;
+            background-image: url('LocalYT-Rev-Files/Play-Dark.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            transition: background-image 0.3s ease;
+        }
+        .video-wrapper:hover .logo-overlay {
+            background-image: url('LocalYT-Rev-Files/Play-Light.png');
+        }
+        .video-wrapper.paused {
+            cursor: pointer;
+        }
+        .like-dislike-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-left: auto;
+        }
+        .like-dislike-icons {
+            display: flex;
+            align-items: center;
+        }
+        .like-dislike-icons img {
+            width: 25px;
+            height: 25px;
+            margin-right: 8px;
+            filter: invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%); /* Add this line to change the color of the SVGs */
+            cursor: pointer;
+        }
+        .like-dislike-icons span {
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            font-size: 14px;
+            color: #aaa;
+            margin-right: 20px;
+        }
+        .like-dislike-bar-container {
+            width: 140px;
+            height: 3px;
+            background-color: #235cad;
+            border-radius: 2px;
+            margin-top: 6px;
+            margin-left: -20px;
+        }
+        .like-bar {
+            height: 100%;
+            background-color: #397ddb;
+            border-radius: 2px;
+        }
+        .share-container {
+            display: flex;
+            align-items: center;
+            margin-left: 70px; /* Adjust the margin as needed */
+        }
+        .share-container img {
+            width: 25px;
+            height: 25px;
+            margin-right: 8px;
+            filter: invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%); /* Add this line to change the color of the SVGs */
+        }
+        .share-container span {
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            font-size: 14px;
+            color: #aaa;
+            margin-right: 50px;
+        }
+        .sub-count {
+            font-size: 12px;
+            color: #888;
+            margin-left: 0; /* Reset the -58px margin */
+            white-space: nowrap;
+            margin-top: 0; /* Reset the 20px margin */
+        }
+        .subscribe-button {
+            margin-left: 10px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            font-size: 12px;
+            color: #d3d3d3;
+            background-color: red;
+            border: none;
+            border-radius: 3px;
+        }
+        .subscribe-button.subscribed {
+            background-color: darkgray;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: #1a1a1a;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .modal-content h2 {
+            font-family: 'Kaleko205Round', Arial, sans-serif;
+            color: #fff;
+            margin-bottom: 20px;
+        }
+        .modal-content button {
+            background-color: red;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .modal-content button:hover {
+            background-color: darkred;
+        }
+        .copy-message {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1a1a1a;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+        .video-description {
+            background-color: #282828;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 5px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            font-size: 14px;
+            color: #fff;
+            white-space: pre-line;
+            text-align: left;
+        }
+        .video-description a {
+            color: #3ea6ff;
+            text-decoration: none;
+        }
+
+        .video-description a:hover {
+            text-decoration: underline;
+        }
+            video {
+                width: 1280px; /* Increased width */
+                height: 720px; /* Increased height */
+                display: block;
+                border: none;
+            }
+
+        .video-description .no-description {
+            color: #999;
+            font-style: italic;
+            display: block;
+            margin-top: 10px;
+        }
+
+    </style>
+</head>
+<body>
+    <header class="top-bar">
+        <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search">
+            <div id="searchSuggestions" class="search-suggestions"></div>
+        </div>
+    </header>
+    <div class="content-wrapper">
+        <div class="video-player-container">
+            <div class="video-wrapper paused">
+                <div class="video-stage">
+                    <video id="videoPlayer" controls>
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="logo-overlay"></div>
+                </div>
+                <div id="currentVideoTitle" class="current-video-title"></div>
+                <div id="channelInfo" class="channel-info">
+                    <img id="channelPic" class="channel-pic" alt="Channel Picture">
+                    
+                    <!-- START WRAPPER -->
+                    <div class="channel-text-group">
+                        <div id="channelName" class="channel-name" onclick="openChannelPage()"></div>
+                        <div id="subCount" class="sub-count"></div>
+                    </div>
+                    <!-- END WRAPPER -->
+
+                    <button id="subscribeButton" class="subscribe-button">Subscribe</button>
+                    <div id="likeDislikeContainer" class="like-dislike-container">
+                        <div class="like-dislike-icons">
+                            <img id="likeButton" src="LocalYT-Rev-Files/like.svg" alt="Like">
+                            <span id="likeCount"></span>
+                            <img id="dislikeButton" src="LocalYT-Rev-Files/dislike.svg" alt="Dislike">
+                            <span id="dislikeCount"></span>
+                        </div>
+                        <div class="like-dislike-bar-container">
+                            <div id="likeBar" class="like-bar"></div>
+                        </div>
+                    </div>
+                    <div id="shareContainer" class="share-container">
+                        <img src="LocalYT-Rev-Files/Share.svg" alt="Share">
+                        <span>SHARE</span>
+                    </div>
+                </div>
+                <div id="currentVideoDescription" class="video-description"></div>
+            </div>
+            <div class="suggestions-wrapper">
+                <div id="videoSuggestions" class="video-suggestions"></div>
+            </div>
+        </div>
+    </div>
+    <div id="shareModal" class="modal">
+        <div class="modal-content">
+            <h2>Share Video</h2>
+            <button id="copyWithTimestamp">Copy Link + Timestamp</button>
+            <button id="copyWithoutTimestamp">Copy Link</button>
+        </div>
+    </div>
+    <div id="copyMessage" class="copy-message">
+        Video URL copied to clipboard!
+    </div>
+    <script>
+// Handle logo clicks
+document.addEventListener('DOMContentLoaded', () => {
+    const mainLogo = document.getElementById('mainLogo');
+    
+    if (mainLogo) {
+        // Left click - navigate to homepage in same tab
+        mainLogo.addEventListener('click', (event) => {
+            if (event.button === 0) { // Left click
+                window.location.href = 'index.html';
+            }
+        });
+        
+        // Middle click (mouse wheel) - open homepage in new tab
+        mainLogo.addEventListener('mouseup', (event) => {
+            if (event.button === 1) { // Middle click
+                event.preventDefault();
+                window.open('index.html', '_blank');
+            }
+        });
+        
+        // Right click - open homepage in new tab (with context menu option)
+        mainLogo.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            window.open('index.html', '_blank');
+        });
+        
+        // Add title for accessibility
+        mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
+        
+        // Add cursor styling
+        mainLogo.style.cursor = 'pointer';
+    }
+});
+
+        // Helper function to strip file extension for thumbnail and metadata paths
+        function stripExtension(filename) {
+            return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+        }
+
+        // Helper function to get video file extension
+        function getVideoExtension(path) {
+            const match = path.match(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i);
+            return match ? match[1] : 'mp4';
+        }
+
+        // Helper function to get MIME type based on extension
+        function getMimeType(extension) {
+            const mimeTypes = {
+                'mp4': 'video/mp4',
+                'mkv': 'video/x-matroska',
+                'avi': 'video/x-msvideo',
+                'mov': 'video/quicktime',
+                'wmv': 'video/x-ms-wmv',
+                'flv': 'video/x-flv',
+                'webm': 'video/webm',
+                'mp3': 'audio/mp3'
+            };
+            return mimeTypes[extension.toLowerCase()] || 'video/mp4';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            // Note: If the URL in the browser bar is ?src=Test/#file.mp4, get('src') will only return "Test/".
+            // The link TO this page must encode # as %23 for the filename to be fully passed here.
+            const videoSrc = decodeURIComponent(urlParams.get('src'));
+            const timestamp = urlParams.get('t');
+            const videoPlayer = document.getElementById('videoPlayer');
+            const currentVideoTitle = document.getElementById('currentVideoTitle');
+            const currentVideoDescription = document.getElementById('currentVideoDescription');
+            const channelPic = document.getElementById('channelPic');
+            const channelName = document.getElementById('channelName');
+            const subCount = document.getElementById('subCount');
+            const subscribeButton = document.getElementById('subscribeButton');
+            const logoOverlay = document.querySelector('.logo-overlay');
+            const videoWrapper = document.querySelector('.video-wrapper');
+            const likeDislikeContainer = document.getElementById('likeDislikeContainer');
+            const likeButton = document.getElementById('likeButton');
+            const dislikeButton = document.getElementById('dislikeButton');
+            const likeCount = document.getElementById('likeCount');
+            const dislikeCount = document.getElementById('dislikeCount');
+            const likeBar = document.getElementById('likeBar');
+            const shareContainer = document.getElementById('shareContainer');
+            const shareModal = document.getElementById('shareModal');
+            const copyWithTimestamp = document.getElementById('copyWithTimestamp');
+            const copyWithoutTimestamp = document.getElementById('copyWithoutTimestamp');
+            const copyMessage = document.getElementById('copyMessage');
+
+            let likes = 0;
+            let dislikes = 0;
+            let isLiked = false;
+            let isDisliked = false;
+            let isSubscribed = false;
+            let posterImageUrl = '';
+
+            if (videoSrc) {
+                const videoExtension = getVideoExtension(videoSrc);
+                const mimeType = getMimeType(videoExtension);
+                
+                // Clear existing source elements
+                videoPlayer.innerHTML = '';
+                
+                // Add the correct source element with proper MIME type
+                const sourceElement = document.createElement('source');
+                // FIX: Encode the path for the video source URL
+                sourceElement.src = `/videos/${encodeURIComponent(videoSrc)}`;
+                sourceElement.type = mimeType;
+                videoPlayer.appendChild(sourceElement);
+
+                // Fetch the display name for the current video
+                const videoPathWithoutExt = stripExtension(videoSrc);
+                // FIX: Encode the path in fetch URL
+                fetch(`/filenames/${encodeURIComponent(videoPathWithoutExt)}.txt`)
+                    .then(response => response.text())
+                    .then(displayName => {
+                        currentVideoTitle.textContent = displayName;
+                        document.title = `${displayName} - LocalYT`;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching display name:', error);
+                    });
+
+                const pathParts = videoSrc.split('/');
+                const channel = pathParts[0];
+                const videoNameWithoutExt = stripExtension(pathParts[pathParts.length - 1]);
+
+                // Construct the poster image URL
+                // FIX: Encode channel and filename parts for the URL
+                posterImageUrl = `/thumbnails/${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.jpg`;
+
+                // FIX: Encode channel in image source
+                channelPic.src = `/channelpic/${encodeURIComponent(channel)}.jpg`;
+                channelName.textContent = channel;
+
+                // Fetch the subscriber count
+                // FIX: Encode channel in fetch URL
+                fetch(`/subcount/${encodeURIComponent(channel)}`)
+                    .then(response => response.text())
+                    .then(subCountText => {
+                        subCount.textContent = `${subCountText} subscribers`;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching subscriber count:', error);
+                    });
+
+                // Fetch view count and file date
+                Promise.all([
+                    // FIX: Encode path in fetch URLs
+                    fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(response => response.text()),
+                    fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(response => response.text())
+                ])
+                .then(([viewCount, fileDate]) => {
+                    currentVideoDescription.textContent = `${viewCount} views - Uploaded on ${fileDate}\n\n`;
+
+                    // Fetch and display the video description
+                    // FIX: Encode path in fetch URL
+                    const descriptionPath = `/descriptions/${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.txt`;
+                    return fetch(descriptionPath);
+                })
+                .then(response => {
+    if (!response.ok) {
+        // Instead of throwing an error, return a placeholder message
+        return null;
+    }
+    return response.text();
+})
+.then(description => {
+    if (description === null) {
+        // Display placeholder when no description is available
+        currentVideoDescription.innerHTML = currentVideoDescription.textContent + 
+            '<span class="no-description">No description available for this video.</span>';
+    } else {
+        const descriptionWithLinks = detectAndStyleLinks(description);
+        currentVideoDescription.innerHTML = currentVideoDescription.textContent + descriptionWithLinks;
+    }
+})
+.catch(error => {
+    console.log('No description found for this video');
+    // Display placeholder on any error
+    currentVideoDescription.innerHTML = currentVideoDescription.textContent + 
+        '<span class="no-description">No description available for this video.</span>';
+});
+
+                // FIX: Encode path in fetch URL
+                fetch(`/videostats/${encodeURIComponent(videoPathWithoutExt)}`)
+                    .then(response => response.text())
+                    .then(data => {
+                        [likes, dislikes] = data.split(',').map(Number);
+                        updateLikeDislikeUI();
+                    })
+                    .catch(error => {
+                        console.error('Error fetching like/dislike counts:', error);
+                    });
+
+                fetch('/user-likes')
+                    .then(response => response.json())
+                    .then(userLikes => {
+                        isLiked = userLikes[videoSrc] || false;
+                        updateLikeDislikeUI();
+                    })
+                    .catch(error => {
+                        console.error('Error fetching user likes:', error);
+                    });
+
+                fetch('/user-dislikes')
+                    .then(response => response.json())
+                    .then(userDislikes => {
+                        isDisliked = userDislikes[videoSrc] || false;
+                        updateLikeDislikeUI();
+                    })
+                    .catch(error => {
+                        console.error('Error fetching user dislikes:', error);
+                    });
+
+                // FIX: Encode channel in fetch URL
+                fetch(`/user-subscriptions/${encodeURIComponent(channel)}`)
+                    .then(response => response.json())
+                    .then(userSubscriptions => {
+                        isSubscribed = userSubscriptions[channel] || false;
+                        updateSubscribeButton();
+                    })
+                    .catch(error => {
+                        console.error('Error fetching user subscriptions:', error);
+                    });
+
+                // Update user preferences
+                fetch('/updatePreferences', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ video: videoSrc })
+                });
+
+                // Add to watch history
+                fetch('/add-to-history', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ video: videoSrc })
+                });
+            }
+
+            // Initialize FluidPlayer with poster image configuration
+            var myFP = fluidPlayer(
+                'videoPlayer', {
+                    "layoutControls": {
+                        "controlBar": {
+                            "autoHideTimeout": 3,
+                            "animated": true,
+                            "autoHide": true
+                        },
+                        "htmlOnPauseBlock": {
+                            "html": null,
+                            "height": null,
+                            "width": null
+                        },
+                        "autoPlay": false,
+                        "mute": false,
+                        "allowTheatre": true,
+                        "playPauseAnimation": true,
+                        "playbackRateEnabled": true,
+                        "allowDownload": false,
+                        "playButtonShowing": false,
+                        "fillToContainer": true,
+                        "posterImage": posterImageUrl,
+                        "posterImageSize": "cover"
+                    },
+                    "vastOptions": {
+                        "adList": [],
+                        "adCTAText": false,
+                        "adCTATextPosition": ""
+                    }
+                }
+            );
+
+            // Rest of your existing JavaScript code remains the same...
+            fetch('/recommendations')
+                .then(response => response.json())
+                .then(videos => {
+                    const suggestionsContainer = document.getElementById('videoSuggestions');
+                    videos.forEach(video => {
+                        const suggestionElement = document.createElement('div');
+                        suggestionElement.className = 'suggestion-item';
+                        const suggestionTitle = video.displayName;
+                        const channel = video.path.split('/')[0];
+                        const videoPathWithoutExt = stripExtension(video.path);
+                        
+                        // UPDATED HTML STRUCTURE: Wrapped text details in a .suggestion-info div
+                        suggestionElement.innerHTML = `
+                            <div class="thumbnail-container">
+                                <!-- FIX: Encode path in thumbnail data-src and fetch URL -->
+                                <img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg" alt="${suggestionTitle}" class="video-thumbnail lazyload">
+                                <div class="video-length"></div>
+                            </div>
+                            <div class="suggestion-info">
+                                <div class="suggestion-title" onclick="openVideo('${encodeURIComponent(video.path)}')">${suggestionTitle}</div>
+                                <div class="suggestion-channel">${channel}</div>
+                                <div class="view-count"></div>
+                            </div>
+                        `;
+                        suggestionsContainer.appendChild(suggestionElement);
+
+                        // Add event listener to the thumbnail container
+                        suggestionElement.querySelector('.thumbnail-container').addEventListener('click', () => {
+                            openVideo(encodeURIComponent(video.path));
+                        });
+
+                        // Add event listeners for right-click and mouse wheel click
+                        const videoLink = suggestionElement.querySelector('.suggestion-title');
+                        videoLink.addEventListener('contextmenu', (event) => {
+                            event.preventDefault();
+                            // FIX: Ensure this link is also encoded
+                            window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                        });
+
+                        videoLink.addEventListener('mouseup', (event) => {
+                            if (event.button === 1) {
+                                event.preventDefault();
+                                // FIX: Ensure this link is also encoded
+                                window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                            }
+                        });
+
+                        // Fetch video length
+                        const videoFilename = video.path.split('/').pop();
+                        const videoNameWithoutExt = stripExtension(videoFilename);
+                        // FIX: Encode path in fetch URL
+                        fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
+                            .then(response => response.text())
+                            .then(length => {
+                                suggestionElement.querySelector('.video-length').textContent = length;
+                            })
+                            .catch(error => {
+                                console.error('Error fetching video length:', error);
+                            });
+
+                        // Fetch view count
+                        // FIX: Encode path in fetch URL
+                        fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`)
+                            .then(response => response.text())
+                            .then(viewCount => {
+                                suggestionElement.querySelector('.view-count').textContent = `${viewCount} views`;
+                            })
+                            .catch(error => {
+                                console.error('Error fetching view count:', error);
+                            });
+                    });
+
+                    const lazyImages = document.querySelectorAll('img.lazyload');
+                    const imageObserver = new IntersectionObserver((entries, observer) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                const img = entry.target;
+                                img.src = img.dataset.src;
+                                observer.unobserve(img);
+                            }
+                        });
+                    });
+
+                    lazyImages.forEach(img => {
+                        imageObserver.observe(img);
+                    });
+                });
+
+            document.addEventListener('keydown', (event) => {
+                // Check if the active element is the search input
+                const activeElement = document.activeElement;
+                const isSearchInput = activeElement && (
+                    activeElement.id === 'searchInput' || 
+                    activeElement.tagName === 'INPUT' || 
+                    activeElement.tagName === 'TEXTAREA' ||
+                    activeElement.isContentEditable
+                );
+                
+                // If we're typing in the search input, don't trigger video controls
+                if (isSearchInput) {
+                    // Allow normal typing behavior - let the event propagate
+                    return;
+                }
+                
+                // Prevent default behavior for video control keys
+                const key = event.key.toLowerCase();
+                const controlKeys = [' ', 'arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'k', 'f', ',', '.', ';', ':'];
+                
+                if (controlKeys.includes(key) || key === ' ') {
+                    event.preventDefault();
+                }
+                
+                // Handle video controls
+                switch (key) {
+                    case 'k':
+                    case ' ':
+                        if (videoPlayer.paused) {
+                            videoPlayer.play();
+                        } else {
+                            videoPlayer.pause();
+                        }
+                        break;
+                    case 'arrowleft':
+                        videoPlayer.currentTime -= 5; // Skip back 5 seconds
+                        break;
+                    case 'arrowright':
+                        videoPlayer.currentTime += 5; // Skip forward 5 seconds
+                        break;
+                    case 'arrowup':
+                        videoPlayer.volume = Math.min(1, videoPlayer.volume + 0.1);
+                        break;
+                    case 'arrowdown':
+                        videoPlayer.volume = Math.max(0, videoPlayer.volume - 0.1);
+                        break;
+                    case 'f':
+                        if (!document.fullscreenElement) {
+                            videoPlayer.requestFullscreen();
+                        } else {
+                            document.exitFullscreen();
+                        }
+                        break;
+                    case ',':
+                        videoPlayer.currentTime -= 1 / 30;
+                        break;
+                    case '.':
+                        videoPlayer.currentTime += 1 / 30;
+                        break;
+                    case ';':
+                        videoPlayer.playbackRate = Math.max(0.25, videoPlayer.playbackRate - 0.25);
+                        break;
+                    case ':':
+                        videoPlayer.playbackRate = Math.min(4, videoPlayer.playbackRate + 0.25);
+                        break;
+                }
+            });
+
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', () => {
+                const query = searchInput.value.toLowerCase();
+                fetch('/videos')
+                    .then(response => response.json())
+                    .then(videos => {
+                        const suggestions = videos
+                            .filter(video => video.displayName.toLowerCase().includes(query));
+
+                        const suggestionsContainer = document.getElementById('searchSuggestions');
+                        suggestionsContainer.innerHTML = '';
+                        suggestions.forEach(video => {
+                            const suggestionElement = document.createElement('div');
+                            suggestionElement.className = 'suggestion-item';
+                            const videoTitle = video.displayName;
+                            suggestionElement.textContent = videoTitle;
+                            suggestionElement.onclick = () => {
+                                // FIX: Encode path in navigation
+                                window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
+                            };
+                            suggestionsContainer.appendChild(suggestionElement);
+
+                            // Add event listeners for right-click and mouse wheel click
+                            suggestionElement.addEventListener('contextmenu', (event) => {
+                                event.preventDefault();
+                                window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                            });
+
+                            suggestionElement.addEventListener('mouseup', (event) => {
+                                if (event.button === 1) {
+                                    event.preventDefault();
+                                    window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                                }
+                            });
+                        });
+                    });
+            });
+
+            searchInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
+                }
+            });
+
+            videoPlayer.addEventListener('play', () => {
+                logoOverlay.style.display = 'none';
+                videoWrapper.classList.remove('paused');
+            });
+
+            videoPlayer.addEventListener('pause', () => {
+                videoWrapper.classList.add('paused');
+            });
+
+            // Add event listener to the logo overlay to play the video
+            logoOverlay.addEventListener('click', () => {
+                videoPlayer.play();
+                logoOverlay.style.display = 'none';
+                videoWrapper.classList.remove('paused');
+            });
+
+            // Add event listener to the share button
+            shareContainer.addEventListener('click', () => {
+                shareModal.style.display = 'flex';
+            });
+
+            // Add event listener to the copy with timestamp button
+            copyWithTimestamp.addEventListener('click', () => {
+                const currentTime = Math.floor(videoPlayer.currentTime);
+                // FIX: Encode videoSrc in share URL
+                const shareUrl = `${window.location.origin}/video.html?src=${encodeURIComponent(videoSrc)}&t=${currentTime}`;
+                copyToClipboard(shareUrl);
+                shareModal.style.display = 'none';
+            });
+
+            // Add event listener to the copy without timestamp button
+            copyWithoutTimestamp.addEventListener('click', () => {
+                // FIX: Encode videoSrc in share URL
+                const shareUrl = `${window.location.origin}/video.html?src=${encodeURIComponent(videoSrc)}`;
+                copyToClipboard(shareUrl);
+                shareModal.style.display = 'none';
+            });
+
+            // Add event listener to the subscribe button
+            subscribeButton.addEventListener('click', () => {
+                isSubscribed = !isSubscribed;
+                updateSubscribeButton();
+
+                fetch('/subscribe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ channel, isSubscribed })
+                });
+            });
+
+            function updateLikeDislikeUI() {
+                likeCount.textContent = likes;
+                dislikeCount.textContent = dislikes;
+                
+                const totalReactions = likes + dislikes;
+                let likePercentage = 0;
+                if (totalReactions > 0) {
+                    likePercentage = (likes / totalReactions) * 100;
+                }
+                likeBar.style.width = `${likePercentage}%`;
+
+                if (isLiked) {
+                    likeButton.style.filter = 'invert(21%) sepia(93%) saturate(7454%) hue-rotate(203deg) brightness(100%) contrast(109%)';
+                } else {
+                    likeButton.style.filter = 'invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%)';
+                }
+
+                if (isDisliked) {
+                    dislikeButton.style.filter = 'invert(21%) sepia(93%) saturate(7454%) hue-rotate(203deg) brightness(100%) contrast(109%)';
+                } else {
+                    dislikeButton.style.filter = 'invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%)';
+                }
+            }
+
+            likeButton.addEventListener('click', () => {
+                isLiked = !isLiked;
+                if (isLiked) {
+                    likes += 1;
+                    if (isDisliked) {
+                        dislikes -= 1;
+                        isDisliked = false;
+                    }
+                } else {
+                    likes -= 1;
+                }
+                updateLikeDislikeUI();
+
+                fetch('/like', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ video: videoSrc, isLiked })
+                });
+            });
+
+            dislikeButton.addEventListener('click', () => {
+                isDisliked = !isDisliked;
+                if (isDisliked) {
+                    dislikes += 1;
+                    if (isLiked) {
+                        likes -= 1;
+                        isLiked = false;
+                    }
+                } else {
+                    dislikes -= 1;
+                }
+                updateLikeDislikeUI();
+
+                fetch('/dislike', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ video: videoSrc, isDisliked })
+                });
+            });
+
+            function updateSubscribeButton() {
+                if (isSubscribed) {
+                    subscribeButton.textContent = 'Subscribed';
+                    subscribeButton.classList.add('subscribed');
+                } else {
+                    subscribeButton.textContent = 'Subscribe';
+                    subscribeButton.classList.remove('subscribed');
+                }
+            }
+
+            function copyToClipboard(text) {
+                const tempInput = document.createElement('input');
+                tempInput.value = text;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                showCopyMessage();
+            }
+
+            function showCopyMessage() {
+                copyMessage.style.display = 'block';
+                setTimeout(() => {
+                    copyMessage.style.display = 'none';
+                }, 2000);
+            }
+
+            // Check for timestamp in URL and set video current time
+            if (timestamp) {
+                videoPlayer.currentTime = parseInt(timestamp, 10);
+            }
+        });
+
+        function openVideo(videoSrc) {
+            // videoSrc should already be encoded when calling this function
+            window.location.href = `video.html?src=${videoSrc}`;
+        }
+
+        function openChannelPage() {
+            const channel = document.getElementById('channelName').textContent;
+            // FIX: Encode channel name
+            window.location.href = `channel.html?channel=${encodeURIComponent(channel)}`;
+        }
+
+        // Add this function to detect and style links
+        function detectAndStyleLinks(text) {
+            // Regular expression to match URLs
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            // Regular expression to match timestamps (e.g., 1:23, 10:45, 1:23:45)
+            const timestampRegex = /(\b\d{1,2}:\d{2}(?::\d{2})?\b)/g;
+            
+            // First process URLs
+            let processedText = text.replace(urlRegex, function(url) {
+                return '<a href="' + url + '" target="_blank" style="color: #3ea6ff; text-decoration: none;">' + url + '</a>';
+            });
+            
+            // Then process timestamps
+            processedText = processedText.replace(timestampRegex, function(timestamp) {
+                const seconds = convertTimestampToSeconds(timestamp);
+                return '<a href="#" onclick="seekToTimestamp(\'' + timestamp + '\'); return false;" style="color: #3ea6ff; text-decoration: none;">' + timestamp + '</a>';
+            });
+            
+            return processedText;
+        }
+
+        // Add this helper function to convert timestamp to seconds
+        function convertTimestampToSeconds(timestamp) {
+            const parts = timestamp.split(':').map(part => parseInt(part, 10));
+            if (parts.length === 3) {
+                // Format: HH:MM:SS
+                return parts[0] * 3600 + parts[1] * 60 + parts[2];
+            } else if (parts.length === 2) {
+                // Format: MM:SS
+                return parts[0] * 60 + parts[1];
+            }
+            return 0;
+        }
+
+        // Add this function to handle timestamp clicks
+        function seekToTimestamp(timestamp) {
+            const videoPlayer = document.getElementById('videoPlayer');
+            const seconds = convertTimestampToSeconds(timestamp);
+            videoPlayer.currentTime = seconds;
+            videoPlayer.play();
+            
+            // Add a visual indicator that the timestamp was clicked (optional)
+            const clickedElement = event.target;
+            clickedElement.style.color = '#ff0000';
+            setTimeout(() => {
+                clickedElement.style.color = '#3ea6ff';
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

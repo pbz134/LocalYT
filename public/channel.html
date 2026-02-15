@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Channel Videos</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
+    <style>
+        .channel-banner {
+            width: 70%;
+            height: 170px;
+            background-size: cover;
+            background-position: center;
+            margin: 80px auto;
+            margin-bottom: 20px;
+        }
+        .channel-header {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+            margin-left: 230px;
+        }
+        .channel-pic {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin-right: 30px;
+        }
+        .channel-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+        }
+        .video-count {
+            color: #888;
+            font-size: 18px;
+            font-weight: normal;
+            display: block;
+            margin-top: 5px;
+        }
+        .divider {
+            border-top: 1px solid #3f3f3f;
+            margin: 20px 0;
+        }
+        .tabs {
+            display: flex;
+            margin-left: 230px;
+            border-bottom: 1px solid #3f3f3f;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            color: #aaa;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab.active {
+            color: #fff;
+            border-bottom: 2px solid #fff;
+        }
+        .tab:hover {
+            color: #fff;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .sort-toggle {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 10px 0;
+            margin-left: 230px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.2s;
+        }
+        .sort-toggle:hover {
+            background-color: #555;
+        }
+        .sort-icon {
+            font-size: 16px;
+        }
+        .channel-videos, .playlists-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .video-item {
+            margin: 10px;
+            background: #0f0f0f;
+            border-radius: 8px;
+            overflow: hidden;
+            width: 300px;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+        .playlist-item {
+            margin: 10px;
+            background: #0f0f0f;
+            border-radius: 8px;
+            overflow: hidden;
+            width: 300px;
+            text-align: center;
+            transition: transform 0.2s ease;
+            cursor: pointer;
+        }
+        .playlist-item:hover {
+            transform: scale(1.05);
+        }
+        .video-thumbnail {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 8px 8px 0 0;
+            transition: transform 0.2s ease;
+        }
+        .playlist-thumbnail {
+            width: 100%;
+            height: 168px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            border-radius: 8px 8px 0 0;
+        }
+        .playlist-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+        .video-title {
+            padding: 10px;
+            margin-left: -10px;
+            text-align: left;
+            font-weight: bold;
+            font-family: 'RobotoRegular', sans-serif;
+            cursor: pointer;
+            color: #d2cfcf;
+            text-decoration: none;
+            transition: text-decoration 0.2s ease;
+            font-size: 16px;
+        }
+        .playlist-title {
+            padding: 10px;
+            text-align: left;
+            font-weight: bold;
+            font-family: 'RobotoRegular', sans-serif;
+            color: #d2cfcf;
+            font-size: 16px;
+        }
+        .video-description, .playlist-description {
+            text-align: left;
+            padding: 0 10px;
+            margin-top: -4px;
+            margin-left: -10px;
+            color: #888;
+        }
+        .playlist-video-count {
+            text-align: left;
+            padding: 0 10px;
+            margin-top: -4px;
+            color: #888;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <header class="top-bar">
+        <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search">
+            <div id="searchSuggestions" class="search-suggestions"></div>
+        </div>
+    </header>
+    <div id="channelBanner" class="channel-banner"></div>
+    <div class="channel-header">
+        <img id="channelPic" class="channel-pic" alt="Channel Picture" loading="lazy">
+        <div id="channelName" class="channel-name"></div>
+    </div>
+    <div class="divider"></div>
+    
+    <!-- Tabs -->
+    <div class="tabs">
+        <div class="tab active" data-tab="videos">VIDEOS</div>
+        <div class="tab" data-tab="playlists">PLAYLISTS</div>
+    </div>
+
+    <!-- Videos Tab -->
+    <div id="videosTab" class="tab-content active">
+        <button id="sortToggle" class="sort-toggle">
+            <span class="sort-icon">↓</span> Newest First
+        </button>
+        <div class="container channel-videos" id="channelVideosContainer"></div>
+    </div>
+
+    <!-- Playlists Tab -->
+    <div id="playlistsTab" class="tab-content">
+        <div class="playlists-container" id="playlistsContainer"></div>
+    </div>
+
+    <script>
+// Handle logo clicks
+document.addEventListener('DOMContentLoaded', () => {
+    const mainLogo = document.getElementById('mainLogo');
+    
+    if (mainLogo) {
+        // Left click - navigate to homepage in same tab
+        mainLogo.addEventListener('click', (event) => {
+            if (event.button === 0) { // Left click
+                window.location.href = 'index.html';
+            }
+        });
+        
+        // Middle click (mouse wheel) - open homepage in new tab
+        mainLogo.addEventListener('mouseup', (event) => {
+            if (event.button === 1) { // Middle click
+                event.preventDefault();
+                window.open('index.html', '_blank');
+            }
+        });
+        
+        // Right click - open homepage in new tab (with context menu option)
+        mainLogo.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            window.open('index.html', '_blank');
+        });
+        
+        // Add title for accessibility
+        mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
+        
+        // Add cursor styling
+        mainLogo.style.cursor = 'pointer';
+    }
+});
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const channel = decodeURIComponent(urlParams.get('channel'));
+            const videosContainer = document.getElementById('channelVideosContainer');
+            const playlistsContainer = document.getElementById('playlistsContainer');
+            const channelPic = document.getElementById('channelPic');
+            const channelName = document.getElementById('channelName');
+            const channelBanner = document.getElementById('channelBanner');
+            const sortToggle = document.getElementById('sortToggle');
+            const sortIcon = sortToggle.querySelector('.sort-icon');
+
+            let currentVideos = [];
+            let sortNewestFirst = true;
+
+            channelBanner.style.backgroundImage = `url('/channelbanner/${encodeURIComponent(channel)}.jpg')`;
+            channelPic.src = `/channelpic/${encodeURIComponent(channel)}.jpg`;
+            channelName.textContent = channel;
+
+            document.title = `${channel} - LocalYT`;
+
+            // Tab functionality
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remove active class from all tabs and contents
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to clicked tab and corresponding content
+                    tab.classList.add('active');
+                    document.getElementById(`${tab.dataset.tab}Tab`).classList.add('active');
+                });
+            });
+
+            function parseEuropeanDate(dateString) {
+                if (!dateString || dateString === 'Unknown date') return new Date(0);
+                
+                const parts = dateString.split('.');
+                if (parts.length === 3) {
+                    const day = parseInt(parts[0], 10);
+                    const month = parseInt(parts[1], 10) - 1;
+                    const year = parseInt(parts[2], 10);
+                    return new Date(year, month, day);
+                }
+                return new Date(dateString);
+            }
+
+            function getVideoFilenameWithoutExtension(path) {
+                // Remove the file extension (.mp4, .mkv, .mp3, etc.)
+                return path.replace(/\.[^/.]+$/, '');
+            }
+
+            function sortVideos() {
+                currentVideos.sort((a, b) => {
+                    try {
+                        const dateA = parseEuropeanDate(a.fileDate).getTime();
+                        const dateB = parseEuropeanDate(b.fileDate).getTime();
+                        return sortNewestFirst ? dateB - dateA : dateA - dateB;
+                    } catch (e) {
+                        console.error('Error sorting videos:', e);
+                        return 0;
+                    }
+                });
+
+                if (sortNewestFirst) {
+                    sortToggle.innerHTML = '<span class="sort-icon">↓</span> Newest First';
+                } else {
+                    sortToggle.innerHTML = '<span class="sort-icon">↑</span> Oldest First';
+                }
+
+                renderVideos();
+            }
+
+            function renderVideos() {
+                videosContainer.innerHTML = '';
+                
+                currentVideos.forEach(video => {
+                    const videoElement = document.createElement('div');
+                    videoElement.className = 'video-item';
+                    const videoTitle = video.displayName;
+                    const videoFilenameWithoutExt = getVideoFilenameWithoutExtension(video.path);
+                    const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoFilenameWithoutExt)}.jpg`;
+                    
+                    videoElement.innerHTML = `
+                        <div class="thumbnail-container">
+                            <a href="video.html?src=${encodeURIComponent(video.path)}">
+                                <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
+                            </a>
+                            <div class="video-length"></div>
+                        </div>
+                        <div class="video-title" onclick="openVideo('${encodeURIComponent(video.path)}')">${videoTitle}</div>
+                        <div class="video-description">${video.viewCount} views • Uploaded on ${video.fileDate}</div>
+                    `;
+                    videosContainer.appendChild(videoElement);
+
+                    // Fetch video length (using filename without extension)
+                    fetch(`/videolengths/${channel}/${encodeURIComponent(videoFilenameWithoutExt.split('/').pop())}.txt`)
+                        .then(response => response.text())
+                        .then(length => {
+                            videoElement.querySelector('.video-length').textContent = length;
+                        })
+                        .catch(error => {
+                            console.error('Error fetching video length:', error);
+                        });
+
+                    const videoLink = videoElement.querySelector('.video-title');
+                    videoLink.addEventListener('contextmenu', (event) => {
+                        event.preventDefault();
+                        window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                    });
+
+                    videoLink.addEventListener('mouseup', (event) => {
+                        if (event.button === 1) {
+                            event.preventDefault();
+                            window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                        }
+                    });
+                });
+
+                const observer = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const img = entry.target;
+                            img.src = img.dataset.src;
+                            observer.unobserve(img);
+                        }
+                    });
+                });
+
+                document.querySelectorAll('.video-thumbnail').forEach(img => {
+                    img.dataset.src = img.src;
+                    img.src = '';
+                    observer.observe(img);
+                });
+            }
+
+            function renderPlaylists(playlists) {
+                playlistsContainer.innerHTML = '';
+                
+                if (playlists.length === 0) {
+                    playlistsContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">No playlists found</p>';
+                    return;
+                }
+
+                playlists.forEach(playlist => {
+                    const playlistElement = document.createElement('div');
+                    playlistElement.className = 'playlist-item';
+                    
+                    // Get first video in playlist for thumbnail
+                    fetch(`/playlist-videos/${encodeURIComponent(channel)}/${encodeURIComponent(playlist.path)}`)
+                        .then(response => response.json())
+                        .then(videos => {
+                            if (videos.length > 0) {
+                                const firstVideo = videos[0];
+                                const videoFilenameWithoutExt = getVideoFilenameWithoutExtension(firstVideo.path);
+                                const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoFilenameWithoutExt)}.jpg`;
+                                
+                                playlistElement.innerHTML = `
+                                    <div class="playlist-thumbnail" style="background-image: url('${thumbnailSrc}')">
+                                        <div class="playlist-overlay">
+                                            ${videos.length} videos
+                                        </div>
+                                    </div>
+                                    <div class="playlist-title">${playlist.name}</div>
+                                    <div class="playlist-video-count">${playlist.videoCount} videos</div>
+                                `;
+                            } else {
+                                playlistElement.innerHTML = `
+                                    <div class="playlist-thumbnail" style="background-color: #333">
+                                        <div class="playlist-overlay">
+                                            0 videos
+                                        </div>
+                                    </div>
+                                    <div class="playlist-title">${playlist.name}</div>
+                                    <div class="playlist-video-count">0 videos</div>
+                                `;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching playlist videos:', error);
+                        });
+
+                    playlistElement.addEventListener('click', () => {
+                        window.location.href = `playlist.html?channel=${encodeURIComponent(channel)}&playlist=${encodeURIComponent(playlist.path)}`;
+                    });
+
+                    playlistsContainer.appendChild(playlistElement);
+                });
+            }
+
+            sortToggle.addEventListener('click', () => {
+                sortNewestFirst = !sortNewestFirst;
+                sortVideos();
+            });
+
+            // Load videos
+            fetch('/videos')
+                .then(response => response.json())
+                .then(videos => {
+                    let channelVideos = videos.filter(video => video.path.startsWith(`${channel}/`));
+                    
+                    const datePromises = channelVideos.map(video => {
+                        const videoFileName = getVideoFilenameWithoutExtension(video.path.split('/').pop());
+                        const datePath = `/filedates/${encodeURIComponent(channel)}/${encodeURIComponent(videoFileName)}.txt`;
+                        
+                        return fetch(datePath)
+                            .then(response => {
+                                if (!response.ok) throw new Error('Date not found');
+                                return response.text();
+                            })
+                            .then(dateString => {
+                                const europeanDate = dateString.trim();
+                                return {
+                                    ...video,
+                                    fileDate: europeanDate || 'Unknown date',
+                                    dateObject: parseEuropeanDate(europeanDate)
+                                };
+                            })
+                            .catch(error => {
+                                console.error(`Error fetching date for ${videoFileName}:`, error);
+                                return {
+                                    ...video,
+                                    fileDate: 'Unknown date',
+                                    dateObject: new Date(0)
+                                };
+                            });
+                    });
+
+                    Promise.all(datePromises)
+                        .then(videosWithDates => {
+                            currentVideos = videosWithDates;
+                            sortVideos();
+                            
+                            const videoCount = currentVideos.length;
+                            fetch(`/subcount/${encodeURIComponent(channel)}`)
+                                .then(response => response.text())
+                                .then(subCount => {
+                                    channelName.innerHTML = `${channel}<span class="video-count">${subCount} subscribers • ${videoCount} videos</span>`;
+                                })
+                                .catch(error => {
+                                    console.error('Error fetching subscriber count:', error);
+                                    channelName.innerHTML = `${channel}<span class="video-count">${videoCount} videos</span>`;
+                                });
+                        });
+                });
+
+            // Load playlists
+            fetch(`/channel-playlists/${encodeURIComponent(channel)}`)
+                .then(response => response.json())
+                .then(playlists => {
+                    renderPlaylists(playlists);
+                })
+                .catch(error => {
+                    console.error('Error fetching playlists:', error);
+                });
+
+            // Search functionality
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', () => {
+                const query = searchInput.value.toLowerCase();
+                fetch('/videos')
+                    .then(response => response.json())
+                    .then(videos => {
+                        const suggestions = videos
+                            .filter(video => video.displayName.toLowerCase().includes(query))
+                            .map(video => ({
+                                title: video.displayName,
+                                fullPath: video.path
+                            }));
+
+                        const suggestionsContainer = document.getElementById('searchSuggestions');
+                        suggestionsContainer.innerHTML = '';
+                        suggestions.forEach(suggestion => {
+                            const suggestionElement = document.createElement('div');
+                            suggestionElement.className = 'suggestion-item';
+                            suggestionElement.textContent = suggestion.title;
+                            suggestionElement.onclick = () => {
+                                window.location.href = `video.html?src=${encodeURIComponent(suggestion.fullPath)}`;
+                            };
+                            suggestionsContainer.appendChild(suggestionElement);
+
+                            suggestionElement.addEventListener('contextmenu', (event) => {
+                                event.preventDefault();
+                                window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
+                            });
+
+                            suggestionElement.addEventListener('mouseup', (event) => {
+                                if (event.button === 1) {
+                                    event.preventDefault();
+                                    window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
+                                }
+                            });
+                        });
+                    });
+            });
+
+            searchInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
+                }
+            });
+        });
+
+        function openVideo(videoSrc) {
+            window.location.href = `video.html?src=${videoSrc}`;
+        }
+    </script>
+</body>
+</html>

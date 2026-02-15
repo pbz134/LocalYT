@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - LocalYT</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
+    <style>
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            color: #d2cfcf;
+        }
+        .container h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .container p {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <header class="top-bar">
+        <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search">
+            <div id="searchSuggestions" class="search-suggestions"></div>
+        </div>
+    </header>
+    <div class="container">
+        <h1>About LocalYT</h1>
+        <p>LocalYT is a local video library inspired by pre-2020 YouTube.</p>
+        <p>It allows you to watch locally-saved videos, integrate metadata to them, and keep track of your watch history.</p>
+        <p></p>
+        <p>The algorithm is made possible through video tags, which are generated using LostRuins' koboldcpp API and Alibaba's Qwen2.5 1.5B Instruct model.</p>
+        <p>Coding has been done by DeepSeek-AI's DeepSeek and Z.AI's GLM-4.7 model</p>
+        <p>LocalYT logo made by mitchib1440</p>
+        <p></p>
+        <p>Powered by Node.js</p>
+
+    </div>
+    <script>
+// Handle logo clicks
+document.addEventListener('DOMContentLoaded', () => {
+    const mainLogo = document.getElementById('mainLogo');
+    
+    if (mainLogo) {
+        // Left click - navigate to homepage in same tab
+        mainLogo.addEventListener('click', (event) => {
+            if (event.button === 0) { // Left click
+                window.location.href = 'index.html';
+            }
+        });
+        
+        // Middle click (mouse wheel) - open homepage in new tab
+        mainLogo.addEventListener('mouseup', (event) => {
+            if (event.button === 1) { // Middle click
+                event.preventDefault();
+                window.open('index.html', '_blank');
+            }
+        });
+        
+        // Right click - open homepage in new tab (with context menu option)
+        mainLogo.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            window.open('index.html', '_blank');
+        });
+        
+        // Add title for accessibility
+        mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
+        
+        // Add cursor styling
+        mainLogo.style.cursor = 'pointer';
+    }
+});
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.toLowerCase();
+            fetch('/videos')
+                .then(response => response.json())
+                .then(videos => {
+                    const suggestions = videos
+                        .filter(video => video.displayName.toLowerCase().includes(query))
+                        .map(video => ({
+                            title: video.displayName,
+                            fullPath: video.path
+                        }));
+
+                    const suggestionsContainer = document.getElementById('searchSuggestions');
+                    suggestionsContainer.innerHTML = '';
+                    suggestions.forEach(suggestion => {
+                        const suggestionElement = document.createElement('div');
+                        suggestionElement.className = 'suggestion-item';
+                        suggestionElement.textContent = suggestion.title;
+                        suggestionElement.onclick = () => {
+                            window.location.href = `video.html?src=${encodeURIComponent(suggestion.fullPath)}`;
+                        };
+                        suggestionsContainer.appendChild(suggestionElement);
+
+                        // Add event listeners for right-click and mouse wheel click
+                        suggestionElement.addEventListener('contextmenu', (event) => {
+                            event.preventDefault();
+                            window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
+                        });
+
+                        suggestionElement.addEventListener('mouseup', (event) => {
+                            if (event.button === 1) {
+                                event.preventDefault();
+                                window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
+                            }
+                        });
+                    });
+                });
+        });
+
+        searchInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
+            }
+        });
+    </script>
+</body>
+</html>

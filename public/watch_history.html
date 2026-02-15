@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch History - LocalYT</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
+</head>
+<body>
+    <header class="top-bar">
+        <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search">
+            <div id="searchSuggestions" class="search-suggestions"></div>
+        </div>
+    </header>
+    <div class="container" id="videoContainer"></div>
+    <script>
+// Handle logo clicks
+document.addEventListener('DOMContentLoaded', () => {
+    const mainLogo = document.getElementById('mainLogo');
+    
+    if (mainLogo) {
+        // Left click - navigate to homepage in same tab
+        mainLogo.addEventListener('click', (event) => {
+            if (event.button === 0) { // Left click
+                window.location.href = 'index.html';
+            }
+        });
+        
+        // Middle click (mouse wheel) - open homepage in new tab
+        mainLogo.addEventListener('mouseup', (event) => {
+            if (event.button === 1) { // Middle click
+                event.preventDefault();
+                window.open('index.html', '_blank');
+            }
+        });
+        
+        // Right click - open homepage in new tab (with context menu option)
+        mainLogo.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            window.open('index.html', '_blank');
+        });
+        
+        // Add title for accessibility
+        mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
+        
+        // Add cursor styling
+        mainLogo.style.cursor = 'pointer';
+    }
+});
+        // Helper function to strip file extension for thumbnail and metadata paths
+        function stripExtension(filename) {
+            return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+        }
+
+        // Helper function to get video file extension
+        function getVideoExtension(path) {
+            const match = path.match(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i);
+            return match ? match[1] : 'mp4'; // Default to mp4 if no extension found
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch('/user-history')
+                .then(response => response.json())
+                .then(videos => {
+                    const container = document.getElementById('videoContainer');
+                    videos.forEach(video => {
+                        const videoElement = document.createElement('div');
+                        videoElement.className = 'video-item';
+                        const videoTitle = video.displayName;
+                        const videoPathWithoutExt = stripExtension(video.path);
+                        const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
+                        const channel = video.path.split('/')[0];
+                        const channelPicSrc = `/channelpic/${encodeURIComponent(channel)}.jpg`;
+
+                        videoElement.innerHTML = `
+                            <div class="thumbnail-container">
+                                <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
+                                <div class="video-length"></div>
+                            </div>
+                            <div class="video-info">
+                                <img src="${channelPicSrc}" alt="${channel}" class="channel-pic" loading="lazy">
+                                <div class="video-details">
+                                    <div class="video-title" onclick="window.location.href='video.html?src=${encodeURIComponent(video.path)}'">${videoTitle}</div>
+                                    <div class="channel-name" onclick="window.location.href='channel.html?channel=${encodeURIComponent(channel)}'">${channel}</div>
+                                    <div class="video-description">${video.viewCount} views • Uploaded on ${video.fileDate}</div>
+                                </div>
+                            </div>
+                        `;
+                        container.appendChild(videoElement);
+
+                        // Add event listener to the thumbnail container
+                        videoElement.querySelector('.thumbnail-container').addEventListener('click', () => {
+                            window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
+                        });
+
+                        // Add event listeners for right-click and mouse wheel click
+                        const videoLink = videoElement.querySelector('.video-title');
+                        videoLink.addEventListener('contextmenu', (event) => {
+                            event.preventDefault();
+                            window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                        });
+
+                        videoLink.addEventListener('mouseup', (event) => {
+                            if (event.button === 1) {
+                                event.preventDefault();
+                                window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                            }
+                        });
+
+                        // Fetch video length
+                        const videoFilename = video.path.split('/').pop();
+                        const videoNameWithoutExt = stripExtension(videoFilename);
+                        fetch(`/videolengths/${channel}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
+                            .then(response => response.text())
+                            .then(length => {
+                                videoElement.querySelector('.video-length').textContent = length;
+                            })
+                            .catch(error => {
+                                console.error('Error fetching video length:', error);
+                            });
+                    });
+
+                    // Use Intersection Observer to lazy load video thumbnails
+                    const observer = new IntersectionObserver((entries, observer) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                const img = entry.target;
+                                img.src = img.dataset.src;
+                                observer.unobserve(img);
+                            }
+                        });
+                    });
+
+                    document.querySelectorAll('.video-thumbnail').forEach(img => {
+                        img.dataset.src = img.src;
+                        img.src = ''; // Remove the src to prevent loading
+                        observer.observe(img);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading watch history:', error);
+                    const container = document.getElementById('videoContainer');
+                    container.innerHTML = '<div style="color: white; padding: 20px; text-align: center;">Error loading watch history. Make sure that you are logged in.</div>';
+                });
+
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', () => {
+                const query = searchInput.value.toLowerCase();
+                fetch('/videos')
+                    .then(response => response.json())
+                    .then(videos => {
+                        const suggestions = videos
+                            .filter(video => video.displayName.toLowerCase().includes(query))
+                            .map(video => ({
+                                title: video.displayName,
+                                fullPath: video.path
+                            }));
+
+                        const suggestionsContainer = document.getElementById('searchSuggestions');
+                        suggestionsContainer.innerHTML = '';
+                        suggestions.forEach(suggestion => {
+                            const suggestionElement = document.createElement('div');
+                            suggestionElement.className = 'suggestion-item';
+                            suggestionElement.textContent = suggestion.title;
+                            suggestionElement.onclick = () => {
+                                window.location.href = `video.html?src=${encodeURIComponent(suggestion.fullPath)}`;
+                            };
+                            suggestionsContainer.appendChild(suggestionElement);
+
+                            // Add event listeners for right-click and mouse wheel click
+                            suggestionElement.addEventListener('contextmenu', (event) => {
+                                event.preventDefault();
+                                window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
+                            });
+
+                            suggestionElement.addEventListener('mouseup', (event) => {
+                                if (event.button === 1) {
+                                    event.preventDefault();
+                                    window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
+                                }
+                            });
+                        });
+                    });
+            });
+
+            searchInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
