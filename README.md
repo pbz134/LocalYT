@@ -1,4 +1,8 @@
-[![LocalYT](https://github.com/pbz134/LocalYT/blob/main/.github/Logo_Original.png)](#readme)
+<p align="center">
+  <a href="#readme">
+    <img src="https://github.com/pbz134/LocalYT/blob/main/.github/Logo_Original.png" alt="LocalYT" />
+  </a>
+</p>
 
 **LocalYT** is a feature-rich local video library that allows you to watch videos with seamless metadata integration and a powerful tag-based algorithm in a familiar UI.
 
