@@ -72,41 +72,73 @@ app.get('/videos', (req, res) => {
     const videoFiles = [];
 
     function readDir(dir) {
-        const files = fs.readdirSync(dir);
-        files.forEach(file => {
-            const filePath = path.join(dir, file);
-            if (fs.statSync(filePath).isDirectory()) {
-                readDir(filePath);
-            } else if (file.endsWith('.mp4') || file.endsWith('.mp3') || file.endsWith('.mkv')) {
-                const relativePath = path.relative(videosDir, filePath).replace(/\\/g, '/');
-                const viewCountPath = path.join(__dirname, 'viewcounts', `${relativePath.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '')}.txt`);
-                const fileDatePath = path.join(__dirname, 'filedates', `${relativePath.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '')}.txt`);
-                const filenamePath = path.join(__dirname, 'filenames', relativePath.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '') + '.txt');
+        try {
+            const files = fs.readdirSync(dir);
+            files.forEach(file => {
+                const filePath = path.join(dir, file);
+                try {
+                    // Crucial Fix: Check if file exists before stating it
+                    // This fixes the "ENOENT" crash when files are deleted/moved during scan
+                    if (!fs.existsSync(filePath)) {
+                        return;
+                    }
 
-                let viewCount = '0';
-                let fileDate = '';
-                let displayName = file.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '');
+                    const stats = fs.statSync(filePath);
+                    
+                    if (stats.isDirectory()) {
+                        readDir(filePath);
+                    } else if (file.endsWith('.mp4') || file.endsWith('.mp3') || file.endsWith('.mkv')) {
+                        const relativePath = path.relative(videosDir, filePath).replace(/\\/g, '/');
+                        const basePath = relativePath.replace(/\.(mp4|mp3|mkv)$/, '');
+                        
+                        // Use the base path for metadata files
+                        const viewCountPath = path.join(__dirname, 'viewcounts', `${basePath}.txt`);
+                        const fileDatePath = path.join(__dirname, 'filedates', `${basePath}.txt`);
+                        const filenamePath = path.join(__dirname, 'filenames', `${basePath}.txt`);
 
-                if (fs.existsSync(viewCountPath)) {
-                    viewCount = fs.readFileSync(viewCountPath, 'utf8');
+                        let viewCount = '0';
+                        let fileDate = '';
+                        let displayName = file.replace(/\.(mp4|mp3|mkv)$/, '');
+
+                        // Safely read metadata files
+                        try {
+                            if (fs.existsSync(viewCountPath)) {
+                                viewCount = fs.readFileSync(viewCountPath, 'utf8');
+                            }
+                        } catch (e) {
+                            console.log(`View count not found for: ${relativePath}`);
+                        }
+
+                        try {
+                            if (fs.existsSync(fileDatePath)) {
+                                fileDate = fs.readFileSync(fileDatePath, 'utf8');
+                            }
+                        } catch (e) {
+                            console.log(`File date not found for: ${relativePath}`);
+                        }
+
+                        try {
+                            if (fs.existsSync(filenamePath)) {
+                                displayName = fs.readFileSync(filenamePath, 'utf8');
+                            }
+                        } catch (e) {
+                            console.log(`Display name not found for: ${relativePath}`);
+                        }
+
+                        videoFiles.push({
+                            path: relativePath,
+                            viewCount: viewCount,
+                            fileDate: fileDate,
+                            displayName: displayName
+                        });
+                    }
+                } catch (err) {
+                    console.error(`Error processing file ${file}:`, err.message);
                 }
-
-                if (fs.existsSync(fileDatePath)) {
-                    fileDate = fs.readFileSync(fileDatePath, 'utf8');
-                }
-
-                if (fs.existsSync(filenamePath)) {
-                    displayName = fs.readFileSync(filenamePath, 'utf8');
-                }
-
-                videoFiles.push({
-                    path: relativePath,
-                    viewCount: viewCount,
-                    fileDate: fileDate,
-                    displayName: displayName
-                });
-            }
-        });
+            });
+        } catch (err) {
+            console.error(`Error reading directory ${dir}:`, err.message);
+        }
     }
 
     readDir(videosDir);
@@ -420,48 +452,63 @@ app.get('/recommendations', (req, res) => {
             const videoFiles = [];
 
             function readDir(dir) {
-                const files = fs.readdirSync(dir);
-                files.forEach(file => {
-                    const filePath = path.join(dir, file);
-                    if (fs.statSync(filePath).isDirectory()) {
-                        readDir(filePath);
-                    } else if (file.endsWith('.mp4') || file.endsWith('.mp3') || file.endsWith('.mkv')) {
-                        const relativePath = path.relative(videosDir, filePath).replace(/\\/g, '/');
-                        const viewCountPath = path.join(__dirname, 'viewcounts', `${relativePath.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '')}.txt`);
-                        const fileDatePath = path.join(__dirname, 'filedates', `${relativePath.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '')}.txt`);
-                        const tagsPath = path.join(__dirname, 'videos', `${relativePath.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '')}.txt`);
-                        const filenamePath = path.join(__dirname, 'filenames', relativePath.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '') + '.txt');
+                try {
+                    const files = fs.readdirSync(dir);
+                    files.forEach(file => {
+                        const filePath = path.join(dir, file);
+                        try {
+                            // Crucial Fix: Check existence to prevent crash
+                            if (!fs.existsSync(filePath)) {
+                                return;
+                            }
 
-                        let viewCount = '0';
-                        let fileDate = '';
-                        let tags = [];
-                        let displayName = file.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '');
+                            if (fs.statSync(filePath).isDirectory()) {
+                                readDir(filePath);
+                            } else if (file.endsWith('.mp4') || file.endsWith('.mp3') || file.endsWith('.mkv')) {
+                                const relativePath = path.relative(videosDir, filePath).replace(/\\/g, '/');
+                                
+                                // Safely build paths
+                                const viewCountPath = path.join(__dirname, 'viewcounts', `${relativePath.replace(/\.(mp4|mp3|mkv)$/, '')}.txt`);
+                                const fileDatePath = path.join(__dirname, 'filedates', `${relativePath.replace(/\.(mp4|mp3|mkv)$/, '')}.txt`);
+                                const tagsPath = path.join(__dirname, 'videos', `${relativePath.replace(/\.(mp4|mp3|mkv)$/, '')}.txt`);
+                                const filenamePath = path.join(__dirname, 'filenames', relativePath.replace(/\.(mp4|mp3|mkv)$/, '') + '.txt');
 
-                        if (fs.existsSync(viewCountPath)) {
-                            viewCount = fs.readFileSync(viewCountPath, 'utf8');
+                                let viewCount = '0';
+                                let fileDate = '';
+                                let tags = [];
+                                let displayName = file.replace(/\.(mp4|mp3|mkv)$/, '');
+
+                                if (fs.existsSync(viewCountPath)) {
+                                    viewCount = fs.readFileSync(viewCountPath, 'utf8');
+                                }
+
+                                if (fs.existsSync(fileDatePath)) {
+                                    fileDate = fs.readFileSync(fileDatePath, 'utf8');
+                                }
+
+                                if (fs.existsSync(tagsPath)) {
+                                    tags = fs.readFileSync(tagsPath, 'utf8').split(',').map(tag => tag.trim());
+                                }
+
+                                if (fs.existsSync(filenamePath)) {
+                                    displayName = fs.readFileSync(filenamePath, 'utf8');
+                                }
+
+                                videoFiles.push({
+                                    path: relativePath,
+                                    viewCount: viewCount,
+                                    fileDate: fileDate,
+                                    tags: tags,
+                                    displayName: displayName
+                                });
+                            }
+                        } catch (err) {
+                            console.error(`Error processing file ${file}:`, err.message);
                         }
-
-                        if (fs.existsSync(fileDatePath)) {
-                            fileDate = fs.readFileSync(fileDatePath, 'utf8');
-                        }
-
-                        if (fs.existsSync(tagsPath)) {
-                            tags = fs.readFileSync(tagsPath, 'utf8').split(',').map(tag => tag.trim());
-                        }
-
-                        if (fs.existsSync(filenamePath)) {
-                            displayName = fs.readFileSync(filenamePath, 'utf8');
-                        }
-
-                        videoFiles.push({
-                            path: relativePath,
-                            viewCount: viewCount,
-                            fileDate: fileDate,
-                            tags: tags,
-                            displayName: displayName
-                        });
-                    }
-                });
+                    });
+                } catch (err) {
+                    console.error(`Error reading directory ${dir}:`, err.message);
+                }
             }
 
             readDir(videosDir);
@@ -634,41 +681,54 @@ app.get('/user-history', (req, res) => {
         const videoFiles = [];
 
         function readDir(dir) {
-            const files = fs.readdirSync(dir);
-            files.forEach(file => {
-                const filePath = path.join(dir, file);
-                if (fs.statSync(filePath).isDirectory()) {
-                    readDir(filePath);
-                } else if (file.endsWith('.mp4') || file.endsWith('.mp3') || file.endsWith('.mkv')) {
-                    const relativePath = path.relative(videosDir, filePath).replace(/\\/g, '/');
-                    const viewCountPath = path.join(__dirname, 'viewcounts', `${relativePath.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '')}.txt`);
-                    const fileDatePath = path.join(__dirname, 'filedates', `${relativePath.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '')}.txt`);
-                    const filenamePath = path.join(__dirname, 'filenames', relativePath.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '') + '.txt');
+            try {
+                const files = fs.readdirSync(dir);
+                files.forEach(file => {
+                    const filePath = path.join(dir, file);
+                    try {
+                        // --- CRUCIAL FIX: Check if file exists before stating it ---
+                        if (!fs.existsSync(filePath)) {
+                            return;
+                        }
 
-                    let viewCount = '0';
-                    let fileDate = '';
-                    let displayName = file.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '');
+                        if (fs.statSync(filePath).isDirectory()) {
+                            readDir(filePath);
+                        } else if (file.endsWith('.mp4') || file.endsWith('.mp3') || file.endsWith('.mkv')) {
+                            const relativePath = path.relative(videosDir, filePath).replace(/\\/g, '/');
+                            const viewCountPath = path.join(__dirname, 'viewcounts', `${relativePath.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '')}.txt`);
+                            const fileDatePath = path.join(__dirname, 'filedates', `${relativePath.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '')}.txt`);
+                            const filenamePath = path.join(__dirname, 'filenames', relativePath.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '') + '.txt');
 
-                    if (fs.existsSync(viewCountPath)) {
-                        viewCount = fs.readFileSync(viewCountPath, 'utf8');
+                            let viewCount = '0';
+                            let fileDate = '';
+                            let displayName = file.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '');
+
+                            if (fs.existsSync(viewCountPath)) {
+                                viewCount = fs.readFileSync(viewCountPath, 'utf8');
+                            }
+
+                            if (fs.existsSync(fileDatePath)) {
+                                fileDate = fs.readFileSync(fileDatePath, 'utf8');
+                            }
+
+                            if (fs.existsSync(filenamePath)) {
+                                displayName = fs.readFileSync(filenamePath, 'utf8');
+                            }
+
+                            videoFiles.push({
+                                path: relativePath,
+                                viewCount: viewCount,
+                                fileDate: fileDate,
+                                displayName: displayName
+                            });
+                        }
+                    } catch (err) {
+                        console.error(`Error processing file ${file}:`, err.message);
                     }
-
-                    if (fs.existsSync(fileDatePath)) {
-                        fileDate = fs.readFileSync(fileDatePath, 'utf8');
-                    }
-
-                    if (fs.existsSync(filenamePath)) {
-                        displayName = fs.readFileSync(filenamePath, 'utf8');
-                    }
-
-                    videoFiles.push({
-                        path: relativePath,
-                        viewCount: viewCount,
-                        fileDate: fileDate,
-                        displayName: displayName
-                    });
-                }
-            });
+                });
+            } catch (err) {
+                console.error(`Error reading directory ${dir}:`, err.message);
+            }
         }
 
         readDir(videosDir);
@@ -711,48 +771,63 @@ app.get('/search-index', (req, res) => {
     const videoFiles = [];
 
     function readDir(dir) {
-        const files = fs.readdirSync(dir);
-        files.forEach(file => {
-            const filePath = path.join(dir, file);
-            if (fs.statSync(filePath).isDirectory()) {
-                readDir(filePath);
-            } else if (file.endsWith('.mp4') || file.endsWith('.mp3') || file.endsWith('.mkv')) {
-                const relativePath = path.relative(videosDir, filePath).replace(/\\/g, '/');
-                const viewCountPath = path.join(__dirname, 'viewcounts', `${relativePath.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '')}.txt`);
-                const fileDatePath = path.join(__dirname, 'filedates', `${relativePath.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '')}.txt`);
-                const filenamePath = path.join(__dirname, 'filenames', relativePath.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '') + '.txt');
-                const descriptionPath = path.join(__dirname, 'descriptions', relativePath.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '') + '.txt');
+        try {
+            const files = fs.readdirSync(dir);
+            files.forEach(file => {
+                const filePath = path.join(dir, file);
+                try {
+                    // Crucial Fix: Check existence to prevent crash on corrupted/ghost files
+                    if (!fs.existsSync(filePath)) {
+                        return;
+                    }
 
-                let viewCount = '0';
-                let fileDate = '';
-                let displayName = file.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '');
-                let description = '';
+                    if (fs.statSync(filePath).isDirectory()) {
+                        readDir(filePath);
+                    } else if (file.endsWith('.mp4') || file.endsWith('.mp3') || file.endsWith('.mkv')) {
+                        const relativePath = path.relative(videosDir, filePath).replace(/\\/g, '/');
+                        
+                        // Safely build paths
+                        const viewCountPath = path.join(__dirname, 'viewcounts', `${relativePath.replace(/\.(mp4|mp3|mkv)$/, '')}.txt`);
+                        const fileDatePath = path.join(__dirname, 'filedates', `${relativePath.replace(/\.(mp4|mp3|mkv)$/, '')}.txt`);
+                        const filenamePath = path.join(__dirname, 'filenames', relativePath.replace(/\.(mp4|mp3|mkv)$/, '') + '.txt');
+                        const descriptionPath = path.join(__dirname, 'descriptions', relativePath.replace(/\.(mp4|mp3|mkv)$/, '') + '.txt');
 
-                if (fs.existsSync(viewCountPath)) {
-                    viewCount = fs.readFileSync(viewCountPath, 'utf8');
+                        let viewCount = '0';
+                        let fileDate = '';
+                        let displayName = file.replace(/\.(mp4|mp3|mkv)$/, '');
+                        let description = '';
+
+                        if (fs.existsSync(viewCountPath)) {
+                            viewCount = fs.readFileSync(viewCountPath, 'utf8');
+                        }
+
+                        if (fs.existsSync(fileDatePath)) {
+                            fileDate = fs.readFileSync(fileDatePath, 'utf8');
+                        }
+
+                        if (fs.existsSync(filenamePath)) {
+                            displayName = fs.readFileSync(filenamePath, 'utf8');
+                        }
+
+                        if (fs.existsSync(descriptionPath)) {
+                            description = fs.readFileSync(descriptionPath, 'utf8');
+                        }
+
+                        videoFiles.push({
+                            path: relativePath,
+                            viewCount: viewCount,
+                            fileDate: fileDate,
+                            displayName: displayName,
+                            description: description
+                        });
+                    }
+                } catch (err) {
+                    console.error(`Error processing file ${file}:`, err.message);
                 }
-
-                if (fs.existsSync(fileDatePath)) {
-                    fileDate = fs.readFileSync(fileDatePath, 'utf8');
-                }
-
-                if (fs.existsSync(filenamePath)) {
-                    displayName = fs.readFileSync(filenamePath, 'utf8');
-                }
-
-                if (fs.existsSync(descriptionPath)) {
-                    description = fs.readFileSync(descriptionPath, 'utf8');
-                }
-
-                videoFiles.push({
-                    path: relativePath,
-                    viewCount: viewCount,
-                    fileDate: fileDate,
-                    displayName: displayName,
-                    description: description
-                });
-            }
-        });
+            });
+        } catch (err) {
+            console.error(`Error reading directory ${dir}:`, err.message);
+        }
     }
 
     readDir(videosDir);
