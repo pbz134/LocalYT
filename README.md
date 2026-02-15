@@ -44,7 +44,7 @@ From then on, I regularly worked on the program to further improve it, and 15 mo
 3. Run `#Setup-or-Update.bat` and wait for the automatic setup to complete
 4. Launch the server with `#Launch-Server.bat`
 
-# FAQ
+## FAQ
 No videos are being recommended on video.html! What can I do?
 - The algorithm requires an account to work, so you have to create one on the landing page and log in
 
