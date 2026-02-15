@@ -39,7 +39,7 @@ From then on, I regularly worked on the program to further improve it, and 15 mo
 ## Setup
 
 1. Download LocalYT-vXX.7z from the Releases tab and extract it (avoid special characters in the path to reduce the chance of errors)
-2. Copy any .mp4, .mkv or .mp3 files into a subfolder of `/videos`
+2. Copy any .mp4, .mkv or .mp3 files into subfolders of `/videos` (each subfolder represents a channel)
 3. Optionally, copy respective thumbnails, descriptions or other metadata into their respective folders
 3. Run `#Setup-or-Update.bat` and wait for the automatic setup to complete
 4. Launch the server with `#Launch-Server.bat`
