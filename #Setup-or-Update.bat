@@ -7,7 +7,7 @@ echo Generating missing sub counts...
 .\venv\python.exe createChannelsubs.py
 
 echo Fixing umlauts before moving metadata...
-.\venv\python.exe LocalYT-Rev-Files\FixUmlauts.py
+.\venv\python.exe LocalYT-Rev-Files\FixUmlauts.py --apply
 
 echo Generating thumbnails...
 .\venv\python.exe generateThumbnails.py
@@ -19,7 +19,7 @@ echo Generating videolengths...
 .\venv\python.exe createvideolengths.py
 goto continue
 
-echo Generating videolengths...
+echo Creating missing file dates...
 .\venv\python.exe createFiledates.py
 goto continue
 
@@ -93,10 +93,10 @@ if errorlevel 1 (
     REM Continue with cleanup even if analyze.py fails
 )
 
-REM Step 5: Cleanup - kill koboldcpp (from root directory)
+REM Step 5: Cleanup - kill koboldcpp
 cd ..
 echo Cleaning up...
-taskkill /FI "WINDOWTITLE eq KoboldCPP" /F >nul 2>&1
+taskkill /F /IM koboldcpp-nocuda.exe >nul 2>&1
 
 echo Continuing with other tasks...
 
@@ -109,10 +109,12 @@ echo Generating filenames...
 echo Fixing umlauts after metadata...
 .\venv\python.exe LocalYT-Rev-Files\FixUmlauts.py
 
+echo Regenerating filedates...
+.\venv\python.exe createFiledates.py
+
 echo.
 echo =============================================================================
 echo All metadata, thumbnails and playlists generated. Server is ready for launch.
 echo =============================================================================
 echo.
-
 pause
