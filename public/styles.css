@@ -100,7 +100,6 @@ body {
     width: 100%;
     height: 180px; /* Increased height */
     display: block;
-    border-radius: 8px 8px 0 0;
     transition: transform 0.2s ease;
     cursor: pointer;
 }
@@ -108,7 +107,7 @@ body {
 .video-item {
     margin: 10px; /* Reduced margin to bring items closer together */
     background: #0f0f0f;
-    border-radius: 8px;
+
     overflow: hidden;
     width: 320px; /* Increased width */
     text-align: center;
