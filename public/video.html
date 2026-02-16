@@ -205,6 +205,7 @@
             padding: 20px;
             border-radius: 8px;
             text-align: center;
+            position: relative;
         }
         .modal-content h2 {
             font-family: 'Kaleko205Round', Arial, sans-serif;
@@ -221,7 +222,29 @@
             margin-top: 20px;
         }
         .modal-content button:hover {
-            background-color: darkred;
+            background-color: #c40000;
+        }
+        .modal-close {
+            position: absolute;
+            top: -10px;
+            right: 15px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            width: 10px;
+            height: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .modal-close:hover {
+            background-color: rgba(255, 255, 255, 0.1);
         }
         .copy-message {
             display: none;
@@ -324,6 +347,7 @@
     </div>
     <div id="shareModal" class="modal">
         <div class="modal-content">
+            <button class="modal-close" onclick="document.getElementById('shareModal').style.display='none'">&times;</button>
             <h2>Share Video</h2>
             <button id="copyWithTimestamp">Copy Link + Timestamp</button>
             <button id="copyWithoutTimestamp">Copy Link</button>

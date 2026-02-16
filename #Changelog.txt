@@ -1,6 +1,18 @@
 +++LocalYT Revamped - Changelog+++
 
 
+v3.35
+- Fix koboldcpp kill command and "createFiledates.py" echo description in "#Setup-or-Update.bat"
+- Extend wait time for tagging model to load
+- Improved CropThumbnails.py; All thumbnails will now be cropped to 16:9 and 1:1 thumbnails (e.g. music from "Topic" channels) will be filled to 16:9
+- Added a toggle for the hamburger menu on index.html
+- Added a button to close the Copy Link modal on video.html
+
+v3.30
+- Prepare for initial GitHub release
+- Add proper file encoding for .mp4 files
+- Improve thumbnail and filedate generation scripts
+
 v3.25
 - Included createFiledates.py in the setup script
 - Updated createFiledates.py to skip videos that already have a file date
@@ -125,4 +137,7 @@ Older versions: Undocumented
 
 
 TO DO:
--
+- Add a search icon next to the search bar on all pages
+- Properly align view counts on search.html
+- Do an extensive test with 10 TB of videos
+- Make account logins persist after a browser restart
