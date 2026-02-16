@@ -1,4 +1,5 @@
 @echo off
+setlocal enabledelayedexpansion
 
 echo Generating missing channel pictures...
 .\venv\python.exe createChannelpics.py
@@ -9,11 +10,20 @@ echo Generating missing sub counts...
 echo Fixing umlauts before moving metadata...
 .\venv\python.exe LocalYT-Rev-Files\FixUmlauts.py --apply
 
+echo Cleaning up file names (making 4k Video Downloader file names compatible with yt-dlp file names)...
+.\venv\python.exe LocalYT-Rev-Files\remove_special_characters.py
+
+echo Removing emojis from file names...
+.\venv\python.exe LocalYT-Rev-Files\remove_emojis.py
+
 echo Generating thumbnails...
 .\venv\python.exe generateThumbnails.py
 
 echo Generating video stats...
 .\venv\python.exe createstats.py
+
+echo Cropping all thumbnails to 16:9...
+.\venv\python.exe LocalYT-Rev-Files\CropThumbnails.py
 
 echo Generating videolengths...
 .\venv\python.exe createvideolengths.py
@@ -30,9 +40,6 @@ goto continue
 :continue
 echo Generating view counts...
 .\venv\python.exe createviews.py
-
-echo Cleaning up file names (making 4k Video Downloader file names compatible with yt-dlp file names)...
-.\venv\python.exe LocalYT-Rev-Files\remove_special_characters.py
 
 echo running Algorithm setup...
 
@@ -57,6 +64,7 @@ echo Checking http://localhost:5001/api/v1/model every 2 seconds...
 set max_attempts=300
 set attempt=1
 set model_loaded=0
+set first_success=0
 
 :check_model
 echo Attempt !attempt! of !max_attempts!...
@@ -64,9 +72,16 @@ echo Attempt !attempt! of !max_attempts!...
 powershell -Command "try { $response = Invoke-WebRequest -Uri 'http://localhost:5001/api/v1/model' -Method GET -TimeoutSec 5; if ($response.StatusCode -eq 200) { $content = $response.Content | ConvertFrom-Json; if ($content.result -and $content.result -ne '') { exit 0 } else { exit 1 } } else { exit 1 } } catch { exit 1 }"
 
 if errorlevel 0 (
-    set model_loaded=1
-    echo Model is loaded and ready!
-    goto model_ready
+    if !first_success! equ 0 (
+        echo Model endpoint reachable! Waiting additional 10 seconds for complete loading...
+        set first_success=1
+        timeout /t 10 /nobreak >nul
+        goto check_model
+    ) else (
+        set model_loaded=1
+        echo Model is loaded and ready!
+        goto model_ready
+    )
 )
 
 if !attempt! geq !max_attempts! (
@@ -77,10 +92,12 @@ if !attempt! geq !max_attempts! (
     exit /b 1
 )
 
-echo Model not ready yet, waiting 2 seconds...
-timeout /t 2 /nobreak >nul
-set /a attempt+=1
-goto check_model
+if !first_success! equ 0 (
+    echo Model not ready yet, waiting 2 seconds...
+    timeout /t 2 /nobreak >nul
+    set /a attempt+=1
+    goto check_model
+)
 
 :model_ready
 
