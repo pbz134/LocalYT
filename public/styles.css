@@ -92,8 +92,11 @@ body {
 .container {
     display: flex;
     flex-wrap: wrap;
-    justify-content: space-around;
+    justify-content: center;
+    gap: 25px;
     padding: 80px 20px 20px;
+    margin: 0 auto;
+    max-width: calc(100% - 40px);
 }
 
 .video-thumbnail {
@@ -105,11 +108,10 @@ body {
 }
 
 .video-item {
-    margin: 10px; /* Reduced margin to bring items closer together */
+    margin: 0; /* Remove the margin completely */
     background: #0f0f0f;
-
     overflow: hidden;
-    width: 320px; /* Increased width */
+    width: 320px;
     text-align: center;
     transition: transform 0.2s ease;
 }
@@ -332,8 +334,8 @@ video {
 
 .video-length {
     position: absolute;
-    bottom: 2px;
-    right: 12px;
+    bottom: 4px;
+    right: 10px;
     background-color: rgba(0, 0, 0, 0.5);
     color: #fff;
     padding: 2px 5px;
