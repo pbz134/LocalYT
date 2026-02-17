@@ -9,6 +9,7 @@ v3.40
 - Added a "remove_emojis.py" script that removes any emojis from file names for compatibility with node.js
 - Adjusted video grid spacing on index.html
 - Added a function to make user logins persist through server reboots
+- Divided server.js into a regular version (no user tag list output) and a debug version (full user tag list output)
 
 v3.35
 - Fix koboldcpp kill command and "createFiledates.py" echo description in "#Setup-or-Update.bat"
@@ -149,4 +150,3 @@ TO DO:
 - Add a search icon next to the search bar on all pages
 - Properly align view counts on search.html
 - Do an extensive test with 10 TB of videos
-- Make account logins persist after a browser restart
