@@ -93,7 +93,7 @@ body {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 25px;
+    gap: 35px;
     padding: 80px 20px 20px;
     margin: 0 auto;
     max-width: calc(100% - 40px);
