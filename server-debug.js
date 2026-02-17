@@ -456,26 +456,12 @@ app.post('/updatePreferences', (req, res) => {
 
     fs.readFile(preferencesFilePath, 'utf8', (err, data) => {
         let preferencesData = {};
-        let addedTags = []; // Track tags that are being added for the first time
-        
         if (!err) {
             preferencesData = JSON.parse(data);
         }
-        
         if (!preferencesData[userId]) {
             preferencesData[userId] = {};
-            // If this is a new user, all tags are being added for the first time
-            addedTags = [...videoTags];
-        } else {
-            // Check which tags are new (didn't exist before)
-            videoTags.forEach(tag => {
-                if (!preferencesData[userId][tag]) {
-                    addedTags.push(tag);
-                }
-            });
         }
-        
-        // Update preferences counts
         videoTags.forEach(tag => {
             if (preferencesData[userId][tag]) {
                 preferencesData[userId][tag] += 1;
@@ -483,16 +469,14 @@ app.post('/updatePreferences', (req, res) => {
                 preferencesData[userId][tag] = 1;
             }
         });
-        
-
+        console.log('Updated Preferences:', preferencesData[userId]);
 
         fs.writeFile(preferencesFilePath, JSON.stringify(preferencesData, null, 2), err => {
             if (err) {
                 console.log('Error saving preferences');
                 return res.status(500).send('Error saving preferences');
             }
-            // Return only the added tags instead of sending 200
-            res.json({ addedTags: addedTags });
+            res.sendStatus(200);
         });
     });
 });
