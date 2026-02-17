@@ -92,8 +92,8 @@ body {
 .container {
     display: flex;
     flex-wrap: wrap;
+    gap: 15px;
     justify-content: center;
-    gap: 35px;
     padding: 80px 20px 20px;
     margin: 0 auto;
     max-width: calc(100% - 40px);
@@ -108,7 +108,7 @@ body {
 }
 
 .video-item {
-    margin: 0; /* Remove the margin completely */
+    margin: 0 10px 15px 10px;  /* top, right, bottom, left */
     background: #0f0f0f;
     overflow: hidden;
     width: 320px;
