@@ -88,5 +88,4 @@ What if I only have the video files and no metadata?
 ## TO DO
 - CRITICAL: Fix race condition on video.html video suggestions
 - Add a search icon next to the search bar on all pages
-- Properly align view counts on search.html
 - Do an extensive test with 10 TB of videos
