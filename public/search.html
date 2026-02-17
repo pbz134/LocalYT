@@ -53,11 +53,12 @@
             margin-bottom: 5px;
             margin-left: -20px;
         }
-        .video-description {
+        .video-metadata {
             font-family: 'RobotoRegular', sans-serif;
             font-size: 14px;
             color: #888;
             margin-top: 5px;
+            margin-left: 40px; /* This aligns with the channel name (30px for channel pic + 10px margin) */
         }
         .clickable-channel-name {
             cursor: pointer;
@@ -97,8 +98,8 @@
         }
         .video-length {
             position: absolute;
-            bottom: 8px;
-            right: 8px;
+            bottom: 4px;
+            right: 25px;
             background: rgba(0, 0, 0, 0.8);
             color: white;
             padding: 2px 4px;
@@ -403,7 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
                              data-src="/channelpic/${encodeURIComponent(channelName)}.jpg">
                         <div class="channel-name clickable-channel-name">${channelName}</div>
                     </div>
-                    <div class="video-description">${video.viewCount} views • Uploaded on ${video.fileDate}</div>
+                    <div class="video-metadata">${video.viewCount} views • Uploaded on ${video.fileDate}</div>
                 </div>
             `;
             
