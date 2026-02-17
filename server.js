@@ -5,10 +5,18 @@ const cookieParser = require('cookie-parser');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
+const FileStore = require('session-file-store')(session);
 
 const app = express();
 const PORT = 3000;
 
+// Create sessions directory with proper permissions
+const sessionsDir = path.join(__dirname, 'sessions');
+if (!fs.existsSync(sessionsDir)) {
+    fs.mkdirSync(sessionsDir, { recursive: true, mode: 0o777 });
+}
+
+// Rest of your static file middleware
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/videos', express.static(path.join(__dirname, 'videos')));
 app.use('/LocalYT-Rev-Files', express.static(path.join(__dirname, 'LocalYT-Rev-Files')));
@@ -20,23 +28,62 @@ app.use('/channelpic', express.static(path.join(__dirname, 'channelpic')));
 app.use('/channelbanner', express.static(path.join(__dirname, 'channelbanner')));
 app.use('/videostats', express.static(path.join(__dirname, 'videostats')));
 app.use('/descriptions', express.static(path.join(__dirname, 'descriptions')));
+app.use('/favicon.png', express.static(path.join(__dirname, 'favicon.png')));
+
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Session middleware with FileStore - modified to avoid rename issues on Windows
 app.use(session({
+    store: new FileStore({
+        path: sessionsDir,
+        ttl: 86400,
+        retries: 0,
+        reapInterval: 3600,
+        fileExtension: '.session',
+        // Add these options for Windows compatibility
+        reapAsync: true,
+        reapSyncFallback: false,
+        logFn: function(message) {
+            console.log('FileStore:', message);
+        },
+        // Disable the rename operation on Windows
+        encoding: 'utf8',
+        encrypt: false
+    }),
     secret: 'your_secret_key',
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false }
+    resave: true, // Changed to true to ensure session is saved
+    saveUninitialized: false,
+    cookie: { 
+        secure: false,
+        maxAge: 24 * 60 * 60 * 1000,
+        httpOnly: true,
+        sameSite: 'lax'
+    },
+    name: 'localyt.sid',
+    rolling: true // Reset cookie maxAge on every response
 }));
 
-// Serve the favicon from the root directory
-app.use('/favicon.png', express.static(path.join(__dirname, 'favicon.png')));
 
 const preferencesFilePath = path.join(__dirname, 'userPreferences.json');
 const watchHistoryFilePath = path.join(__dirname, 'watchHistory.json');
 
 // Ensure the preferences file exists and is valid JSON
+function ensurePreferencesFile() {
+    if (!fs.existsSync(preferencesFilePath)) {
+        fs.writeFileSync(preferencesFilePath, JSON.stringify({}));
+    } else {
+        const data = fs.readFileSync(preferencesFilePath, 'utf8');
+        try {
+            JSON.parse(data);
+        } catch (err) {
+            fs.writeFileSync(preferencesFilePath, JSON.stringify({}));
+        }
+    }
+}
+
+// Ensure the watch history file exists and is valid JSON
 function ensurePreferencesFile() {
     if (!fs.existsSync(preferencesFilePath)) {
         fs.writeFileSync(preferencesFilePath, JSON.stringify({}));
