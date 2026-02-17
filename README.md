@@ -90,4 +90,3 @@ What if I only have the video files and no metadata?
 - Add a search icon next to the search bar on all pages
 - Properly align view counts on search.html
 - Do an extensive test with 10 TB of videos
-- Make account logins persist after a browser restart
