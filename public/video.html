@@ -39,7 +39,7 @@
             display: flex;
             align-items: flex-start; /* This ensures the text aligns to the top of the thumbnail */
             margin-left: 10px;
-            margin-bottom: 0px; /* Keeps your setting of 0 gap */
+            margin-bottom: -5px;
         }
         .suggestion-item img {
             width: 80px;
@@ -291,6 +291,18 @@
             margin-top: 10px;
         }
 
+        /* FluidPlayer Suggested Videos customization */
+        .fluid_suggested_videos_container {
+            background-color: #0f0f0f !important;
+        }
+        .fluid_suggested_videos_container .fluid_suggested_video_title {
+            color: #fff !important;
+            font-family: 'RobotoRegular', Arial, sans-serif !important;
+        }
+        .fluid_suggested_videos_container .fluid_suggested_video_meta {
+            color: #aaa !important;
+            font-family: 'RobotoRegular', Arial, sans-serif !important;
+        }
     </style>
 </head>
 <body>
@@ -417,7 +429,40 @@ document.addEventListener('DOMContentLoaded', () => {
             return mimeTypes[extension.toLowerCase()] || 'video/mp4';
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        // Function to generate suggested videos JSON for FluidPlayer
+        async function generateSuggestedVideos(currentVideoSrc) {
+            try {
+                const response = await fetch('/recommendations');
+                const videos = await response.json();
+                
+                // Take first 12 videos for the grid
+                const suggestedVideos = videos.slice(0, 12).map((video, index) => {
+                    const channel = video.path.split('/')[0];
+                    const videoPathWithoutExt = stripExtension(video.path);
+                    
+                    return {
+                        id: index,
+                        sources: [
+                            {
+                                url: `/videos/${encodeURIComponent(video.path)}`,
+                                mimeType: getMimeType(getVideoExtension(video.path)),
+                                resolution: "720p"
+                            }
+                        ],
+                        thumbnailUrl: `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`,
+                        title: video.displayName,
+                        configUrl: window.location.href // This will refresh suggestions when video ends
+                    };
+                });
+                
+                return suggestedVideos;
+            } catch (error) {
+                console.error('Error generating suggested videos:', error);
+                return [];
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
             // Note: If the URL in the browser bar is ?src=Test/#file.mp4, get('src') will only return "Test/".
             // The link TO this page must encode # as %23 for the filename to be fully passed here.
@@ -600,7 +645,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            // Initialize FluidPlayer with poster image configuration
+            // Generate suggested videos for FluidPlayer
+            const suggestedVideos = await generateSuggestedVideos(videoSrc);
+            
+            // Create a static JSON endpoint for suggested videos
+            const suggestedVideosJson = JSON.stringify(suggestedVideos);
+            const suggestedVideosBlob = new Blob([suggestedVideosJson], { type: 'application/json' });
+            const suggestedVideosUrl = URL.createObjectURL(suggestedVideosBlob);
+
+            // Initialize FluidPlayer with suggested videos configuration
             var myFP = fluidPlayer(
                 'videoPlayer', {
                     "layoutControls": {
@@ -625,6 +678,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         "posterImage": posterImageUrl,
                         "posterImageSize": "cover"
                     },
+                    "suggestedVideos": {
+                        "configUrl": suggestedVideosUrl
+                    },
                     "vastOptions": {
                         "adList": [],
                         "adCTAText": false,
@@ -633,7 +689,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             );
 
-            // Rest of your existing JavaScript code remains the same...
+            // Handle video end event to refresh suggestions
+            videoPlayer.addEventListener('ended', async () => {
+                // Generate new suggestions based on the current video
+                const newSuggestedVideos = await generateSuggestedVideos(videoSrc);
+                const newSuggestedVideosJson = JSON.stringify(newSuggestedVideos);
+                const newSuggestedVideosBlob = new Blob([newSuggestedVideosJson], { type: 'application/json' });
+                const newSuggestedVideosUrl = URL.createObjectURL(newSuggestedVideosBlob);
+                
+                // Update the suggested videos configuration
+                myFP.updateSuggestedVideosConfig({
+                    configUrl: newSuggestedVideosUrl
+                });
+            });
+
             fetch('/recommendations')
                 .then(response => response.json())
                 .then(videos => {
