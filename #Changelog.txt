@@ -2,14 +2,18 @@
 
 
 v3.40
+- Fixed race condition for video suggestions on video.html by adding a delay
 - Fix rounded corners on video thumbnail items
 - Fix CropThumbnails.py to also crop and add black borders to lower resolution thumbnails
 - Added black bars to horizontal thumbnails
 - Fix timestamp alignments on channel.html and search.html
 - Added a "remove_emojis.py" script that removes any emojis from file names for compatibility with node.js
 - Adjusted video grid spacing on index.html
-- Added a function to make user logins persist through server reboots
+- Added cookies to make user logins persist through server reboots (valid for 1 year)
 - Divided server.js into a regular version (no user tag list output) and a debug version (full user tag list output)
+- Aligned view counts on search.html
+- Slightly adjusted spacing for recommended videos on video.html
+- Add a grid of video suggestions (4x3) after the current video is over
 
 v3.35
 - Fix koboldcpp kill command and "createFiledates.py" echo description in "#Setup-or-Update.bat"
@@ -148,5 +152,4 @@ Older versions: Undocumented
 
 TO DO:
 - Add a search icon next to the search bar on all pages
-- Properly align view counts on search.html
 - Do an extensive test with 10 TB of videos
