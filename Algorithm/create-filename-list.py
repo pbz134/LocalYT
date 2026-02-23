@@ -25,7 +25,8 @@ def find_mp4_files(directory):
     return mp4_files
 
 def write_to_txt(file_list, output_file):
-    with open(output_file, 'w') as f:
+    # Fixed: Added encoding='utf-8' to handle Unicode characters
+    with open(output_file, 'w', encoding='utf-8') as f:
         for file_path in file_list:
             f.write(f"{file_path}\n")
 

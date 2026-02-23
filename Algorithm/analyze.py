@@ -27,13 +27,15 @@ openai.request_timeout = 30  # Set timeout to 30 seconds
 
 def read_video_list(file_path):
     """Read the list of video filenames from a .txt file."""
-    with open(file_path, "r") as f:
+    # Added encoding='utf-8' to handle Unicode characters in file paths
+    with open(file_path, "r", encoding='utf-8') as f:
         video_files = [line.strip() for line in f.readlines()]
     return video_files
 
 def load_tags(file_path):
     """Load the allowed tags from a .json file."""
-    with open(file_path, "r") as f:
+    # Added encoding='utf-8' to handle Unicode characters in tag names
+    with open(file_path, "r", encoding='utf-8') as f:
         tags = json.load(f)
     return tags
 
@@ -54,6 +56,7 @@ def get_video_description(video_name):
             description_path = os.path.join(DESCRIPTIONS_DIR, channel, f"{video_file}.txt")
             
             if os.path.exists(description_path):
+                # Already using utf-8 for reading descriptions
                 with open(description_path, "r", encoding="utf-8") as f:
                     description = f.read().strip()
                 
@@ -138,7 +141,7 @@ def generate_tags_for_video(video_name, allowed_tags):
             response = openai.Completion.create(
                 model="koboldcpp",  # Model name (can be anything for koboldcpp)
                 prompt=prompt,
-                max_tokens=20,
+                max_tokens=30,
                 stop=["\n"],
                 temperature=0.7,  # Adjust for creativity
                 timeout=30  # Add timeout parameter here too
@@ -194,8 +197,8 @@ def save_tags_to_file(video_name, tags, output_dir):
     # Create the output file path
     tag_file = os.path.join(output_path, f"{base_name}.txt")
     
-    # Write the tags to the file
-    with open(tag_file, "w") as f:
+    # Write the tags to the file - Added encoding='utf-8' to handle Unicode
+    with open(tag_file, "w", encoding='utf-8') as f:
         f.write(f"{tags_with_subfolder[0]}, {tags_with_subfolder[1]}, {tags_with_subfolder[2]}\n")
 
 def main():
