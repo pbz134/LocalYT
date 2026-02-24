@@ -5,7 +5,7 @@ import time
 
 # Configuration
 KOBOLDCPP_API_URL = "http://localhost:5001/v1"  # Replace with your koboldcpp API endpoint
-VIDEO_LIST = "video_list.txt"  # Path to your existing video list file
+media_list = "media_list.txt"  # Path to your existing video list file
 
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -25,12 +25,12 @@ openai.api_key = "dummy-key"  # API key is not required for local koboldcpp
 # Increase timeout settings
 openai.request_timeout = 30  # Set timeout to 30 seconds
 
-def read_video_list(file_path):
-    """Read the list of video filenames from a .txt file."""
+def read_media_list(file_path):
+    """Read the list of media filenames from a .txt file."""
     # Added encoding='utf-8' to handle Unicode characters in file paths
     with open(file_path, "r", encoding='utf-8') as f:
-        video_files = [line.strip() for line in f.readlines()]
-    return video_files
+        media_files = [line.strip() for line in f.readlines()]
+    return media_files
 
 def load_tags(file_path):
     """Load the allowed tags from a .json file."""
@@ -42,7 +42,7 @@ def load_tags(file_path):
 def get_video_description(video_name):
     """Get the description for a video if it exists."""
     try:
-        # Remove .mp4 extension if present
+        # Remove extension if present
         video_name_without_ext = os.path.splitext(video_name)[0]
         
         # Split the video path to get channel and video name
@@ -88,6 +88,32 @@ def get_video_description(video_name):
 
 def generate_tags_for_video(video_name, allowed_tags):
     """Use the koboldcpp API to choose two tags from the allowed pool for a video."""
+    
+    # Extract channel name from the video path
+    parts = video_name.split(os.path.sep)
+    channel_name = parts[0] if len(parts) >= 2 else "Unknown"
+    
+    # Check if it's an MP3 file (case-insensitive)
+    is_mp3 = video_name.lower().endswith('.mp3')
+    
+    # Check if "ASMR" is in the filename (case-insensitive)
+    has_asmr = 'asmr' in video_name.lower()
+    
+    # Rule 1: Any file with "ASMR" in the name gets "ASMR, [channelname]"
+    if has_asmr:
+        tags = ["ASMR", channel_name]
+        print(f"  Auto-tagged with ASMR rule: {tags[0]}, {tags[1]}")
+        return tags[:2]
+    
+    # Rule 2: MP3 files without ASMR get "Music, [channelname]"
+    if is_mp3:
+        tags = ["Music", channel_name]
+        print(f"  Auto-tagged as music file: {tags[0]}, {tags[1]}")
+        return tags[:2]
+    
+    # For non-ASMR video files (mp4, mkv), use the LLM
+    print(f"  Using LLM for video file: {video_name}")
+    
     # Get video description if available
     description = get_video_description(video_name)
     
@@ -212,44 +238,62 @@ def main():
     # Display descriptions directory
     print(f"Looking for descriptions in: {DESCRIPTIONS_DIR}")
 
-    # Step 2: Read the existing video list
-    # Make video_list.txt path relative to script directory
-    video_list_path = os.path.join(SCRIPT_DIR, VIDEO_LIST)
-    print(f"Looking for video list at: {video_list_path}")
-    video_files = read_video_list(video_list_path)
-    print(f"Found {len(video_files)} videos in the list.")
+    # Step 2: Read the existing media list
+    # Make media_list.txt path relative to script directory
+    media_list_path = os.path.join(SCRIPT_DIR, media_list)
+    print(f"Looking for media list at: {media_list_path}")
+    media_files = read_media_list(media_list_path)
+    print(f"Found {len(media_files)} media files in the list.")
     
     # Display the output directory
     print(f"Output will be saved to: {OUTPUT_DIR}")
     
-    # Check if there are videos to process
-    if not video_files:
-        print("No videos to process. Exiting.")
+    # Check if there are media files to process
+    if not media_files:
+        print("No media files to process. Exiting.")
         return
 
-    # Step 3: Process each video file
-    for index, video_name in enumerate(video_files, 1):
-        print(f"\nProcessing {index}/{len(video_files)}: {video_name}")
+    # Step 3: Process each media file
+    asmr_count = 0
+    music_count = 0
+    llm_count = 0
+    
+    for index, media_name in enumerate(media_files, 1):
+        print(f"\nProcessing {index}/{len(media_files)}: {media_name}")
         
-        # Check if description exists
-        description = get_video_description(video_name)
+        # Check if description exists (for video files)
+        description = get_video_description(media_name)
         if description:
             print(f"Found description ({len(description)} chars)")
         else:
-            print("No description found - using title only")
+            print("No description found")
             
         try:
-            tags = generate_tags_for_video(video_name, allowed_tags)
+            tags = generate_tags_for_video(media_name, allowed_tags)
             print(f"Chosen Tags: {tags[0]}, {tags[1]}")
-            save_tags_to_file(video_name, tags, OUTPUT_DIR)
-            print(f"Tags saved for {video_name} in {OUTPUT_DIR}.")
+            save_tags_to_file(media_name, tags, OUTPUT_DIR)
+            print(f"Tags saved for {media_name} in {OUTPUT_DIR}.")
+            
+            # Count by processing method
+            if 'asmr' in media_name.lower():
+                asmr_count += 1
+            elif media_name.lower().endswith('.mp3'):
+                music_count += 1
+            else:
+                llm_count += 1
+                
         except Exception as e:
-            print(f"Error processing {video_name}: {e}")
-            print(f"Using default tags for {video_name}")
+            print(f"Error processing {media_name}: {e}")
+            print(f"Using default tags for {media_name}")
             tags = [DEFAULT_TAG, DEFAULT_TAG]
-            save_tags_to_file(video_name, tags, OUTPUT_DIR)
+            save_tags_to_file(media_name, tags, OUTPUT_DIR)
 
-    print(f"\nCompleted! Processed {len(video_files)} videos.")
+    print(f"\n{'='*50}")
+    print(f"COMPLETED! Processed {len(media_files)} media files:")
+    print(f"  - ASMR auto-tagged: {asmr_count}")
+    print(f"  - Music auto-tagged: {music_count}")
+    print(f"  - LLM-processed videos: {llm_count}")
+    print(f"{'='*50}")
 
 if __name__ == "__main__":
     main()
