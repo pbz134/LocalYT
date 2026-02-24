@@ -83,7 +83,7 @@
 </head>
 <body class="index-page">
     <header class="top-bar">
-        <button class="openbtn" onclick="openNav()">☰</button>
+        <button class="openbtn" onclick="toggleNav()">☰</button>
         <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
         <div class="category-container" id="categoryContainer"></div>
         <div class="search-container">
@@ -107,31 +107,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
     
     if (mainLogo) {
-        // Left click - navigate to homepage in same tab
         mainLogo.addEventListener('click', (event) => {
-            if (event.button === 0) { // Left click
+            if (event.button === 0) {
                 window.location.href = 'index.html';
             }
         });
         
-        // Middle click (mouse wheel) - open homepage in new tab
         mainLogo.addEventListener('mouseup', (event) => {
-            if (event.button === 1) { // Middle click
+            if (event.button === 1) {
                 event.preventDefault();
                 window.open('index.html', '_blank');
             }
         });
         
-        // Right click - open homepage in new tab (with context menu option)
         mainLogo.addEventListener('contextmenu', (event) => {
             event.preventDefault();
             window.open('index.html', '_blank');
         });
         
-        // Add title for accessibility
         mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
-        
-        // Add cursor styling
         mainLogo.style.cursor = 'pointer';
     }
 });
@@ -144,17 +138,25 @@ document.addEventListener('DOMContentLoaded', () => {
         // Helper function to get video file extension
         function getVideoExtension(path) {
             const match = path.match(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i);
-            return match ? match[1] : 'mp4'; // Default to mp4 if no extension found
+            return match ? match[1] : 'mp4';
         }
 
-        function openNav() {
-            document.getElementById("mySidebar").style.width = "250px";
-            document.getElementById("main").style.marginLeft = "250px";
+        function toggleNav() {
+            const sidebar = document.getElementById("mySidebar");
+            const main = document.getElementById("main");
+            
+            if (sidebar.style.width === "250px") {
+                sidebar.style.width = "0";
+                main.style.marginLeft = "0";
+            } else {
+                sidebar.style.width = "250px";
+                main.style.marginLeft = "250px";
+            }
         }
-
+        
         function closeNav() {
             document.getElementById("mySidebar").style.width = "0";
-            document.getElementById("main").style.marginLeft= "0";
+            document.getElementById("main").style.marginLeft = "0";
         }
 
         // Check login status and update button
@@ -169,38 +171,98 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.username) {
                     const loginButton = document.getElementById('loginButton');
                     loginButton.textContent = data.username;
-                    // Optionally change href to a profile page or logout
-                    // loginButton.href = 'profile.html'; 
                 }
             })
             .catch(error => {
                 console.log('User not logged in or session check failed');
             });
 
+        // --- INFINITE SCROLL LOGIC ---
+        let currentPage = 1;
+        const limit = 20; // Videos per load
+        let isLoading = false;
+        let hasMore = true;
+
         document.addEventListener('DOMContentLoaded', () => {
+            // Load Top Categories
             fetch('/top-categories')
                 .then(response => response.json())
                 .then(categories => {
                     const categoryContainer = document.getElementById('categoryContainer');
-                    // Limit to only 3 categories
                     const limitedCategories = categories.slice(0, 3);
                     
                     limitedCategories.forEach(category => {
                         const button = document.createElement('button');
                         button.className = 'category-button';
                         button.textContent = category;
+                        // Redirect to search page for that category (efficient for large libraries)
                         button.onclick = () => {
-                            fetchVideosByCategory(category);
+                            window.location.href = `search.html?q=${encodeURIComponent(category)}`;
                         };
                         categoryContainer.appendChild(button);
                     });
                 });
 
-            fetch('/videos')
+            // Initial Video Load
+            loadMoreVideos();
+
+            // Infinite Scroll Listener
+            window.addEventListener('scroll', () => {
+                // Trigger when user is 200px from bottom
+                if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
+                    loadMoreVideos();
+                }
+            });
+            
+            // Search functionality
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', () => {
+                const query = searchInput.value.toLowerCase();
+                if (query.length < 2) {
+                     document.getElementById('searchSuggestions').innerHTML = '';
+                     return;
+                }
+                
+                fetch('/search-index')
+                    .then(response => response.json())
+                    .then(data => {
+                        const suggestions = data.videos
+                            .filter(video => video.displayName.toLowerCase().includes(query))
+                            .slice(0, 5);
+
+                        const suggestionsContainer = document.getElementById('searchSuggestions');
+                        suggestionsContainer.innerHTML = '';
+                        
+                        suggestions.forEach(suggestion => {
+                            const suggestionElement = document.createElement('div');
+                            suggestionElement.className = 'suggestion-item';
+                            suggestionElement.textContent = suggestion.displayName;
+                            suggestionElement.onclick = () => {
+                                window.location.href = `video.html?src=${encodeURIComponent(suggestion.path)}`;
+                            };
+                            suggestionsContainer.appendChild(suggestionElement);
+                        });
+                    });
+            });
+
+            searchInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
+                }
+            });
+        });
+
+        function loadMoreVideos() {
+            if (isLoading || !hasMore) return;
+            
+            isLoading = true;
+            
+            fetch(`/videos?page=${currentPage}&limit=${limit}`)
                 .then(response => response.json())
-                .then(videos => {
+                .then(data => {
                     const container = document.getElementById('videoContainer');
-                    videos.forEach(video => {
+                    
+                    data.videos.forEach(video => {
                         const videoElement = document.createElement('div');
                         videoElement.className = 'video-item';
                         const videoTitle = video.displayName;
@@ -231,20 +293,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
 
                         // Add event listeners for right-click and mouse wheel click
-                        const videoLink = videoElement.querySelector('.video-title');
-                        videoLink.addEventListener('contextmenu', (event) => {
-                            event.preventDefault();
-                            window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
-                        });
-
-                        videoLink.addEventListener('mouseup', (event) => {
-                            if (event.button === 1) {
-                                event.preventDefault();
-                                window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
-                            }
-                        });
-
-                        // Fetch video length
+                        setupVideoLinkEvents(videoElement.querySelector('.video-title'), video.path);
+                        
+                        // Fetch video length (lazy)
                         const videoFilename = video.path.split('/').pop();
                         const videoNameWithoutExt = stripExtension(videoFilename);
                         fetch(`/videolengths/${channel}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
@@ -257,162 +308,32 @@ document.addEventListener('DOMContentLoaded', () => {
                             });
                     });
 
-                    // Use Intersection Observer to lazy load video thumbnails
-                    const observer = new IntersectionObserver((entries, observer) => {
-                        entries.forEach(entry => {
-                            if (entry.isIntersecting) {
-                                const img = entry.target;
-                                img.src = img.dataset.src;
-                                observer.unobserve(img);
-                            }
-                        });
-                    });
-
-                    document.querySelectorAll('.video-thumbnail').forEach(img => {
-                        img.dataset.src = img.src;
-                        img.src = ''; // Remove the src to prevent loading
-                        observer.observe(img);
-                    });
+                    // Update state
+                    isLoading = false;
+                    if (data.videos.length < limit) {
+                        hasMore = false;
+                    } else {
+                        currentPage++;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching videos:', error);
+                    isLoading = false;
                 });
+        }
 
-            const searchInput = document.getElementById('searchInput');
-            searchInput.addEventListener('input', () => {
-                const query = searchInput.value.toLowerCase();
-                fetch('/videos')
-                    .then(response => response.json())
-                    .then(videos => {
-                        const suggestions = videos
-                            .filter(video => video.displayName.toLowerCase().includes(query))
-                            .map(video => ({
-                                title: video.displayName,
-                                fullPath: video.path
-                            }));
-
-                        const suggestionsContainer = document.getElementById('searchSuggestions');
-                        suggestionsContainer.innerHTML = '';
-                        suggestions.forEach(suggestion => {
-                            const suggestionElement = document.createElement('div');
-                            suggestionElement.className = 'suggestion-item';
-                            suggestionElement.textContent = suggestion.title;
-                            suggestionElement.onclick = () => {
-                                window.location.href = `video.html?src=${encodeURIComponent(suggestion.fullPath)}`;
-                            };
-                            suggestionsContainer.appendChild(suggestionElement);
-
-                            // Add event listeners for right-click and mouse wheel click
-                            suggestionElement.addEventListener('contextmenu', (event) => {
-                                event.preventDefault();
-                                window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
-                            });
-
-                            suggestionElement.addEventListener('mouseup', (event) => {
-                                if (event.button === 1) {
-                                    event.preventDefault();
-                                    window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
-                                }
-                            });
-                        });
-                    });
+        function setupVideoLinkEvents(element, path) {
+            element.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+                window.open(`video.html?src=${encodeURIComponent(path)}`, '_blank');
             });
 
-            searchInput.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
-                    window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
+            element.addEventListener('mouseup', (event) => {
+                if (event.button === 1) {
+                    event.preventDefault();
+                    window.open(`video.html?src=${encodeURIComponent(path)}`, '_blank');
                 }
             });
-        });
-
-        function fetchVideosByCategory(category) {
-            fetch('/videos')
-                .then(response => response.json())
-                .then(videos => {
-                    const container = document.getElementById('videoContainer');
-                    container.innerHTML = '';
-                    videos.forEach(video => {
-                        const videoPathWithoutExt = stripExtension(video.path);
-                        const videoTagsPath = `/videos/${videoPathWithoutExt}.txt`;
-                        fetch(videoTagsPath)
-                            .then(response => response.text())
-                            .then(tags => {
-                                const videoTags = tags.split(',').map(tag => tag.trim());
-                                if (videoTags.includes(category)) {
-                                    const videoElement = document.createElement('div');
-                                    videoElement.className = 'video-item';
-                                    const videoTitle = video.displayName;
-                                    const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
-                                    const channel = video.path.split('/')[0];
-                                    const channelPicSrc = `/channelpic/${encodeURIComponent(channel)}.jpg`;
-
-                                    videoElement.innerHTML = `
-                                        <div class="thumbnail-container">
-                                            <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
-                                            <div class="video-length"></div>
-                                        </div>
-                                        <div class="video-info">
-                                            <img src="${channelPicSrc}" alt="${channel}" class="channel-pic" loading="lazy">
-                                            <div class="video-details">
-                                                <div class="video-title" onclick="window.location.href='video.html?src=${encodeURIComponent(video.path)}'">${videoTitle}</div>
-                                                <div class="channel-name" onclick="window.location.href='channel.html?channel=${encodeURIComponent(channel)}'">${channel}</div>
-                                                <div class="video-description">${video.viewCount} views • Uploaded on ${video.fileDate}</div>
-                                            </div>
-                                        </div>
-                                    `;
-                                    container.appendChild(videoElement);
-
-                                    // Add event listener to the thumbnail container
-                                    videoElement.querySelector('.thumbnail-container').addEventListener('click', () => {
-                                        window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
-                                    });
-
-                                    // Add event listeners for right-click and mouse wheel click
-                                    const videoLink = videoElement.querySelector('.video-title');
-                                    videoLink.addEventListener('contextmenu', (event) => {
-                                        event.preventDefault();
-                                        window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
-                                    });
-
-                                    videoLink.addEventListener('mouseup', (event) => {
-                                        if (event.button === 1) {
-                                            event.preventDefault();
-                                            window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
-                                        }
-                                    });
-
-                                    // Fetch video length
-                                    const videoFilename = video.path.split('/').pop();
-                                    const videoNameWithoutExt = stripExtension(videoFilename);
-                                    fetch(`/videolengths/${channel}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
-                                        .then(response => response.text())
-                                        .then(length => {
-                                            videoElement.querySelector('.video-length').textContent = length;
-                                        })
-                                        .catch(error => {
-                                            console.error('Error fetching video length:', error);
-                                        });
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error fetching video tags:', error);
-                            });
-                    });
-
-                    // Use Intersection Observer to lazy load video thumbnails
-                    const observer = new IntersectionObserver((entries, observer) => {
-                        entries.forEach(entry => {
-                            if (entry.isIntersecting) {
-                                const img = entry.target;
-                                img.src = img.dataset.src;
-                                observer.unobserve(img);
-                            }
-                        });
-                    });
-
-                    document.querySelectorAll('.video-thumbnail').forEach(img => {
-                        img.dataset.src = img.src;
-                        img.src = ''; // Remove the src to prevent loading
-                        observer.observe(img);
-                    });
-                });
         }
     </script>
 </body>
