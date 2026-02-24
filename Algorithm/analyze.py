@@ -201,31 +201,48 @@ def generate_tags_for_video(video_name, allowed_tags):
 
 def save_tags_to_file(video_name, tags, output_dir):
     """Save the chosen tags to a .txt file in the specified output directory, preserving the original file structure."""
-    # Extract the subfolder name (if any)
-    subfolder_name = os.path.dirname(video_name)
-    
-    # Create the output path by joining output_dir with the video_name's directory structure
-    output_path = os.path.join(output_dir, os.path.dirname(video_name))
-    
-    # Create the directory if it doesn't exist
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
-    
-    # Create the output file name (without extension)
-    base_name = os.path.splitext(os.path.basename(video_name))[0]
-    
-    # Add the subfolder name to the tags
-    if subfolder_name:  # Only add if there's a subfolder
-        tags_with_subfolder = tags + [subfolder_name]
-    else:
-        tags_with_subfolder = tags + ["Root"]  # Or some default for root-level videos
-    
-    # Create the output file path
-    tag_file = os.path.join(output_path, f"{base_name}.txt")
-    
-    # Write the tags to the file - Added encoding='utf-8' to handle Unicode
-    with open(tag_file, "w", encoding='utf-8') as f:
-        f.write(f"{tags_with_subfolder[0]}, {tags_with_subfolder[1]}, {tags_with_subfolder[2]}\n")
+    try:
+        # Get the directory part of the video path
+        video_dir = os.path.dirname(video_name)
+        
+        # Create the full output directory path
+        if video_dir:
+            output_path = os.path.join(output_dir, video_dir)
+        else:
+            output_path = output_dir
+        
+        # Create the directory if it doesn't exist
+        if not os.path.exists(output_path):
+            os.makedirs(output_path, exist_ok=True)
+            print(f"  Created directory: {output_path}")
+        
+        # Create the output file name (without extension)
+        base_name = os.path.splitext(os.path.basename(video_name))[0]
+        
+        # Get the channel name (first part of the path) for the third tag
+        parts = video_name.split(os.path.sep)
+        channel_name = parts[0] if len(parts) >= 2 else "Root"
+        
+        # Add the channel name as the third tag
+        tags_with_channel = tags + [channel_name]
+        
+        # Create the output file path
+        tag_file = os.path.join(output_path, f"{base_name}.txt")
+        
+        # Write the tags to the file - Added encoding='utf-8' to handle Unicode
+        with open(tag_file, "w", encoding='utf-8') as f:
+            f.write(f"{tags_with_channel[0]}, {tags_with_channel[1]}, {tags_with_channel[2]}\n")
+        
+        print(f"  Tags saved to: {tag_file}")
+        
+    except Exception as e:
+        print(f"  ERROR saving tags: {e}")
+        print(f"  Video name: {video_name}")
+        print(f"  Output directory: {output_dir}")
+        print(f"  Video directory: {video_dir if 'video_dir' in locals() else 'N/A'}")
+        print(f"  Output path: {output_path if 'output_path' in locals() else 'N/A'}")
+        print(f"  Tag file: {tag_file if 'tag_file' in locals() else 'N/A'}")
+        raise  # Re-raise the exception so the main function knows it failed
 
 def main():
     # Step 1: Always load the super expanded tag list
@@ -264,15 +281,14 @@ def main():
         # Check if description exists (for video files)
         description = get_video_description(media_name)
         if description:
-            print(f"Found description ({len(description)} chars)")
+            print(f"  Found description ({len(description)} chars)")
         else:
-            print("No description found")
+            print("  No description found")
             
         try:
             tags = generate_tags_for_video(media_name, allowed_tags)
-            print(f"Chosen Tags: {tags[0]}, {tags[1]}")
+            print(f"  Chosen Tags: {tags[0]}, {tags[1]}")
             save_tags_to_file(media_name, tags, OUTPUT_DIR)
-            print(f"Tags saved for {media_name} in {OUTPUT_DIR}.")
             
             # Count by processing method
             if 'asmr' in media_name.lower():
@@ -283,10 +299,13 @@ def main():
                 llm_count += 1
                 
         except Exception as e:
-            print(f"Error processing {media_name}: {e}")
-            print(f"Using default tags for {media_name}")
+            print(f"  Error processing {media_name}: {e}")
+            print(f"  Using default tags for {media_name}")
             tags = [DEFAULT_TAG, DEFAULT_TAG]
-            save_tags_to_file(media_name, tags, OUTPUT_DIR)
+            try:
+                save_tags_to_file(media_name, tags, OUTPUT_DIR)
+            except Exception as save_error:
+                print(f"  CRITICAL: Could not save default tags either: {save_error}")
 
     print(f"\n{'='*50}")
     print(f"COMPLETED! Processed {len(media_files)} media files:")
