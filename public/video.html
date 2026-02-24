@@ -512,9 +512,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const pathParts = videoSrc.split('/');
                 const channel = pathParts[0];
-                const videoNameWithoutExt = stripExtension(pathParts[pathParts.length - 1]);
 
-                posterImageUrl = `/thumbnails/${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.jpg`;
+                // Check if there's a playlist subfolder
+                let thumbnailPath;
+                if (pathParts.length > 2) {
+                    // Video is in a playlist subfolder: channel/playlist/video.mp4
+                    const playlist = pathParts[1];
+                    const videoNameWithoutExt = stripExtension(pathParts[pathParts.length - 1]);
+                    thumbnailPath = `${encodeURIComponent(channel)}/${encodeURIComponent(playlist)}/${encodeURIComponent(videoNameWithoutExt)}.jpg`;
+                } else {
+                    // Video is directly in channel root: channel/video.mp4
+                    const videoNameWithoutExt = stripExtension(pathParts[pathParts.length - 1]);
+                    thumbnailPath = `${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.jpg`;
+                }
+
+                posterImageUrl = `/thumbnails/${thumbnailPath}`;
 
                 channelPic.src = `/channelpic/${encodeURIComponent(channel)}.jpg`;
                 channelName.textContent = channel;
@@ -662,11 +674,27 @@ document.addEventListener('DOMContentLoaded', () => {
                         const channel = video.path.split('/')[0];
                         const videoPathWithoutExt = stripExtension(video.path);
                         
-                        suggestionElement.innerHTML = `
-                            <div class="thumbnail-container">
-                                <img src="/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg" alt="${suggestionTitle}" class="video-thumbnail">
-                                <div class="video-length"></div>
-                            </div>
+// Build the correct thumbnail path for suggestions
+const suggestionPathParts = video.path.split('/');
+const suggestionChannel = suggestionPathParts[0];
+let suggestionThumbnailPath;
+
+if (suggestionPathParts.length > 2) {
+    // Video is in a playlist subfolder
+    const suggestionPlaylist = suggestionPathParts[1];
+    const suggestionVideoName = stripExtension(suggestionPathParts[suggestionPathParts.length - 1]);
+    suggestionThumbnailPath = `${encodeURIComponent(suggestionChannel)}/${encodeURIComponent(suggestionPlaylist)}/${encodeURIComponent(suggestionVideoName)}.jpg`;
+} else {
+    // Video is directly in channel root
+    const suggestionVideoName = stripExtension(suggestionPathParts[suggestionPathParts.length - 1]);
+    suggestionThumbnailPath = `${encodeURIComponent(suggestionChannel)}/${encodeURIComponent(suggestionVideoName)}.jpg`;
+}
+
+suggestionElement.innerHTML = `
+    <div class="thumbnail-container">
+        <img src="/thumbnails/${suggestionThumbnailPath}" alt="${suggestionTitle}" class="video-thumbnail">
+        <div class="video-length"></div>
+    </div>
                             <div class="suggestion-info">
                                 <div class="suggestion-title" onclick="openVideo('${encodeURIComponent(video.path)}')">${suggestionTitle}</div>
                                 <div class="suggestion-channel">${channel}</div>
