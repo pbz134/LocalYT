@@ -1,6 +1,15 @@
 +++LocalYT Revamped - Changelog+++
 
 
+v3.50
+- Added caching to make loading of huge file databases possible, even on HDDs (tested successfully with 9TB of video/audio files)
+- Fixed character encoding in algorithm setup scripts
+- Added placeholder lengths of 3:00 for video or audio files where createvideolengths.py can't determine their length
+- Added tagging support for .mp3 and .mkv files
+- Conditional tagging for ASMR and audio files without an LLM
+  - For music and ASMR, automatic tags will now be applied, saving tons of time and compute
+- Fixed .mp3 compatibility for createvideolengths.py
+
 v3.40
 - Fixed race condition for video suggestions on video.html by adding a delay
 - Fix rounded corners on video thumbnail items
