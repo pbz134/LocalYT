@@ -130,6 +130,7 @@ def create_videolengths(videos_dir, videolengths_dir):
     processed = 0
     successful = 0
     skipped = 0
+    default_used = 0  # Counter for files where default length was used
     
     for i, (root, filename) in enumerate(files_to_process, 1):
         file_path = os.path.join(root, filename)
@@ -149,9 +150,9 @@ def create_videolengths(videos_dir, videolengths_dir):
         channel_dir = os.path.join(videolengths_dir, channel_folder)
         os.makedirs(channel_dir, exist_ok=True)
         
-        # Determine the text file name
+        # Determine the text file name - same for all file types
         base_name = os.path.splitext(filename)[0]
-        txt_filename = f"{base_name}.mp3.txt" if filename.endswith('.mp3') else f"{base_name}.txt"
+        txt_filename = f"{base_name}.txt"  # Always use .txt extension
         txt_file_path = os.path.join(channel_dir, txt_filename)
         
         # Check if length file already exists
@@ -164,10 +165,11 @@ def create_videolengths(videos_dir, videolengths_dir):
         # Get file length
         file_length = get_file_length_fast(file_path)
         
+        # Use default length of 3 minutes (180 seconds) if unable to determine
         if file_length is None:
-            print(f"{progress} ✗ {filename} - Failed to get duration")
-            processed += 1
-            continue
+            file_length = 180  # 3 minutes in seconds
+            default_used += 1
+            print(f"{progress} ⚠ {filename} - Using default length (3:00)")
         
         # Format the duration using the new function
         file_length_str = seconds_to_timestamp(file_length)
@@ -176,7 +178,10 @@ def create_videolengths(videos_dir, videolengths_dir):
         with open(txt_file_path, 'w') as txt_file:
             txt_file.write(file_length_str)
         
-        print(f"{progress} {filename} - {file_length_str}")
+        if file_length == 180:  # Check if default was used
+            print(f"{progress} {filename} - {file_length_str} (default)")
+        else:
+            print(f"{progress} {filename} - {file_length_str}")
         
         processed += 1
         successful += 1
@@ -185,6 +190,7 @@ def create_videolengths(videos_dir, videolengths_dir):
     print(f"\n--- Summary ---")
     print(f"Successfully processed: {successful}/{processed} files")
     print(f"Skipped (already exist): {skipped} files")
+    print(f"Default length (3:00) used for: {default_used} files")
     print(f"Output directory: {videolengths_dir}")
     
     # Show channel organization
