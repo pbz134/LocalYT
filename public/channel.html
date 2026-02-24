@@ -218,14 +218,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
     
     if (mainLogo) {
-        // Left click - navigate to homepage in same tab
         mainLogo.addEventListener('click', (event) => {
             if (event.button === 0) { // Left click
                 window.location.href = 'index.html';
             }
         });
         
-        // Middle click (mouse wheel) - open homepage in new tab
         mainLogo.addEventListener('mouseup', (event) => {
             if (event.button === 1) { // Middle click
                 event.preventDefault();
@@ -233,19 +231,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // Right click - open homepage in new tab (with context menu option)
         mainLogo.addEventListener('contextmenu', (event) => {
             event.preventDefault();
             window.open('index.html', '_blank');
         });
         
-        // Add title for accessibility
         mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
-        
-        // Add cursor styling
         mainLogo.style.cursor = 'pointer';
     }
 });
+
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const channel = decodeURIComponent(urlParams.get('channel'));
@@ -269,11 +264,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Tab functionality
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', () => {
-                    // Remove active class from all tabs and contents
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                     
-                    // Add active class to clicked tab and corresponding content
                     tab.classList.add('active');
                     document.getElementById(`${tab.dataset.tab}Tab`).classList.add('active');
                 });
@@ -292,9 +285,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return new Date(dateString);
             }
 
-            function getVideoFilenameWithoutExtension(path) {
-                // Remove the file extension (.mp4, .mkv, .mp3, etc.)
-                return path.replace(/\.[^/.]+$/, '');
+            function stripExtension(filename) {
+                return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
             }
 
             function sortVideos() {
@@ -325,8 +317,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const videoElement = document.createElement('div');
                     videoElement.className = 'video-item';
                     const videoTitle = video.displayName;
-                    const videoFilenameWithoutExt = getVideoFilenameWithoutExtension(video.path);
-                    const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoFilenameWithoutExt)}.jpg`;
+                    const videoPathWithoutExt = stripExtension(video.path);
+                    const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
                     
                     videoElement.innerHTML = `
                         <div class="thumbnail-container">
@@ -340,8 +332,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                     videosContainer.appendChild(videoElement);
 
-                    // Fetch video length (using filename without extension)
-                    fetch(`/videolengths/${channel}/${encodeURIComponent(videoFilenameWithoutExt.split('/').pop())}.txt`)
+                    // Fetch video length
+                    const videoFilename = video.path.split('/').pop();
+                    const videoNameWithoutExt = stripExtension(videoFilename);
+                    fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
                         .then(response => response.text())
                         .then(length => {
                             videoElement.querySelector('.video-length').textContent = length;
@@ -393,14 +387,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     const playlistElement = document.createElement('div');
                     playlistElement.className = 'playlist-item';
                     
-                    // Get first video in playlist for thumbnail
                     fetch(`/playlist-videos/${encodeURIComponent(channel)}/${encodeURIComponent(playlist.path)}`)
                         .then(response => response.json())
                         .then(videos => {
                             if (videos.length > 0) {
                                 const firstVideo = videos[0];
-                                const videoFilenameWithoutExt = getVideoFilenameWithoutExtension(firstVideo.path);
-                                const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoFilenameWithoutExt)}.jpg`;
+                                const videoPathWithoutExt = stripExtension(firstVideo.path);
+                                const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
                                 
                                 playlistElement.innerHTML = `
                                     <div class="playlist-thumbnail" style="background-image: url('${thumbnailSrc}')">
@@ -440,55 +433,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 sortVideos();
             });
 
-            // Load videos
-            fetch('/videos')
+            // OPTIMIZED: Load videos from search-index (RAM) instead of scanning disk
+            fetch('/search-index')
                 .then(response => response.json())
-                .then(videos => {
-                    let channelVideos = videos.filter(video => video.path.startsWith(`${channel}/`));
+                .then(data => {
+                    const videos = data.videos || [];
+                    // Filter for current channel
+                    const channelVideos = videos.filter(video => video.path.startsWith(`${channel}/`));
                     
-                    const datePromises = channelVideos.map(video => {
-                        const videoFileName = getVideoFilenameWithoutExtension(video.path.split('/').pop());
-                        const datePath = `/filedates/${encodeURIComponent(channel)}/${encodeURIComponent(videoFileName)}.txt`;
+                    // Since search-index doesn't have dates, we need to fetch details
+                    // But the cache in RAM has dates now.
+                    // Ideally we add an endpoint to query cache by channel.
+                    // For now, we can use the existing logic but optimized:
+                    
+                    // We will fetch details for only this channel's videos
+                    const detailPromises = channelVideos.map(video => {
+                        // We can assume the server cache has the date, but search-index is minimal.
+                        // Let's use a small hack: fetch filedates individually for now, 
+                        // OR better: The server cache has it, but we need an endpoint.
+                        // Let's stick to fetching dates for now as it's much less data than scanning.
                         
-                        return fetch(datePath)
-                            .then(response => {
-                                if (!response.ok) throw new Error('Date not found');
-                                return response.text();
-                            })
+                        const videoPathWithoutExt = video.path.replace(/\.(mp4|mp3|mkv)$/i, '');
+                        // Path structure is Channel/Subdirs/Video
+                        // filedates path is /filedates/Channel/Subdirs/Video.txt
+                        
+                        return fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
+                            .then(r => r.ok ? r.text() : 'Unknown date')
                             .then(dateString => {
-                                const europeanDate = dateString.trim();
                                 return {
                                     ...video,
-                                    fileDate: europeanDate || 'Unknown date',
-                                    dateObject: parseEuropeanDate(europeanDate)
+                                    fileDate: dateString.trim() || 'Unknown date'
                                 };
-                            })
-                            .catch(error => {
-                                console.error(`Error fetching date for ${videoFileName}:`, error);
-                                return {
-                                    ...video,
-                                    fileDate: 'Unknown date',
-                                    dateObject: new Date(0)
-                                };
+                            }).catch(() => {
+                                return { ...video, fileDate: 'Unknown date' };
                             });
                     });
 
-                    Promise.all(datePromises)
-                        .then(videosWithDates => {
-                            currentVideos = videosWithDates;
-                            sortVideos();
-                            
-                            const videoCount = currentVideos.length;
-                            fetch(`/subcount/${encodeURIComponent(channel)}`)
-                                .then(response => response.text())
-                                .then(subCount => {
-                                    channelName.innerHTML = `${channel}<span class="video-count">${subCount} subscribers • ${videoCount} videos</span>`;
-                                })
-                                .catch(error => {
-                                    console.error('Error fetching subscriber count:', error);
-                                    channelName.innerHTML = `${channel}<span class="video-count">${videoCount} videos</span>`;
-                                });
-                        });
+                    Promise.all(detailPromises).then(videosWithDates => {
+                        currentVideos = videosWithDates;
+                        sortVideos();
+                        
+                        const videoCount = currentVideos.length;
+                        fetch(`/subcount/${encodeURIComponent(channel)}`)
+                            .then(response => response.text())
+                            .then(subCount => {
+                                channelName.innerHTML = `${channel}<span class="video-count">${subCount} subscribers • ${videoCount} videos</span>`;
+                            })
+                            .catch(error => {
+                                console.error('Error fetching subscriber count:', error);
+                                channelName.innerHTML = `${channel}<span class="video-count">${videoCount} videos</span>`;
+                            });
+                    });
                 });
 
             // Load playlists
@@ -505,36 +500,36 @@ document.addEventListener('DOMContentLoaded', () => {
             const searchInput = document.getElementById('searchInput');
             searchInput.addEventListener('input', () => {
                 const query = searchInput.value.toLowerCase();
-                fetch('/videos')
+                if (query.length < 2) return;
+
+                fetch('/search-index')
                     .then(response => response.json())
-                    .then(videos => {
+                    .then(data => {
+                        const videos = data.videos || [];
                         const suggestions = videos
                             .filter(video => video.displayName.toLowerCase().includes(query))
-                            .map(video => ({
-                                title: video.displayName,
-                                fullPath: video.path
-                            }));
+                            .slice(0, 5);
 
                         const suggestionsContainer = document.getElementById('searchSuggestions');
                         suggestionsContainer.innerHTML = '';
-                        suggestions.forEach(suggestion => {
+                        suggestions.forEach(video => {
                             const suggestionElement = document.createElement('div');
                             suggestionElement.className = 'suggestion-item';
-                            suggestionElement.textContent = suggestion.title;
+                            suggestionElement.textContent = video.displayName;
                             suggestionElement.onclick = () => {
-                                window.location.href = `video.html?src=${encodeURIComponent(suggestion.fullPath)}`;
+                                window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
                             };
                             suggestionsContainer.appendChild(suggestionElement);
 
                             suggestionElement.addEventListener('contextmenu', (event) => {
                                 event.preventDefault();
-                                window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
+                                window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
                             });
 
                             suggestionElement.addEventListener('mouseup', (event) => {
                                 if (event.button === 1) {
                                     event.preventDefault();
-                                    window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
+                                    window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
                                 }
                             });
                         });
