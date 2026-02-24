@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 
 REM Step 1: Run the first Python script
 echo Running create-filename-list.py...
-.\venv\python.exe create-filename-list.py
+.\venv\python.exe create-filename-list.py --untagged
 if errorlevel 1 (
     echo Error running create-filename-list.py
     pause
