@@ -176,6 +176,20 @@
             color: #888;
             font-size: 14px;
         }
+        .thumbnail-container {
+            position: relative;
+        }
+        .video-length {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -241,311 +255,316 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const channel = decodeURIComponent(urlParams.get('channel'));
-            const videosContainer = document.getElementById('channelVideosContainer');
-            const playlistsContainer = document.getElementById('playlistsContainer');
-            const channelPic = document.getElementById('channelPic');
-            const channelName = document.getElementById('channelName');
-            const channelBanner = document.getElementById('channelBanner');
-            const sortToggle = document.getElementById('sortToggle');
-            const sortIcon = sortToggle.querySelector('.sort-icon');
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const channel = decodeURIComponent(urlParams.get('channel'));
+    const videosContainer = document.getElementById('channelVideosContainer');
+    const playlistsContainer = document.getElementById('playlistsContainer');
+    const channelPic = document.getElementById('channelPic');
+    const channelName = document.getElementById('channelName');
+    const channelBanner = document.getElementById('channelBanner');
+    const sortToggle = document.getElementById('sortToggle');
+    const sortIcon = sortToggle.querySelector('.sort-icon');
 
-            let currentVideos = [];
-            let sortNewestFirst = true;
+    let currentVideos = [];
+    let sortNewestFirst = true;
 
-            channelBanner.style.backgroundImage = `url('/channelbanner/${encodeURIComponent(channel)}.jpg')`;
-            channelPic.src = `/channelpic/${encodeURIComponent(channel)}.jpg`;
-            channelName.textContent = channel;
+    channelBanner.style.backgroundImage = `url('/channelbanner/${encodeURIComponent(channel)}.jpg')`;
+    channelPic.src = `/channelpic/${encodeURIComponent(channel)}.jpg`;
+    channelName.textContent = channel;
 
-            document.title = `${channel} - LocalYT`;
+    document.title = `${channel} - LocalYT`;
 
-            // Tab functionality
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.addEventListener('click', () => {
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                    
-                    tab.classList.add('active');
-                    document.getElementById(`${tab.dataset.tab}Tab`).classList.add('active');
+    // Tab functionality
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            tab.classList.add('active');
+            document.getElementById(`${tab.dataset.tab}Tab`).classList.add('active');
+        });
+    });
+
+    function parseEuropeanDate(dateString) {
+        if (!dateString || dateString === 'Unknown date') return new Date(0);
+        
+        const parts = dateString.split('.');
+        if (parts.length === 3) {
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+            return new Date(year, month, day);
+        }
+        return new Date(dateString);
+    }
+
+    function stripExtension(filename) {
+        return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+    }
+
+    function sortVideos() {
+        currentVideos.sort((a, b) => {
+            try {
+                const dateA = parseEuropeanDate(a.fileDate).getTime();
+                const dateB = parseEuropeanDate(b.fileDate).getTime();
+                return sortNewestFirst ? dateB - dateA : dateA - dateB;
+            } catch (e) {
+                console.error('Error sorting videos:', e);
+                return 0;
+            }
+        });
+
+        if (sortNewestFirst) {
+            sortToggle.innerHTML = '<span class="sort-icon">↓</span> Newest First';
+        } else {
+            sortToggle.innerHTML = '<span class="sort-icon">↑</span> Oldest First';
+        }
+
+        renderVideos();
+    }
+
+    function renderVideos() {
+        videosContainer.innerHTML = '';
+        
+        currentVideos.forEach(video => {
+            const videoElement = document.createElement('div');
+            videoElement.className = 'video-item';
+            const videoTitle = video.displayName;
+            const videoPathWithoutExt = stripExtension(video.path);
+            const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
+            
+            videoElement.innerHTML = `
+                <div class="thumbnail-container">
+                    <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
+                    <div class="video-length"></div>
+                </div>
+                <div class="video-title" onclick="openVideo('${encodeURIComponent(video.path)}')">${videoTitle}</div>
+                <div class="video-description"></div> <!-- Empty initially -->
+            `;
+            videosContainer.appendChild(videoElement);
+
+            // Fetch view count and file date
+            const descriptionDiv = videoElement.querySelector('.video-description');
+            
+            Promise.all([
+                fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(response => response.ok ? response.text() : '0'),
+                fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(response => response.ok ? response.text() : 'Unknown date')
+            ])
+            .then(([viewCount, fileDate]) => {
+                // Format view count with commas
+                let formattedViewCount = viewCount;
+                if (!isNaN(viewCount) && viewCount !== '0') {
+                    formattedViewCount = parseInt(viewCount).toLocaleString();
+                }
+                descriptionDiv.textContent = `${formattedViewCount} views • Uploaded on ${fileDate}`;
+            })
+            .catch(error => {
+                console.error('Error fetching metadata:', error);
+                descriptionDiv.textContent = 'Views unavailable';
+            });
+
+            // Fetch video length
+            const videoFilename = video.path.split('/').pop();
+            const videoNameWithoutExt = stripExtension(videoFilename);
+            fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
+                .then(response => response.ok ? response.text() : '')
+                .then(length => {
+                    videoElement.querySelector('.video-length').textContent = length;
+                })
+                .catch(error => {
+                    console.error('Error fetching video length:', error);
+                });
+
+            // Video click handlers
+            const videoLink = videoElement.querySelector('.video-title');
+            const videoThumb = videoElement.querySelector('.video-thumbnail');
+            
+            videoThumb.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
+            videoLink.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
+            
+            videoLink.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+                window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+            });
+
+            videoLink.addEventListener('mouseup', (event) => {
+                if (event.button === 1) {
+                    event.preventDefault();
+                    window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                }
+            });
+        });
+    }
+
+    function renderPlaylists(playlists) {
+        playlistsContainer.innerHTML = '';
+        
+        if (playlists.length === 0) {
+            playlistsContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">No playlists found</p>';
+            return;
+        }
+
+        playlists.forEach(playlist => {
+            const playlistElement = document.createElement('div');
+            playlistElement.className = 'playlist-item';
+            
+            fetch(`/playlist-videos/${encodeURIComponent(channel)}/${encodeURIComponent(playlist.path)}`)
+                .then(response => response.json())
+                .then(videos => {
+                    if (videos.length > 0) {
+                        const firstVideo = videos[0];
+                        const videoPathWithoutExt = stripExtension(firstVideo.path);
+                        const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
+                        
+                        playlistElement.innerHTML = `
+                            <div class="playlist-thumbnail" style="background-image: url('${thumbnailSrc}')">
+                                <div class="playlist-overlay">
+                                    ${videos.length} videos
+                                </div>
+                            </div>
+                            <div class="playlist-title">${playlist.name}</div>
+                            <div class="playlist-video-count">${playlist.videoCount} videos</div>
+                        `;
+                    } else {
+                        playlistElement.innerHTML = `
+                            <div class="playlist-thumbnail" style="background-color: #333">
+                                <div class="playlist-overlay">
+                                    0 videos
+                                </div>
+                            </div>
+                            <div class="playlist-title">${playlist.name}</div>
+                            <div class="playlist-video-count">0 videos</div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching playlist videos:', error);
+                });
+
+            playlistElement.addEventListener('click', () => {
+                window.location.href = `playlist.html?channel=${encodeURIComponent(channel)}&playlist=${encodeURIComponent(playlist.path)}`;
+            });
+
+            playlistsContainer.appendChild(playlistElement);
+        });
+    }
+
+    sortToggle.addEventListener('click', () => {
+        sortNewestFirst = !sortNewestFirst;
+        sortVideos();
+    });
+
+    // Load videos from search-index
+    fetch('/search-index')
+        .then(response => response.json())
+        .then(data => {
+            const videos = data.videos || [];
+            // Filter for current channel
+            const channelVideos = videos.filter(video => video.path.startsWith(`${channel}/`));
+            
+            // We already have displayName from the cache, but need to fetch dates and view counts
+            const videoPromises = channelVideos.map(video => {
+                const videoPathWithoutExt = stripExtension(video.path);
+                
+                // Fetch both metadata in parallel
+                return Promise.all([
+                    fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(r => r.ok ? r.text() : '0'),
+                    fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(r => r.ok ? r.text() : 'Unknown date')
+                ])
+                .then(([viewCount, fileDate]) => {
+                    return {
+                        ...video,
+                        viewCount: viewCount,
+                        fileDate: fileDate.trim() || 'Unknown date'
+                    };
+                })
+                .catch(() => {
+                    return { 
+                        ...video, 
+                        viewCount: '0',
+                        fileDate: 'Unknown date' 
+                    };
                 });
             });
 
-            function parseEuropeanDate(dateString) {
-                if (!dateString || dateString === 'Unknown date') return new Date(0);
+            Promise.all(videoPromises).then(videosWithDetails => {
+                currentVideos = videosWithDetails;
+                sortVideos();
                 
-                const parts = dateString.split('.');
-                if (parts.length === 3) {
-                    const day = parseInt(parts[0], 10);
-                    const month = parseInt(parts[1], 10) - 1;
-                    const year = parseInt(parts[2], 10);
-                    return new Date(year, month, day);
-                }
-                return new Date(dateString);
-            }
+                const videoCount = currentVideos.length;
+                fetch(`/subcount/${encodeURIComponent(channel)}`)
+                    .then(response => response.ok ? response.text() : '0')
+                    .then(subCount => {
+                        channelName.innerHTML = `${channel}<span class="video-count">${subCount} subscribers • ${videoCount} videos</span>`;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching subscriber count:', error);
+                        channelName.innerHTML = `${channel}<span class="video-count">${videoCount} videos</span>`;
+                    });
+            });
+        });
 
-            function stripExtension(filename) {
-                return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
-            }
+    // Load playlists
+    fetch(`/channel-playlists/${encodeURIComponent(channel)}`)
+        .then(response => response.json())
+        .then(playlists => {
+            renderPlaylists(playlists);
+        })
+        .catch(error => {
+            console.error('Error fetching playlists:', error);
+        });
 
-            function sortVideos() {
-                currentVideos.sort((a, b) => {
-                    try {
-                        const dateA = parseEuropeanDate(a.fileDate).getTime();
-                        const dateB = parseEuropeanDate(b.fileDate).getTime();
-                        return sortNewestFirst ? dateB - dateA : dateA - dateB;
-                    } catch (e) {
-                        console.error('Error sorting videos:', e);
-                        return 0;
-                    }
-                });
+    // Search functionality
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.toLowerCase();
+        if (query.length < 2) return;
 
-                if (sortNewestFirst) {
-                    sortToggle.innerHTML = '<span class="sort-icon">↓</span> Newest First';
-                } else {
-                    sortToggle.innerHTML = '<span class="sort-icon">↑</span> Oldest First';
-                }
+        fetch('/search-index')
+            .then(response => response.json())
+            .then(data => {
+                const videos = data.videos || [];
+                const suggestions = videos
+                    .filter(video => video.displayName.toLowerCase().includes(query))
+                    .slice(0, 5);
 
-                renderVideos();
-            }
+                const suggestionsContainer = document.getElementById('searchSuggestions');
+                suggestionsContainer.innerHTML = '';
+                suggestions.forEach(video => {
+                    const suggestionElement = document.createElement('div');
+                    suggestionElement.className = 'suggestion-item';
+                    suggestionElement.textContent = video.displayName;
+                    suggestionElement.onclick = () => {
+                        window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
+                    };
+                    suggestionsContainer.appendChild(suggestionElement);
 
-            function renderVideos() {
-                videosContainer.innerHTML = '';
-                
-                currentVideos.forEach(video => {
-                    const videoElement = document.createElement('div');
-                    videoElement.className = 'video-item';
-                    const videoTitle = video.displayName;
-                    const videoPathWithoutExt = stripExtension(video.path);
-                    const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
-                    
-                    videoElement.innerHTML = `
-                        <div class="thumbnail-container">
-                            <a href="video.html?src=${encodeURIComponent(video.path)}">
-                                <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
-                            </a>
-                            <div class="video-length"></div>
-                        </div>
-                        <div class="video-title" onclick="openVideo('${encodeURIComponent(video.path)}')">${videoTitle}</div>
-                        <div class="video-description">${video.viewCount} views • Uploaded on ${video.fileDate}</div>
-                    `;
-                    videosContainer.appendChild(videoElement);
-
-                    // Fetch video length
-                    const videoFilename = video.path.split('/').pop();
-                    const videoNameWithoutExt = stripExtension(videoFilename);
-                    fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
-                        .then(response => response.text())
-                        .then(length => {
-                            videoElement.querySelector('.video-length').textContent = length;
-                        })
-                        .catch(error => {
-                            console.error('Error fetching video length:', error);
-                        });
-
-                    const videoLink = videoElement.querySelector('.video-title');
-                    videoLink.addEventListener('contextmenu', (event) => {
+                    suggestionElement.addEventListener('contextmenu', (event) => {
                         event.preventDefault();
                         window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
                     });
 
-                    videoLink.addEventListener('mouseup', (event) => {
+                    suggestionElement.addEventListener('mouseup', (event) => {
                         if (event.button === 1) {
                             event.preventDefault();
                             window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
                         }
                     });
                 });
-
-                const observer = new IntersectionObserver((entries, observer) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            const img = entry.target;
-                            img.src = img.dataset.src;
-                            observer.unobserve(img);
-                        }
-                    });
-                });
-
-                document.querySelectorAll('.video-thumbnail').forEach(img => {
-                    img.dataset.src = img.src;
-                    img.src = '';
-                    observer.observe(img);
-                });
-            }
-
-            function renderPlaylists(playlists) {
-                playlistsContainer.innerHTML = '';
-                
-                if (playlists.length === 0) {
-                    playlistsContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">No playlists found</p>';
-                    return;
-                }
-
-                playlists.forEach(playlist => {
-                    const playlistElement = document.createElement('div');
-                    playlistElement.className = 'playlist-item';
-                    
-                    fetch(`/playlist-videos/${encodeURIComponent(channel)}/${encodeURIComponent(playlist.path)}`)
-                        .then(response => response.json())
-                        .then(videos => {
-                            if (videos.length > 0) {
-                                const firstVideo = videos[0];
-                                const videoPathWithoutExt = stripExtension(firstVideo.path);
-                                const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
-                                
-                                playlistElement.innerHTML = `
-                                    <div class="playlist-thumbnail" style="background-image: url('${thumbnailSrc}')">
-                                        <div class="playlist-overlay">
-                                            ${videos.length} videos
-                                        </div>
-                                    </div>
-                                    <div class="playlist-title">${playlist.name}</div>
-                                    <div class="playlist-video-count">${playlist.videoCount} videos</div>
-                                `;
-                            } else {
-                                playlistElement.innerHTML = `
-                                    <div class="playlist-thumbnail" style="background-color: #333">
-                                        <div class="playlist-overlay">
-                                            0 videos
-                                        </div>
-                                    </div>
-                                    <div class="playlist-title">${playlist.name}</div>
-                                    <div class="playlist-video-count">0 videos</div>
-                                `;
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error fetching playlist videos:', error);
-                        });
-
-                    playlistElement.addEventListener('click', () => {
-                        window.location.href = `playlist.html?channel=${encodeURIComponent(channel)}&playlist=${encodeURIComponent(playlist.path)}`;
-                    });
-
-                    playlistsContainer.appendChild(playlistElement);
-                });
-            }
-
-            sortToggle.addEventListener('click', () => {
-                sortNewestFirst = !sortNewestFirst;
-                sortVideos();
             });
+    });
 
-            // OPTIMIZED: Load videos from search-index (RAM) instead of scanning disk
-            fetch('/search-index')
-                .then(response => response.json())
-                .then(data => {
-                    const videos = data.videos || [];
-                    // Filter for current channel
-                    const channelVideos = videos.filter(video => video.path.startsWith(`${channel}/`));
-                    
-                    // Since search-index doesn't have dates, we need to fetch details
-                    // But the cache in RAM has dates now.
-                    // Ideally we add an endpoint to query cache by channel.
-                    // For now, we can use the existing logic but optimized:
-                    
-                    // We will fetch details for only this channel's videos
-                    const detailPromises = channelVideos.map(video => {
-                        // We can assume the server cache has the date, but search-index is minimal.
-                        // Let's use a small hack: fetch filedates individually for now, 
-                        // OR better: The server cache has it, but we need an endpoint.
-                        // Let's stick to fetching dates for now as it's much less data than scanning.
-                        
-                        const videoPathWithoutExt = video.path.replace(/\.(mp4|mp3|mkv)$/i, '');
-                        // Path structure is Channel/Subdirs/Video
-                        // filedates path is /filedates/Channel/Subdirs/Video.txt
-                        
-                        return fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
-                            .then(r => r.ok ? r.text() : 'Unknown date')
-                            .then(dateString => {
-                                return {
-                                    ...video,
-                                    fileDate: dateString.trim() || 'Unknown date'
-                                };
-                            }).catch(() => {
-                                return { ...video, fileDate: 'Unknown date' };
-                            });
-                    });
-
-                    Promise.all(detailPromises).then(videosWithDates => {
-                        currentVideos = videosWithDates;
-                        sortVideos();
-                        
-                        const videoCount = currentVideos.length;
-                        fetch(`/subcount/${encodeURIComponent(channel)}`)
-                            .then(response => response.text())
-                            .then(subCount => {
-                                channelName.innerHTML = `${channel}<span class="video-count">${subCount} subscribers • ${videoCount} videos</span>`;
-                            })
-                            .catch(error => {
-                                console.error('Error fetching subscriber count:', error);
-                                channelName.innerHTML = `${channel}<span class="video-count">${videoCount} videos</span>`;
-                            });
-                    });
-                });
-
-            // Load playlists
-            fetch(`/channel-playlists/${encodeURIComponent(channel)}`)
-                .then(response => response.json())
-                .then(playlists => {
-                    renderPlaylists(playlists);
-                })
-                .catch(error => {
-                    console.error('Error fetching playlists:', error);
-                });
-
-            // Search functionality
-            const searchInput = document.getElementById('searchInput');
-            searchInput.addEventListener('input', () => {
-                const query = searchInput.value.toLowerCase();
-                if (query.length < 2) return;
-
-                fetch('/search-index')
-                    .then(response => response.json())
-                    .then(data => {
-                        const videos = data.videos || [];
-                        const suggestions = videos
-                            .filter(video => video.displayName.toLowerCase().includes(query))
-                            .slice(0, 5);
-
-                        const suggestionsContainer = document.getElementById('searchSuggestions');
-                        suggestionsContainer.innerHTML = '';
-                        suggestions.forEach(video => {
-                            const suggestionElement = document.createElement('div');
-                            suggestionElement.className = 'suggestion-item';
-                            suggestionElement.textContent = video.displayName;
-                            suggestionElement.onclick = () => {
-                                window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
-                            };
-                            suggestionsContainer.appendChild(suggestionElement);
-
-                            suggestionElement.addEventListener('contextmenu', (event) => {
-                                event.preventDefault();
-                                window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
-                            });
-
-                            suggestionElement.addEventListener('mouseup', (event) => {
-                                if (event.button === 1) {
-                                    event.preventDefault();
-                                    window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
-                                }
-                            });
-                        });
-                    });
-            });
-
-            searchInput.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
-                    window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
-                }
-            });
-        });
-
-        function openVideo(videoSrc) {
-            window.location.href = `video.html?src=${videoSrc}`;
+    searchInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
         }
+    });
+});
+
+function openVideo(videoSrc) {
+    window.location.href = `video.html?src=${videoSrc}`;
+}
     </script>
 </body>
 </html>
