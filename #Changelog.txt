@@ -9,6 +9,10 @@ v3.50
 - Conditional tagging for ASMR and audio files without an LLM
   - For music and ASMR, automatic tags will now be applied, saving tons of time and compute
 - Fixed .mp3 compatibility for createvideolengths.py
+- Fixed view count and upload date fetching on search.html and channel.html
+- Fixed display of thumbnails that are being shown before the initial video play if the video is in a playlist
+- Updated createFilenames.py to skip already existing filenames
+- Fixed third tag for videos that are in channel playlists on analyze.py
 
 v3.40
 - Fixed race condition for video suggestions on video.html by adding a delay
@@ -161,4 +165,4 @@ Older versions: Undocumented
 
 TO DO:
 - Add a search icon next to the search bar on all pages
-- Do an extensive test with 10 TB of videos
+- Make the channel banner on channel.html responsive (fixed width/height)
