@@ -90,6 +90,10 @@
         .sort-icon {
             font-size: 16px;
         }
+        .videos-wrapper {
+            position: relative;
+            min-height: 400px;
+        }
         .channel-videos, .playlists-container {
             display: flex;
             flex-wrap: wrap;
@@ -118,8 +122,9 @@
         }
         .video-thumbnail {
             width: 100%;
-            height: auto;
+            height: 168px;
             display: block;
+            background-color: #2a2a2a;
             transition: transform 0.2s ease;
         }
         .playlist-thumbnail {
@@ -190,6 +195,31 @@
             font-size: 12px;
             font-weight: bold;
         }
+        .loading-spinner {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            width: 100%;
+        }
+        .loading-spinner::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-left: 10px;
+            border: 2px solid #888;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .load-more-trigger {
+            height: 20px;
+            width: 100%;
+            visibility: hidden;
+        }
     </style>
 </head>
 <body>
@@ -218,7 +248,11 @@
         <button id="sortToggle" class="sort-toggle">
             <span class="sort-icon">↓</span> Newest First
         </button>
-        <div class="container channel-videos" id="channelVideosContainer"></div>
+        <div class="container videos-wrapper">
+            <div class="channel-videos" id="channelVideosContainer"></div>
+            <div id="loadingSpinner" class="loading-spinner">Loading more videos</div>
+            <div id="loadMoreTrigger" class="load-more-trigger"></div>
+        </div>
     </div>
 
     <!-- Playlists Tab -->
@@ -227,6 +261,10 @@
     </div>
 
     <script>
+// Configuration
+const VIDEOS_PER_PAGE = 20; // Number of videos to load initially and per batch
+const BUFFER_COUNT = 5; // Load this many extra videos above/below viewport
+
 // Handle logo clicks
 document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
@@ -265,9 +303,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const channelBanner = document.getElementById('channelBanner');
     const sortToggle = document.getElementById('sortToggle');
     const sortIcon = sortToggle.querySelector('.sort-icon');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const loadMoreTrigger = document.getElementById('loadMoreTrigger');
 
     let currentVideos = [];
     let sortNewestFirst = true;
+    let renderedVideoCount = 0;
+    let isLoadingMore = false;
+    let hasMoreVideos = true;
+    let intersectionObserver = null;
 
     channelBanner.style.backgroundImage = `url('/channelbanner/${encodeURIComponent(channel)}.jpg')`;
     channelPic.src = `/channelpic/${encodeURIComponent(channel)}.jpg`;
@@ -283,6 +327,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             tab.classList.add('active');
             document.getElementById(`${tab.dataset.tab}Tab`).classList.add('active');
+            
+            // If switching to videos tab, check if we need to load more
+            if (tab.dataset.tab === 'videos') {
+                checkAndLoadMore();
+            }
         });
     });
 
@@ -321,80 +370,156 @@ document.addEventListener('DOMContentLoaded', () => {
             sortToggle.innerHTML = '<span class="sort-icon">↑</span> Oldest First';
         }
 
-        renderVideos();
+        // Reset rendered count and re-render
+        renderedVideoCount = 0;
+        videosContainer.innerHTML = '';
+        loadMoreVideos();
     }
 
-    function renderVideos() {
-        videosContainer.innerHTML = '';
+    function createVideoElement(video) {
+        const videoElement = document.createElement('div');
+        videoElement.className = 'video-item';
+        const videoTitle = video.displayName;
+        const videoPathWithoutExt = stripExtension(video.path);
+        const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
         
-        currentVideos.forEach(video => {
-            const videoElement = document.createElement('div');
-            videoElement.className = 'video-item';
-            const videoTitle = video.displayName;
-            const videoPathWithoutExt = stripExtension(video.path);
-            const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
-            
-            videoElement.innerHTML = `
-                <div class="thumbnail-container">
-                    <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
-                    <div class="video-length"></div>
-                </div>
-                <div class="video-title" onclick="openVideo('${encodeURIComponent(video.path)}')">${videoTitle}</div>
-                <div class="video-description"></div> <!-- Empty initially -->
-            `;
-            videosContainer.appendChild(videoElement);
+        videoElement.innerHTML = `
+            <div class="thumbnail-container">
+                <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
+                <div class="video-length"></div>
+            </div>
+            <div class="video-title" onclick="openVideo('${encodeURIComponent(video.path)}')">${videoTitle}</div>
+            <div class="video-description"></div>
+        `;
 
-            // Fetch view count and file date
-            const descriptionDiv = videoElement.querySelector('.video-description');
-            
-            Promise.all([
-                fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(response => response.ok ? response.text() : '0'),
-                fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(response => response.ok ? response.text() : 'Unknown date')
-            ])
-            .then(([viewCount, fileDate]) => {
-                // Format view count with commas
-                let formattedViewCount = viewCount;
-                if (!isNaN(viewCount) && viewCount !== '0') {
-                    formattedViewCount = parseInt(viewCount).toLocaleString();
-                }
-                descriptionDiv.textContent = `${formattedViewCount} views • Uploaded on ${fileDate}`;
+        // Fetch metadata
+        const descriptionDiv = videoElement.querySelector('.video-description');
+        
+        Promise.all([
+            fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(response => response.ok ? response.text() : '0'),
+            fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(response => response.ok ? response.text() : 'Unknown date')
+        ])
+        .then(([viewCount, fileDate]) => {
+            let formattedViewCount = viewCount;
+            if (!isNaN(viewCount) && viewCount !== '0') {
+                formattedViewCount = parseInt(viewCount).toLocaleString();
+            }
+            descriptionDiv.textContent = `${formattedViewCount} views • Uploaded on ${fileDate}`;
+        })
+        .catch(error => {
+            console.error('Error fetching metadata:', error);
+            descriptionDiv.textContent = 'Views unavailable';
+        });
+
+        // Fetch video length
+        const videoFilename = video.path.split('/').pop();
+        const videoNameWithoutExt = stripExtension(videoFilename);
+        fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
+            .then(response => response.ok ? response.text() : '')
+            .then(length => {
+                videoElement.querySelector('.video-length').textContent = length;
             })
             .catch(error => {
-                console.error('Error fetching metadata:', error);
-                descriptionDiv.textContent = 'Views unavailable';
+                console.error('Error fetching video length:', error);
             });
 
-            // Fetch video length
-            const videoFilename = video.path.split('/').pop();
-            const videoNameWithoutExt = stripExtension(videoFilename);
-            fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
-                .then(response => response.ok ? response.text() : '')
-                .then(length => {
-                    videoElement.querySelector('.video-length').textContent = length;
-                })
-                .catch(error => {
-                    console.error('Error fetching video length:', error);
-                });
+        // Video click handlers
+        const videoLink = videoElement.querySelector('.video-title');
+        const videoThumb = videoElement.querySelector('.video-thumbnail');
+        
+        videoThumb.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
+        videoLink.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
+        
+        videoLink.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+        });
 
-            // Video click handlers
-            const videoLink = videoElement.querySelector('.video-title');
-            const videoThumb = videoElement.querySelector('.video-thumbnail');
-            
-            videoThumb.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
-            videoLink.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
-            
-            videoLink.addEventListener('contextmenu', (event) => {
+        videoLink.addEventListener('mouseup', (event) => {
+            if (event.button === 1) {
                 event.preventDefault();
                 window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
-            });
-
-            videoLink.addEventListener('mouseup', (event) => {
-                if (event.button === 1) {
-                    event.preventDefault();
-                    window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
-                }
-            });
+            }
         });
+
+        return videoElement;
+    }
+
+    function loadMoreVideos() {
+        if (isLoadingMore || !hasMoreVideos) return;
+        
+        const startIndex = renderedVideoCount;
+        const endIndex = Math.min(startIndex + VIDEOS_PER_PAGE, currentVideos.length);
+        
+        if (startIndex >= currentVideos.length) {
+            hasMoreVideos = false;
+            loadingSpinner.style.display = 'none';
+            return;
+        }
+
+        isLoadingMore = true;
+        loadingSpinner.style.display = 'block';
+
+        // Use setTimeout to prevent blocking the main thread
+        setTimeout(() => {
+            const fragment = document.createDocumentFragment();
+            
+            for (let i = startIndex; i < endIndex; i++) {
+                const video = currentVideos[i];
+                const videoElement = createVideoElement(video);
+                fragment.appendChild(videoElement);
+            }
+            
+            videosContainer.appendChild(fragment);
+            renderedVideoCount = endIndex;
+            isLoadingMore = false;
+            
+            if (renderedVideoCount >= currentVideos.length) {
+                hasMoreVideos = false;
+                loadingSpinner.style.display = 'none';
+            } else {
+                loadingSpinner.style.display = 'block';
+            }
+        }, 0);
+    }
+
+    function checkAndLoadMore() {
+        if (!hasMoreVideos || isLoadingMore) return;
+        
+        const trigger = loadMoreTrigger;
+        if (!trigger) return;
+        
+        const rect = trigger.getBoundingClientRect();
+        const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+        
+        // Load more when trigger is within 200px of viewport
+        if (rect.top <= windowHeight + 200) {
+            loadMoreVideos();
+        }
+    }
+
+    // Setup intersection observer for more efficient lazy loading
+    function setupIntersectionObserver() {
+        if (window.IntersectionObserver) {
+            intersectionObserver = new IntersectionObserver(
+                (entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting && hasMoreVideos && !isLoadingMore) {
+                            loadMoreVideos();
+                        }
+                    });
+                },
+                {
+                    root: null,
+                    rootMargin: '200px',
+                    threshold: 0
+                }
+            );
+
+            if (loadMoreTrigger) {
+                intersectionObserver.observe(loadMoreTrigger);
+            }
+        }
     }
 
     function renderPlaylists(playlists) {
@@ -463,11 +588,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // Filter for current channel
             const channelVideos = videos.filter(video => video.path.startsWith(`${channel}/`));
             
-            // We already have displayName from the cache, but need to fetch dates and view counts
+            // Show initial loading state
+            videosContainer.innerHTML = '<div class="loading-spinner">Loading videos...</div>';
+            
             const videoPromises = channelVideos.map(video => {
                 const videoPathWithoutExt = stripExtension(video.path);
                 
-                // Fetch both metadata in parallel
                 return Promise.all([
                     fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(r => r.ok ? r.text() : '0'),
                     fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(r => r.ok ? r.text() : 'Unknown date')
@@ -490,7 +616,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             Promise.all(videoPromises).then(videosWithDetails => {
                 currentVideos = videosWithDetails;
-                sortVideos();
+                hasMoreVideos = currentVideos.length > 0;
+                
+                sortVideos(); // This will trigger initial load
                 
                 const videoCount = currentVideos.length;
                 fetch(`/subcount/${encodeURIComponent(channel)}`)
@@ -502,6 +630,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         console.error('Error fetching subscriber count:', error);
                         channelName.innerHTML = `${channel}<span class="video-count">${videoCount} videos</span>`;
                     });
+
+                // Setup lazy loading
+                setupIntersectionObserver();
+                
+                // Add scroll listener as fallback for older browsers
+                window.addEventListener('scroll', () => {
+                    if (!intersectionObserver) {
+                        checkAndLoadMore();
+                    }
+                });
             });
         });
 
