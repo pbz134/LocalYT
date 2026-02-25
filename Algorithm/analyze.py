@@ -223,7 +223,8 @@ def save_tags_to_file(video_name, tags, output_dir):
         parts = video_name.split(os.path.sep)
         channel_name = parts[0] if len(parts) >= 2 else "Root"
         
-        # Add the channel name as the third tag
+        # Add the channel name as the third tag - but make sure it's just the channel name
+        # The channel_name variable already contains just the first part, which should be "Domtendo"
         tags_with_channel = tags + [channel_name]
         
         # Create the output file path
