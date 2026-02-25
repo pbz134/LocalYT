@@ -5,6 +5,7 @@ def create_filename_files(videos_dir, filenames_dir):
     """
     Recursively scans /videos and its subdirectories,
     and creates .txt files with the same name as each video/audio file.
+    Skips creating files if they already exist.
     """
     
     # Check if videos directory exists
@@ -38,6 +39,7 @@ def create_filename_files(videos_dir, filenames_dir):
     # Process files
     processed = 0
     successful = 0
+    skipped = 0
     
     for i, (root, filename) in enumerate(files_to_process, 1):
         file_path = os.path.join(root, filename)
@@ -59,6 +61,13 @@ def create_filename_files(videos_dir, filenames_dir):
             # Create output file path (.txt file with same name)
             output_file_path = os.path.join(output_dir, f"{base_name}.txt")
             
+            # Check if file already exists
+            if os.path.exists(output_file_path):
+                print(f"{progress} ⏭ Skipped: {relative_dir}/{base_name}.txt (already exists)")
+                skipped += 1
+                processed += 1
+                continue
+            
             # Write the filename (without extension) to the txt file
             with open(output_file_path, 'w', encoding='utf-8') as txt_file:
                 txt_file.write(base_name)
@@ -75,7 +84,9 @@ def create_filename_files(videos_dir, filenames_dir):
     
     # Summary
     print(f"\n--- Summary ---")
-    print(f"Successfully created: {successful}/{processed} filename files")
+    print(f"Successfully created: {successful}")
+    print(f"Skipped (already existed): {skipped}")
+    print(f"Total processed: {processed}")
     print(f"Output directory: {filenames_dir}")
     
     # Show example structure if files were created
@@ -121,5 +132,5 @@ if __name__ == '__main__':
     # Optional: Uncomment to see directory structure first
     # copy_structure_only(videos_dir, filenames_dir)
     
-    # Create filename files
+    # Create filename files (skipping existing ones)
     create_filename_files(videos_dir, filenames_dir)
