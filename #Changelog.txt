@@ -1,6 +1,10 @@
 +++LocalYT Revamped - Changelog+++
 
 
+v3.55
+- Optimized channel.html with more efficient video loading on large channels
+- Included thumbnails in MovePlaylistMetadata.py
+
 v3.50
 - Added caching to make loading of huge file databases possible, even on HDDs (tested successfully with 9TB of video/audio files)
 - Fixed character encoding in algorithm setup scripts
