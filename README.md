@@ -64,9 +64,8 @@ From then on, I regularly worked on the program to further improve it, and 15 mo
 **Channel Page**
 [![Channel Page](https://github.com/pbz134/LocalYT/blob/main/.github/channel_example.PNG)](#readme)
 
-Channels used:
-https://www.youtube.com/@babylonian
-https://www.youtube.com/@pannenkoek2012/videos
+Channel used:
+https://www.youtube.com/@TWD98
 
 ---
 
