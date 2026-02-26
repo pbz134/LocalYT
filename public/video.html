@@ -357,7 +357,7 @@
                     <img id="channelPic" class="channel-pic" alt="Channel Picture">
                     
                     <div class="channel-text-group">
-                        <div id="channelName" class="channel-name" onclick="openChannelPage()"></div>
+                        <div id="channelName" class="channel-name" id="channelNameLink" onclick="openChannelPage()"></div>
                         <div id="subCount" class="sub-count"></div>
                     </div>
 
@@ -450,6 +450,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 'mp3': 'audio/mp3'
             };
             return mimeTypes[extension.toLowerCase()] || 'video/mp4';
+        }
+
+        // Function to open the current channel in a new tab with middle click
+        function setupChannelNameWheelClick() {
+            const channelNameElement = document.getElementById('channelName');
+            if (!channelNameElement) return;
+
+            // Middle click (mouse wheel)
+            channelNameElement.addEventListener('mouseup', (event) => {
+                if (event.button === 1) {
+                    event.preventDefault();
+                    const channel = channelNameElement.textContent;
+                    window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
+                }
+            });
+
+            // Auxclick (middle click fallback for some browsers)
+            channelNameElement.addEventListener('auxclick', (event) => {
+                if (event.button === 1) {
+                    event.preventDefault();
+                    const channel = channelNameElement.textContent;
+                    window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
+                }
+            });
+
+            // Right click
+            channelNameElement.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+                const channel = channelNameElement.textContent;
+                window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
+            });
         }
 
         // Function to generate suggested videos JSON for FluidPlayer
@@ -566,8 +597,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     .then(response => response.text())
                     .then(subCountText => {
                         subCount.textContent = `${subCountText} subscribers`;
+                        // Setup wheel click after channel name is definitely set
+                        setupChannelNameWheelClick(); 
                     })
-                    .catch(error => console.error('Error fetching subscriber count:', error));
+                    .catch(error => {
+                        console.error('Error fetching subscriber count:', error);
+                        // Setup wheel click even if sub count fails
+                        setupChannelNameWheelClick();
+                    });
+
 
                 Promise.all([
                     fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(response => response.text()),
