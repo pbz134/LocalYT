@@ -45,7 +45,7 @@ echo running Algorithm setup...
 
 REM Step 1: Run create-filename-list.py from Algorithm directory
 cd Algorithm
-.\venv\python.exe create-filename-list.py
+.\venv\python.exe create-filename-list.py --untagged
 if errorlevel 1 (
     echo Error running create-filename-list.py
     cd ..
@@ -128,6 +128,9 @@ echo Fixing umlauts after metadata...
 
 echo Regenerating filedates...
 .\venv\python.exe createFiledates.py
+
+echo Removing double spaces...
+.\venv\python.exe LocalYT-Rev-Files\FixDoubleSpaces.py
 
 echo.
 echo =============================================================================
