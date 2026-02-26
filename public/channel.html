@@ -126,6 +126,7 @@
             display: block;
             background-color: #2a2a2a;
             transition: transform 0.2s ease;
+            cursor: pointer;
         }
         .playlist-thumbnail {
             width: 100%;
@@ -361,7 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
     }
 
-    function sortVideos() {
+    function sortVideosArray() {
         currentVideos.sort((a, b) => {
             try {
                 const dateA = parseEuropeanDate(a.fileDate).getTime();
@@ -372,7 +373,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 return 0;
             }
         });
+    }
 
+    function resetAndRender() {
         if (sortNewestFirst) {
             sortToggle.innerHTML = '<span class="sort-icon">↓</span> Newest First';
         } else {
@@ -443,20 +446,34 @@ document.addEventListener('DOMContentLoaded', () => {
         const videoLink = videoElement.querySelector('.video-title');
         const videoThumb = videoElement.querySelector('.video-thumbnail');
         
+        // Left click
         videoThumb.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
         videoLink.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
         
+        // Right click (open in new tab)
+        videoThumb.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+        });
         videoLink.addEventListener('contextmenu', (event) => {
             event.preventDefault();
             window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
         });
 
-        videoLink.addEventListener('mouseup', (event) => {
-            if (event.button === 1) {
+        // Middle click / Mouse wheel click (open in new tab)
+        // Using 'mouseup' for broader compatibility and 'auxclick' for modern standard
+        const openInNewTabHandler = (event) => {
+            if (event.button === 1) { // Button 1 is the middle mouse button
                 event.preventDefault();
                 window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
             }
-        });
+        };
+
+        videoThumb.addEventListener('mouseup', openInNewTabHandler);
+        videoLink.addEventListener('mouseup', openInNewTabHandler);
+        
+        videoThumb.addEventListener('auxclick', openInNewTabHandler);
+        videoLink.addEventListener('auxclick', openInNewTabHandler);
 
         return videoElement;
     }
@@ -599,7 +616,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     sortToggle.addEventListener('click', () => {
         sortNewestFirst = !sortNewestFirst;
-        sortVideos();
+        sortVideosArray();
+        resetAndRender();
     });
 
     // Load videos from search-index
@@ -638,12 +656,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             Promise.all(videoPromises).then(videosWithDetails => {
                 currentVideos = videosWithDetails;
+                
+                // FIX: Sort videos immediately after fetching them
+                sortVideosArray();
+                
                 hasMoreVideos = currentVideos.length > 0;
                 
                 // Clear the initial loading spinner
                 videosContainer.innerHTML = '';
                 
-                // Load first batch of videos
+                // FIX: Load first batch of videos (triggers render)
                 loadMoreVideos();
                 
                 const videoCount = currentVideos.length;
