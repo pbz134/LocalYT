@@ -7,11 +7,52 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
     <style>
+        /* Channel Header Styles (Added from channel.html) */
+        .channel-banner {
+            width: 70%;
+            height: 170px;
+            background-size: cover;
+            background-position: center;
+            margin: 80px auto;
+            margin-bottom: 20px;
+        }
+        .channel-header {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+            margin-left: 230px;
+        }
+        .channel-pic {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin-right: 30px;
+            cursor: pointer;
+        }
+        .channel-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+        }
+        .video-count {
+            color: #888;
+            font-size: 18px;
+            font-weight: normal;
+            display: block;
+            margin-top: 5px;
+        }
+        .divider {
+            border-top: 1px solid #3f3f3f;
+            margin: 20px 0;
+        }
+
+        /* Playlist Specific Styles */
         .playlist-header {
             padding: 20px;
             margin-left: 200px;
             background: #0f0f0f;
-            margin-top: 60px;
+            margin-top: 20px; /* Adjusted margin */
+            border-radius: 8px;
         }
         .playlist-title {
             font-size: 24px;
@@ -43,6 +84,7 @@
             height: auto;
             display: block;
             border-radius: 8px 8px 0 0;
+            cursor: pointer;
         }
         .video-title {
             padding: 10px;
@@ -58,6 +100,20 @@
             color: #888;
             font-size: 14px;
         }
+        .thumbnail-container {
+            position: relative;
+        }
+        .video-length {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -68,6 +124,17 @@
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
     </header>
+
+    <!-- Added Channel Banner -->
+    <div id="channelBanner" class="channel-banner"></div>
+    
+    <!-- Added Channel Header -->
+    <div class="channel-header">
+        <img id="channelPic" class="channel-pic" alt="Channel Picture" loading="lazy">
+        <div id="channelName" class="channel-name"></div>
+    </div>
+    
+    <div class="divider"></div>
 
     <div class="playlist-header">
         <div class="playlist-title" id="playlistTitle"></div>
@@ -119,6 +186,33 @@ document.addEventListener('DOMContentLoaded', () => {
             const playlistInfo = document.getElementById('playlistInfo');
             const videosContainer = document.getElementById('playlistVideosContainer');
 
+            // Elements for Channel Header
+            const channelBanner = document.getElementById('channelBanner');
+            const channelPic = document.getElementById('channelPic');
+            const channelName = document.getElementById('channelName');
+
+            // Set Channel Info
+            channelBanner.style.backgroundImage = `url('/channelbanner/${encodeURIComponent(channel)}.jpg')`;
+            channelPic.src = `/channelpic/${encodeURIComponent(channel)}.jpg`;
+            
+            // Make channel picture clickable
+            channelPic.addEventListener('click', () => {
+                window.location.href = `channel.html?channel=${encodeURIComponent(channel)}`;
+            });
+
+            // Fetch Subscriber Count and set Title
+            fetch(`/subcount/${encodeURIComponent(channel)}`)
+                .then(response => response.ok ? response.text() : '0')
+                .then(subCount => {
+                    // Fetch video count for the channel (optional, or just reuse the count we have)
+                    // For simplicity, we will just show sub count here, or we can fetch the full count.
+                    // Let's just show the name and sub count for now to match channel.html style
+                    channelName.innerHTML = `${channel}<span class="video-count">${subCount} subscribers</span>`;
+                })
+                .catch(() => {
+                    channelName.textContent = channel;
+                });
+
             playlistTitle.textContent = playlist;
             document.title = `${playlist} - ${channel} - LocalYT`;
 
@@ -135,16 +229,47 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         videoElement.innerHTML = `
                             <div class="thumbnail-container">
-                                <a href="video.html?src=${encodeURIComponent(video.path)}">
-                                    <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
-                                </a>
+                                <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
                                 <div class="video-length"></div>
                             </div>
-                            <div class="video-title" onclick="openVideo('${encodeURIComponent(video.path)}')">${videoTitle}</div>
+                            <div class="video-title">${videoTitle}</div>
                             <div class="video-description">${video.viewCount} views • Uploaded on ${video.fileDate}</div>
                         `;
                         
                         videosContainer.appendChild(videoElement);
+
+                        // --- Click Handlers ---
+                        const videoThumb = videoElement.querySelector('.video-thumbnail');
+                        const videoLink = videoElement.querySelector('.video-title');
+                        const encodedPath = encodeURIComponent(video.path);
+                        const videoUrl = `video.html?src=${encodedPath}`;
+
+                        // Left click
+                        videoThumb.addEventListener('click', () => openVideo(encodedPath));
+                        videoLink.addEventListener('click', () => openVideo(encodedPath));
+
+                        // Middle click (Mouse wheel)
+                        const handleMiddleClick = (e) => {
+                            if (e.button === 1) {
+                                e.preventDefault();
+                                window.open(videoUrl, '_blank');
+                            }
+                        };
+                        
+                        videoThumb.addEventListener('mouseup', handleMiddleClick);
+                        videoThumb.addEventListener('auxclick', handleMiddleClick); // Auxclick is often better for middle click
+                        videoLink.addEventListener('mouseup', handleMiddleClick);
+                        videoLink.addEventListener('auxclick', handleMiddleClick);
+
+                        // Right click
+                        videoThumb.addEventListener('contextmenu', (e) => {
+                            e.preventDefault();
+                            window.open(videoUrl, '_blank');
+                        });
+                        videoLink.addEventListener('contextmenu', (e) => {
+                            e.preventDefault();
+                            window.open(videoUrl, '_blank');
+                        });
 
                         // Get video length
                         fetch(`/videolengths/${channel}/${encodeURIComponent(video.path.split('/').pop().replace(/\.mp4$/, ''))}.txt`)
