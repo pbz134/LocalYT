@@ -2,6 +2,8 @@
 
 
 v3.55
+- Added support for playlists on video.html
+  - Opening a channel playlist now displays all items on the right side above the recommendations
 - Optimized channel.html with more efficient video loading on large channels
 - Included thumbnails in MovePlaylistMetadata.py
 - Fixed Lazy Load trigger on channel.html

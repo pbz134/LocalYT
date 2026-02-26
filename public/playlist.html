@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
     <style>
-        /* Channel Header Styles (Added from channel.html) */
+        /* Channel Header Styles */
         .channel-banner {
             width: 70%;
             height: 170px;
@@ -51,7 +51,7 @@
             padding: 20px;
             margin-left: 200px;
             background: #0f0f0f;
-            margin-top: 20px; /* Adjusted margin */
+            margin-top: 20px;
             border-radius: 8px;
         }
         .playlist-title {
@@ -149,31 +149,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
     
     if (mainLogo) {
-        // Left click - navigate to homepage in same tab
         mainLogo.addEventListener('click', (event) => {
-            if (event.button === 0) { // Left click
+            if (event.button === 0) {
                 window.location.href = 'index.html';
             }
         });
         
-        // Middle click (mouse wheel) - open homepage in new tab
         mainLogo.addEventListener('mouseup', (event) => {
-            if (event.button === 1) { // Middle click
+            if (event.button === 1) {
                 event.preventDefault();
                 window.open('index.html', '_blank');
             }
         });
         
-        // Right click - open homepage in new tab (with context menu option)
         mainLogo.addEventListener('contextmenu', (event) => {
             event.preventDefault();
             window.open('index.html', '_blank');
         });
         
-        // Add title for accessibility
         mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
-        
-        // Add cursor styling
         mainLogo.style.cursor = 'pointer';
     }
 });
@@ -200,13 +194,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.href = `channel.html?channel=${encodeURIComponent(channel)}`;
             });
 
-            // Fetch Subscriber Count and set Title
+            // Fetch Subscriber Count
             fetch(`/subcount/${encodeURIComponent(channel)}`)
                 .then(response => response.ok ? response.text() : '0')
                 .then(subCount => {
-                    // Fetch video count for the channel (optional, or just reuse the count we have)
-                    // For simplicity, we will just show sub count here, or we can fetch the full count.
-                    // Let's just show the name and sub count for now to match channel.html style
                     channelName.innerHTML = `${channel}<span class="video-count">${subCount} subscribers</span>`;
                 })
                 .catch(() => {
@@ -241,12 +232,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         // --- Click Handlers ---
                         const videoThumb = videoElement.querySelector('.video-thumbnail');
                         const videoLink = videoElement.querySelector('.video-title');
+                        
+                        // Construct URL with playlist parameter
                         const encodedPath = encodeURIComponent(video.path);
-                        const videoUrl = `video.html?src=${encodedPath}`;
+                        const videoUrl = `video.html?src=${encodedPath}&playlist=${encodeURIComponent(playlist)}`;
 
                         // Left click
-                        videoThumb.addEventListener('click', () => openVideo(encodedPath));
-                        videoLink.addEventListener('click', () => openVideo(encodedPath));
+                        const openHandler = () => { window.location.href = videoUrl; };
+                        
+                        videoThumb.addEventListener('click', openHandler);
+                        videoLink.addEventListener('click', openHandler);
 
                         // Middle click (Mouse wheel)
                         const handleMiddleClick = (e) => {
@@ -257,19 +252,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         };
                         
                         videoThumb.addEventListener('mouseup', handleMiddleClick);
-                        videoThumb.addEventListener('auxclick', handleMiddleClick); // Auxclick is often better for middle click
+                        videoThumb.addEventListener('auxclick', handleMiddleClick);
                         videoLink.addEventListener('mouseup', handleMiddleClick);
                         videoLink.addEventListener('auxclick', handleMiddleClick);
 
                         // Right click
-                        videoThumb.addEventListener('contextmenu', (e) => {
+                        const handleRightClick = (e) => {
                             e.preventDefault();
                             window.open(videoUrl, '_blank');
-                        });
-                        videoLink.addEventListener('contextmenu', (e) => {
-                            e.preventDefault();
-                            window.open(videoUrl, '_blank');
-                        });
+                        };
+                        
+                        videoThumb.addEventListener('contextmenu', handleRightClick);
+                        videoLink.addEventListener('contextmenu', handleRightClick);
 
                         // Get video length
                         fetch(`/videolengths/${channel}/${encodeURIComponent(video.path.split('/').pop().replace(/\.mp4$/, ''))}.txt`)
@@ -321,10 +315,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         });
-
-        function openVideo(videoSrc) {
-            window.location.href = `video.html?src=${videoSrc}`;
-        }
     </script>
 </body>
 </html>
