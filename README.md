@@ -87,5 +87,4 @@ What if I only have the video files and no metadata?
 
 ## TO DO
 - Add a search icon next to the search bar on all pages
-- Make the channel banner on channel.html responsive (fixed width/height)
 - Fix algorithm (broke after implementing video caching)
