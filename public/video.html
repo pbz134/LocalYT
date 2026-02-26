@@ -104,6 +104,13 @@
         .playlist-section-header a:hover {
             text-decoration: underline;
         }
+        /* Scrollable container for large playlists */
+        .playlist-scroll-container {
+            max-height: 460px; /* Approx height of 8 items */
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 5px; /* Prevent scrollbar from covering content */
+        }
         .current-video-item {
             background-color: #3f3f3f;
         }
@@ -648,14 +655,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 playlistHeader.innerHTML = `${decodeURIComponent(playlistName)} <a href="playlist.html?channel=${encodeURIComponent(currentChannel)}&playlist=${playlistName}">View Full Playlist</a>`;
                 playlistSection.appendChild(playlistHeader);
 
+                // Container for the videos (will be scrollable if > 8 videos)
                 const playlistContainer = document.createElement('div');
-                playlistSection.appendChild(playlistContainer);
                 
                 suggestionsContainer.appendChild(playlistSection);
 
                 fetch(`/playlist-videos/${encodeURIComponent(currentChannel)}/${playlistName}`)
                     .then(response => response.json())
                     .then(videos => {
+                        // If more than 8 videos, make the container scrollable
+                        if (videos.length > 8) {
+                            playlistContainer.className = 'playlist-scroll-container';
+                        }
+                        
+                        playlistSection.appendChild(playlistContainer);
+
                         videos.forEach(video => {
                             // Highlight current video
                             const isCurrent = decodeURIComponent(videoSrc) === video.path;
