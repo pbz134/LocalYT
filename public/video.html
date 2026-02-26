@@ -612,8 +612,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(response => response.text())
                 ])
                 .then(([viewCount, fileDate]) => {
-                    currentVideoDescription.textContent = `${viewCount} views - Uploaded on ${fileDate}\n\n`;
-                    const descriptionPath = `/descriptions/${encodeURIComponent(currentChannel)}/${encodeURIComponent(videoNameWithoutExt)}.txt`;
+                    // FIX: Use .trim() on viewCount to remove the invisible newline character
+                    currentVideoDescription.textContent = `${viewCount.trim()} views - Uploaded on ${fileDate.trim()}\n\n`;
+                    
+                    // Logic for description filename (from previous fix)
+                    const cleanDescName = videoSrc.split('/').pop().replace(/\.(mp4|mkv|avi|mov|webm)$/i, '');
+                    const descriptionPath = `/descriptions/${encodeURIComponent(currentChannel)}/${encodeURIComponent(cleanDescName)}.txt`;
                     return fetch(descriptionPath);
                 })
                 .then(response => {
