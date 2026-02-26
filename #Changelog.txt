@@ -9,6 +9,7 @@ v3.55
 - Fixed Lazy Load trigger on channel.html
 - Made videos on channel.html mouse-wheel clickable
 - playlist.html now shows the channel information
+- The main channel on video.html is now mouse-wheel clickable
 
 v3.50
 - Added caching to make loading of huge file databases possible, even on HDDs (tested successfully with 9TB of video/audio files)
