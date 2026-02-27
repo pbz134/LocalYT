@@ -375,7 +375,7 @@
                     </div>
                     <div id="shareContainer" class="share-container">
                         <img src="LocalYT-Rev-Files/Share.svg" alt="Share">
-                        <span>SHARE</span>
+                        <span>Share</span>
                     </div>
                 </div>
                 <div id="currentVideoDescription" class="video-description"></div>
@@ -639,7 +639,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         '<span class="no-description">No description available for this video.</span>';
                 });
 
-                fetch(`/videostats/${encodeURIComponent(videoPathWithoutExt)}`)
+                // 1. Get just the filename (removing subfolders like "Shortcut Collections")
+                const statsFileName = videoSrc.split('/').pop().replace(/\.(mp4|mkv|avi|mov|wmv|flv|webm)$/i, '');
+
+                // 2. Construct the path: videostats/ChannelName/Filename.txt
+                fetch(`/videostats/${encodeURIComponent(currentChannel)}/${encodeURIComponent(statsFileName)}.txt`)
                     .then(response => response.text())
                     .then(data => {
                         [likes, dislikes] = data.split(',').map(Number);
