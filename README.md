@@ -28,6 +28,7 @@ From then on, I regularly worked on the program to further improve it, and 15 mo
   - LocalYT comes with a landing page, video player page, channel pages and many more
 - **Video playlists**
   - Keep your channels more organized by creating playlists with subfolders
+  - Video queues next to the player allow you to watch a full playlist at once (see Video Page screenshot below)
 - **Algorithm**
   - Use the power of a Large Language Model (LLM) to tag videos accurately
   - LocalYT analyzes your behavior and shows you more of the videos you like
