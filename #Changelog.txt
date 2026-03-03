@@ -10,6 +10,10 @@ v3.55
 - Made videos on channel.html mouse-wheel clickable
 - playlist.html now shows the channel information
 - Added a new script to fix a double-space inconsistency between video files and metadata files
+- Fixed line break issue on search.html
+- Renamed "SHARE" -> "Share" on video.html
+- Reduced margin of video suggestion titles on video.html
+- Fixed createStats.py to not respect playlists
 
 v3.50
 - Added caching to make loading of huge file databases possible, even on HDDs (tested successfully with 9TB of video/audio files)
