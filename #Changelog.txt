@@ -16,6 +16,7 @@ v3.55
 - Fixed createStats.py to not respect playlists
 - Made channel banner on playlist.html responsive
 - Added a progress bar to MovePlaylistMetadata.py
+- Changed generateThumbnails.py to output less unnecessary lines to the terminal
 
 v3.50
 - Added caching to make loading of huge file databases possible, even on HDDs (tested successfully with 9TB of video/audio files)
