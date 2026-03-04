@@ -17,6 +17,8 @@ v3.55
 - Made channel banner on playlist.html responsive
 - Added a progress bar to MovePlaylistMetadata.py
 - Changed generateThumbnails.py to output less unnecessary lines to the terminal
+- Added a dynamic wait time to #Launch-Server.bat
+  - Localhost now only opens if the server is ready instead of waiting a fixed 7 seconds
 
 v3.50
 - Added caching to make loading of huge file databases possible, even on HDDs (tested successfully with 9TB of video/audio files)
