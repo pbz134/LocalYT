@@ -1,0 +1,190 @@
++++LocalYT Revamped - Changelog+++
+
+
+v3.55
+- Added support for playlists on video.html
+  - Opening a channel playlist now displays all items on the right side above the recommendations
+- Added full .mp3 support
+  - Audio file covers will now be displayed permanently in the video player
+  - Makes use of a dynamic script loader to use a modified Fluid Player script
+- Optimized channel.html with more efficient video loading on large channels
+- Included thumbnails in MovePlaylistMetadata.py
+- Fixed Lazy Load trigger on channel.html
+- Made videos on channel.html mouse-wheel clickable
+- playlist.html now shows the channel information
+- Added a new script to fix a double-space inconsistency between video files and metadata files
+- Fixed line break issue on search.html
+- Renamed "SHARE" -> "Share" on video.html
+- Reduced margin of video suggestion titles on video.html
+- Fixed createStats.py to not respect playlists
+- Made channel banner on playlist.html responsive
+- Added a progress bar to MovePlaylistMetadata.py
+- Changed generateThumbnails.py to output less unnecessary lines to the terminal
+- Added a dynamic wait time to #Launch-Server.bat
+  - Localhost now only opens if the server is ready instead of waiting a fixed 7 seconds
+
+v3.50
+- Added caching to make loading of huge file databases possible, even on HDDs (tested successfully with 9TB of video/audio files)
+- Fixed character encoding in algorithm setup scripts
+- Added placeholder lengths of 3:00 for video or audio files where createvideolengths.py can't determine their length
+- Added tagging support for .mp3 and .mkv files
+- Conditional tagging for ASMR and audio files without an LLM
+  - For music and ASMR, automatic tags will now be applied, saving tons of time and compute
+- Fixed .mp3 compatibility for createvideolengths.py
+- Fixed view count and upload date fetching on search.html and channel.html
+- Fixed display of thumbnails that are being shown before the initial video play if the video is in a playlist
+- Updated createFilenames.py to skip already existing filenames
+- Fixed third tag for videos that are in channel playlists on analyze.py
+
+v3.40
+- Fixed race condition for video suggestions on video.html by adding a delay
+- Fix rounded corners on video thumbnail items
+- Fix CropThumbnails.py to also crop and add black borders to lower resolution thumbnails
+- Added black bars to horizontal thumbnails
+- Fix timestamp alignments on channel.html and search.html
+- Added a "remove_emojis.py" script that removes any emojis from file names for compatibility with node.js
+- Adjusted video grid spacing on index.html
+- Added cookies to make user logins persist through server reboots (valid for 1 year)
+- Divided server.js into a regular version (no user tag list output) and a debug version (full user tag list output)
+- Aligned view counts on search.html
+- Slightly adjusted spacing for recommended videos on video.html
+- Add a grid of video suggestions (4x3) after the current video is over
+
+v3.35
+- Fix koboldcpp kill command and "createFiledates.py" echo description in "#Setup-or-Update.bat"
+- Extend wait time for tagging model to load
+- Improved CropThumbnails.py; All thumbnails will now be cropped to 16:9, and 1:1 thumbnails (e.g. music from "Topic" channels) will be filled to 16:9
+- Added a toggle for the hamburger menu on index.html
+- Added a button to close the Copy Link modal on video.html
+
+v3.30
+- Prepare for initial GitHub release
+- Add proper file encoding for .mp4 files
+- Improve thumbnail and filedate generation scripts
+
+v3.25
+- Included createFiledates.py in the setup script
+- Updated createFiledates.py to skip videos that already have a file date
+- Your username now displays instead of the "Login" button when logged in
+- Made the video.html video container more responsive
+  - It will now maintain its aspect ratio if the website is being scaled
+  - No more black bars or cut-off edges on videos
+- Properly aligned view count for suggested videos on video.html
+- Centered the search bar and shortened it a bit
+- Liked videos on liked_videos.html are now sorted by newest to oldest
+- Changed video.html player focus logic
+  - Play/Pause, Volume and Skip/Rewind shortcuts work even when the player itself is unfocused
+  - Shortcuts get ignored when the search bar is focused
+
+v3.20
+- Added a script to automatically create colored profile pictures for channels that don't have one
+- Renamed the Setup and Launch scripts to be more accurate
+- Integrated the full algorithm setup into #Setup-or-Update.bat
+- Fixed timestamp formatting for videos longer than 60 minutes
+- Fixed createvideolengths.py to not move playlist videolengths into subfolders
+- Updated createvideolengths.py to skip videos that already have a videolength generated
+- Added "createChannelsubs.py" to automatically create missing subscriber counts for channels (default is 10,000)
+- Modified "removespecialcharacters.py" to remove and replace certain characters of media and metadata files for filename compatibility between 4kVD(+) and yt-dlp
+- Increased the timeout to wait for the Algorithm LLM to 30 seconds
+- Hugely improved video thumbnail generation speed by using direct seeking instead and parallel processing
+- Made video tagging more efficient by using a more recent, smaller LLM (runs purely on CPU, no Nvidia required)
+- Made video tagging more accurate by respecting video descriptions, if available
+
+v3.15
+- Fully fixed special characters in file names by making use of proper encoding!!
+   - Media files can now have any name without needing to have their special characters removed
+   - No need for any blacklist and file name shenanigans
+   - All special characters will now be visible in LocalYT
+- Sorted the watch history by most recent instead of by alphabet
+- Hugely improved video length generation speed by reading from file header instead of reading the full video
+- Cleaned batch scripts, updated setup batch file
+- Updated the LocalYT logo to be more stylish, including a custom play button, made by mitchib1440
+- Changed spelling of logo and cmd ASCII logo to "LocalYT" instead of "Local YT"
+- Fixed the channels' sub count alignment on video.html
+- Made the logo mouse-wheel clickable on all pages
+- Updated empty Watch History disclaimer to be more clear instead of showing a plain error
+- Implemented a placeholder message when no video description is available
+
+v3.10
+- Added automatic playlist setup; Simply put your playlist videos into a channel's subfolder and all other metadata will be moved automatically
+- Added all automatic metadata generation scripts to "#Launch-and-Setup.bat"; Videolength metadata generation can be skipped now
+- Modified "remove_special_characters.py" to only rename files that have not been renamed yet (detected if a .txt file with the same name is next to it)
+
+v3.05
+- Fixed thumbnail generation script for .mp3 files
+- Added .mkv video compatibility
+
+v3.00
+- Thumbnails now show on video.html before initially playing the video
+- Added version name to logo (access the logo editing tool at /LocalYT-Rev-Files/AddVersionToLogo.py)
+
+v2.95
+- Added playlists for channels
+  - Put videos into a subfolder of a channel to automatically create a new Playlist tab on channel.html!
+  - You can manually do the same for filenames, viewcounts, videostats, or let the setup script move the metadata automatically if in the correct channel folder
+  - Descriptions and videolengths don't need to be inside subfolders
+
+v2.90
+- Added a button on channel.html to sort videos by "Oldest First" and "Newest First"
+- Improved the search algorithm; search.html now respects video description content for even more accurate search results
+- Made channel names on search.html next to video results clickable
+- Fixed channel banner height
+
+v2.85
+- Made timestamps clickable
+
+v2.80
+- Added a new /descriptions endpoint to serve and display video descriptions on video.html
+- Links in descriptions are now blue and clickable
+- Fixed the playbutton's position on video.html
+- Made the website more responsive
+
+v2.75
+- Implemented lazy loading; thumbnails from a list of videos (e.g. on index.html or search.html) only get loaded on demand
+
+v2.70
+- Implemented a workaround where node.js would crash if encountering certain special characters in .mp4 files
+  - All kinds of video titles, including emojis, should work flawlessly now
+  - Execute "remove_special_characters.bat" to make use of the new feature
+- Added a tab on the left side to see the watch history, liked videos, and an "About" page, showing info for LocalYT
+
+v2.60
+- Made the generated tags more accurate and included the respective channel's name
+- Fixed a critical bug from v2.55 where the server may crash if userpreferences.json was locked or incomplete
+
+v2.55
+- Added recommended topic buttons on the landing page if the user is logged in
+- Small cosmetic changes
+
+v2.50
+- Added an algorithm which now recommends videos according to what you have watched before
+(Be sure to tag your videos using the tools provided in "/#Algorithm-Setup")
+
+v2.20
+- Incompatible characters in files that can make the respective video unclickable or make the server refuse to load can be removed using 'remove_special_characters.bat'
+- Added an account system:
+  - Users are now able to register and login with a username and password on the landing page
+  - Likes, dislikes and subscribed channels will now be saved per account instead of per device ID
+  - Added register.html and login.html pages
+
+v2.15
+- Added channel pictures from /channelpic to search.html
+- Styling adjustments for search.html
+
+v2.10
+- Added full .mp3 compatibility, including cover images
+- Non-16:9 thumbnail images will be filled to 16:9
+- General styling adjustments
+
+v2.00:
+- Overall fancier video.html page and landing page
+- Lots of visual enhancements
+- Fixed video title overflow on video.html
+
+
+Older versions: Undocumented
+
+
+TO DO:
+- Add a search icon next to the search bar on all pages
+- Fix algorithm (broke after implementing video caching)
