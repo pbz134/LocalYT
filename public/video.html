@@ -6,7 +6,31 @@
     <title>LocalYT</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
-    <script src="fluidplayer.min.js"></script>
+    <script>
+    // Determine which Fluid Player script to load based on video file extension
+    (function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const videoSrc = decodeURIComponent(urlParams.get('src') || '');
+        const extension = videoSrc.split('.').pop().toLowerCase();
+        
+        // Choose script based on file type
+        const scriptMap = {
+            'mp3': 'fluidplayer.minMP3MOD.js',
+            'default': 'fluidplayer.min.js'
+        };
+        
+        // Use MP3-modified script for audio files, default for video files
+        const scriptFile = (extension === 'mp3') ? scriptMap.mp3 : scriptMap.default;
+        
+        // Create and load the script
+        const script = document.createElement('script');
+        script.src = scriptFile;
+        script.onload = function() {
+            console.log(`Loaded Fluid Player for ${extension} files`);
+        };
+        document.head.appendChild(script);
+    })();
+</script>
     <style>
         .channel-info {
             display: flex;
