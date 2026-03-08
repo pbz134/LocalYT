@@ -937,7 +937,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         videoPlayer.volume = Math.max(0, videoPlayer.volume - 0.1);
                         break;
                     case 'f':
-                        document.fullscreenElement ? document.exitFullscreen() : videoPlayer.requestFullscreen();
+                        // Use Fluid Player's fullscreen toggle instead of native browser fullscreen
+                        if (myFP && typeof myFP.toggleFullScreen === 'function') {
+                            myFP.toggleFullScreen();
+                        } else {
+                            // Fallback to browser fullscreen if Fluid Player method isn't available
+                            document.fullscreenElement ? document.exitFullscreen() : videoPlayer.requestFullscreen();
+                        }
                         break;
                     case ',':
                         videoPlayer.currentTime -= 1 / 30;
