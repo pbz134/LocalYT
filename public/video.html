@@ -357,6 +357,16 @@
             color: #aaa !important;
             font-family: 'RobotoRegular', Arial, sans-serif !important;
         }
+        
+        .recommendation-badge {
+            background-color: #ff0000;
+            color: white;
+            font-size: 8px;
+            padding: 2px 4px;
+            border-radius: 2px;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
@@ -510,12 +520,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Function to generate suggested videos JSON for FluidPlayer
         async function generateSuggestedVideos(currentVideoSrc) {
             try {
-                const response = await fetch('/recommendations');
+                const response = await fetch('/recommendations?page=1&limit=12');
                 if (!response.ok) return []; // Gracefully handle 401 or errors
                 
-                const videos = await response.json();
+                const data = await response.json();
+                const videos = data.videos || [];
                 
-                const suggestedVideos = videos.slice(0, 12).map((video, index) => {
+                const suggestedVideos = videos.map((video, index) => {
                     const channel = video.path.split('/')[0];
                     const videoPathWithoutExt = stripExtension(video.path);
                     
@@ -543,7 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
-            const videoSrc = decodeURIComponent(urlParams.get('src'));
+            const videoSrc = decodeURIComponent(urlParams.get('src') || '');
             const playlistName = urlParams.get('playlist'); // Get playlist name
             const timestamp = urlParams.get('t');
             const videoPlayer = document.getElementById('videoPlayer');
@@ -750,7 +761,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // 2. Load Standard Recommendations
-            fetch('/videos?page=1&limit=20')
+            fetch('/recommendations?page=1&limit=20')
                 .then(response => response.json())
                 .then(data => {
                     const videos = data.videos || [];
@@ -769,10 +780,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     videos.forEach(video => {
                         renderSuggestionItem(video, suggestionsContainer, null, false);
                     });
+                })
+                .catch(error => {
+                    console.error('Error loading recommendations:', error);
+                    // Fallback to random videos
+                    fetch('/videos?page=1&limit=20')
+                        .then(response => response.json())
+                        .then(data => {
+                            const videos = data.videos || [];
+                            videos.forEach(video => {
+                                renderSuggestionItem(video, suggestionsContainer, null, false);
+                            });
+                        });
                 });
 
             // Helper to render sidebar items
-            function renderSuggestionItem(video, container, playlistParam, isCurrent) {
+            function renderSuggestionItem(video, container, playlistParam, isCurrent, isRecommended = false) {
                 const suggestionElement = document.createElement('div');
                 suggestionElement.className = 'suggestion-item' + (isCurrent ? ' current-video-item' : '');
                 

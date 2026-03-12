@@ -159,58 +159,83 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById("main").style.marginLeft = "0";
         }
 
-        // Check login status and update button
-        fetch('/session-user')
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                }
-                throw new Error('Not logged in');
-            })
-            .then(data => {
-                if (data.username) {
-                    const loginButton = document.getElementById('loginButton');
-                    loginButton.textContent = data.username;
-                }
-            })
-            .catch(error => {
-                console.log('User not logged in or session check failed');
-            });
-
         // --- INFINITE SCROLL LOGIC ---
         let currentPage = 1;
+        let recommendationsPage = 1;
         const limit = 20; // Videos per load
         let isLoading = false;
         let hasMore = true;
+        let isUserLoggedIn = false;
+        let hasLoadedRecommendations = false;
+
+        // Check login status and update button
+        function checkLoginStatus() {
+            return fetch('/session-user')
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Not logged in');
+                })
+                .then(data => {
+                    if (data.username) {
+                        const loginButton = document.getElementById('loginButton');
+                        loginButton.textContent = data.username;
+                        isUserLoggedIn = true;
+                        return true;
+                    }
+                    return false;
+                })
+                .catch(error => {
+                    console.log('User not logged in');
+                    return false;
+                });
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Load Top Categories
-            fetch('/top-categories')
-                .then(response => response.json())
-                .then(categories => {
-                    const categoryContainer = document.getElementById('categoryContainer');
-                    const limitedCategories = categories.slice(0, 3);
-                    
-                    limitedCategories.forEach(category => {
-                        const button = document.createElement('button');
-                        button.className = 'category-button';
-                        button.textContent = category;
-                        // Redirect to search page for that category (efficient for large libraries)
-                        button.onclick = () => {
-                            window.location.href = `search.html?q=${encodeURIComponent(category)}`;
-                        };
-                        categoryContainer.appendChild(button);
+            // First check login status
+            checkLoginStatus().then(loggedIn => {
+                // Load Top Categories
+                fetch('/top-categories')
+                    .then(response => response.json())
+                    .then(categories => {
+                        const categoryContainer = document.getElementById('categoryContainer');
+                        const limitedCategories = categories.slice(0, 3);
+                        
+                        limitedCategories.forEach(category => {
+                            const button = document.createElement('button');
+                            button.className = 'category-button';
+                            button.textContent = category;
+                            button.onclick = () => {
+                                window.location.href = `search.html?q=${encodeURIComponent(category)}`;
+                            };
+                            categoryContainer.appendChild(button);
+                        });
+                    })
+                    .catch(error => {
+                        console.log('No categories found');
                     });
-                });
 
-            // Initial Video Load
-            loadMoreVideos();
+                // Load appropriate videos based on login status
+                if (loggedIn) {
+                    console.log('User logged in, loading recommendations');
+                    loadRecommendations();
+                } else {
+                    console.log('Guest user, loading random videos');
+                    loadMoreVideos();
+                }
+            });
 
             // Infinite Scroll Listener
             window.addEventListener('scroll', () => {
-                // Trigger when user is 200px from bottom
                 if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
-                    loadMoreVideos();
+                    if (!isLoading && hasMore) {
+                        if (isUserLoggedIn && !hasLoadedRecommendations) {
+                            loadMoreRecommendations();
+                        } else {
+                            loadMoreVideos();
+                        }
+                    }
                 }
             });
             
@@ -252,6 +277,94 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
+        function loadRecommendations() {
+            if (isLoading) return;
+            
+            isLoading = true;
+            
+            fetch('/recommendations?page=1&limit=' + limit)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to load recommendations');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    let videos = [];
+                    if (Array.isArray(data)) {
+                        videos = data;
+                        hasMore = false;
+                        hasLoadedRecommendations = true;
+                    } else if (data.videos) {
+                        videos = data.videos;
+                        hasMore = data.hasMore || false;
+                        if (hasMore) {
+                            recommendationsPage = 2;
+                        } else {
+                            hasLoadedRecommendations = true;
+                        }
+                    }
+                    
+                    if (videos.length > 0) {
+                        renderVideos(videos);
+                    } else {
+                        hasLoadedRecommendations = true;
+                        loadMoreVideos();
+                    }
+                    
+                    isLoading = false;
+                })
+                .catch(error => {
+                    console.error('Error loading recommendations:', error);
+                    isLoading = false;
+                    hasLoadedRecommendations = true;
+                    loadMoreVideos();
+                });
+        }
+
+        function loadMoreRecommendations() {
+            if (isLoading || !hasMore) return;
+            
+            isLoading = true;
+            
+            fetch('/recommendations?page=' + recommendationsPage + '&limit=' + limit)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to load more recommendations');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    let newVideos = [];
+                    if (Array.isArray(data)) {
+                        newVideos = data;
+                        hasMore = false;
+                        hasLoadedRecommendations = true;
+                    } else if (data.videos) {
+                        newVideos = data.videos;
+                        hasMore = data.hasMore;
+                        if (hasMore) {
+                            recommendationsPage++;
+                        } else {
+                            hasLoadedRecommendations = true;
+                        }
+                    }
+                    
+                    if (newVideos.length > 0) {
+                        renderVideos(newVideos);
+                    } else {
+                        hasLoadedRecommendations = true;
+                    }
+                    
+                    isLoading = false;
+                })
+                .catch(error => {
+                    console.error('Error loading more recommendations:', error);
+                    isLoading = false;
+                    hasLoadedRecommendations = true;
+                });
+        }
+
         function loadMoreVideos() {
             if (isLoading || !hasMore) return;
             
@@ -260,57 +373,15 @@ document.addEventListener('DOMContentLoaded', () => {
             fetch(`/videos?page=${currentPage}&limit=${limit}`)
                 .then(response => response.json())
                 .then(data => {
-                    const container = document.getElementById('videoContainer');
+                    const videos = data.videos || [];
                     
-                    data.videos.forEach(video => {
-                        const videoElement = document.createElement('div');
-                        videoElement.className = 'video-item';
-                        const videoTitle = video.displayName;
-                        const videoPathWithoutExt = stripExtension(video.path);
-                        const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
-                        const channel = video.path.split('/')[0];
-                        const channelPicSrc = `/channelpic/${encodeURIComponent(channel)}.jpg`;
+                    if (videos.length > 0) {
+                        renderVideos(videos);
+                    }
 
-                        videoElement.innerHTML = `
-                            <div class="thumbnail-container">
-                                <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
-                                <div class="video-length"></div>
-                            </div>
-                            <div class="video-info">
-                                <img src="${channelPicSrc}" alt="${channel}" class="channel-pic" loading="lazy">
-                                <div class="video-details">
-                                    <div class="video-title" onclick="window.location.href='video.html?src=${encodeURIComponent(video.path)}'">${videoTitle}</div>
-                                    <div class="channel-name" onclick="window.location.href='channel.html?channel=${encodeURIComponent(channel)}'">${channel}</div>
-                                    <div class="video-description">${video.viewCount} views • Uploaded on ${video.fileDate}</div>
-                                </div>
-                            </div>
-                        `;
-                        container.appendChild(videoElement);
-
-                        // Add event listener to the thumbnail container
-                        videoElement.querySelector('.thumbnail-container').addEventListener('click', () => {
-                            window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
-                        });
-
-                        // Add event listeners for right-click and mouse wheel click
-                        setupVideoLinkEvents(videoElement.querySelector('.video-title'), video.path);
-                        
-                        // Fetch video length (lazy)
-                        const videoFilename = video.path.split('/').pop();
-                        const videoNameWithoutExt = stripExtension(videoFilename);
-                        fetch(`/videolengths/${channel}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
-                            .then(response => response.text())
-                            .then(length => {
-                                videoElement.querySelector('.video-length').textContent = length;
-                            })
-                            .catch(error => {
-                                console.error('Error fetching video length:', error);
-                            });
-                    });
-
-                    // Update state
                     isLoading = false;
-                    if (data.videos.length < limit) {
+                    
+                    if (videos.length < limit) {
                         hasMore = false;
                     } else {
                         currentPage++;
@@ -320,6 +391,53 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.error('Error fetching videos:', error);
                     isLoading = false;
                 });
+        }
+
+        function renderVideos(videos) {
+            const container = document.getElementById('videoContainer');
+            
+            videos.forEach(video => {
+                const videoElement = document.createElement('div');
+                videoElement.className = 'video-item';
+                const videoTitle = video.displayName;
+                const videoPathWithoutExt = stripExtension(video.path);
+                const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
+                const channel = video.path.split('/')[0];
+                const channelPicSrc = `/channelpic/${encodeURIComponent(channel)}.jpg`;
+
+                videoElement.innerHTML = `
+                    <div class="thumbnail-container">
+                        <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
+                        <div class="video-length"></div>
+                    </div>
+                    <div class="video-info">
+                        <img src="${channelPicSrc}" alt="${channel}" class="channel-pic" loading="lazy">
+                        <div class="video-details">
+                            <div class="video-title" onclick="window.location.href='video.html?src=${encodeURIComponent(video.path)}'">${videoTitle}</div>
+                            <div class="channel-name" onclick="window.location.href='channel.html?channel=${encodeURIComponent(channel)}'">${channel}</div>
+                            <div class="video-description">${video.viewCount} views • Uploaded on ${video.fileDate}</div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(videoElement);
+
+                videoElement.querySelector('.thumbnail-container').addEventListener('click', () => {
+                    window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
+                });
+
+                setupVideoLinkEvents(videoElement.querySelector('.video-title'), video.path);
+                
+                const videoFilename = video.path.split('/').pop();
+                const videoNameWithoutExt = stripExtension(videoFilename);
+                fetch(`/videolengths/${channel}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
+                    .then(response => response.text())
+                    .then(length => {
+                        videoElement.querySelector('.video-length').textContent = length;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching video length:', error);
+                    });
+            });
         }
 
         function setupVideoLinkEvents(element, path) {
