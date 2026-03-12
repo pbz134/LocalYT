@@ -87,3 +87,4 @@ What if I only have the video files and no metadata?
 
 ## TO DO
 - Add a search icon next to the search bar on all pages
+- Add a placeholder thumbnail (no_thumbnail.jpg)
