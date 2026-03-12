@@ -6,9 +6,17 @@ const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 const PORT = 3000;
+
+// Create limiter for recommendation endpoints
+const recommendationsLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 30, // limit each IP to 30 requests per windowMs
+    message: 'Too many recommendation requests, please try again later.'
+});
 
 // Create sessions directory
 const sessionsDir = path.join(__dirname, 'sessions');
@@ -64,6 +72,7 @@ app.use(session({
 const preferencesFilePath = path.join(__dirname, 'userPreferences.json');
 const watchHistoryFilePath = path.join(__dirname, 'watchHistory.json');
 const cacheFilePath = path.join(__dirname, 'video_cache.json');
+const recommendationIndexPath = path.join(__dirname, 'recommendation_index.json');
 
 // Ensure the preferences file exists and is valid JSON
 function ensurePreferencesFile() {
@@ -89,7 +98,9 @@ ensurePreferencesFile();
 ensureWatchHistoryFile();
 
 // --- OPTIMIZED VIDEO CACHING SYSTEM ---
-let videoCache = [];
+let videoCache = new Map(); // Map for O(1) lookups
+let videoArray = []; // Array for pagination
+let recommendationIndex = {};
 
 function initializeVideoCache() {
     console.log('Checking for video cache...');
@@ -98,10 +109,15 @@ function initializeVideoCache() {
             const stats = fs.statSync(cacheFilePath);
             if (stats.size > 0) {
                 const data = fs.readFileSync(cacheFilePath, 'utf8');
-                videoCache = JSON.parse(data);
-                console.log(`Loaded ${videoCache.length} videos from cache.`);
+                const videos = JSON.parse(data);
+                
+                // Store in Map for fast lookups
+                videoCache = new Map(videos.map(v => [v.path, v]));
+                videoArray = videos; // Keep array for pagination
+                
+                console.log(`Loaded ${videoCache.size} videos from cache.`);
                 // Keep cache sorted for stability
-                videoCache.sort((a, b) => a.path.localeCompare(b.path));
+                videoArray.sort((a, b) => a.path.localeCompare(b.path));
                 return;
             }
         } catch (err) {
@@ -176,16 +192,78 @@ function scanAndCacheVideos() {
     
     try {
         fs.writeFileSync(cacheFilePath, JSON.stringify(tempCache, null, 2));
-        videoCache = tempCache;
+        videoCache = new Map(tempCache.map(v => [v.path, v]));
+        videoArray = tempCache;
         // Sort alphabetically
-        videoCache.sort((a, b) => a.path.localeCompare(b.path));
-        console.log(`Scan complete. Cached ${videoCache.length} videos.`);
+        videoArray.sort((a, b) => a.path.localeCompare(b.path));
+        console.log(`Scan complete. Cached ${videoArray.length} videos.`);
+        
+        // Build recommendation index after cache is updated
+        buildRecommendationIndex();
     } catch (err) {
         console.error('Error writing cache file:', err);
     }
 }
 
+// Build recommendation index from video cache
+// Build recommendation index from video cache
+function buildRecommendationIndex() {
+    console.log('Building recommendation index...');
+    const index = {};
+    
+    videoArray.forEach(video => {
+        // Extract channel name from path
+        const channel = video.path.split('/')[0];
+        
+        // Add channel name as a tag
+        if (channel) {
+            if (!index[channel]) {
+                index[channel] = [];
+            }
+            index[channel].push(video.path);
+        }
+        
+        // Add existing tags
+        if (video.tags && video.tags.length > 0) {
+            video.tags.forEach(tag => {
+                // Clean up the tag
+                const cleanTag = tag.trim();
+                if (cleanTag) {
+                    if (!index[cleanTag]) {
+                        index[cleanTag] = [];
+                    }
+                    index[cleanTag].push(video.path);
+                }
+            });
+        }
+    });
+    
+    // Write to file for persistence
+    fs.writeFileSync(recommendationIndexPath, JSON.stringify(index, null, 2));
+    recommendationIndex = index;
+    console.log('Recommendation index built successfully with ' + Object.keys(index).length + ' tags');
+    console.log('Sample tags:', Object.keys(index).slice(0, 10));
+}
+
+// Load or build recommendation index
+function initializeRecommendationIndex() {
+    if (fs.existsSync(recommendationIndexPath)) {
+        try {
+            const data = fs.readFileSync(recommendationIndexPath, 'utf8');
+            recommendationIndex = JSON.parse(data);
+            console.log('Loaded recommendation index with ' + Object.keys(recommendationIndex).length + ' tags');
+        } catch (err) {
+            console.log('Failed to load recommendation index, rebuilding...');
+            buildRecommendationIndex();
+        }
+    } else {
+        buildRecommendationIndex();
+    }
+}
+
+// Initialize both caches
 initializeVideoCache();
+initializeRecommendationIndex();
 
 // Helper to get details
 function getVideoDetails(videoSlice) {
@@ -216,7 +294,7 @@ function shuffleArray(array) {
 
 app.get('/videos', (req, res) => {
     // Shuffle the cache copy for this request
-    const shuffled = [...videoCache]; // Create copy
+    const shuffled = [...videoArray]; // Create copy
     shuffleArray(shuffled);
 
     const page = parseInt(req.query.page) || 1;
@@ -231,18 +309,16 @@ app.get('/videos', (req, res) => {
         videos: videosWithDetails,
         page: page,
         limit: limit,
-        total: videoCache.length,
-        hasMore: endIndex < videoCache.length
+        total: videoArray.length,
+        hasMore: endIndex < videoArray.length
     });
 });
 
 app.get('/rescan', (req, res) => {
     scanAndCacheVideos();
+    buildRecommendationIndex(); // Rebuild index after scan
     res.send('Rescan complete');
 });
-
-// ... [Existing Endpoints: videostats, like, dislike, user-likes, etc.] ...
-// I will include the ones that need optimization or are frequently used.
 
 app.get('/videostats/:video', (req, res) => {
     const video = req.params.video.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '');
@@ -405,76 +481,280 @@ app.get('/session-user', (req, res) => {
     });
 });
 
+// Batch preference update system
+const preferenceUpdateQueue = new Map();
+let preferenceUpdateTimer = null;
+
+function batchUpdatePreferences() {
+    if (preferenceUpdateQueue.size === 0) return;
+    
+    fs.readFile(preferencesFilePath, 'utf8', (err, data) => {
+        let preferencesData = {};
+        if (!err) preferencesData = JSON.parse(data);
+        
+        // Apply all queued updates
+        preferenceUpdateQueue.forEach((tags, userId) => {
+            if (!preferencesData[userId]) preferencesData[userId] = {};
+            tags.forEach(tag => {
+                preferencesData[userId][tag] = (preferencesData[userId][tag] || 0) + 1;
+            });
+        });
+        
+        fs.writeFile(preferencesFilePath, JSON.stringify(preferencesData, null, 2), (err) => {
+            if (err) console.error('Error saving preferences:', err);
+            preferenceUpdateQueue.clear();
+        });
+    });
+}
+
 app.post('/updatePreferences', (req, res) => {
     const { video } = req.body;
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('User not authenticated');
     
-    const videoData = videoCache.find(v => v.path === video);
+    const videoData = videoCache.get(video);
     if (!videoData || !videoData.tags) return res.status(404).send('Video tags not found');
 
     const videoTags = videoData.tags;
 
-    fs.readFile(preferencesFilePath, 'utf8', (err, data) => {
-        let preferencesData = {};
-        if (!err) preferencesData = JSON.parse(data);
-        if (!preferencesData[userId]) preferencesData[userId] = {};
-        
-        videoTags.forEach(tag => {
-            preferencesData[userId][tag] = (preferencesData[userId][tag] || 0) + 1;
-        });
-        
-        fs.writeFile(preferencesFilePath, JSON.stringify(preferencesData, null, 2), err => {
-            if (err) return res.status(500).send('Error saving preferences');
-            res.json({ addedTags: videoTags });
-        });
+    // Queue the update
+    if (!preferenceUpdateQueue.has(userId)) {
+        preferenceUpdateQueue.set(userId, new Set());
+    }
+    
+    videoTags.forEach(tag => {
+        preferenceUpdateQueue.get(userId).add(tag);
     });
+    
+    // Clear existing timer and set new one
+    if (preferenceUpdateTimer) clearTimeout(preferenceUpdateTimer);
+    preferenceUpdateTimer = setTimeout(batchUpdatePreferences, 5000); // Batch every 5 seconds
+    
+    res.json({ queued: true, message: 'Preference update queued' });
 });
 
-// --- RECOMMENDATIONS (Shuffled) ---
-app.get('/recommendations', (req, res) => {
+// --- OPTIMIZED RECOMMENDATIONS (Using Index) ---
+app.get('/recommendations', recommendationsLimiter, (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('User not authenticated');
 
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+
     fs.readFile(preferencesFilePath, 'utf8', (err, data) => {
         if (err) return res.status(500).send('Error reading preferences');
+        
         try {
             const preferencesData = JSON.parse(data);
             const userPreferences = preferencesData[userId] || {};
-
-            // Filter matching videos
-            const recommendedVideos = [];
-            for (let i = 0; i < videoCache.length; i++) {
-                const video = videoCache[i];
-                if (video.tags && video.tags.some(tag => userPreferences[tag])) {
-                    recommendedVideos.push(video);
+            
+            console.log('User preferences tags:', Object.keys(userPreferences).length);
+            
+            // Sort tags by weight (higher numbers first)
+            const sortedTags = Object.entries(userPreferences)
+                .map(([tag, weight]) => ({ tag, weight }))
+                .sort((a, b) => b.weight - a.weight);
+            
+            console.log('Top 20 tags by weight:', sortedTags.slice(0, 20));
+            
+            // Create a Map to store videos with their source tag
+            const videoMap = new Map(); // path -> { video, sourceTag }
+            
+            // First, identify high-priority tags (your most important content)
+            // These are tags with weight >= 100 that you want to see prominently
+            const highPriorityTags = sortedTags.filter(t => t.weight >= 100);
+            
+            // Also identify medium-priority tags
+            const mediumPriorityTags = sortedTags.filter(t => t.weight >= 50 && t.weight < 100);
+            
+            console.log(`High priority tags (${highPriorityTags.length}):`, highPriorityTags.map(t => `${t.tag}(${t.weight})`));
+            
+            // For each high-priority tag, collect ALL their videos
+            highPriorityTags.forEach(({ tag }) => {
+                const tagVideos = recommendationIndex[tag] || [];
+                console.log(`Tag "${tag}": ${tagVideos.length} videos available`);
+                
+                tagVideos.forEach(videoPath => {
+                    if (!videoMap.has(videoPath)) {
+                        const video = videoCache.get(videoPath);
+                        if (video) {
+                            videoMap.set(videoPath, {
+                                video,
+                                sourceTag: tag
+                            });
+                        }
+                    }
+                });
+            });
+            
+            // Group videos by their source tag
+            const videosByTag = new Map(); // tag -> array of videos
+            videoMap.forEach((value, path) => {
+                if (!videosByTag.has(value.sourceTag)) {
+                    videosByTag.set(value.sourceTag, []);
                 }
+                videosByTag.get(value.sourceTag).push(value.video);
+            });
+            
+            console.log('Video counts by source tag:');
+            videosByTag.forEach((videos, tag) => {
+                console.log(`  ${tag}: ${videos.length} videos`);
+            });
+            
+            // Calculate how many videos to take from each tag for this page
+            const resultVideos = [];
+            const tags = Array.from(videosByTag.keys());
+            
+            if (page === 1) {
+                // For page 1, create a balanced mix:
+                // - 40% from top priority tags (ensuring Modern Vintage Gamer appears)
+                // - 30% from other high priority tags
+                // - 30% from medium priority tags
+                
+                const topPriorityTag = "Modern Vintage Gamer";
+                const otherHighPriorityTags = highPriorityTags
+                    .map(t => t.tag)
+                    .filter(tag => tag !== topPriorityTag);
+                
+                // Take 4 videos from Modern Vintage Gamer (20% of 20)
+                const mvgVideos = videosByTag.get(topPriorityTag) || [];
+                shuffleArray(mvgVideos);
+                resultVideos.push(...mvgVideos.slice(0, 4));
+                
+                // Take 4 more videos from other high priority tags (20%)
+                const otherHighVideos = [];
+                otherHighPriorityTags.forEach(tag => {
+                    const tagVideos = videosByTag.get(tag) || [];
+                    shuffleArray(tagVideos);
+                    if (tagVideos.length > 0) {
+                        // Take 1-2 videos from each tag
+                        const takeCount = Math.min(2, Math.ceil(tagVideos.length / 100));
+                        otherHighVideos.push(...tagVideos.slice(0, takeCount));
+                    }
+                });
+                shuffleArray(otherHighVideos);
+                resultVideos.push(...otherHighVideos.slice(0, 4));
+                
+                // Take 4 videos from medium priority tags (20%)
+                const mediumVideos = [];
+                mediumPriorityTags.forEach(tag => {
+                    const tagVideos = videosByTag.get(tag.tag) || [];
+                    shuffleArray(tagVideos);
+                    if (tagVideos.length > 0) {
+                        mediumVideos.push(...tagVideos.slice(0, 1));
+                    }
+                });
+                shuffleArray(mediumVideos);
+                resultVideos.push(...mediumVideos.slice(0, 4));
+                
+                // Fill the remaining 8 slots with a weighted random selection from all videos
+                const allVideos = Array.from(videoMap.values()).map(v => v.video);
+                shuffleArray(allVideos);
+                
+                // But prioritize videos from high-weight tags
+                const weightedRemaining = [];
+                allVideos.forEach(video => {
+                    // Check which tag this video comes from
+                    let videoWeight = 0;
+                    for (const tag of highPriorityTags) {
+                        if (video.tags && video.tags.includes(tag.tag)) {
+                            videoWeight = tag.weight;
+                            break;
+                        }
+                    }
+                    weightedRemaining.push({ video, weight: videoWeight });
+                });
+                
+                // Sort by weight (higher first) then shuffle slightly
+                weightedRemaining.sort((a, b) => b.weight - a.weight);
+                
+                // Take the next 8 videos, but with some randomness
+                const candidates = weightedRemaining.slice(0, 50); // Take top 50 by weight
+                shuffleArray(candidates);
+                resultVideos.push(...candidates.slice(0, 8).map(c => c.video));
+                
+            } else {
+                // For subsequent pages, just use weighted random selection
+                const allVideos = Array.from(videoMap.values()).map(v => v.video);
+                
+                // Weight videos based on their source tag's weight
+                const weightedVideos = allVideos.map(video => {
+                    let weight = 1;
+                    for (const tag of highPriorityTags) {
+                        if (video.tags && video.tags.includes(tag.tag)) {
+                            weight = tag.weight;
+                            break;
+                        }
+                    }
+                    return { video, weight };
+                });
+                
+                // Weighted shuffle (higher weight = higher chance of appearing early)
+                for (let i = weightedVideos.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [weightedVideos[i], weightedVideos[j]] = [weightedVideos[j], weightedVideos[i]];
+                }
+                
+                // Sort by weight (higher weights float to top)
+                weightedVideos.sort((a, b) => b.weight - a.weight);
+                
+                const paginatedVideos = weightedVideos
+                    .slice(startIndex, endIndex)
+                    .map(item => item.video);
+                
+                resultVideos.push(...paginatedVideos);
             }
-
-            // Shuffle the matches
-            shuffleArray(recommendedVideos);
-
-            // Take 20
-            const result = recommendedVideos.slice(0, 20);
-            res.json(getVideoDetails(result));
-
+            
+            // Remove duplicates just in case
+            const uniqueVideos = [];
+            const seen = new Set();
+            resultVideos.forEach(video => {
+                if (!seen.has(video.path)) {
+                    seen.add(video.path);
+                    uniqueVideos.push(video);
+                }
+            });
+            
+            console.log(`Returning ${uniqueVideos.length} unique videos for page ${page}`);
+            
+            // Get video details
+            const result = getVideoDetails(uniqueVideos);
+            
+            res.json({
+                videos: result,
+                page: page,
+                limit: limit,
+                total: videoMap.size,
+                hasMore: endIndex < videoMap.size
+            });
+            
         } catch (err) {
-            console.error('Error parsing preferences data:', err);
-            return res.status(500).send('Error parsing preferences data');
+            console.error('Error generating recommendations:', err);
+            return res.status(500).send('Error generating recommendations');
         }
     });
 });
 
-app.get('/top-categories', (req, res) => {
+app.get('/top-categories', recommendationsLimiter, (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('User not authenticated');
+    
     fs.readFile(preferencesFilePath, 'utf8', (err, data) => {
         if (err) return res.status(500).send('Error reading preferences');
+        
         try {
             const preferencesData = JSON.parse(data);
             const userPreferences = preferencesData[userId] || {};
-            const sortedPreferences = Object.entries(userPreferences).sort((a, b) => b[1] - a[1]);
-            res.json(sortedPreferences.slice(0, 5).map(entry => entry[0]));
+            
+            // Sort and return top 5 categories
+            const sortedPreferences = Object.entries(userPreferences)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(entry => entry[0]);
+            
+            res.json(sortedPreferences);
         } catch (err) {
             return res.status(500).send('Error parsing preferences data');
         }
@@ -528,7 +808,7 @@ app.get('/playlist-videos/:channel/:playlist*', (req, res) => {
             else if (file.endsWith('.mp4') || file.endsWith('.mp3') || file.endsWith('.mkv')) {
                 const relativePath = path.relative(path.join(__dirname, 'videos'), filePath).replace(/\\/g, '/');
                 const basePath = relativePath.replace(/\.(mp4|mp3|mkv)$/, '');
-                const cached = videoCache.find(v => v.path === relativePath) || {};
+                const cached = videoCache.get(relativePath) || {};
                 let viewCount = '0';
                 const viewCountPath = path.join(__dirname, 'viewcounts', `${basePath}.txt`);
                 if (fs.existsSync(viewCountPath)) viewCount = fs.readFileSync(viewCountPath, 'utf8');
@@ -552,13 +832,11 @@ app.get('/user-history', (req, res) => {
         if (err) return res.status(500).send('Error reading watch history');
         const watchHistoryData = JSON.parse(data);
         const userHistory = watchHistoryData[userId] || [];
-        const videoMap = {};
-        videoCache.forEach(video => videoMap[video.path] = video);
         const watchedVideos = userHistory
-            .filter(item => videoMap[typeof item === 'object' ? item.video : item])
+            .filter(item => videoCache.has(typeof item === 'object' ? item.video : item))
             .map(item => {
                 const videoPath = typeof item === 'object' ? item.video : item;
-                const video = videoMap[videoPath];
+                const video = videoCache.get(videoPath);
                 const timestamp = typeof item === 'object' ? item.timestamp : null;
                 const details = getVideoDetails([video])[0];
                 return { ...details, timestamp: timestamp };
@@ -574,7 +852,7 @@ app.get('/user-history', (req, res) => {
 });
 
 app.get('/search-index', (req, res) => {
-    const minimalData = videoCache.map(v => ({
+    const minimalData = videoArray.map(v => ({
         path: v.path,
         displayName: v.displayName || path.basename(v.path)
     }));
