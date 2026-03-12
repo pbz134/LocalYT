@@ -87,4 +87,3 @@ What if I only have the video files and no metadata?
 
 ## TO DO
 - Add a search icon next to the search bar on all pages
-- Fix algorithm (broke after implementing video caching)
