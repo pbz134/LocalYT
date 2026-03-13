@@ -6,6 +6,20 @@
     <title>Liked Videos - LocalYT</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
+    <style>
+        .no-videos-message {
+            text-align: center;
+            padding: 40px;
+            color: #aaa;
+            font-size: 16px;
+        }
+        .error-message {
+            text-align: center;
+            padding: 40px;
+            color: #ff6b6b;
+            font-size: 16px;
+        }
+    </style>
 </head>
 <body>
     <header class="top-bar">
@@ -50,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mainLogo.style.cursor = 'pointer';
     }
 });
+
         // Helper function to strip file extension for thumbnail and metadata paths
         function stripExtension(filename) {
             return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
@@ -62,169 +77,192 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            fetch('/user-likes')
+            // First, get all videos to build a lookup map
+            fetch('/videos?page=1&limit=1000') // Get a large batch of videos
                 .then(response => response.json())
-                .then(likedVideos => {
-                    const container = document.getElementById('videoContainer');
-                    fetch('/videos')
+                .then(videosData => {
+                    const videosArray = videosData.videos || [];
+                    
+                    // Create a map for quick video lookup
+                    const videoMap = {};
+                    videosArray.forEach(video => {
+                        videoMap[video.path] = video;
+                    });
+                    
+                    // Now get liked videos
+                    return fetch('/user-likes')
                         .then(response => response.json())
-                        .then(videos => {
-                            // likedVideos is already the user's liked videos object (not nested with userId)
-                            // Example: { "iBlaliReact/Ruckwarts fahren...": true, ... }
+                        .then(likedVideos => {
+                            const container = document.getElementById('videoContainer');
                             
-                            // Convert to array and filter for true values
-                            const likedVideosArray = Object.entries(likedVideos)
-                                .filter(([path, value]) => value === true)
-                                .map(([path], index) => ({
-                                    path: path,
-                                    timestamp: index // Use index as timestamp based on order in file
-                                }));
-        
-                            // Sort by most recent (descending timestamp/index)
-                            likedVideosArray.sort((a, b) => b.timestamp - a.timestamp);
-        
-                            // Create a map for quick video lookup
-                            const videoMap = {};
-                            videos.forEach(video => {
-                                videoMap[video.path] = video;
-                            });
-        
+                            // likedVideos is the user's liked videos object
+                            // Example: { "path/to/video.mp4": true, ... }
+                            
+                            // Filter to get only paths where value is true
+                            const likedPaths = Object.entries(likedVideos)
+                                .filter(([path, isLiked]) => isLiked === true)
+                                .map(([path]) => path);
+                            
+                            console.log('Liked paths:', likedPaths);
+                            
                             // Clear container first
                             container.innerHTML = '';
-        
+                            
                             // Check if there are any liked videos
-                            if (likedVideosArray.length === 0) {
+                            if (likedPaths.length === 0) {
                                 const noVideosElement = document.createElement('div');
                                 noVideosElement.className = 'no-videos-message';
-                                noVideosElement.textContent = 'No liked videos yet';
+                                noVideosElement.textContent = 'No liked videos yet. Click the like button on videos to add them here!';
                                 container.appendChild(noVideosElement);
                                 return;
                             }
-        
-                            // Display videos in sorted order
-                            likedVideosArray.forEach(likedVideo => {
-                                const video = videoMap[likedVideo.path];
+                            
+                            // Get video objects for liked paths
+                            const likedVideosList = [];
+                            likedPaths.forEach(path => {
+                                const video = videoMap[path];
                                 if (video) {
-                                    const videoElement = document.createElement('div');
-                                    videoElement.className = 'video-item';
-                                    const videoTitle = video.displayName;
-                                    const videoPathWithoutExt = stripExtension(video.path);
-                                    const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
-                                    const channel = video.path.split('/')[0];
-                                    const channelPicSrc = `/channelpic/${encodeURIComponent(channel)}.jpg`;
-        
-                                    videoElement.innerHTML = `
-                                        <div class="thumbnail-container">
-                                            <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
-                                            <div class="video-length"></div>
-                                        </div>
-                                        <div class="video-info">
-                                            <img src="${channelPicSrc}" alt="${channel}" class="channel-pic" loading="lazy">
-                                            <div class="video-details">
-                                                <div class="video-title" onclick="window.location.href='video.html?src=${encodeURIComponent(video.path)}'">${videoTitle}</div>
-                                                <div class="channel-name" onclick="window.location.href='channel.html?channel=${encodeURIComponent(channel)}'">${channel}</div>
-                                                <div class="video-description">${video.viewCount} views • Uploaded on ${video.fileDate}</div>
-                                            </div>
-                                        </div>
-                                    `;
-                                    container.appendChild(videoElement);
-        
-                                    // Add event listener to the thumbnail container
-                                    videoElement.querySelector('.thumbnail-container').addEventListener('click', () => {
-                                        window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
+                                    likedVideosList.push(video);
+                                } else {
+                                    console.log('Video not found in map:', path);
+                                    // If video not in current batch, create a basic object
+                                    likedVideosList.push({
+                                        path: path,
+                                        displayName: path.split('/').pop().replace(/\.(mp4|mp3|mkv)$/, ''),
+                                        viewCount: '0',
+                                        fileDate: 'Unknown',
+                                        tags: []
                                     });
-        
-                                    // Add event listeners for right-click and mouse wheel click
-                                    const videoLink = videoElement.querySelector('.video-title');
-                                    videoLink.addEventListener('contextmenu', (event) => {
+                                }
+                            });
+                            
+                            // Display videos (most recent likes first - reverse of the order they came in)
+                            likedVideosList.reverse().forEach(video => {
+                                const videoElement = document.createElement('div');
+                                videoElement.className = 'video-item';
+                                const videoTitle = video.displayName || video.path.split('/').pop().replace(/\.(mp4|mp3|mkv)$/, '');
+                                const videoPathWithoutExt = stripExtension(video.path);
+                                const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
+                                const channel = video.path.split('/')[0];
+                                const channelPicSrc = `/channelpic/${encodeURIComponent(channel)}.jpg`;
+
+                                videoElement.innerHTML = `
+                                    <div class="thumbnail-container">
+                                        <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy" onerror="this.src='LocalYT-Rev-Files/default-thumbnail.jpg'">
+                                        <div class="video-length"></div>
+                                    </div>
+                                    <div class="video-info">
+                                        <img src="${channelPicSrc}" alt="${channel}" class="channel-pic" loading="lazy" onerror="this.src='LocalYT-Rev-Files/default-channel.jpg'">
+                                        <div class="video-details">
+                                            <div class="video-title">${videoTitle}</div>
+                                            <div class="channel-name">${channel}</div>
+                                            <div class="video-description">${video.viewCount || '0'} views • Uploaded on ${video.fileDate || 'Unknown'}</div>
+                                        </div>
+                                    </div>
+                                `;
+                                container.appendChild(videoElement);
+
+                                // Add click handlers
+                                const thumbnail = videoElement.querySelector('.thumbnail-container');
+                                const title = videoElement.querySelector('.video-title');
+                                const channelName = videoElement.querySelector('.channel-name');
+                                
+                                thumbnail.addEventListener('click', () => {
+                                    window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
+                                });
+                                
+                                title.addEventListener('click', () => {
+                                    window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
+                                });
+                                
+                                channelName.addEventListener('click', () => {
+                                    window.location.href = `channel.html?channel=${encodeURIComponent(channel)}`;
+                                });
+
+                                // Add right-click and middle-click handlers
+                                title.addEventListener('contextmenu', (event) => {
+                                    event.preventDefault();
+                                    window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                                });
+
+                                title.addEventListener('mouseup', (event) => {
+                                    if (event.button === 1) {
                                         event.preventDefault();
                                         window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
-                                    });
-        
-                                    videoLink.addEventListener('mouseup', (event) => {
-                                        if (event.button === 1) {
-                                            event.preventDefault();
-                                            window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
-                                        }
-                                    });
-        
-                                    // Fetch video length
-                                    const videoFilename = video.path.split('/').pop();
-                                    const videoNameWithoutExt = stripExtension(videoFilename);
-                                    fetch(`/videolengths/${channel}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
-                                        .then(response => response.text())
-                                        .then(length => {
-                                            videoElement.querySelector('.video-length').textContent = length;
-                                        })
-                                        .catch(error => {
-                                            console.error('Error fetching video length:', error);
-                                        });
-                                }
-                            });
-        
-                            // Use Intersection Observer to lazy load video thumbnails
-                            const observer = new IntersectionObserver((entries, observer) => {
-                                entries.forEach(entry => {
-                                    if (entry.isIntersecting) {
-                                        const img = entry.target;
-                                        if (img.dataset.src) {
-                                            img.src = img.dataset.src;
-                                        }
-                                        observer.unobserve(img);
                                     }
                                 });
+                                
+                                thumbnail.addEventListener('contextmenu', (event) => {
+                                    event.preventDefault();
+                                    window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                                });
+
+                                thumbnail.addEventListener('mouseup', (event) => {
+                                    if (event.button === 1) {
+                                        event.preventDefault();
+                                        window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                                    }
+                                });
+
+                                // Fetch video length
+                                const videoFilename = video.path.split('/').pop();
+                                const videoNameWithoutExt = stripExtension(videoFilename);
+                                fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
+                                    .then(response => response.text())
+                                    .then(length => {
+                                        const lengthElement = videoElement.querySelector('.video-length');
+                                        if (lengthElement) lengthElement.textContent = length;
+                                    })
+                                    .catch(error => {
+                                        console.error('Error fetching video length:', error);
+                                    });
                             });
-        
-                            document.querySelectorAll('.video-thumbnail').forEach(img => {
-                                if (img.src) {
-                                    img.dataset.src = img.src;
-                                    img.src = ''; // Remove the src to prevent loading
-                                }
-                                observer.observe(img);
-                            });
-                        })
-                        .catch(error => {
-                            console.error('Error fetching videos:', error);
                         });
                 })
                 .catch(error => {
-                    console.error('Error fetching liked videos:', error);
+                    console.error('Error loading liked videos:', error);
+                    document.getElementById('videoContainer').innerHTML = '<div class="error-message">Error loading liked videos. Please try again.</div>';
                 });
 
+            // Search functionality
             const searchInput = document.getElementById('searchInput');
             searchInput.addEventListener('input', () => {
                 const query = searchInput.value.toLowerCase();
-                fetch('/videos')
+                if (query.length < 2) {
+                    document.getElementById('searchSuggestions').innerHTML = '';
+                    return;
+                }
+                
+                fetch('/search-index')
                     .then(response => response.json())
-                    .then(videos => {
+                    .then(data => {
+                        const videos = data.videos || [];
                         const suggestions = videos
                             .filter(video => video.displayName.toLowerCase().includes(query))
-                            .map(video => ({
-                                title: video.displayName,
-                                fullPath: video.path
-                            }));
+                            .slice(0, 5);
 
                         const suggestionsContainer = document.getElementById('searchSuggestions');
                         suggestionsContainer.innerHTML = '';
+                        
                         suggestions.forEach(suggestion => {
                             const suggestionElement = document.createElement('div');
                             suggestionElement.className = 'suggestion-item';
-                            suggestionElement.textContent = suggestion.title;
+                            suggestionElement.textContent = suggestion.displayName;
                             suggestionElement.onclick = () => {
-                                window.location.href = `video.html?src=${encodeURIComponent(suggestion.fullPath)}`;
+                                window.location.href = `video.html?src=${encodeURIComponent(suggestion.path)}`;
                             };
                             suggestionsContainer.appendChild(suggestionElement);
 
                             // Add event listeners for right-click and mouse wheel click
                             suggestionElement.addEventListener('contextmenu', (event) => {
                                 event.preventDefault();
-                                window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
+                                window.open(`video.html?src=${encodeURIComponent(suggestion.path)}`, '_blank');
                             });
 
                             suggestionElement.addEventListener('mouseup', (event) => {
                                 if (event.button === 1) {
                                     event.preventDefault();
-                                    window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
+                                    window.open(`video.html?src=${encodeURIComponent(suggestion.path)}`, '_blank');
                                 }
                             });
                         });
