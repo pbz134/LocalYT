@@ -104,6 +104,8 @@ let recommendationIndex = {};
 
 function initializeVideoCache() {
     console.log('Checking for video cache...');
+    
+    // MODIFIED: Only scan if the file does not exist
     if (fs.existsSync(cacheFilePath)) {
         try {
             const stats = fs.statSync(cacheFilePath);
@@ -123,7 +125,10 @@ function initializeVideoCache() {
         } catch (err) {
             console.log('Failed to read cache, rescanning...', err);
         }
+    } else {
+        console.log('video_cache.json not found, initiating scan...');
     }
+    
     scanAndCacheVideos();
 }
 
@@ -206,7 +211,6 @@ function scanAndCacheVideos() {
 }
 
 // Build recommendation index from video cache
-// Build recommendation index from video cache
 function buildRecommendationIndex() {
     console.log('Building recommendation index...');
     const index = {};
@@ -247,6 +251,7 @@ function buildRecommendationIndex() {
 
 // Load or build recommendation index
 function initializeRecommendationIndex() {
+    // MODIFIED: Only build if the file does not exist
     if (fs.existsSync(recommendationIndexPath)) {
         try {
             const data = fs.readFileSync(recommendationIndexPath, 'utf8');
@@ -257,6 +262,7 @@ function initializeRecommendationIndex() {
             buildRecommendationIndex();
         }
     } else {
+        console.log('recommendation_index.json not found, building...');
         buildRecommendationIndex();
     }
 }
