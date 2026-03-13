@@ -358,15 +358,6 @@
             font-family: 'RobotoRegular', Arial, sans-serif !important;
         }
         
-        .recommendation-badge {
-            background-color: #ff0000;
-            color: white;
-            font-size: 8px;
-            padding: 2px 4px;
-            border-radius: 2px;
-            margin-left: 5px;
-            vertical-align: middle;
-        }
     </style>
 </head>
 <body>
@@ -882,9 +873,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const suggestedVideosBlob = new Blob([suggestedVideosJson], { type: 'application/json' });
             const suggestedVideosUrl = URL.createObjectURL(suggestedVideosBlob);
 
+            // Get the video title for Fluid Player
+            const videoTitle = currentVideoTitle ? currentVideoTitle.textContent : '';
+
             var myFP = fluidPlayer(
                 'videoPlayer', {
                     "layoutControls": {
+                        "title": videoTitle, // Dynamic video title
                         "controlBar": {
                             "autoHideTimeout": 3,
                             "animated": true,
