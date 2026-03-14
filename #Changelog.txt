@@ -1,7 +1,14 @@
 +++LocalYT Revamped - Changelog+++
 
+v3.65
+- Fixed a bug that made the video UI disappear when entering fullscreen with the F key
+- Fixed and enhanced video recommendation algorithm
+  - Video recommendation AND video caching now works at the same time, allowing for flawless use of huge databases
+- Fixed liked_videos.html; Liked videos now display properly again
+- Channels on index.html can now be opened with a middle click
+- Video titles are now being displayed inside the video container
 
-v3.55
+v3.60
 - Added support for playlists on video.html
   - Opening a channel playlist now displays all items on the right side above the recommendations
 - Added full .mp3 support
