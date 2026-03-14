@@ -427,6 +427,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 setupVideoLinkEvents(videoElement.querySelector('.video-title'), video.path);
                 
+                // --- MODIFICATION START: Setup events for channel links ---
+                setupChannelLinkEvents(videoElement.querySelector('.channel-name'), channel);
+                // --- MODIFICATION END ---
+
                 const videoFilename = video.path.split('/').pop();
                 const videoNameWithoutExt = stripExtension(videoFilename);
                 fetch(`/videolengths/${channel}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
@@ -452,6 +456,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.open(`video.html?src=${encodeURIComponent(path)}`, '_blank');
                 }
             });
+        }
+
+        function setupChannelLinkEvents(element, channel) {
+            // Handle right-click
+            element.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+                window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
+            });
+
+            // Handle middle-click
+            element.addEventListener('mouseup', (event) => {
+                if (event.button === 1) {
+                    event.preventDefault();
+                    window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
+                }
+            });
+            
+            // Optional: Ensure cursor indicates clickable link
+            element.style.cursor = 'pointer';
         }
     </script>
 </body>
