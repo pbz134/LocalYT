@@ -7,6 +7,9 @@ v3.65
 - Fixed liked_videos.html; Liked videos now display properly again
 - Channels on index.html can now be opened with a middle click
 - Video titles are now being displayed inside the video container
+- Video recommendations are now even more accurate
+  - When watching a video of a certain channel, at least two videos of that channel will be recommended on the side bar
+  - The mix is ~70% videos with similar tags and ~30% videos suiting your general preferences
 
 v3.60
 - Added support for playlists on video.html
