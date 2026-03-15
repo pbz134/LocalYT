@@ -105,7 +105,6 @@ let recommendationIndex = {};
 function initializeVideoCache() {
     console.log('Checking for video cache...');
     
-    // MODIFIED: Only scan if the file does not exist
     if (fs.existsSync(cacheFilePath)) {
         try {
             const stats = fs.statSync(cacheFilePath);
@@ -113,12 +112,10 @@ function initializeVideoCache() {
                 const data = fs.readFileSync(cacheFilePath, 'utf8');
                 const videos = JSON.parse(data);
                 
-                // Store in Map for fast lookups
                 videoCache = new Map(videos.map(v => [v.path, v]));
-                videoArray = videos; // Keep array for pagination
+                videoArray = videos;
                 
                 console.log(`Loaded ${videoCache.size} videos from cache.`);
-                // Keep cache sorted for stability
                 videoArray.sort((a, b) => a.path.localeCompare(b.path));
                 return;
             }
@@ -153,7 +150,6 @@ function scanAndCacheVideos() {
                         const relativePath = path.relative(videosDir, filePath).replace(/\\/g, '/');
                         const basePath = relativePath.replace(/\.(mp4|mp3|mkv)$/, '');
                         
-                        // Read Tags
                         let tags = [];
                         const tagsPath = path.join(videosDir, `${basePath}.txt`);
                         if (fs.existsSync(tagsPath)) {
@@ -162,14 +158,12 @@ function scanAndCacheVideos() {
                             } catch (e) {}
                         }
 
-                        // Read Display Name
                         let displayName = file.replace(/\.(mp4|mp3|mkv)$/, '');
                         const filenamePath = path.join(__dirname, 'filenames', `${basePath}.txt`);
                         if (fs.existsSync(filenamePath)) {
                             try { displayName = fs.readFileSync(filenamePath, 'utf8'); } catch (e) {}
                         }
 
-                        // Read File Date
                         let fileDate = '';
                         const fileDatePath = path.join(__dirname, 'filedates', `${basePath}.txt`);
                         if (fs.existsSync(fileDatePath)) {
@@ -199,27 +193,22 @@ function scanAndCacheVideos() {
         fs.writeFileSync(cacheFilePath, JSON.stringify(tempCache, null, 2));
         videoCache = new Map(tempCache.map(v => [v.path, v]));
         videoArray = tempCache;
-        // Sort alphabetically
         videoArray.sort((a, b) => a.path.localeCompare(b.path));
         console.log(`Scan complete. Cached ${videoArray.length} videos.`);
         
-        // Build recommendation index after cache is updated
         buildRecommendationIndex();
     } catch (err) {
         console.error('Error writing cache file:', err);
     }
 }
 
-// Build recommendation index from video cache
 function buildRecommendationIndex() {
     console.log('Building recommendation index...');
     const index = {};
     
     videoArray.forEach(video => {
-        // Extract channel name from path
         const channel = video.path.split('/')[0];
         
-        // Add channel name as a tag
         if (channel) {
             if (!index[channel]) {
                 index[channel] = [];
@@ -227,10 +216,8 @@ function buildRecommendationIndex() {
             index[channel].push(video.path);
         }
         
-        // Add existing tags
         if (video.tags && video.tags.length > 0) {
             video.tags.forEach(tag => {
-                // Clean up the tag
                 const cleanTag = tag.trim();
                 if (cleanTag) {
                     if (!index[cleanTag]) {
@@ -242,16 +229,12 @@ function buildRecommendationIndex() {
         }
     });
     
-    // Write to file for persistence
     fs.writeFileSync(recommendationIndexPath, JSON.stringify(index, null, 2));
     recommendationIndex = index;
     console.log('Recommendation index built successfully with ' + Object.keys(index).length + ' tags');
-    console.log('Sample tags:', Object.keys(index).slice(0, 10));
 }
 
-// Load or build recommendation index
 function initializeRecommendationIndex() {
-    // MODIFIED: Only build if the file does not exist
     if (fs.existsSync(recommendationIndexPath)) {
         try {
             const data = fs.readFileSync(recommendationIndexPath, 'utf8');
@@ -267,11 +250,9 @@ function initializeRecommendationIndex() {
     }
 }
 
-// Initialize both caches
 initializeVideoCache();
 initializeRecommendationIndex();
 
-// Helper to get details
 function getVideoDetails(videoSlice) {
     return videoSlice.map(video => {
         const viewCountPath = path.join(__dirname, 'viewcounts', `${video.basePath}.txt`);
@@ -289,7 +270,6 @@ function getVideoDetails(videoSlice) {
     });
 }
 
-// Helper to shuffle array (Fisher-Yates)
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -299,8 +279,7 @@ function shuffleArray(array) {
 }
 
 app.get('/videos', (req, res) => {
-    // Shuffle the cache copy for this request
-    const shuffled = [...videoArray]; // Create copy
+    const shuffled = [...videoArray];
     shuffleArray(shuffled);
 
     const page = parseInt(req.query.page) || 1;
@@ -320,9 +299,176 @@ app.get('/videos', (req, res) => {
     });
 });
 
+// --- SIDEBAR RECOMMENDATIONS (AGGRESSIVE CHANNEL PRIORITY) ---
+app.get('/sidebar-recommendations', recommendationsLimiter, (req, res) => {
+    const currentVideoPath = req.query.video;
+    const userId = req.session.userId;
+
+    if (!currentVideoPath) {
+        return res.status(400).send('Missing video parameter');
+    }
+
+    const currentVideo = videoCache.get(currentVideoPath);
+    if (!currentVideo) {
+        return res.status(404).send('Current video not found');
+    }
+
+    const limit = parseInt(req.query.limit) || 20;
+    const currentChannel = currentVideoPath.split('/')[0];
+    
+    const addedPaths = new Set();
+    addedPaths.add(currentVideoPath); // Prevent watching the exact same video
+
+    const finalRecommendations = [];
+
+    // Helper to add unique videos
+    const addVideos = (videos, count, forceShuffle = true) => {
+        let pool = videos.filter(v => !addedPaths.has(v.path));
+        if (forceShuffle) shuffleArray(pool);
+        
+        const taken = [];
+        for (const v of pool) {
+            if (taken.length >= count) break;
+            addedPaths.add(v.path);
+            taken.push(v);
+        }
+        return taken;
+    };
+
+    // --- 1. CURRENT CHANNEL VIDEOS (TOP PRIORITY) ---
+    // Allocate 50% of the sidebar strictly to the current channel
+    const channelQuota = Math.floor(limit * 0.1); 
+    
+    let sameChannelVideos = [];
+    if (recommendationIndex[currentChannel]) {
+        recommendationIndex[currentChannel].forEach(vPath => {
+            if (!addedPaths.has(vPath)) {
+                const vData = videoCache.get(vPath);
+                if (vData) sameChannelVideos.push(vData);
+            }
+        });
+    }
+    
+    // Shuffle channel videos so it's not always the same ones, but add them FIRST
+    shuffleArray(sameChannelVideos);
+    const channelToAdd = sameChannelVideos.slice(0, channelQuota);
+    
+    channelToAdd.forEach(v => {
+        finalRecommendations.push(v);
+        // Note: we don't add to addedPaths here yet if we want to allow duplicates in logic, 
+        // but for recommendations we usually want unique. 
+        // addedPaths is updated inside addVideos, but we manually added these:
+        addedPaths.add(v.path);
+    });
+
+    // --- 2. SIMILAR POOL (TAGS) ---
+    // Remaining slots: 50% reserved for Channel (filled above), 50% for Similar/Prefs.
+    // Of that remaining 50%, let's prioritize 70% Similar Tags, 30% User Prefs.
+    
+    const remainingSlots = limit - finalRecommendations.length;
+    const similarTarget = Math.floor(remainingSlots * 0.7);
+
+    let similarPool = [];
+    const currentTags = currentVideo.tags || [];
+
+    currentTags.forEach(tag => {
+        const cleanTag = tag.trim();
+        if (recommendationIndex[cleanTag]) {
+            recommendationIndex[cleanTag].forEach(vPath => {
+                if (!addedPaths.has(vPath)) {
+                    const vData = videoCache.get(vPath);
+                    if (vData) similarPool.push(vData);
+                }
+            });
+        }
+    });
+
+    // Deduplicate similar pool
+    const uniqueSimilarPool = [];
+    const seenSim = new Set();
+    similarPool.forEach(v => {
+        if (!seenSim.has(v.path)) {
+            seenSim.add(v.path);
+            uniqueSimilarPool.push(v);
+        }
+    });
+
+    shuffleArray(uniqueSimilarPool);
+    const similarToAdd = uniqueSimilarPool.slice(0, similarTarget);
+    
+    similarToAdd.forEach(v => {
+        finalRecommendations.push(v);
+        addedPaths.add(v.path);
+    });
+
+    // --- 3. PREFERENCE POOL ---
+    // Fill the last gaps with user preferences
+    const prefTarget = limit - finalRecommendations.length;
+    
+    let preferencePool = [];
+    
+    if (userId && fs.existsSync(preferencesFilePath)) {
+        try {
+            const data = fs.readFileSync(preferencesFilePath, 'utf8');
+            const prefData = JSON.parse(data);
+            const userPrefs = prefData[userId] || {};
+
+            const sortedTags = Object.entries(userPrefs)
+                .sort((a, b) => b[1] - a[1])
+                .map(t => t[0]);
+
+            for (const tag of sortedTags) {
+                if (recommendationIndex[tag]) {
+                    recommendationIndex[tag].forEach(vPath => {
+                        if (!addedPaths.has(vPath)) {
+                            const vData = videoCache.get(vPath);
+                            if (vData) preferencePool.push(vData);
+                        }
+                    });
+                }
+            }
+            
+            const seenPref = new Set();
+            const uniquePrefPool = [];
+            preferencePool.forEach(v => {
+                if (!seenPref.has(v.path)) {
+                    seenPref.add(v.path);
+                    uniquePrefPool.push(v);
+                }
+            });
+            preferencePool = uniquePrefPool;
+
+        } catch (e) {
+            console.error("Error reading preferences for sidebar", e);
+        }
+    }
+
+    shuffleArray(preferencePool);
+    const prefToAdd = preferencePool.slice(0, prefTarget);
+
+    prefToAdd.forEach(v => {
+        finalRecommendations.push(v);
+        addedPaths.add(v.path);
+    });
+
+    // --- 4. BACKFILL ---
+    // If still not full (e.g., new user, no tags), fill with random videos
+    if (finalRecommendations.length < limit) {
+        const allVideos = [...videoCache.values()];
+        const backfill = addVideos(allVideos, limit - finalRecommendations.length);
+        finalRecommendations.push(...backfill);
+    }
+
+    // IMPORTANT: Do NOT shuffle the final array if you want Channel videos at the top.
+    // The list is now ordered: Channel -> Similar -> Preferences -> Random.
+    
+    res.json(getVideoDetails(finalRecommendations));
+});
+
+
 app.get('/rescan', (req, res) => {
     scanAndCacheVideos();
-    buildRecommendationIndex(); // Rebuild index after scan
+    buildRecommendationIndex();
     res.send('Rescan complete');
 });
 
@@ -498,7 +644,6 @@ function batchUpdatePreferences() {
         let preferencesData = {};
         if (!err) preferencesData = JSON.parse(data);
         
-        // Apply all queued updates
         preferenceUpdateQueue.forEach((tags, userId) => {
             if (!preferencesData[userId]) preferencesData[userId] = {};
             tags.forEach(tag => {
@@ -523,7 +668,6 @@ app.post('/updatePreferences', (req, res) => {
 
     const videoTags = videoData.tags;
 
-    // Queue the update
     if (!preferenceUpdateQueue.has(userId)) {
         preferenceUpdateQueue.set(userId, new Set());
     }
@@ -532,14 +676,13 @@ app.post('/updatePreferences', (req, res) => {
         preferenceUpdateQueue.get(userId).add(tag);
     });
     
-    // Clear existing timer and set new one
     if (preferenceUpdateTimer) clearTimeout(preferenceUpdateTimer);
-    preferenceUpdateTimer = setTimeout(batchUpdatePreferences, 5000); // Batch every 5 seconds
+    preferenceUpdateTimer = setTimeout(batchUpdatePreferences, 5000);
     
     res.json({ queued: true, message: 'Preference update queued' });
 });
 
-// --- OPTIMIZED RECOMMENDATIONS (Using Index) ---
+// --- HOMEPAGE RECOMMENDATIONS (Restored Dynamic Logic) ---
 app.get('/recommendations', recommendationsLimiter, (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('User not authenticated');
@@ -556,32 +699,17 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
             const preferencesData = JSON.parse(data);
             const userPreferences = preferencesData[userId] || {};
             
-            console.log('User preferences tags:', Object.keys(userPreferences).length);
-            
-            // Sort tags by weight (higher numbers first)
             const sortedTags = Object.entries(userPreferences)
                 .map(([tag, weight]) => ({ tag, weight }))
                 .sort((a, b) => b.weight - a.weight);
             
-            console.log('Top 20 tags by weight:', sortedTags.slice(0, 20));
+            const videoMap = new Map();
             
-            // Create a Map to store videos with their source tag
-            const videoMap = new Map(); // path -> { video, sourceTag }
-            
-            // First, identify high-priority tags (your most important content)
-            // These are tags with weight >= 100 that you want to see prominently
             const highPriorityTags = sortedTags.filter(t => t.weight >= 100);
-            
-            // Also identify medium-priority tags
             const mediumPriorityTags = sortedTags.filter(t => t.weight >= 50 && t.weight < 100);
             
-            console.log(`High priority tags (${highPriorityTags.length}):`, highPriorityTags.map(t => `${t.tag}(${t.weight})`));
-            
-            // For each high-priority tag, collect ALL their videos
             highPriorityTags.forEach(({ tag }) => {
                 const tagVideos = recommendationIndex[tag] || [];
-                console.log(`Tag "${tag}": ${tagVideos.length} videos available`);
-                
                 tagVideos.forEach(videoPath => {
                     if (!videoMap.has(videoPath)) {
                         const video = videoCache.get(videoPath);
@@ -595,8 +723,7 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
                 });
             });
             
-            // Group videos by their source tag
-            const videosByTag = new Map(); // tag -> array of videos
+            const videosByTag = new Map();
             videoMap.forEach((value, path) => {
                 if (!videosByTag.has(value.sourceTag)) {
                     videosByTag.set(value.sourceTag, []);
@@ -604,38 +731,23 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
                 videosByTag.get(value.sourceTag).push(value.video);
             });
             
-            console.log('Video counts by source tag:');
-            videosByTag.forEach((videos, tag) => {
-                console.log(`  ${tag}: ${videos.length} videos`);
-            });
-            
-            // Calculate how many videos to take from each tag for this page
             const resultVideos = [];
-            const tags = Array.from(videosByTag.keys());
             
             if (page === 1) {
-                // For page 1, create a balanced mix:
-                // - 40% from top priority tags (ensuring Modern Vintage Gamer appears)
-                // - 30% from other high priority tags
-                // - 30% from medium priority tags
-                
-                const topPriorityTag = "Modern Vintage Gamer";
+                const topPriorityTag = "Modern Vintage Gamer"; // Example priority tag, adjust or remove if not needed
                 const otherHighPriorityTags = highPriorityTags
                     .map(t => t.tag)
                     .filter(tag => tag !== topPriorityTag);
                 
-                // Take 4 videos from Modern Vintage Gamer (20% of 20)
                 const mvgVideos = videosByTag.get(topPriorityTag) || [];
                 shuffleArray(mvgVideos);
                 resultVideos.push(...mvgVideos.slice(0, 4));
                 
-                // Take 4 more videos from other high priority tags (20%)
                 const otherHighVideos = [];
                 otherHighPriorityTags.forEach(tag => {
                     const tagVideos = videosByTag.get(tag) || [];
                     shuffleArray(tagVideos);
                     if (tagVideos.length > 0) {
-                        // Take 1-2 videos from each tag
                         const takeCount = Math.min(2, Math.ceil(tagVideos.length / 100));
                         otherHighVideos.push(...tagVideos.slice(0, takeCount));
                     }
@@ -643,7 +755,6 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
                 shuffleArray(otherHighVideos);
                 resultVideos.push(...otherHighVideos.slice(0, 4));
                 
-                // Take 4 videos from medium priority tags (20%)
                 const mediumVideos = [];
                 mediumPriorityTags.forEach(tag => {
                     const tagVideos = videosByTag.get(tag.tag) || [];
@@ -655,14 +766,11 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
                 shuffleArray(mediumVideos);
                 resultVideos.push(...mediumVideos.slice(0, 4));
                 
-                // Fill the remaining 8 slots with a weighted random selection from all videos
                 const allVideos = Array.from(videoMap.values()).map(v => v.video);
                 shuffleArray(allVideos);
                 
-                // But prioritize videos from high-weight tags
                 const weightedRemaining = [];
                 allVideos.forEach(video => {
-                    // Check which tag this video comes from
                     let videoWeight = 0;
                     for (const tag of highPriorityTags) {
                         if (video.tags && video.tags.includes(tag.tag)) {
@@ -673,19 +781,15 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
                     weightedRemaining.push({ video, weight: videoWeight });
                 });
                 
-                // Sort by weight (higher first) then shuffle slightly
                 weightedRemaining.sort((a, b) => b.weight - a.weight);
                 
-                // Take the next 8 videos, but with some randomness
-                const candidates = weightedRemaining.slice(0, 50); // Take top 50 by weight
+                const candidates = weightedRemaining.slice(0, 50);
                 shuffleArray(candidates);
                 resultVideos.push(...candidates.slice(0, 8).map(c => c.video));
                 
             } else {
-                // For subsequent pages, just use weighted random selection
                 const allVideos = Array.from(videoMap.values()).map(v => v.video);
                 
-                // Weight videos based on their source tag's weight
                 const weightedVideos = allVideos.map(video => {
                     let weight = 1;
                     for (const tag of highPriorityTags) {
@@ -697,13 +801,11 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
                     return { video, weight };
                 });
                 
-                // Weighted shuffle (higher weight = higher chance of appearing early)
                 for (let i = weightedVideos.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [weightedVideos[i], weightedVideos[j]] = [weightedVideos[j], weightedVideos[i]];
                 }
                 
-                // Sort by weight (higher weights float to top)
                 weightedVideos.sort((a, b) => b.weight - a.weight);
                 
                 const paginatedVideos = weightedVideos
@@ -713,7 +815,6 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
                 resultVideos.push(...paginatedVideos);
             }
             
-            // Remove duplicates just in case
             const uniqueVideos = [];
             const seen = new Set();
             resultVideos.forEach(video => {
@@ -723,9 +824,6 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
                 }
             });
             
-            console.log(`Returning ${uniqueVideos.length} unique videos for page ${page}`);
-            
-            // Get video details
             const result = getVideoDetails(uniqueVideos);
             
             res.json({
@@ -754,7 +852,6 @@ app.get('/top-categories', recommendationsLimiter, (req, res) => {
             const preferencesData = JSON.parse(data);
             const userPreferences = preferencesData[userId] || {};
             
-            // Sort and return top 5 categories
             const sortedPreferences = Object.entries(userPreferences)
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 5)
