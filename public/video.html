@@ -49,6 +49,14 @@
             cursor: pointer;
             color: #ffffff;
             margin-top: 0;
+            margin-right: 10px;
+        }
+        .channel-name {
+            font-size: 13px;
+            font-weight: regular;
+            cursor: pointer;
+            color: #ffffff;
+            margin-top: 0;
             margin-left: 0;
             margin-bottom: 2px;
             line-height: 1.2;
@@ -718,6 +726,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // --- Sidebar Logic ---
             
             // 1. Load Playlist Videos if playlist parameter exists
+            let playlistVideoCount = 0;
             if (playlistName && currentChannel) {
                 const playlistSection = document.createElement('div');
                 playlistSection.className = 'playlist-section';
@@ -732,7 +741,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 suggestionsContainer.appendChild(playlistSection);
 
-                fetch(`/playlist-videos/${encodeURIComponent(currentChannel)}/${playlistName}`)
+                await fetch(`/playlist-videos/${encodeURIComponent(currentChannel)}/${playlistName}`)
                     .then(response => response.json())
                     .then(videos => {
                         // If more than 8 videos, make the container scrollable
@@ -746,19 +755,31 @@ document.addEventListener('DOMContentLoaded', () => {
                             // Highlight current video
                             const isCurrent = decodeURIComponent(videoSrc) === video.path;
                             renderSuggestionItem(video, playlistContainer, playlistName, isCurrent);
+                            playlistVideoCount++;
                         });
                     })
                     .catch(err => console.error("Error loading playlist sidebar", err));
             }
 
-            // 2. Load Standard Recommendations
-            fetch('/recommendations?page=1&limit=20')
-                .then(response => response.json())
-                .then(data => {
-                    const videos = data.videos || [];
+            // 2. Load Standard Recommendations (70% Similar, 30% User Prefs)
+            // We request a full page (20), but if we have a playlist, we might want fewer.
+            // For now, let's keep the logic simple: append recommendations after playlist.
+            
+            // Calculate how many recommendations to fetch to fill the sidebar reasonably
+            // If playlist is huge (scrollable), we might not need many, but let's fetch a standard amount
+            // to populate below the fold.
+            const recLimit = 20; 
+            
+            // Use the new specific endpoint for sidebar
+            fetch(`/sidebar-recommendations?video=${encodeURIComponent(videoSrc)}&limit=${recLimit}`)
+                .then(response => {
+                    if (!response.ok) throw new Error("Sidebar recommendations failed");
+                    return response.json();
+                })
+                .then(videos => {
                     
                     // Add a header if we also have a playlist
-                    if (playlistName) {
+                    if (playlistName && videos.length > 0) {
                         const recHeader = document.createElement('div');
                         recHeader.className = 'playlist-section-header';
                         recHeader.style.borderTop = '1px solid #3f3f3f';
@@ -773,9 +794,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 })
                 .catch(error => {
-                    console.error('Error loading recommendations:', error);
-                    // Fallback to random videos
-                    fetch('/videos?page=1&limit=20')
+                    console.error('Error loading sidebar recommendations:', error);
+                    // Fallback to random videos if the new endpoint fails
+                    fetch('/videos?page=1&limit=10')
                         .then(response => response.json())
                         .then(data => {
                             const videos = data.videos || [];
