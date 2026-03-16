@@ -144,6 +144,30 @@
     <div class="playlist-videos" id="playlistVideosContainer"></div>
 
     <script>
+// Natural sorting function for videos with numbers in titles
+function naturalCompare(a, b) {
+    // Helper function to extract numbers from video titles
+    const extractNumbers = (str) => {
+        return (str.match(/\d+/g) || []).map(num => parseInt(num, 10));
+    };
+
+    const numsA = extractNumbers(a.displayName);
+    const numsB = extractNumbers(b.displayName);
+
+    // Compare number by number
+    for (let i = 0; i < Math.max(numsA.length, numsB.length); i++) {
+        const numA = i < numsA.length ? numsA[i] : 0;
+        const numB = i < numsB.length ? numsB[i] : 0;
+        
+        if (numA !== numB) {
+            return numA - numB;
+        }
+    }
+    
+    // If all numbers match, fall back to string comparison
+    return a.displayName.localeCompare(b.displayName);
+}
+
 // Handle logo clicks
 document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
@@ -210,13 +234,16 @@ document.addEventListener('DOMContentLoaded', () => {
             fetch(`/playlist-videos/${encodeURIComponent(channel)}/${encodeURIComponent(playlist)}`)
                 .then(response => response.json())
                 .then(videos => {
+                    // Sort videos using natural comparison for proper numeric ordering
+                    videos.sort(naturalCompare);
+                    
                     playlistInfo.textContent = `${videos.length} videos`;
                     
                     videos.forEach(video => {
                         const videoElement = document.createElement('div');
                         videoElement.className = 'video-item';
                         const videoTitle = video.displayName;
-                        const thumbnailSrc = `/thumbnails/${encodeURIComponent(video.path.replace(/\.mp4$/, ''))}.jpg`;
+                        const thumbnailSrc = `/thumbnails/${encodeURIComponent(video.path.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, ''))}.jpg`;
                         
                         videoElement.innerHTML = `
                             <div class="thumbnail-container">
@@ -266,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         videoLink.addEventListener('contextmenu', handleRightClick);
 
                         // Get video length
-                        fetch(`/videolengths/${channel}/${encodeURIComponent(video.path.split('/').pop().replace(/\.mp4$/, ''))}.txt`)
+                        fetch(`/videolengths/${channel}/${encodeURIComponent(video.path.split('/').pop().replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, ''))}.txt`)
                             .then(response => response.text())
                             .then(length => {
                                 videoElement.querySelector('.video-length').textContent = length;

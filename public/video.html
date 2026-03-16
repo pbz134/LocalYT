@@ -430,6 +430,30 @@
         Video URL copied to clipboard!
     </div>
     <script>
+// Natural sorting function for videos with numbers in titles
+function naturalCompare(a, b) {
+    // Helper function to extract numbers from video titles
+    const extractNumbers = (str) => {
+        return (str.match(/\d+/g) || []).map(num => parseInt(num, 10));
+    };
+
+    const numsA = extractNumbers(a.displayName);
+    const numsB = extractNumbers(b.displayName);
+
+    // Compare number by number
+    for (let i = 0; i < Math.max(numsA.length, numsB.length); i++) {
+        const numA = i < numsA.length ? numsA[i] : 0;
+        const numB = i < numsB.length ? numsB[i] : 0;
+        
+        if (numA !== numB) {
+            return numA - numB;
+        }
+    }
+    
+    // If all numbers match, fall back to string comparison
+    return a.displayName.localeCompare(b.displayName);
+}
+
 // Handle logo clicks
 document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
@@ -744,13 +768,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 await fetch(`/playlist-videos/${encodeURIComponent(currentChannel)}/${playlistName}`)
                     .then(response => response.json())
                     .then(videos => {
+                        // ADD THIS LINE RIGHT HERE to sort the videos:
+                        videos.sort(naturalCompare);
+                        
                         // If more than 8 videos, make the container scrollable
                         if (videos.length > 8) {
                             playlistContainer.className = 'playlist-scroll-container';
                         }
                         
                         playlistSection.appendChild(playlistContainer);
-
+                
                         videos.forEach(video => {
                             // Highlight current video
                             const isCurrent = decodeURIComponent(videoSrc) === video.path;
