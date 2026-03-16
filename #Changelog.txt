@@ -13,6 +13,8 @@ v3.65
 - Added Discord embeddings to video.html
   - When sharing a LocalYT video link on Discord, an embedding with a video player and the video title gets shown
   - Note that your LocalYT instance needs to be publicly accessible for this, e.g. by using a Cloudflare tunnel
+- Improved playlist video sorting
+  - Numbered videos (e.g. game playthroughs) will now be sorted properly
 
 v3.60
 - Added support for playlists on video.html
