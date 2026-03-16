@@ -24,8 +24,13 @@ if (!fs.existsSync(sessionsDir)) {
     fs.mkdirSync(sessionsDir, { recursive: true, mode: 0o777 });
 }
 
-// Static file middleware
-app.use(express.static(path.join(__dirname, 'public')));
+// Helper function to strip file extension (used for Discord Embeds and general metadata)
+function stripExtension(filename) {
+    return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+}
+
+// --- STATIC FILE MIDDLEWARE ---
+// Specific static folders (loaded before generic public)
 app.use('/videos', express.static(path.join(__dirname, 'videos')));
 app.use('/LocalYT-Rev-Files', express.static(path.join(__dirname, 'LocalYT-Rev-Files')));
 app.use('/thumbnails', express.static(path.join(__dirname, 'thumbnails')));
@@ -37,6 +42,96 @@ app.use('/channelbanner', express.static(path.join(__dirname, 'channelbanner')))
 app.use('/videostats', express.static(path.join(__dirname, 'videostats')));
 app.use('/descriptions', express.static(path.join(__dirname, 'descriptions')));
 app.use('/favicon.png', express.static(path.join(__dirname, 'favicon.png')));
+
+// --- DISCORD EMBED ROUTE ---
+// This must come BEFORE the generic express.static('public') to intercept video.html
+app.get('/video.html', (req, res) => {
+    const videoSrc = req.query.src;
+
+    // If no video source is provided, serve the default HTML file
+    if (!videoSrc) {
+        return res.sendFile(path.join(__dirname, 'public', 'video.html'));
+    }
+
+    const decodedSrc = decodeURIComponent(videoSrc);
+    
+    // --- Get Title ---
+    // Try to read the custom filename, fallback to the actual filename
+    const basePath = stripExtension(decodedSrc);
+    const titlePath = path.join(__dirname, 'filenames', `${basePath}.txt`);
+    let title = decodedSrc.split('/').pop(); // Default title
+    
+    if (fs.existsSync(titlePath)) {
+        try {
+            title = fs.readFileSync(titlePath, 'utf8').trim();
+        } catch (e) {
+            console.error('Error reading title file for embed:', e);
+        }
+    }
+
+    // --- Get Thumbnail Path ---
+    const pathParts = decodedSrc.split('/');
+    const channel = pathParts[0];
+    let thumbRelativePath = '';
+
+    if (pathParts.length > 2) {
+        // Channel/Playlist/Video structure
+        const playlist = pathParts[1];
+        const videoName = stripExtension(pathParts[pathParts.length - 1]);
+        thumbRelativePath = `thumbnails/${encodeURIComponent(channel)}/${encodeURIComponent(playlist)}/${encodeURIComponent(videoName)}.jpg`;
+    } else {
+        // Channel/Video structure
+        const videoName = stripExtension(pathParts[pathParts.length - 1]);
+        thumbRelativePath = `thumbnails/${encodeURIComponent(channel)}/${encodeURIComponent(videoName)}.jpg`;
+    }
+
+    // --- Construct URLs ---
+    // We force https because tunnels (like trycloudflare) terminate SSL there, 
+    // and Discord requires secure URLs for video embeds.
+    const host = req.get('host');
+    const videoUrl = `https://${host}/videos/${encodeURIComponent(decodedSrc)}`;
+    const thumbUrl = `https://${host}/${thumbRelativePath}`;
+    const pageUrl = `https://${host}/video.html?src=${encodeURIComponent(decodedSrc)}`;
+
+    // --- Inject Meta Tags ---
+    const htmlFilePath = path.join(__dirname, 'public', 'video.html');
+    let htmlContent = fs.readFileSync(htmlFilePath, 'utf8');
+
+    // Only embed video player for MP4 files (Discord doesn't play MKV/MP3 in embeds)
+    const isMp4 = decodedSrc.toLowerCase().endsWith('.mp4');
+
+    const metaTags = `
+        <meta property="og:title" content="${title}" />
+        <meta property="og:description" content="Watch on LocalYT" />
+        <meta property="og:type" content="video.other" />
+        <meta property="og:url" content="${pageUrl}" />
+        <meta property="og:image" content="${thumbUrl}" />
+        <meta property="og:image:secure_url" content="${thumbUrl}" />
+        <meta property="og:site_name" content="LocalYT" />
+        ${isMp4 ? `
+        <meta property="og:video" content="${videoUrl}" />
+        <meta property="og:video:secure_url" content="${videoUrl}" />
+        <meta property="og:video:type" content="video/mp4" />
+        <meta property="og:video:width" content="1280" />
+        <meta property="og:video:height" content="720" />
+        ` : ''}
+        <meta name="twitter:card" content="player" />
+        <meta name="twitter:title" content="${title}" />
+        <meta name="twitter:image" content="${thumbUrl}" />
+        ${isMp4 ? `
+        <meta name="twitter:player:stream" content="${videoUrl}" />
+        <meta name="twitter:player:stream:content_type" content="video/mp4"/>
+        ` : ''}
+    `;
+
+    // Inject into <head>
+    htmlContent = htmlContent.replace('</head>', metaTags + '</head>');
+
+    res.send(htmlContent);
+});
+
+// Generic public static middleware (loaded after specific routes)
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(cookieParser());
 app.use(express.json());

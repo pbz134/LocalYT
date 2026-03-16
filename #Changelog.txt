@@ -10,6 +10,9 @@ v3.65
 - Video recommendations are now even more accurate
   - When watching a video of a certain channel, at least two videos of that channel will be recommended on the side bar
   - The mix is ~70% videos with similar tags and ~30% videos suiting your general preferences
+- Added Discord embeddings to video.html
+  - When sharing a LocalYT video link on Discord, an embedding with a video player and the video title gets shown
+  - Note that your LocalYT instance needs to be publicly accessible for this, e.g. by using a Cloudflare tunnel
 
 v3.60
 - Added support for playlists on video.html
