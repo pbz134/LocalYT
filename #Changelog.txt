@@ -21,6 +21,7 @@ v3.65
   - Note that your LocalYT instance needs to be publicly accessible for this, e.g. by using a Cloudflare tunnel
 - Improved playlist video sorting
   - Numbered videos (e.g. game playthroughs) will now be sorted properly
+- Fixed an issue where recommendations for new accounts were empty
 
 v3.60
 - Added support for playlists on video.html
