@@ -971,7 +971,7 @@ app.post('/updatePreferences', (req, res) => {
     res.json({ queued: true, message: 'Preference update queued' });
 });
 
-// --- HOMEPAGE RECOMMENDATIONS (Restored Dynamic Logic) ---
+
 app.get('/recommendations', recommendationsLimiter, (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('User not authenticated');
@@ -987,7 +987,32 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
         try {
             const preferencesData = JSON.parse(data);
             const userPreferences = preferencesData[userId] || {};
-            
+
+            // --- FALLBACK LOGIC: Check if user has preferences ---
+            const hasPreferences = Object.keys(userPreferences).length > 0;
+
+            // If user has NO preferences, return random videos (like guest mode but authenticated)
+            if (!hasPreferences) {
+                console.log(`User ${userId} has no preferences, returning random videos.`);
+                
+                // Create a shuffled copy of all videos
+                const allVideos = [...videoCache.values()];
+                shuffleArray(allVideos);
+
+                // Paginate the shuffled results
+                const paginatedVideos = allVideos.slice(startIndex, endIndex);
+                const result = getVideoDetails(paginatedVideos);
+
+                return res.json({
+                    videos: result,
+                    page: page,
+                    limit: limit,
+                    total: videoArray.length,
+                    hasMore: endIndex < videoArray.length
+                });
+            }
+
+            // --- NORMAL LOGIC: User has preferences ---
             const sortedTags = Object.entries(userPreferences)
                 .map(([tag, weight]) => ({ tag, weight }))
                 .sort((a, b) => b.weight - a.weight);
@@ -1023,7 +1048,7 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
             const resultVideos = [];
             
             if (page === 1) {
-                const topPriorityTag = "Modern Vintage Gamer"; // Example priority tag, adjust or remove if not needed
+                const topPriorityTag = "Modern Vintage Gamer"; // Example priority tag
                 const otherHighPriorityTags = highPriorityTags
                     .map(t => t.tag)
                     .filter(tag => tag !== topPriorityTag);
@@ -1112,7 +1137,24 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
                     uniqueVideos.push(video);
                 }
             });
-            
+
+            // --- BACKFILL / EMPTY CHECK ---
+            // If the preference logic resulted in 0 videos (e.g., tags exist but no videos match)
+            // Fallback to random.
+            if (uniqueVideos.length === 0) {
+                const allVideos = [...videoCache.values()];
+                shuffleArray(allVideos);
+                const paginatedVideos = allVideos.slice(startIndex, endIndex);
+                const result = getVideoDetails(paginatedVideos);
+                return res.json({
+                    videos: result,
+                    page: page,
+                    limit: limit,
+                    total: videoArray.length,
+                    hasMore: endIndex < videoArray.length
+                });
+            }
+
             const result = getVideoDetails(uniqueVideos);
             
             res.json({
