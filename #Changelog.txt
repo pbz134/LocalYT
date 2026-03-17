@@ -1,5 +1,11 @@
 +++LocalYT Revamped - Changelog+++
 
+v3.70
+- Added settings.html; The new settings page allows you to
+  - Fully customize your personal video recommendation algorithm
+  - Edit and delete tag preferences, or fully reset your algorithm
+  - Edit your account name & password, or delete your account
+
 v3.65
 - Fixed a bug that made the video UI disappear when entering fullscreen with the F key
 - Fixed and enhanced video recommendation algorithm
