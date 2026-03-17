@@ -373,6 +373,200 @@ function shuffleArray(array) {
     return array;
 }
 
+// --- HELPER FOR USER MANAGEMENT ---
+function findUserByUsername(username) {
+    const usersFilePath = path.join(__dirname, 'users.json');
+    try {
+        const data = fs.readFileSync(usersFilePath, 'utf8');
+        const usersData = JSON.parse(data);
+        return usersData[username];
+    } catch (e) {
+        return null;
+    }
+}
+
+// --- SETTINGS ROUTES ---
+
+// Get User Preferences for Editing
+app.get('/get-preferences', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+
+    try {
+        const data = fs.readFileSync(preferencesFilePath, 'utf8');
+        const allPrefs = JSON.parse(data);
+        const userPrefs = allPrefs[userId] || {};
+        res.json(userPrefs);
+    } catch (err) {
+        res.status(500).send('Error reading preferences');
+    }
+});
+
+// Reset Preferences
+app.post('/reset-preferences', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+
+    try {
+        const data = fs.readFileSync(preferencesFilePath, 'utf8');
+        const allPrefs = JSON.parse(data);
+        delete allPrefs[userId];
+        fs.writeFileSync(preferencesFilePath, JSON.stringify(allPrefs, null, 2));
+        res.sendStatus(200);
+    } catch (err) {
+        res.status(500).send('Error resetting preferences');
+    }
+});
+
+// Update Single Preference Tag
+app.post('/update-preference-tag', (req, res) => {
+    const { tag, value } = req.body;
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+
+    if (!tag) return res.status(400).send('Tag is required');
+
+    try {
+        const data = fs.readFileSync(preferencesFilePath, 'utf8');
+        const allPrefs = JSON.parse(data);
+        if (!allPrefs[userId]) allPrefs[userId] = {};
+        
+        allPrefs[userId][tag] = parseInt(value) || 0;
+        fs.writeFileSync(preferencesFilePath, JSON.stringify(allPrefs, null, 2));
+        res.sendStatus(200);
+    } catch (err) {
+        res.status(500).send('Error updating preference');
+    }
+});
+
+// Rename Account
+app.post('/rename-account', (req, res) => {
+    const { newUsername } = req.body;
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+    if (!newUsername) return res.status(400).send('New username is required');
+
+    const usersFilePath = path.join(__dirname, 'users.json');
+
+    try {
+        const data = fs.readFileSync(usersFilePath, 'utf8');
+        const usersData = JSON.parse(data);
+
+        // Check if new username exists
+        if (usersData[newUsername]) {
+            return res.status(409).send('Username already exists');
+        }
+
+        // Find current user
+        let currentUsername = null;
+        for (const [name, user] of Object.entries(usersData)) {
+            if (user.id === userId) {
+                currentUsername = name;
+                break;
+            }
+        }
+
+        if (!currentUsername) {
+            return res.status(404).send('User not found');
+        }
+
+        // Rename
+        usersData[newUsername] = usersData[currentUsername];
+        delete usersData[currentUsername];
+
+        fs.writeFileSync(usersFilePath, JSON.stringify(usersData, null, 2));
+        res.sendStatus(200);
+    } catch (err) {
+        res.status(500).send('Error renaming account');
+    }
+});
+
+// Reset Password
+app.post('/reset-password', (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+
+    const usersFilePath = path.join(__dirname, 'users.json');
+
+    try {
+        const data = fs.readFileSync(usersFilePath, 'utf8');
+        const usersData = JSON.parse(data);
+
+        // Find user
+        let username = null;
+        let user = null;
+        for (const [name, u] of Object.entries(usersData)) {
+            if (u.id === userId) {
+                username = name;
+                user = u;
+                break;
+            }
+        }
+
+        if (!user) return res.status(404).send('User not found');
+
+        // Verify current password
+        if (!bcrypt.compareSync(currentPassword, user.password)) {
+            return res.status(403).send('Incorrect current password');
+        }
+
+        // Update password
+        user.password = bcrypt.hashSync(newPassword, 10);
+        fs.writeFileSync(usersFilePath, JSON.stringify(usersData, null, 2));
+        res.sendStatus(200);
+    } catch (err) {
+        res.status(500).send('Error resetting password');
+    }
+});
+
+// Delete Account
+app.post('/delete-account', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+
+    const usersFilePath = path.join(__dirname, 'users.json');
+
+    try {
+        // 1. Remove from users.json
+        const data = fs.readFileSync(usersFilePath, 'utf8');
+        const usersData = JSON.parse(data);
+
+        let username = null;
+        for (const [name, user] of Object.entries(usersData)) {
+            if (user.id === userId) {
+                username = name;
+                break;
+            }
+        }
+
+        if (username) {
+            delete usersData[username];
+            fs.writeFileSync(usersFilePath, JSON.stringify(usersData, null, 2));
+        }
+
+        // 2. Remove preferences
+        if (fs.existsSync(preferencesFilePath)) {
+            const prefData = fs.readFileSync(preferencesFilePath, 'utf8');
+            const allPrefs = JSON.parse(prefData);
+            if (allPrefs[userId]) {
+                delete allPrefs[userId];
+                fs.writeFileSync(preferencesFilePath, JSON.stringify(allPrefs, null, 2));
+            }
+        }
+
+        // 3. Destroy session
+        req.session.destroy(err => {
+            if (err) return res.status(500).send('Error deleting session');
+            res.sendStatus(200);
+        });
+
+    } catch (err) {
+        res.status(500).send('Error deleting account');
+    }
+});
+
+
 app.get('/videos', (req, res) => {
     const shuffled = [...videoArray];
     shuffleArray(shuffled);
