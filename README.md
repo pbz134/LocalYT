@@ -32,6 +32,7 @@ From then on, I regularly worked on the program to further improve it, and 15 mo
 - **Algorithm**
   - Use the power of a Large Language Model (LLM) to tag videos accurately
   - LocalYT analyzes your behavior and shows you more of the videos you like
+  - Configure your algorithm behavior however you like by modifying it on the Settings page
 - **Account system**
   - Create a local account to track your watch history, liked videos and channels you spend the most time on
   - Resume your session on a different computer
