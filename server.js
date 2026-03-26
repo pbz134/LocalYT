@@ -102,7 +102,7 @@ app.get('/video.html', (req, res) => {
 
     const metaTags = `
         <meta property="og:title" content="${title}" />
-        <meta property="og:description" content="Watch on LocalYT" />
+        <meta property="og:description" content="LocalYT" />
         <meta property="og:type" content="video.other" />
         <meta property="og:url" content="${pageUrl}" />
         <meta property="og:image" content="${thumbUrl}" />
@@ -566,6 +566,40 @@ app.post('/delete-account', (req, res) => {
     }
 });
 
+
+// GET ALL TAGS (For settings suggestion list)
+app.get('/get-all-tags', (req, res) => {
+    // Returns keys from the recommendation index (channels + tags)
+    res.json(Object.keys(recommendationIndex));
+});
+
+// SAVE PREFERENCES (Bulk Overwrite)
+// This fixes the deletion issue by replacing the entire user preference object
+app.post('/save-preferences', (req, res) => {
+    const { preferences } = req.body;
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+
+    try {
+        const data = fs.readFileSync(preferencesFilePath, 'utf8');
+        const allPrefs = JSON.parse(data);
+        
+        // Overwrite user preferences
+        allPrefs[userId] = preferences;
+        
+        // Clear the memory queue for this user to prevent old queued updates 
+        // from overwriting this manual save
+        if (preferenceUpdateQueue.has(userId)) {
+            preferenceUpdateQueue.delete(userId);
+        }
+
+        fs.writeFileSync(preferencesFilePath, JSON.stringify(allPrefs, null, 2));
+        res.sendStatus(200);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Error saving preferences');
+    }
+});
 
 app.get('/videos', (req, res) => {
     const shuffled = [...videoArray];

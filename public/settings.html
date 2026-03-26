@@ -110,6 +110,12 @@
         .btn-save:hover {
             background-color: #1e88e5;
         }
+        .btn-logout {
+            background-color: #555;
+        }
+        .btn-logout:hover {
+            background-color: #666;
+        }
         
         input[type="text"], input[type="password"] {
             background-color: #0f0f0f;
@@ -119,6 +125,12 @@
             margin-right: 10px;
             border-radius: 4px;
         }
+        
+        /* Autocomplete styling */
+        input[list] {
+            background-color: #0f0f0f;
+        }
+
         .inline-form {
             display: flex;
             gap: 10px;
@@ -168,6 +180,13 @@
                 <!-- Preferences loaded dynamically -->
             </div>
             
+            <!-- Add Tag Form -->
+            <div class="inline-form" style="margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 15px;">
+                <input type="text" id="newTagInput" list="allTagsList" placeholder="Add new tag..." style="flex-grow: 1;">
+                <datalist id="allTagsList"></datalist>
+                <button class="btn" onclick="addNewTag()">Add Tag</button>
+            </div>
+
             <div class="inline-form">
                 <button class="btn btn-save" onclick="savePreferences()">Save Preferences</button>
                 <button class="btn btn-danger" onclick="resetPreferences()">Reset All</button>
@@ -199,14 +218,26 @@
             </div>
         </div>
 
-        <!-- Danger Zone (Simplified) -->
+        <!-- Danger Zone -->
         <div class="settings-section">
-            <h2>Delete Account</h2>
-            <p style="font-size: 13px; color: #aaa;">WARNING: Once deleted, you won't be able to recover it.</p>
-            <div class="inline-form" style="justify-content: flex-start;">
-                <button class="btn btn-danger" onclick="deleteAccount()">Delete Account</button>
+            <h2>Danger Zone</h2>
+            
+            <div style="margin-bottom: 20px;">
+                <h3 style="margin-bottom: 5px; font-size: 16px;">Logout</h3>
+                <p style="font-size: 13px; color: #aaa;">End your current session.</p>
+                <div class="inline-form" style="justify-content: flex-start;">
+                    <button class="btn btn-logout" onclick="logout()">Logout</button>
+                </div>
             </div>
-            <div id="deleteStatus" class="status-msg"></div>
+
+            <div>
+                <h3 style="margin-bottom: 5px; font-size: 16px; color: #ff4444;">Delete Account</h3>
+                <p style="font-size: 13px; color: #aaa;">WARNING: Once deleted, you won't be able to recover it.</p>
+                <div class="inline-form" style="justify-content: flex-start;">
+                    <button class="btn btn-danger" onclick="deleteAccount()">Delete Account</button>
+                </div>
+                <div id="deleteStatus" class="status-msg"></div>
+            </div>
         </div>
     </div>
 
@@ -221,10 +252,28 @@
                     } else {
                         document.getElementById('loginButton').textContent = data.username;
                         loadPreferences();
+                        loadAllTags();
                     }
                 })
                 .catch(() => window.location.href = 'login.html');
         });
+
+        // Load all available tags for the suggestion list
+        let allAvailableTags = [];
+        function loadAllTags() {
+            fetch('/get-all-tags')
+                .then(res => res.json())
+                .then(tags => {
+                    allAvailableTags = tags;
+                    const datalist = document.getElementById('allTagsList');
+                    datalist.innerHTML = '';
+                    tags.forEach(tag => {
+                        const option = document.createElement('option');
+                        option.value = tag;
+                        datalist.appendChild(option);
+                    });
+                });
+        }
 
         function loadPreferences() {
             fetch('/get-preferences')
@@ -242,64 +291,77 @@
                     const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
 
                     sorted.forEach(([tag, value]) => {
-                        const div = document.createElement('div');
-                        div.className = 'pref-item';
-                        div.dataset.tag = tag; // Store tag name for easy retrieval
-                        div.innerHTML = `
-                            <span class="pref-tag" title="${tag}">${tag}</span>
-                            <div class="pref-controls">
-                                <input type="number" class="pref-value" data-tag="${tag}" value="${value}">
-                                <button class="btn-remove" title="Remove Tag">&times;</button>
-                            </div>
-                        `;
-                        
-                        // Add event listener for the remove button
-                        div.querySelector('.btn-remove').addEventListener('click', () => {
-                            div.remove();
-                        });
-                        
-                        container.appendChild(div);
+                        createPrefItem(tag, value, container);
                     });
                 });
+        }
+
+        function createPrefItem(tag, value, container) {
+            const div = document.createElement('div');
+            div.className = 'pref-item';
+            div.dataset.tag = tag; 
+            div.innerHTML = `
+                <span class="pref-tag" title="${tag}">${tag}</span>
+                <div class="pref-controls">
+                    <input type="number" class="pref-value" data-tag="${tag}" value="${value}">
+                    <button class="btn-remove" title="Remove Tag">&times;</button>
+                </div>
+            `;
+            
+            div.querySelector('.btn-remove').addEventListener('click', () => {
+                div.remove();
+            });
+            
+            container.appendChild(div);
+        }
+
+        function addNewTag() {
+            const input = document.getElementById('newTagInput');
+            const tagName = input.value.trim();
+            
+            if (!tagName) return;
+
+            const container = document.getElementById('preferencesContainer');
+            
+            // Check if already exists
+            const existing = container.querySelector(`[data-tag="${tagName}"]`);
+            if (existing) {
+                showStatus('prefStatus', 'Tag already in list.', false);
+                return;
+            }
+
+            createPrefItem(tagName, 50, container); // Default value 50
+            input.value = ''; // Clear input
+            showStatus('prefStatus', 'Tag added. Click Save to confirm.', true);
         }
 
         function savePreferences() {
             const container = document.getElementById('preferencesContainer');
             const items = container.querySelectorAll('.pref-item');
-            const promises = [];
+            const newPrefs = {};
 
-            // We need to determine which tags were deleted.
-            // Since we don't have the original list easily accessible without a re-fetch,
-            // we will send the current state of the list.
-            // Note: This simple implementation updates every tag individually.
-            
             items.forEach(item => {
                 const tag = item.dataset.tag;
                 const input = item.querySelector('.pref-value');
                 const value = parseInt(input.value) || 0;
-
-                // Post update
-                const p = fetch('/update-preference-tag', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tag, value })
-                });
-                promises.push(p);
+                newPrefs[tag] = value;
             });
 
-            // Ideally, we should also handle deleted tags (set to 0 or remove key).
-            // For simplicity, we just update what is visible.
-            // If you want to implement deletion properly, you need an endpoint 
-            // that can delete a key or accept a full object to overwrite.
-            // Currently, backend only updates or creates keys.
-            
-            Promise.all(promises)
-                .then(() => {
+            // Send the entire object to overwrite the file
+            fetch('/save-preferences', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ preferences: newPrefs })
+            })
+            .then(res => {
+                if (res.ok) {
                     showStatus('prefStatus', 'Preferences saved successfully!', true);
-                    // Reload to refresh order
-                    loadPreferences();
-                })
-                .catch(() => showStatus('prefStatus', 'Error saving preferences.', false));
+                    loadPreferences(); // Reload to re-sort
+                } else {
+                    showStatus('prefStatus', 'Error saving preferences.', false);
+                }
+            })
+            .catch(() => showStatus('prefStatus', 'Error saving preferences.', false));
         }
 
         function resetPreferences() {
@@ -312,6 +374,10 @@
                         }
                     });
             }
+        }
+
+        function logout() {
+            window.location.href = '/logout';
         }
 
         function renameAccount() {
