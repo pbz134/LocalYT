@@ -8,6 +8,7 @@ v3.70
 - generateThumbnails.py will now automatically add placeholder thumbnails for video and audio files where thumbnails can't be found, extracted or generated
   - Access the placeholder file at /LocalYT-Rev-Files/thumbnail-placeholder.jpg
 - Fixed the Subscribe button feature on video.html
+- Changed createStats.py to skip errors and display a "Scanning videos directory..." message
 
 v3.65
 - Fixed a bug that made the video UI disappear when entering fullscreen with the F key

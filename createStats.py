@@ -8,6 +8,8 @@ def generate_like_dislike_counts(video_name, subscriber_count):
     return f"{likes},{dislikes}"
 
 def scan_videos_directory(videos_dir, videostats_dir, subcount_dir):
+    print("Scanning videos directory...")
+
     # Ensure the videostats directory exists
     if not os.path.exists(videostats_dir):
         os.makedirs(videostats_dir)
@@ -26,35 +28,47 @@ def scan_videos_directory(videos_dir, videostats_dir, subcount_dir):
             print(f"Subscriber count file not found for channel: {channel_dir}")
             continue
 
-        with open(subcount_file_path, 'r') as subcount_file:
-            subscriber_count_str = subcount_file.read().strip().replace(',', '')
-            subscriber_count = int(subscriber_count_str)
+        try:
+            with open(subcount_file_path, 'r', encoding='utf-8') as subcount_file:
+                subscriber_count_str = subcount_file.read().strip().replace(',', '')
+                subscriber_count = int(subscriber_count_str)
+        except ValueError:
+            print(f"Could not read subscriber count for channel: {channel_dir}")
+            continue
 
         # Recursively scan all .mp4 and .mp3 files within this channel directory
         for root, _, files in os.walk(channel_path):
             for filename in files:
                 if filename.endswith(('.mp4', '.mp3')):
-                    video_name = os.path.splitext(filename)[0]
-                    
-                    # Get the relative path from the channel directory
-                    relative_path = os.path.relpath(root, channel_path)
-                    
-                    # Create corresponding subdirectories in the videostats directory
-                    if relative_path == '.':
-                        # Video is directly in the channel folder
-                        videostats_subdir = os.path.join(videostats_dir, channel_dir)
-                    else:
-                        # Video is in a subfolder (playlist) within the channel
-                        videostats_subdir = os.path.join(videostats_dir, channel_dir, relative_path)
-                    
-                    if not os.path.exists(videostats_subdir):
-                        os.makedirs(videostats_subdir)
+                    try:
+                        video_name = os.path.splitext(filename)[0]
+                        
+                        # Get the relative path from the channel directory
+                        relative_path = os.path.relpath(root, channel_path)
+                        
+                        # Create corresponding subdirectories in the videostats directory
+                        if relative_path == '.':
+                            # Video is directly in the channel folder
+                            videostats_subdir = os.path.join(videostats_dir, channel_dir)
+                        else:
+                            # Video is in a subfolder (playlist) within the channel
+                            videostats_subdir = os.path.join(videostats_dir, channel_dir, relative_path)
+                        
+                        # Ensure the directory exists
+                        if not os.path.exists(videostats_subdir):
+                            os.makedirs(videostats_subdir)
 
-                    # Write the like/dislike counts to a text file
-                    txt_filename = f"{video_name}.txt"
-                    txt_file_path = os.path.join(videostats_subdir, txt_filename)
-                    with open(txt_file_path, 'w') as txt_file:
-                        txt_file.write(generate_like_dislike_counts(video_name, subscriber_count))
+                        # Write the like/dislike counts to a text file
+                        txt_filename = f"{video_name}.txt"
+                        txt_file_path = os.path.join(videostats_subdir, txt_filename)
+                        
+                        with open(txt_file_path, 'w', encoding='utf-8') as txt_file:
+                            txt_file.write(generate_like_dislike_counts(video_name, subscriber_count))
+                            
+                    except Exception as e:
+                        # If any error occurs with this specific file, log it and continue
+                        print(f"Error processing file '{filename}': {e}")
+                        continue
 
 if __name__ == "__main__":
     videos_dir = './videos'
