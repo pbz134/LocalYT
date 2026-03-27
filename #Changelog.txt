@@ -3,8 +3,9 @@
 v3.70
 - Added settings.html; The new settings page allows you to
   - Fully customize your personal video recommendation algorithm
-  - Edit and delete tag preferences, or fully reset your algorithm
-  - Edit your account name & password, or delete your account
+  - Edit, add and delete tag preferences, or fully reset your algorithm
+  - Edit your account name & password, log out, or delete your account
+- Fixed the Subscribe button feature on video.html
 
 v3.65
 - Fixed a bug that made the video UI disappear when entering fullscreen with the F key
