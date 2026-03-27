@@ -10,6 +10,7 @@ from tqdm import tqdm
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 VIDEOS_DIR = os.path.join(SCRIPT_DIR, 'videos')
 THUMBNAILS_DIR = os.path.join(SCRIPT_DIR, 'thumbnails')
+PLACEHOLDER_PATH = os.path.join(SCRIPT_DIR, 'LocalYT-Rev-Files', 'thumbnail-placeholder.jpg')
 
 # Supported extensions
 VIDEO_EXTENSIONS = {'.mp4', '.mkv', '.mp3'}
@@ -119,6 +120,12 @@ def main():
     print("Starting thumbnail generation...")
     start_time = time.time()
 
+    # Check if placeholder image exists
+    if not os.path.exists(PLACEHOLDER_PATH):
+        print(f"[!] Error: Placeholder image not found at {PLACEHOLDER_PATH}")
+        print("Please ensure the file exists to handle missing thumbnails.")
+        return
+
     if not os.path.exists(VIDEOS_DIR):
         print(f"Error: Videos directory not found at {VIDEOS_DIR}")
         print("Please create a 'videos' folder and add your media files to it.")
@@ -169,6 +176,7 @@ def main():
             os.makedirs(output_dir, exist_ok=True)
 
             status_msg = None
+            success = False
             
             # Process based on type
             if ext.lower() == '.mp3':
@@ -176,10 +184,15 @@ def main():
             else:
                 success, msg = generate_thumbnail(full_path, thumb_path)
             
-            # If there was an error, we can optionally write it to the bar description
-            # or just let it pass silently. 
-            if not success and msg:
-                pbar.write(f"[!] Error with {entry}: {msg}")
+            # If there was an error, copy placeholder
+            if not success:
+                if msg:
+                    pbar.write(f"[!] Error with {entry}: {msg}. Using placeholder.")
+                
+                try:
+                    shutil.copy(PLACEHOLDER_PATH, thumb_path)
+                except Exception as e:
+                    pbar.write(f"[!] Failed to copy placeholder for {entry}: {e}")
 
             pbar.update(1)
 
