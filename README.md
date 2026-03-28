@@ -72,9 +72,6 @@ https://www.youtube.com/@TWD98
 ---
 
 ## FAQ
-No videos are being recommended on video.html! What can I do?
-- The algorithm requires an account to work, so you have to create one on the landing page and log in
-
 Is there a whitemode feature?
 - As of right now, there is no whitemode for LocalYT, but I will integrate that eventually, after I'm done polishing the UI
 
@@ -88,4 +85,3 @@ What if I only have the video files and no metadata?
 
 ## TO DO
 - Add a search icon next to the search bar on all pages
-- Add a placeholder thumbnail (no_thumbnail.jpg)
