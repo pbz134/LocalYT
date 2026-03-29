@@ -2,6 +2,7 @@ import os
 import json
 import openai
 import time
+import re
 
 # Configuration
 KOBOLDCPP_API_URL = "http://localhost:5001/v1"  # Replace with your koboldcpp API endpoint
@@ -10,6 +11,7 @@ media_list = "media_list.txt"  # Path to your existing video list file
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 TAGS_SUPEREXPANDED_FILE = os.path.join(SCRIPT_DIR, "tags_superexpanded.json")
+AUTO_TAG_RULES_FILE = os.path.join(SCRIPT_DIR, "auto_tag_rules.json")
 
 # Updated output directory - go up one level from script directory and then into "videos"
 PARENT_DIR = os.path.dirname(SCRIPT_DIR)
@@ -27,17 +29,85 @@ openai.request_timeout = 30  # Set timeout to 30 seconds
 
 def read_media_list(file_path):
     """Read the list of media filenames from a .txt file."""
-    # Added encoding='utf-8' to handle Unicode characters in file paths
     with open(file_path, "r", encoding='utf-8') as f:
         media_files = [line.strip() for line in f.readlines()]
     return media_files
 
 def load_tags(file_path):
     """Load the allowed tags from a .json file."""
-    # Added encoding='utf-8' to handle Unicode characters in tag names
     with open(file_path, "r", encoding='utf-8') as f:
         tags = json.load(f)
     return tags
+
+def load_auto_tag_rules(file_path):
+    """Load automatic tag rules from a JSON file."""
+    if not os.path.exists(file_path):
+        print(f"No auto-tag rules file found at {file_path}. Using empty rules.")
+        return []
+    
+    with open(file_path, "r", encoding='utf-8') as f:
+        rules_data = json.load(f)
+    
+    rules = rules_data.get("auto_tag_rules", [])
+    print(f"Loaded {len(rules)} auto-tag rules from {file_path}")
+    return rules
+
+def apply_auto_tag_rules(video_name, rules):
+    """
+    Apply automatic tag rules to a video.
+    
+    Args:
+        video_name: The full video path/name to match against
+        rules: List of rule dictionaries from auto_tag_rules.json
+    
+    Returns:
+        tuple: (tags_list, rule_name) if matched, (None, None) if no match
+    """
+    for rule in rules:
+        match_type = rule.get("match_type", "contains")
+        match_value = rule.get("match_value", "")
+        case_sensitive = rule.get("case_sensitive", False)
+        tags = rule.get("tags", [])
+        rule_name = rule.get("name", "Unnamed Rule")
+        
+        # Skip rules with no tags defined
+        if not tags:
+            continue
+        
+        # Prepare strings for matching
+        video_name_for_match = video_name if case_sensitive else video_name.lower()
+        match_value_for_match = match_value if case_sensitive else match_value.lower()
+        
+        matched = False
+        
+        if match_type == "contains":
+            matched = match_value_for_match in video_name_for_match
+        
+        elif match_type == "extension":
+            matched = video_name_for_match.endswith(match_value_for_match)
+        
+        elif match_type == "starts_with":
+            matched = video_name_for_match.startswith(match_value_for_match)
+        
+        elif match_type == "ends_with":
+            matched = video_name_for_match.endswith(match_value_for_match)
+        
+        elif match_type == "regex":
+            flags = 0 if case_sensitive else re.IGNORECASE
+            try:
+                matched = bool(re.search(match_value, video_name, flags))
+            except re.error as e:
+                print(f"  Warning: Invalid regex in rule '{rule_name}': {e}")
+                matched = False
+        
+        else:
+            print(f"  Warning: Unknown match_type '{match_type}' in rule '{rule_name}'")
+            continue
+        
+        if matched:
+            return tags, rule_name
+    
+    return None, None
 
 def get_video_description(video_name):
     """Get the description for a video if it exists."""
@@ -56,7 +126,6 @@ def get_video_description(video_name):
             description_path = os.path.join(DESCRIPTIONS_DIR, channel, f"{video_file}.txt")
             
             if os.path.exists(description_path):
-                # Already using utf-8 for reading descriptions
                 with open(description_path, "r", encoding="utf-8") as f:
                     description = f.read().strip()
                 
@@ -86,33 +155,29 @@ def get_video_description(video_name):
         print(f"Error reading description for {video_name}: {e}")
         return None
 
-def generate_tags_for_video(video_name, allowed_tags):
+def generate_tags_for_video(video_name, allowed_tags, auto_tag_rules):
     """Use the koboldcpp API to choose two tags from the allowed pool for a video."""
     
     # Extract channel name from the video path
     parts = video_name.split(os.path.sep)
     channel_name = parts[0] if len(parts) >= 2 else "Unknown"
     
-    # Check if it's an MP3 file (case-insensitive)
-    is_mp3 = video_name.lower().endswith('.mp3')
+    # Try auto-tag rules first
+    auto_tags, rule_name = apply_auto_tag_rules(video_name, auto_tag_rules)
     
-    # Check if "ASMR" is in the filename (case-insensitive)
-    has_asmr = 'asmr' in video_name.lower()
+    if auto_tags is not None:
+        # Pad with channel name if fewer than 2 tags
+        while len(auto_tags) < 2:
+            if channel_name not in auto_tags:
+                auto_tags.append(channel_name)
+            else:
+                auto_tags.append(DEFAULT_TAG)
+        
+        print(f"  Auto-tagged by rule '{rule_name}': {auto_tags[0]}, {auto_tags[1]}")
+        return auto_tags[:2]
     
-    # Rule 1: Any file with "ASMR" in the name gets "ASMR, [channelname]"
-    if has_asmr:
-        tags = ["ASMR", channel_name]
-        print(f"  Auto-tagged with ASMR rule: {tags[0]}, {tags[1]}")
-        return tags[:2]
-    
-    # Rule 2: MP3 files without ASMR get "Music, [channelname]"
-    if is_mp3:
-        tags = ["Music", channel_name]
-        print(f"  Auto-tagged as music file: {tags[0]}, {tags[1]}")
-        return tags[:2]
-    
-    # For non-ASMR video files (mp4, mkv), use the LLM
-    print(f"  Using LLM for video file: {video_name}")
+    # For non-matching files, use the LLM
+    print(f"  Using LLM for: {video_name}")
     
     # Get video description if available
     description = get_video_description(video_name)
@@ -223,14 +288,13 @@ def save_tags_to_file(video_name, tags, output_dir):
         parts = video_name.split(os.path.sep)
         channel_name = parts[0] if len(parts) >= 2 else "Root"
         
-        # Add the channel name as the third tag - but make sure it's just the channel name
-        # The channel_name variable already contains just the first part, which should be "Domtendo"
+        # Add the channel name as the third tag
         tags_with_channel = tags + [channel_name]
         
         # Create the output file path
         tag_file = os.path.join(output_path, f"{base_name}.txt")
         
-        # Write the tags to the file - Added encoding='utf-8' to handle Unicode
+        # Write the tags to the file
         with open(tag_file, "w", encoding='utf-8') as f:
             f.write(f"{tags_with_channel[0]}, {tags_with_channel[1]}, {tags_with_channel[2]}\n")
         
@@ -253,6 +317,9 @@ def main():
     print(f"Using super accurate and slow tag list (tags_superexpanded.json)")
     print(f"Timeout set to 30 seconds for model loading and responses")
     
+    # Step 1.5: Load auto-tag rules
+    auto_tag_rules = load_auto_tag_rules(AUTO_TAG_RULES_FILE)
+    
     # Display descriptions directory
     print(f"Looking for descriptions in: {DESCRIPTIONS_DIR}")
 
@@ -272,9 +339,11 @@ def main():
         return
 
     # Step 3: Process each media file
-    asmr_count = 0
-    music_count = 0
+    auto_tag_count = 0
     llm_count = 0
+    
+    # Track which rules matched
+    rule_match_counts = {}
     
     for index, media_name in enumerate(media_files, 1):
         print(f"\nProcessing {index}/{len(media_files)}: {media_name}")
@@ -287,15 +356,15 @@ def main():
             print("  No description found")
             
         try:
-            tags = generate_tags_for_video(media_name, allowed_tags)
+            tags = generate_tags_for_video(media_name, allowed_tags, auto_tag_rules)
             print(f"  Chosen Tags: {tags[0]}, {tags[1]}")
             save_tags_to_file(media_name, tags, OUTPUT_DIR)
             
-            # Count by processing method
-            if 'asmr' in media_name.lower():
-                asmr_count += 1
-            elif media_name.lower().endswith('.mp3'):
-                music_count += 1
+            # Check if it was auto-tagged or LLM-processed
+            _, rule_name = apply_auto_tag_rules(media_name, auto_tag_rules)
+            if rule_name is not None:
+                auto_tag_count += 1
+                rule_match_counts[rule_name] = rule_match_counts.get(rule_name, 0) + 1
             else:
                 llm_count += 1
                 
@@ -305,14 +374,18 @@ def main():
             tags = [DEFAULT_TAG, DEFAULT_TAG]
             try:
                 save_tags_to_file(media_name, tags, OUTPUT_DIR)
+                llm_count += 1
             except Exception as save_error:
                 print(f"  CRITICAL: Could not save default tags either: {save_error}")
 
     print(f"\n{'='*50}")
     print(f"COMPLETED! Processed {len(media_files)} media files:")
-    print(f"  - ASMR auto-tagged: {asmr_count}")
-    print(f"  - Music auto-tagged: {music_count}")
-    print(f"  - LLM-processed videos: {llm_count}")
+    print(f"  - Auto-tagged (rules): {auto_tag_count}")
+    if rule_match_counts:
+        print(f"    Rule breakdown:")
+        for rule_name, count in sorted(rule_match_counts.items(), key=lambda x: -x[1]):
+            print(f"      - {rule_name}: {count}")
+    print(f"  - LLM-processed: {llm_count}")
     print(f"{'='*50}")
 
 if __name__ == "__main__":
