@@ -84,4 +84,4 @@ What if I only have the video files and no metadata?
 ---
 
 ## TO DO
-- Optimize search speed
+Currently empty
