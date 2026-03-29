@@ -862,15 +862,23 @@ app.get('/subcount/:channel', (req, res) => {
     });
 });
 
-app.get('/user-subscriptions/:channel', (req, res) => {
+// Get all subscribed channels for the current user
+app.get('/user-subscriptions', (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('User not authenticated');
-    const channel = req.params.channel;
     const subscriptionsFilePath = path.join(__dirname, 'subscriptions.json');
     fs.readFile(subscriptionsFilePath, 'utf8', (err, data) => {
-        if (err) return res.status(500).send('Error reading subscriptions');
-        const subscriptionsData = JSON.parse(data);
-        res.json(subscriptionsData[userId] || {});
+        if (err) return res.json([]);
+        try {
+            const subscriptionsData = JSON.parse(data);
+            const userSubs = subscriptionsData[userId] || {};
+            const subscribedChannels = Object.entries(userSubs)
+                .filter(([channel, isSub]) => isSub)
+                .map(([channel]) => channel);
+            res.json(subscribedChannels);
+        } catch (e) {
+            res.json([]);
+        }
     });
 });
 
@@ -889,6 +897,28 @@ app.post('/subscribe', (req, res) => {
             res.sendStatus(200);
         });
     });
+});
+
+// Get random videos from a specific channel
+app.get('/channel-random-videos/:channel', (req, res) => {
+    const channel = decodeURIComponent(req.params.channel);
+    const limit = parseInt(req.query.limit) || 20;
+
+    const channelVideos = recommendationIndex[channel];
+    if (!channelVideos) return res.json([]);
+
+    const uniquePaths = [...new Set(channelVideos)];
+    const shuffled = [...uniquePaths];
+    shuffleArray(shuffled);
+    const selected = shuffled.slice(0, limit);
+
+    const videosWithDetails = selected.map(vPath => {
+        const video = videoCache.get(vPath);
+        if (!video) return null;
+        return getVideoDetails([video])[0];
+    }).filter(Boolean);
+
+    res.json(videosWithDetails);
 });
 
 app.get('/viewcounts/:video', (req, res) => {
