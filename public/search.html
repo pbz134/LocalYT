@@ -118,6 +118,7 @@
         <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
         <div class="search-container">
             <input type="text" id="searchInput" placeholder="Search for videos..." value="">
+            <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
     </header>
@@ -424,7 +425,11 @@ function createVideoElement(video, container) {
         if (!isNaN(viewCount) && viewCount !== '0') {
             formattedViewCount = parseInt(viewCount).toLocaleString();
         }
-        metadataDiv.textContent = `${formattedViewCount} views • Uploaded on ${fileDate}`;
+        
+        // Clean the fileDate by removing any line breaks and extra whitespace
+        const cleanFileDate = fileDate.replace(/\s+/g, ' ').trim();
+        
+        metadataDiv.textContent = `${formattedViewCount} views • Uploaded on ${cleanFileDate}`;
     })
     .catch(error => {
         console.error('Error fetching metadata:', error);
@@ -495,6 +500,16 @@ function setupSearchInput() {
             if (query) {
                 window.location.href = `search.html?q=${encodeURIComponent(query)}`;
             }
+        }
+    });
+
+    // --- Search icon click ---
+    document.getElementById('searchIcon').addEventListener('click', () => {
+        const query = searchInput.value.trim();
+        if (query) {
+            window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+        } else {
+            searchInput.focus();
         }
     });
 }

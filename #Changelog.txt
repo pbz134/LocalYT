@@ -1,12 +1,15 @@
 +++LocalYT Revamped - Changelog+++
 
 v3.70
-- Added settings.html; The new settings page allows you to
+- Added settings.html; The new settings page allows you to:
   - Fully customize your personal video recommendation algorithm
   - Edit, add and delete tag preferences, or fully reset your algorithm
   - Edit your account name & password, log out, or delete your account
+- Added subscribed_channels.html
+  - Any channels you subscribe to will now be listed on a new page, accessible on the index.html sidebar
 - generateThumbnails.py will now automatically add placeholder thumbnails for video and audio files where thumbnails can't be found, extracted or generated
   - Access the placeholder file at /LocalYT-Rev-Files/thumbnail-placeholder.jpg
+- Added a Search icon to (almost) all pages that can be clicked to initiate the search
 - Fixed the Subscribe button feature on video.html
 - Changed createStats.py to skip errors and display a "Scanning videos directory..." message
 

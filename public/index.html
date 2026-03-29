@@ -88,6 +88,7 @@
         <div class="category-container" id="categoryContainer"></div>
         <div class="search-container">
             <input type="text" id="searchInput" placeholder="Search">
+            <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
         <div class="user-actions">
@@ -272,11 +273,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
             });
 
-            searchInput.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
-                    window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
-                }
-            });
+searchInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+        window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
+    }
+});
+
+// --- Search icon click ---
+document.getElementById('searchIcon').addEventListener('click', () => {
+    const query = searchInput.value.trim();
+    if (query) {
+        window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+    } else {
+        searchInput.focus();
+    }
+});
         });
 
         function loadRecommendations() {
