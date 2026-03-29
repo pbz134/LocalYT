@@ -788,13 +788,6 @@ app.get('/sidebar-recommendations', recommendationsLimiter, (req, res) => {
     res.json(getVideoDetails(finalRecommendations));
 });
 
-
-app.get('/rescan', (req, res) => {
-    scanAndCacheVideos();
-    buildRecommendationIndex();
-    res.send('Rescan complete');
-});
-
 app.get('/videostats/:video', (req, res) => {
     const video = req.params.video.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '');
     const filePath = path.join(__dirname, 'videostats', `${video}.txt`);
