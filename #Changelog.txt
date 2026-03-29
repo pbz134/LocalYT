@@ -1,5 +1,11 @@
 +++LocalYT Revamped - Changelog+++
 
+v3.75
+- Implemented advanced conditional video tagging
+  - More specific keywords in video titles will now automatically be matched to tags
+  - This saves on resources and time while tagging videos for the algorithm
+  - Edit the list at /Algorithm/auto_tag_rules.json
+
 v3.70
 - Added settings.html; The new settings page allows you to:
   - Fully customize your personal video recommendation algorithm
