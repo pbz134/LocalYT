@@ -352,7 +352,31 @@
             font-style: italic;
             display: block;
             margin-top: 10px;
+        }        .video-description.collapsed {
+            max-height: 160px;
+            overflow: hidden;
+            position: relative;
         }
+        .video-description.collapsed::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 45px;
+            background: linear-gradient(rgba(40, 40, 40, 0), #282828);
+            pointer-events: none;
+        }
+        .description-toggle {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 4px;
+            margin-bottom: 10px;
+            user-select: none;
+        }
+
 
         /* ===== COMMENTS SECTION ===== */
         .comments-section {
@@ -483,9 +507,7 @@
             margin-bottom: 6px;
             user-select: none;
         }
-        .comment-toggle-text:hover {
-            text-decoration: underline;
-        }
+
         .comment-actions {
             display: flex;
             align-items: center;
@@ -615,7 +637,8 @@
                         <span>Share</span>
                     </div>
                 </div>
-                <div id="currentVideoDescription" class="video-description"></div>
+        <div id="currentVideoDescription" class="video-description"></div>
+        <div id="descriptionToggle" class="description-toggle" style="display:none;">Show more</div>
                 <div id="commentsSection" class="comments-section">
                     <div class="comments-header">
                         <span id="commentsCount" class="comments-count">Comments</span>
@@ -960,6 +983,44 @@ async function loadComments(videoSrc, channelPicUrl) {
             }
         }
 
+function checkDescriptionCollapse() {
+    const desc = document.getElementById('currentVideoDescription');
+    const toggle = document.getElementById('descriptionToggle');
+
+    desc.style.maxHeight = 'none';
+    desc.classList.remove('collapsed');
+
+    const lineHeight = parseFloat(getComputedStyle(desc).lineHeight) || 20;
+    const targetHeight = lineHeight * 8;
+
+    if (desc.scrollHeight > targetHeight) {
+        desc.style.maxHeight = targetHeight + 'px';
+        desc.classList.add('collapsed');
+        toggle.style.display = 'block';
+        toggle.textContent = 'Show more';
+    } else {
+        desc.style.maxHeight = '';
+        desc.classList.remove('collapsed');
+        toggle.style.display = 'none';
+    }
+}
+
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'descriptionToggle') {
+        const desc = document.getElementById('currentVideoDescription');
+        if (desc.classList.contains('collapsed')) {
+            desc.classList.remove('collapsed');
+            desc.style.maxHeight = desc.scrollHeight + 'px';
+            e.target.textContent = 'Show less';
+        } else {
+            desc.classList.add('collapsed');
+            const lineHeight = parseFloat(getComputedStyle(desc).lineHeight) || 20;
+            desc.style.maxHeight = (lineHeight * 8) + 'px';
+            e.target.textContent = 'Show more';
+        }
+    }
+});
+
         document.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const videoSrc = decodeURIComponent(urlParams.get('src') || '');
@@ -1080,6 +1141,9 @@ async function loadComments(videoSrc, channelPicUrl) {
                     console.log('No description found for this video');
                     currentVideoDescription.innerHTML = currentVideoDescription.textContent + 
                         '<span class="no-description">No description available for this video.</span>';
+                })
+                .then(() => {
+                    checkDescriptionCollapse();
                 });
 
                 // 1. Get just the filename (removing subfolders like "Shortcut Collections")
