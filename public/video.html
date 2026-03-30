@@ -378,12 +378,12 @@
         }
         .comment-item {
             display: flex;
-            margin-bottom: 18px;
-            padding: 8px 0;
+            margin-bottom: 8px;
+            padding: 4px 0;
         }
         .comment-item.reply {
             margin-left: 48px;
-            padding: 6px 0 6px 16px;
+            padding: 3px 0 3px 16px;
             border-left: 1px solid #3f3f3f;
         }
         .comment-avatar {
@@ -805,13 +805,13 @@ function renderSingleComment(comment, isReply, channelPicUrl) {
         ${avatarHtml}
         <div class="comment-body">
             <div class="comment-meta">
-                <span class="comment-author">${escapeHtml(comment.author)}</span>${badges}
+                <span class="comment-author">${escapeHtml(comment.author.replace('@', ''))}</span>${badges}
                 <span class="comment-timestamp">${formatRelativeTime(comment.published_at)}</span>
             </div>
                         <div class="comment-text${isLong ? ' collapsed' : ''}">${processCommentText(comment.text)}</div>
             ${isLong ? '<div class="comment-toggle-text" data-action="expand">Show more</div>' : ''}
             <div class="comment-actions">
-                <div class="comment-like-btn">${LIKE_SVG}<span>${comment.likes || 0}</span></div>
+                <div class="comment-like-btn"><img src="LocalYT-Rev-Files/like.svg" alt="" style="width:14px;height:14px;filter:invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%);"><span>${comment.likes || 0}</span></div>
             </div>
         </div>
     </div>`;
