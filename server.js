@@ -130,6 +130,24 @@ app.get('/video.html', (req, res) => {
     res.send(htmlContent);
 });
 
+// --- SHORT LINK REDIRECT ---
+// Must be before generic express.static so it catches /v/:code first
+app.get('/v/:code', (req, res) => {
+    const code = req.params.code;
+    const videoPath = shortCodeToVideoMap.get(code);
+    if (!videoPath) {
+        return res.status(404).send('Short link not found');
+    }
+    let redirectUrl = `/video.html?src=${encodeURIComponent(videoPath)}`;
+    // Preserve optional query parameters (timestamp, playlist)
+    if (req.query.t) redirectUrl += `&t=${encodeURIComponent(req.query.t)}`;
+    if (req.query.playlist) redirectUrl += `&playlist=${encodeURIComponent(req.query.playlist)}`;
+    res.redirect(redirectUrl);
+});
+
+// Generic public static middleware (loaded after specific routes)
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Generic public static middleware (loaded after specific routes)
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -345,7 +363,65 @@ function initializeRecommendationIndex() {
     }
 }
 
+// --- SHORT LINK SYSTEM ---
+const shortLinksFilePath = path.join(__dirname, 'shortlinks.json');
+let shortLinksMap = new Map();       // video path -> short code
+let shortCodeToVideoMap = new Map(); // short code -> video path
+const SHORT_CODE_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+function generateShortCode() {
+    let code;
+    do {
+        code = '';
+        for (let i = 0; i < 7; i++) {
+            code += SHORT_CODE_CHARS.charAt(Math.floor(Math.random() * SHORT_CODE_CHARS.length));
+        }
+    } while (shortCodeToVideoMap.has(code));
+    return code;
+}
+
+function initializeShortLinks() {
+    // Load existing short links from file
+    if (fs.existsSync(shortLinksFilePath)) {
+        try {
+            const data = fs.readFileSync(shortLinksFilePath, 'utf8');
+            const links = JSON.parse(data);
+            for (const [videoPath, code] of Object.entries(links)) {
+                shortLinksMap.set(videoPath, code);
+                shortCodeToVideoMap.set(code, videoPath);
+            }
+            console.log(`Loaded ${shortLinksMap.size} short links.`);
+        } catch (err) {
+            console.error('Error loading short links:', err);
+            shortLinksMap.clear();
+            shortCodeToVideoMap.clear();
+        }
+    } else {
+        console.log('shortlinks.json not found, will generate new links.');
+    }
+
+    // Generate short codes for any videos that don't have one yet
+    let newCodesGenerated = 0;
+    videoArray.forEach(video => {
+        if (!shortLinksMap.has(video.path)) {
+            const code = generateShortCode();
+            shortLinksMap.set(video.path, code);
+            shortCodeToVideoMap.set(code, video.path);
+            newCodesGenerated++;
+        }
+    });
+
+    // Save to disk if any new codes were generated
+    if (newCodesGenerated > 0) {
+        const obj = {};
+        shortLinksMap.forEach((code, videoPath) => { obj[videoPath] = code; });
+        fs.writeFileSync(shortLinksFilePath, JSON.stringify(obj, null, 2));
+        console.log(`Generated ${newCodesGenerated} new short links. Total: ${shortLinksMap.size}`);
+    }
+}
+
 initializeVideoCache();
+initializeShortLinks();
 initializeRecommendationIndex();
 
 function getVideoDetails(videoSlice) {
@@ -1348,6 +1424,15 @@ app.get('/search-index', (req, res) => {
         displayName: v.displayName || path.basename(v.path)
     }));
     res.json({ videos: minimalData });
+});
+
+// --- SHORT LINK API ---
+app.get('/api/shortlink', (req, res) => {
+    const video = req.query.video;
+    if (!video) return res.status(400).json({ error: 'Missing video parameter' });
+    const code = shortLinksMap.get(video);
+    if (!code) return res.status(404).json({ error: 'Short link not found for this video' });
+    res.json({ shortPath: `/v/${code}` });
 });
 
 app.post('/add-to-history', (req, res) => {

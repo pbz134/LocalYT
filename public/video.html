@@ -1092,16 +1092,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 shareModal.style.display = 'flex';
             });
 
-            copyWithTimestamp.addEventListener('click', () => {
+            copyWithTimestamp.addEventListener('click', async () => {
                 const currentTime = Math.floor(videoPlayer.currentTime);
-                const shareUrl = `${window.location.origin}/video.html?src=${encodeURIComponent(videoSrc)}&t=${currentTime}`;
-                copyToClipboard(shareUrl);
+                try {
+                    const response = await fetch(`/api/shortlink?video=${encodeURIComponent(videoSrc)}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        copyToClipboard(`${window.location.origin}${data.shortPath}?t=${currentTime}`);
+                    } else {
+                        copyToClipboard(`${window.location.origin}/video.html?src=${encodeURIComponent(videoSrc)}&t=${currentTime}`);
+                    }
+                } catch (e) {
+                    copyToClipboard(`${window.location.origin}/video.html?src=${encodeURIComponent(videoSrc)}&t=${currentTime}`);
+                }
                 shareModal.style.display = 'none';
             });
 
-            copyWithoutTimestamp.addEventListener('click', () => {
-                const shareUrl = `${window.location.origin}/video.html?src=${encodeURIComponent(videoSrc)}`;
-                copyToClipboard(shareUrl);
+            copyWithoutTimestamp.addEventListener('click', async () => {
+                try {
+                    const response = await fetch(`/api/shortlink?video=${encodeURIComponent(videoSrc)}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        copyToClipboard(`${window.location.origin}${data.shortPath}`);
+                    } else {
+                        copyToClipboard(`${window.location.origin}/video.html?src=${encodeURIComponent(videoSrc)}`);
+                    }
+                } catch (e) {
+                    copyToClipboard(`${window.location.origin}/video.html?src=${encodeURIComponent(videoSrc)}`);
+                }
                 shareModal.style.display = 'none';
             });
 

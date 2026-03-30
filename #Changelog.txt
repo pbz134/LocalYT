@@ -5,6 +5,10 @@ v3.75
   - More specific keywords in video titles will now automatically be matched to tags
   - This saves on resources and time while tagging videos for the algorithm
   - Edit the list at /Algorithm/auto_tag_rules.json
+- Copying a video link with the Share features now creates shortened links (e.g. "http://192.168.0.123:3000/v/I93aFdA")
+  - These links, when opened, will redirect to the video like usual
+- Added debug tools at /LocalYT-Debug to manage your LocalYT data, accounts and stats with cmd commands
+  - You can regenerate an account password if you (or another user) forgot it, since Bcrypt is not reversible
 
 v3.70
 - Added settings.html; The new settings page allows you to:
