@@ -13,6 +13,7 @@ def rename_files():
     
     # Define the folders to scan (relative to parent directory)
     folders_to_scan = [
+        'comments',
         'channelbanner',
         'channelpic',
         'descriptions',

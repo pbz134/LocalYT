@@ -63,6 +63,7 @@ def clean_all_files():
     
     # Define directories to process
     dirs_to_process = [
+        'comments',
         'videos',
         'videolengths', 
         'thumbnails',

@@ -5,6 +5,7 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VIDEOS_DIR = os.path.join(ROOT_DIR, "videos")
 
 SCAN_FOLDERS = [
+    "comments",
     "descriptions",
     "filedates",
     "filenames",

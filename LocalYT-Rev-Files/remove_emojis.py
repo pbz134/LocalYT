@@ -257,6 +257,7 @@ def remove_special_chars_from_filenames(directory):
 def main():
     # List of directories to process
     directories = [
+        "comments",
         "descriptions",
         "filedates",
         "ratings",
