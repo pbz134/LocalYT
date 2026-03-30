@@ -41,6 +41,7 @@ app.use('/channelpic', express.static(path.join(__dirname, 'channelpic')));
 app.use('/channelbanner', express.static(path.join(__dirname, 'channelbanner')));
 app.use('/videostats', express.static(path.join(__dirname, 'videostats')));
 app.use('/descriptions', express.static(path.join(__dirname, 'descriptions')));
+app.use('/comments', express.static(path.join(__dirname, 'comments')));
 app.use('/favicon.png', express.static(path.join(__dirname, 'favicon.png')));
 
 // --- DISCORD EMBED ROUTE ---
@@ -926,6 +927,24 @@ app.get('/user-dislikes', (req, res) => {
         if (err) return res.status(500).send('Error reading dislikes');
         const dislikesData = JSON.parse(data);
         res.json(dislikesData[userId] || {});
+    });
+});
+
+app.get('/api/comments', (req, res) => {
+    const videoPath = req.query.video;
+    if (!videoPath) return res.json([]);
+
+    const basePath = decodeURIComponent(videoPath).replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+    const filePath = path.join(__dirname, 'comments', basePath + '.json');
+
+    fs.readFile(filePath, 'utf8', (err, data) => {
+        if (err) return res.json([]);
+        try {
+            const comments = JSON.parse(data);
+            res.json(comments);
+        } catch (e) {
+            res.json([]);
+        }
     });
 });
 

@@ -354,6 +354,209 @@
             margin-top: 10px;
         }
 
+        /* ===== COMMENTS SECTION ===== */
+        .comments-section {
+            margin-top: 15px;
+            max-width: 1280px;
+        }
+        .comments-header {
+            display: flex;
+            align-items: center;
+            padding-bottom: 12px;
+            margin-bottom: 5px;
+        }
+        .comments-count {
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            margin-right: 24px;
+        }
+        .comments-divider {
+            height: 1px;
+            background-color: #3f3f3f;
+            margin-bottom: 15px;
+        }
+        .comment-item {
+            display: flex;
+            margin-bottom: 18px;
+            padding: 8px 0;
+        }
+        .comment-item.reply {
+            margin-left: 48px;
+            padding: 6px 0 6px 16px;
+            border-left: 1px solid #3f3f3f;
+        }
+        .comment-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 14px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 500;
+            user-select: none;
+            object-fit: cover;
+        }
+        .comment-item.reply .comment-avatar {
+            width: 24px;
+            height: 24px;
+            font-size: 11px;
+            margin-right: 12px;
+        }
+        .comment-body {
+            flex: 1;
+            min-width: 0;
+        }
+        .comment-meta {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 4px;
+        }
+        .comment-author {
+            font-size: 13px;
+            font-weight: 500;
+            color: #fff;
+        }
+        .comment-badge {
+            font-size: 11px;
+            padding: 0 6px;
+            border-radius: 3px;
+            line-height: 18px;
+        }
+        .comment-badge.uploader-badge {
+            background-color: #3f3f3f;
+            color: #aaa;
+        }
+        .comment-badge.verified-badge {
+            color: #fff;
+            font-size: 13px;
+            padding: 0 2px;
+        }
+        .comment-pinned-label {
+            font-size: 12px;
+            color: #aaa;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-right: 6px;
+        }
+        .comment-timestamp {
+            font-size: 12px;
+            color: #aaa;
+        }
+        .comment-text {
+            font-size: 14px;
+            color: #e1e1e1;
+            line-height: 1.45;
+            white-space: pre-line;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            margin-bottom: 6px;
+        }
+        .comment-text.collapsed {
+            max-height: 52px;
+            overflow: hidden;
+            position: relative;
+        }
+        .comment-text.collapsed::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 28px;
+            background: linear-gradient(rgba(15,15,15,0), rgba(15,15,15,1));
+            pointer-events: none;
+        }
+        .comment-toggle-text {
+            color: #3ea6ff;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-bottom: 6px;
+            user-select: none;
+        }
+        .comment-toggle-text:hover {
+            text-decoration: underline;
+        }
+        .comment-actions {
+            display: flex;
+            align-items: center;
+            height: 24px;
+        }
+        .comment-like-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            color: #aaa;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 20px;
+            user-select: none;
+            transition: background-color 0.15s;
+        }
+        .comment-like-btn:hover {
+            background-color: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        .comment-like-btn svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+        }
+        .no-comments {
+            color: #888;
+            font-size: 14px;
+            padding: 15px 0;
+        }
+        /* Replies toggle */
+        .replies-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #3ea6ff;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 6px 0;
+            margin-bottom: 6px;
+            user-select: none;
+            background: none;
+            border: none;
+            font-family: inherit;
+        }
+        .replies-toggle:hover {
+            text-decoration: underline;
+        }
+        .replies-toggle svg {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s;
+        }
+        .replies-toggle.open svg {
+            transform: rotate(180deg);
+        }
+        .replies-container {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .replies-container.collapsed {
+            max-height: 0 !important;
+        }
+        @media (max-width: 1200px) {
+            .comment-item.reply {
+                margin-left: 36px;
+            }
+        }
+
         .fluid_suggested_videos_container {
             background-color: #0f0f0f !important;
         }
@@ -413,6 +616,13 @@
                     </div>
                 </div>
                 <div id="currentVideoDescription" class="video-description"></div>
+                <div id="commentsSection" class="comments-section">
+                    <div class="comments-header">
+                        <span id="commentsCount" class="comments-count">Comments</span>
+                    </div>
+                    <div class="comments-divider"></div>
+                    <div id="commentsContainer"></div>
+                </div>
             </div>
             <div class="suggestions-wrapper">
                 <div id="videoSuggestions" class="video-suggestions"></div>
@@ -509,6 +719,180 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             return mimeTypes[extension.toLowerCase()] || 'video/mp4';
         }
+
+// ===== COMMENT HELPERS =====
+function getAvatarColor(name) {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = ((hash % 360) + 360) % 360;
+    return `hsl(${hue}, 45%, 38%)`;
+}
+
+function formatRelativeTime(dateStr) {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+    const now = new Date();
+    const diffMs = now - date;
+    const sec = Math.floor(diffMs / 1000);
+    const min = Math.floor(sec / 60);
+    const hr  = Math.floor(min / 60);
+    const day = Math.floor(hr / 24);
+    const wk  = Math.floor(day / 7);
+    const mo  = Math.floor(day / 30);
+    const yr  = Math.floor(day / 365);
+    if (sec < 60) return 'just now';
+    if (min < 60) return min + (min === 1 ? ' minute ago' : ' minutes ago');
+    if (hr < 24)  return hr + (hr === 1 ? ' hour ago' : ' hours ago');
+    if (day < 7)  return day + (day === 1 ? ' day ago' : ' days ago');
+    if (wk < 5)   return wk + (wk === 1 ? ' week ago' : ' weeks ago');
+    if (mo < 12)  return mo + (mo === 1 ? ' month ago' : ' months ago');
+    return yr + (yr === 1 ? ' year ago' : ' years ago');
+}
+
+function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+
+const LIKE_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.77 11h-4.23l1.52-4.94C16.38 5.03 15.54 4 14.38 4c-.58 0-1.14.24-1.52.65L7 11H1v10h6l11.77-10zM7 20H2v-8h5v8zm8.63-15.34c.15-.51-.25-.66-.56-.66-.31 0-.6.15-.84.41L7.62 11h6.01l1.52-4.94L21 11h-2l-7 10h2l7-10z"/></svg>';
+const CHEVRON_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>';
+
+function processCommentText(text) {
+    let escaped = escapeHtml(text);
+
+    const urlRegex = /(https?:\/\/[^\s<]+)/g;
+    escaped = escaped.replace(urlRegex, function(url) {
+        return '<a href="' + url + '" target="_blank" style="color: #3ea6ff; text-decoration: none;">' + url + '</a>';
+    });
+
+    const timestampRegex = /(\b\d{1,2}:\d{2}(?::\d{2})?\b)/g;
+    escaped = escaped.replace(timestampRegex, function(timestamp) {
+        return '<a href="#" onclick="seekToTimestamp(\'' + timestamp + '\'); return false;" style="color: #3ea6ff; text-decoration: none;">' + timestamp + '</a>';
+    });
+
+    return escaped;
+}
+
+function renderSingleComment(comment, isReply, channelPicUrl) {
+    const initial = comment.author.replace('@', '').charAt(0).toUpperCase();
+    const bg = getAvatarColor(comment.author);
+    const isLong = comment.text && comment.text.length > 180;
+    const replyCls = isReply ? ' reply' : '';
+
+    let avatarHtml;
+    if (comment.is_uploader && channelPicUrl) {
+        avatarHtml = `<img class="comment-avatar" src="${channelPicUrl}" alt="">`;
+    } else {
+        avatarHtml = `<div class="comment-avatar" style="background:${bg}">${initial}</div>`;
+    }
+
+    let badges = '';
+    if (comment.is_pinned) {
+        badges += '<span class="comment-pinned-label">📌 Pinned</span>';
+    }
+    if (comment.is_uploader) {
+        badges += '<span class="comment-badge uploader-badge">Uploader</span>';
+    }
+    if (comment.is_verified) {
+        badges += '<span class="comment-badge verified-badge">✓</span>';
+    }
+
+    return `<div class="comment-item${replyCls}">
+        ${avatarHtml}
+        <div class="comment-body">
+            <div class="comment-meta">
+                <span class="comment-author">${escapeHtml(comment.author)}</span>${badges}
+                <span class="comment-timestamp">${formatRelativeTime(comment.published_at)}</span>
+            </div>
+                        <div class="comment-text${isLong ? ' collapsed' : ''}">${processCommentText(comment.text)}</div>
+            ${isLong ? '<div class="comment-toggle-text" data-action="expand">Show more</div>' : ''}
+            <div class="comment-actions">
+                <div class="comment-like-btn">${LIKE_SVG}<span>${comment.likes || 0}</span></div>
+            </div>
+        </div>
+    </div>`;
+}
+
+function renderComments(comments, channelPicUrl) {
+    const container = document.getElementById('commentsContainer');
+    const countEl = document.getElementById('commentsCount');
+
+    if (!comments || comments.length === 0) {
+        countEl.textContent = 'Comments';
+        container.innerHTML = '<div class="no-comments">No comments available for this video.</div>';
+        return;
+    }
+
+    const topLevel = comments.filter(c => !c.is_reply);
+    const replies = comments.filter(c => c.is_reply);
+
+    countEl.textContent = (topLevel.length === 1 ? '1 Comment' : topLevel.length + ' Comments');
+
+    topLevel.sort((a, b) => {
+        if (a.is_pinned && !b.is_pinned) return -1;
+        if (!a.is_pinned && b.is_pinned) return 1;
+        return (b.likes || 0) - (a.likes || 0);
+    });
+    replies.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+
+    let html = '';
+    topLevel.forEach(c => { html += renderSingleComment(c, false, channelPicUrl); });
+
+    if (replies.length > 0) {
+        html += `<button class="replies-toggle" id="repliesToggle">${CHEVRON_SVG} View ${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}</button>`;
+        html += `<div class="replies-container collapsed" id="repliesContainer">`;
+        replies.forEach(r => { html += renderSingleComment(r, true, channelPicUrl); });
+        html += '</div>';
+    }
+
+    container.innerHTML = html;
+
+    container.querySelectorAll('[data-action="expand"]').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const textEl = this.previousElementSibling;
+            if (textEl.classList.contains('collapsed')) {
+                textEl.classList.remove('collapsed');
+                this.textContent = 'Show less';
+            } else {
+                textEl.classList.add('collapsed');
+                this.textContent = 'Show more';
+            }
+        });
+    });
+
+    const toggle = document.getElementById('repliesToggle');
+    const repliesBox = document.getElementById('repliesContainer');
+    if (toggle && repliesBox) {
+        toggle.addEventListener('click', function () {
+            const open = this.classList.toggle('open');
+            if (open) {
+                repliesBox.classList.remove('collapsed');
+                repliesBox.style.maxHeight = repliesBox.scrollHeight + 'px';
+                this.innerHTML = CHEVRON_SVG + ' Hide replies';
+            } else {
+                repliesBox.style.maxHeight = repliesBox.scrollHeight + 'px';
+                requestAnimationFrame(() => { repliesBox.classList.add('collapsed'); });
+                this.innerHTML = CHEVRON_SVG + ` View ${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}`;
+            }
+        });
+    }
+}
+
+async function loadComments(videoSrc, channelPicUrl) {
+    try {
+        const res = await fetch('/api/comments?video=' + encodeURIComponent(videoSrc));
+        if (!res.ok) return renderComments([], channelPicUrl);
+        const data = await res.json();
+        renderComments(data, channelPicUrl);
+    } catch (e) {
+        console.error('Error loading comments:', e);
+        renderComments([], channelPicUrl);
+    }
+}
 
         // Function to open the current channel in a new tab with middle click
         function setupChannelNameWheelClick() {
@@ -747,6 +1131,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({ video: videoSrc })
                 });
             }
+
+            // Load comments for this video
+            const channelPicUrl = `/channelpic/${encodeURIComponent(currentChannel)}.jpg`;
+            loadComments(videoSrc, channelPicUrl);
 
             // --- Sidebar Logic ---
             
