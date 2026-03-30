@@ -108,7 +108,7 @@ body {
 }
 
 .video-item {
-    margin: 0 10px 15px 10px;  /* top, right, bottom, left */
+    margin: 0 10px 5px 10px;  /* top, right, bottom, left */
     background: #0f0f0f;
     overflow: hidden;
     width: 320px;
