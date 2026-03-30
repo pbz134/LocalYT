@@ -239,6 +239,169 @@ def update_json_shortlinks(json_file, old_name, new_name):
     except Exception as e:
         print(f"  [-] Error updating {json_file}: {e}")
 
+# --- JSON UPDATE HELPERS FOR CHANNEL DELETE ---
+
+def remove_json_video_paths(json_file, channel_name):
+    """Remove video paths for a channel from likes/dislikes JSON files"""
+    try:
+        j_path = os.path.join(BASE_DIR, json_file)
+        if not os.path.exists(j_path):
+            return
+        
+        with open(j_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        prefix = f"{channel_name}/"
+        modified = False
+        
+        for user_id, videos in data.items():
+            if isinstance(videos, dict):
+                new_videos = {k: v for k, v in videos.items() if not k.startswith(prefix)}
+                if len(new_videos) != len(videos):
+                    data[user_id] = new_videos
+                    modified = True
+        
+        if modified:
+            with open(j_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2)
+            print(f"  [+] Removed channel entries from {json_file}")
+    except Exception as e:
+        print(f"  [-] Error updating {json_file}: {e}")
+
+def remove_json_channel_keys(json_file, channel_name):
+    """Remove channel key from subscriptions JSON file"""
+    try:
+        j_path = os.path.join(BASE_DIR, json_file)
+        if not os.path.exists(j_path):
+            return
+        
+        with open(j_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        modified = False
+        
+        for user_id, channels in data.items():
+            if isinstance(channels, dict) and channel_name in channels:
+                del channels[channel_name]
+                modified = True
+        
+        if modified:
+            with open(j_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2)
+            print(f"  [+] Removed channel from {json_file}")
+    except Exception as e:
+        print(f"  [-] Error updating {json_file}: {e}")
+
+def remove_json_history(json_file, channel_name):
+    """Remove video paths for a channel from watchHistory JSON file"""
+    try:
+        j_path = os.path.join(BASE_DIR, json_file)
+        if not os.path.exists(j_path):
+            return
+        
+        with open(j_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        prefix = f"{channel_name}/"
+        modified = False
+        
+        for user_id, history in data.items():
+            if isinstance(history, list):
+                original_len = len(history)
+                new_history = []
+                for item in history:
+                    remove = False
+                    if isinstance(item, dict) and 'video' in item:
+                        if item['video'].startswith(prefix):
+                            remove = True
+                    elif isinstance(item, str):
+                        if item.startswith(prefix):
+                            remove = True
+                    if not remove:
+                        new_history.append(item)
+                if len(new_history) != original_len:
+                    data[user_id] = new_history
+                    modified = True
+        
+        if modified:
+            with open(j_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2)
+            print(f"  [+] Removed channel entries from {json_file}")
+    except Exception as e:
+        print(f"  [-] Error updating {json_file}: {e}")
+
+def remove_json_shortlinks(json_file, channel_name):
+    """Remove video paths for a channel from shortlinks JSON file"""
+    try:
+        j_path = os.path.join(BASE_DIR, json_file)
+        if not os.path.exists(j_path):
+            return
+        
+        with open(j_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        prefix = f"{channel_name}/"
+        new_data = {k: v for k, v in data.items() if not k.startswith(prefix)}
+        
+        if len(new_data) != len(data):
+            with open(j_path, 'w', encoding='utf-8') as f:
+                json.dump(new_data, f, indent=2)
+            print(f"  [+] Removed channel entries from {json_file}")
+    except Exception as e:
+        print(f"  [-] Error updating {json_file}: {e}")
+
+def remove_channel_from_cache(json_file, channel_name):
+    """Remove channel entries from cache JSON files"""
+    try:
+        j_path = os.path.join(BASE_DIR, json_file)
+        if not os.path.exists(j_path):
+            return
+        
+        with open(j_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        modified = False
+        prefix = f"{channel_name}/"
+        
+        if isinstance(data, dict):
+            # Check if channel is a top-level key
+            if channel_name in data:
+                del data[channel_name]
+                modified = True
+            # Also check for paths with channel prefix
+            new_data = {k: v for k, v in data.items() if not k.startswith(prefix)}
+            if len(new_data) != len(data):
+                data = new_data
+                modified = True
+        elif isinstance(data, list):
+            # If it's a list, filter out entries with the channel prefix
+            new_data = []
+            for item in data:
+                if isinstance(item, dict):
+                    path_fields = ['path', 'video', 'videoPath']
+                    remove = False
+                    for field in path_fields:
+                        if field in item and isinstance(item[field], str) and item[field].startswith(prefix):
+                            remove = True
+                            break
+                    if not remove:
+                        new_data.append(item)
+                elif isinstance(item, str):
+                    if not item.startswith(prefix):
+                        new_data.append(item)
+                else:
+                    new_data.append(item)
+            if len(new_data) != len(data):
+                data = new_data
+                modified = True
+        
+        if modified:
+            with open(j_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2)
+            print(f"  [+] Removed channel from {json_file}")
+    except Exception as e:
+        print(f"  [-] Error updating {json_file}: {e}")
+
 def rename_channel(old_name, new_name):
     print(f"\n[*] Attempting to rename '{old_name}' to '{new_name}'...")
     
@@ -297,6 +460,46 @@ def rename_channel(old_name, new_name):
     update_json_shortlinks('shortlinks.json', old_name, new_name)
     
     print("[*] Channel rename complete!\n")
+
+def delete_channel(channel_name):
+    print(f"\n[*] Attempting to delete channel '{channel_name}'...")
+    
+    # Delete folders
+    for folder in CHANNEL_FOLDERS:
+        try:
+            folder_path = os.path.join(BASE_DIR, folder, channel_name)
+            if os.path.exists(folder_path):
+                shutil.rmtree(folder_path)
+                print(f"  [+] Deleted folder: {folder}/{channel_name}")
+        except Exception as e:
+            print(f"  [-] Error deleting {folder}/{channel_name}: {e}")
+    
+    # Delete channel files
+    for folder in CHANNEL_FILES:
+        try:
+            dir_path = os.path.join(BASE_DIR, folder)
+            if os.path.exists(dir_path):
+                for file in os.listdir(dir_path):
+                    name, ext = os.path.splitext(file)
+                    if name == channel_name:
+                        file_path = os.path.join(dir_path, file)
+                        os.remove(file_path)
+                        print(f"  [+] Deleted file: {folder}/{file}")
+        except Exception as e:
+            print(f"  [-] Error deleting from {folder}: {e}")
+    
+    # Remove from cache files
+    remove_channel_from_cache('video_cache.json', channel_name)
+    remove_channel_from_cache('recommendation_index.json', channel_name)
+    
+    # Remove from user data JSON files
+    remove_json_video_paths('likes.json', channel_name)
+    remove_json_video_paths('dislikes.json', channel_name)
+    remove_json_channel_keys('subscriptions.json', channel_name)
+    remove_json_history('watchHistory.json', channel_name)
+    remove_json_shortlinks('shortlinks.json', channel_name)
+    
+    print("[*] Channel deletion complete!\n")
 
 def clear_database():
     print("\nWARNING: CLEARING ALL DATABASE FILES")
@@ -735,7 +938,6 @@ def main_menu():
             print("=" * 45)
             print("       LocalYT Debug Tool")
             print("=" * 45)
-            print(" --- INFORMATION ---")
             print(" 1.  Return LocalYT Stats")
             print(" 2.  Return Total Storage Size of a Channel")
             print(" 3.  Return Amount of Videos in a Channel")
@@ -744,12 +946,14 @@ def main_menu():
             print(" 6.  Return Total Amount of Media Files")
             print(" 7.  Return Total Video Length of a Channel")
             print(" 8.  Rename a Channel & Metadata")
-            print(" 9.  Clear Database (DANGEROUS)")
-            print(" 10. List & Delete Accounts")
-            print(" 11. Reset User Password")
-            print(" 12. Re-initiate Cache Scan")
-            print(" 13. Reboot Server")
-            print(" 14. Log Out All Users")
+            print(" 9.  Delete a Channel & Metadata (DANGEROUS)")
+            print(" 10. Clear Database (DANGEROUS)")
+            print(" 11. List & Delete Accounts")
+            print(" 12. Reset User Password")
+            print(" 13. Re-initiate Cache Scan")
+            print(" 14. Reboot Server")
+            print(" 15. Log Out All Users")
+            print(" ---")
             print(" 0.  Exit")
             print("=" * 45)
             
@@ -797,26 +1001,51 @@ def main_menu():
                 input("Press Enter to return...")
             
             elif choice == '9':
-                clear_database()
+                ch = input("Enter channel name to DELETE: ")
+                if ch:
+                    # Show channel info before deletion
+                    size = get_channel_size(ch)
+                    vid_count = get_channel_video_count(ch)
+                    print(f"\n--- CHANNEL TO BE DELETED ---")
+                    print(f" Channel: {ch}")
+                    print(f" Videos:  {vid_count}")
+                    print(f" Size:    {format_size(size)}")
+                    print("-------------------------------")
+                    try:
+                        confirm = input("Type the channel name to confirm deletion: ")
+                    except:
+                        print("\nCancelled.\n")
+                        input("Press Enter to return...")
+                        continue
+                    if confirm == ch:
+                        delete_channel(ch)
+                    else:
+                        print("\n[-] Confirmation failed. Channel not deleted.\n")
+                else:
+                    print("\n[-] Invalid input.\n")
                 input("Press Enter to return...")
             
             elif choice == '10':
-                manage_accounts()
+                clear_database()
                 input("Press Enter to return...")
             
             elif choice == '11':
-                reset_user_password()
+                manage_accounts()
                 input("Press Enter to return...")
             
             elif choice == '12':
-                reinitiate_cache_scan()
+                reset_user_password()
                 input("Press Enter to return...")
             
             elif choice == '13':
-                reboot_server()
+                reinitiate_cache_scan()
                 input("Press Enter to return...")
             
             elif choice == '14':
+                reboot_server()
+                input("Press Enter to return...")
+            
+            elif choice == '15':
                 logout_all_users()
                 input("Press Enter to return...")
             
