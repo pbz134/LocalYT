@@ -9,6 +9,12 @@ v3.75
   - These links, when opened, will redirect to the video like usual
 - Added debug tools at /LocalYT-Debug to manage your LocalYT data, accounts and stats with cmd commands
   - You can regenerate an account password if you (or another user) forgot it, since Bcrypt is not reversible
+- Added support for video comments
+  - Comments inside channel folders of /comments will show under a video, including their replies
+  - Uploaders' comments will be marked and will use their respective channel picture
+  - Long comments can be expanded and collapsed by clicking "Show more" or "Show less"
+- The video description (if longer than 8 lines) can be expanded and collapsed by clicking "Show more" or "Show less"
+- Removed "Uploaded on" from index.html
 
 v3.70
 - Added settings.html; The new settings page allows you to:
