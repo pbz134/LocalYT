@@ -429,7 +429,7 @@ function createVideoElement(video, container) {
         // Clean the fileDate by removing any line breaks and extra whitespace
         const cleanFileDate = fileDate.replace(/\s+/g, ' ').trim();
         
-        metadataDiv.textContent = `${formattedViewCount} views • Uploaded on ${cleanFileDate}`;
+        metadataDiv.textContent = `${formattedViewCount} views • ${cleanFileDate}`;
     })
     .catch(error => {
         console.error('Error fetching metadata:', error);

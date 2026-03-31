@@ -168,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Clean the fileDate
                 const cleanFileDate = fileDate.replace(/\s+/g, ' ').trim();
                 
-                descriptionDiv.textContent = `${formattedViewCount} views • Uploaded on ${cleanFileDate}`;
+                descriptionDiv.textContent = `${formattedViewCount} views • ${cleanFileDate}`;
             })
             .catch(error => {
                 console.error('Error fetching metadata:', error);
