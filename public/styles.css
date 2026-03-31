@@ -50,9 +50,9 @@ body {
     display: flex;
     align-items: center;
     justify-content: center; 
-    width: 100%;
+    flex: 1;
     max-width: 600px;
-    margin: 0 auto 0 25%;
+    margin: 0 auto;
     position: relative; 
 }
 
