@@ -1,0 +1,66 @@
+Tutorial:
+
+- node-js installieren
+
+- ffmpeg installieren (Ordner mit "bin", "doc", "presets" in C:\ entpacken und Ordner "bin" zu den Umgebungsvariablen PATH hinzufügen)
+
+- .mp4/.mkv/.mp3-Dateien in den Ordner "videos" legen
+
+- "#Setup-or-Update.bat" ausführen, danach "#Launch-Server.bat" ausführen
+- Sollten neue Videos hinzugefügt oder gelöscht werden, muss "#Setup-or-Update.bat" wieder ausgeführt werden
+
+Fehlende Metadaten werden beim Ausführen von "#Setup-or-Update.bat" automatisch generiert
+
+----------------------------------------------------------------------------------------------------
+
+Videobeschreibungen sollten in /descriptions/Kanal/ kopiert werden!
+Beispiel: /descriptions/Modern Vintage Gamer/After 3 years...Rockstar has fixed GTA Trilogy Definitive Edition..txt
+
+Playlisten können automatisch generiert werden, indem ein Unterordner eines Kanals in "/videos" mit Videodateien erstellt wird. Beispiel:
+
+"/videos/Modern Vintage Gamer/Xbox/video.mp4"
+
+----------------------------------------------------------------------------------------------------
+
+LocalYT unterstützt Unterordner! Beispiel:
+/videos/penguinz0/video.mp4
+/videos/penguinz0/playlist/video.mp4
+/videolengths/penguinz0/video.txt
+/thumbnails/penguinz0/video.jpg
+/filedates/penguinz0/video.txt
+/channelpic/penguinz0.jpg
+/channelbanner/penguinz0.jpg
+/descriptions/video.txt
+/subcount/penguinz0.txt
+/comments/penguinz0/video.txt
+
+----------------------------------------------------------------------------------------------------
+
+Aus Unterordnern werden automatisch Kanäle erstellt (für Kanalseiten auf channel.html und für die Suchfunktion)
+
+Thumbnails, Kanalbilder und Kanalbanner werden nur als .jpg unterstützt! Vorher sollte man die Dateien also ggf. in .jpg konvertieren!
+
+Likes und Dislikes werden permanent gespeichert
+
+Für Videos, die keinem Kanal angehören, kann ein Platzhalterkanal in /videos erstellt werden
+
+----------------------------------------------------------------------------------------------------
+
+Empfehlungs-Algorithmus:
+
+LocalYT besitzt einen Algorithmus, der auf Basis des Nutzerverhaltens passende Videos empfiehlt
+
+Präferenzen werden in "userpreferences.json" gespeichert, solange der jeweilige Nutzer angemeldet ist
+Ohne Anmeldung werden keine Daten und somit auch keine Präferenzen gespeichert
+
+Damit LocalYT weiß, wovon jedes Video handelt, werden Videos auf Basis des Titels und der Videobeschreibung (falls vorhanden) getagged
+
+----------------------------------------------------------------------------------------------------
+
+Metadaten hinzufügen:
+
+- "LocalYT-Debug\get_latest_ytdlp.bat" ausführen, um die aktuellste yt-dlp-Version herunterzuladen
+
+- "LocalYT-Debug\download_channel_or_playlist.bat" ausführen, um Kanal- und Playlist-Links zu holen
+
+- "LocalYT-Debug\Fetch_GUI.bat" ausführen, um Metadaten zu diesen Videolinks zu holen (diese werden automatisch in LocalYT eingefügt)

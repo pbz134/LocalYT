@@ -15,6 +15,8 @@ v3.75
   - Long comments can be expanded and collapsed by clicking "Show more" or "Show less"
 - The video description (if longer than 8 lines) can be expanded and collapsed by clicking "Show more" or "Show less"
 - Removed "Uploaded on" from index.html
+- Added scripts to LocalYT-Debug that allow you to easily fetch all metadata for whole channels or playlists
+- Updated #Setup-Tutorial.txt
 
 v3.70
 - Added settings.html; The new settings page allows you to:
