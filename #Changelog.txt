@@ -1,6 +1,6 @@
 +++LocalYT Revamped - Changelog+++
 
-v3.75
+v3.80
 - Implemented advanced conditional video tagging
   - More specific keywords in video titles will now automatically be matched to tags
   - This saves on resources and time while tagging videos for the algorithm
