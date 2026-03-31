@@ -1010,41 +1010,118 @@ function renderSingleComment(comment, isReply, channelPicUrl) {
     </div>`;
 }
 
-function renderComments(comments, channelPicUrl) {
+// ===== COMMENT LAZY-LOADING STATE =====
+let _lazyCommentsState = {
+    allTopLevel: [],
+    allReplies: [],
+    channelPicUrl: '',
+    renderedCount: 0,
+    batchSize: 30,
+    observer: null,
+    loading: false
+};
+
+function renderCommentsBatch() {
+    const state = _lazyCommentsState;
     const container = document.getElementById('commentsContainer');
     const countEl = document.getElementById('commentsCount');
 
-    if (!comments || comments.length === 0) {
-        countEl.textContent = 'Comments';
-        container.innerHTML = '<div class="no-comments">No comments available for this video.</div>';
+    countEl.textContent = (state.allTopLevel.length === 1 ? '1 Comment' : state.allTopLevel.length + ' Comments');
+
+    const start = state.renderedCount;
+    const end = Math.min(start + state.batchSize, state.allTopLevel.length);
+
+    let html = '';
+    for (let i = start; i < end; i++) {
+        html += renderSingleComment(state.allTopLevel[i], false, state.channelPicUrl);
+    }
+
+    const sentinel = document.getElementById('commentsSentinel');
+    if (sentinel) sentinel.remove();
+    container.insertAdjacentHTML('beforeend', html);
+
+    state.renderedCount = end;
+
+    bindCommentTextToggles(container);
+
+    if (state.renderedCount >= state.allTopLevel.length) {
+        showRepliesSection();
         return;
     }
 
-    const topLevel = comments.filter(c => !c.is_reply);
-    const replies = comments.filter(c => c.is_reply);
+    ensureSentinel(container);
+    ensureObserver();
+}
 
-    countEl.textContent = (topLevel.length === 1 ? '1 Comment' : topLevel.length + ' Comments');
+function ensureSentinel(container) {
+    const sentinel = document.createElement('div');
+    sentinel.id = 'commentsSentinel';
+    sentinel.style.height = '1px';
+    container.appendChild(sentinel);
+}
 
-    topLevel.sort((a, b) => {
-        if (a.is_pinned && !b.is_pinned) return -1;
-        if (!a.is_pinned && b.is_pinned) return 1;
-        return (b.likes || 0) - (a.likes || 0);
-    });
-    replies.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+function ensureObserver() {
+    const state = _lazyCommentsState;
+    if (state.observer) state.observer.disconnect();
 
-    let html = '';
-    topLevel.forEach(c => { html += renderSingleComment(c, false, channelPicUrl); });
+    state.observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && !state.loading && state.renderedCount < state.allTopLevel.length) {
+            state.loading = true;
+            requestAnimationFrame(() => {
+                renderCommentsBatch();
+                state.loading = false;
+            });
+        }
+    }, { rootMargin: '200px' });
 
-    if (replies.length > 0) {
-        html += `<button class="replies-toggle" id="repliesToggle">${CHEVRON_SVG} View ${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}</button>`;
+    const sentinel = document.getElementById('commentsSentinel');
+    if (sentinel) state.observer.observe(sentinel);
+}
+
+function showRepliesSection() {
+    const state = _lazyCommentsState;
+    const container = document.getElementById('commentsContainer');
+
+    if (state.allReplies.length > 0) {
+        const repliesSection = document.createElement('div');
+        repliesSection.id = 'repliesSection';
+
+        let html = `<button class="replies-toggle" id="repliesToggle">${CHEVRON_SVG} View ${state.allReplies.length} ${state.allReplies.length === 1 ? 'reply' : 'replies'}</button>`;
         html += `<div class="replies-container collapsed" id="repliesContainer">`;
-        replies.forEach(r => { html += renderSingleComment(r, true, channelPicUrl); });
+        state.allReplies.forEach(r => { html += renderSingleComment(r, true, state.channelPicUrl); });
         html += '</div>';
+
+        repliesSection.innerHTML = html;
+        container.appendChild(repliesSection);
+
+        const toggle = document.getElementById('repliesToggle');
+        const repliesBox = document.getElementById('repliesContainer');
+        if (toggle && repliesBox) {
+            toggle.addEventListener('click', function () {
+                const open = this.classList.toggle('open');
+                if (open) {
+                    repliesBox.classList.remove('collapsed');
+                    repliesBox.style.maxHeight = repliesBox.scrollHeight + 'px';
+                    this.innerHTML = CHEVRON_SVG + ' Hide replies';
+                } else {
+                    repliesBox.style.maxHeight = repliesBox.scrollHeight + 'px';
+                    requestAnimationFrame(() => { repliesBox.classList.add('collapsed'); });
+                    this.innerHTML = CHEVRON_SVG + ` View ${state.allReplies.length} ${state.allReplies.length === 1 ? 'reply' : 'replies'}`;
+                }
+            });
+        }
     }
 
-    container.innerHTML = html;
+    if (state.observer) {
+        state.observer.disconnect();
+        state.observer = null;
+    }
+}
 
+function bindCommentTextToggles(container) {
     container.querySelectorAll('[data-action="expand"]').forEach(btn => {
+        if (btn._bound) return;
+        btn._bound = true;
         btn.addEventListener('click', function () {
             const textEl = this.previousElementSibling;
             if (textEl.classList.contains('collapsed')) {
@@ -1056,23 +1133,42 @@ function renderComments(comments, channelPicUrl) {
             }
         });
     });
+}
 
-    const toggle = document.getElementById('repliesToggle');
-    const repliesBox = document.getElementById('repliesContainer');
-    if (toggle && repliesBox) {
-        toggle.addEventListener('click', function () {
-            const open = this.classList.toggle('open');
-            if (open) {
-                repliesBox.classList.remove('collapsed');
-                repliesBox.style.maxHeight = repliesBox.scrollHeight + 'px';
-                this.innerHTML = CHEVRON_SVG + ' Hide replies';
-            } else {
-                repliesBox.style.maxHeight = repliesBox.scrollHeight + 'px';
-                requestAnimationFrame(() => { repliesBox.classList.add('collapsed'); });
-                this.innerHTML = CHEVRON_SVG + ` View ${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}`;
-            }
-        });
+function renderComments(comments, channelPicUrl) {
+    const container = document.getElementById('commentsContainer');
+    const countEl = document.getElementById('commentsCount');
+
+    if (_lazyCommentsState.observer) {
+        _lazyCommentsState.observer.disconnect();
+        _lazyCommentsState.observer = null;
     }
+
+    container.innerHTML = '';
+
+    if (!comments || comments.length === 0) {
+        countEl.textContent = 'Comments';
+        container.innerHTML = '<div class="no-comments">No comments available for this video.</div>';
+        return;
+    }
+
+    const topLevel = comments.filter(c => !c.is_reply);
+    const replies = comments.filter(c => c.is_reply);
+
+    topLevel.sort((a, b) => {
+        if (a.is_pinned && !b.is_pinned) return -1;
+        if (!a.is_pinned && b.is_pinned) return 1;
+        return (b.likes || 0) - (a.likes || 0);
+    });
+    replies.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+
+    _lazyCommentsState.allTopLevel = topLevel;
+    _lazyCommentsState.allReplies = replies;
+    _lazyCommentsState.channelPicUrl = channelPicUrl;
+    _lazyCommentsState.renderedCount = 0;
+    _lazyCommentsState.loading = false;
+
+    renderCommentsBatch();
 }
 
 async function loadComments(videoSrc, channelPicUrl) {
