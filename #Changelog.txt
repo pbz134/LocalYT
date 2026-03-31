@@ -25,6 +25,7 @@ v3.80
 - Removed rounded corners from video elements on playlist.html
 - Slightly increased the video player size
 - Made the Like/Dislike, Share and Save buttons responsive
+- Removed "Uploaded on" below video titles
 
 v3.70
 - Added settings.html; The new settings page allows you to:
