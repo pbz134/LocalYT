@@ -17,6 +17,7 @@ v3.75
 - Removed "Uploaded on" from index.html
 - Added scripts to LocalYT-Debug that allow you to easily fetch all metadata for whole channels or playlists
 - Updated #Setup-Tutorial.txt
+- Optimized MovePlaylistMetadata.py by making use of directory indexing
 
 v3.70
 - Added settings.html; The new settings page allows you to:
