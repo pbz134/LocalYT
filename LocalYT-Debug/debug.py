@@ -433,7 +433,7 @@ def rename_channel(old_name, new_name):
     new_path_str = f"{new_name}/"
     
     # Update cache files (string replacement for paths)
-    for json_file in ['video_cache.json', 'recommendation_index.json']:
+    for json_file in ['video_cache.json', 'recommendation_index.json', 'video_cache.json']:
         try:
             j_path = os.path.join(BASE_DIR, json_file)
             if os.path.exists(j_path):
@@ -700,7 +700,8 @@ def reinitiate_cache_scan():
     """Delete cache files so server rebuilds them on next startup"""
     files_to_delete = [
         os.path.join(BASE_DIR, 'recommendation_index.json'),
-        os.path.join(BASE_DIR, 'video_cache.json')
+        os.path.join(BASE_DIR, 'video_cache.json'),
+        os.path.join(BASE_DIR, 'shortlinks.json')
     ]
     
     print("\n[*] Re-initiating cache scan...")
