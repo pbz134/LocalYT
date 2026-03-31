@@ -948,6 +948,136 @@ app.get('/api/comments', (req, res) => {
     });
 });
 
+// ========== PLAYLIST ROUTES ==========
+
+app.get('/user-playlists', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('User not authenticated');
+    const playlistsFilePath = path.join(__dirname, 'user-playlists.json');
+    fs.readFile(playlistsFilePath, 'utf8', (err, data) => {
+        if (err) return res.json({});
+        try {
+            const allPlaylists = JSON.parse(data);
+            res.json(allPlaylists[userId] || {});
+        } catch (e) {
+            res.json({});
+        }
+    });
+});
+
+app.get('/user-playlist-details', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('User not authenticated');
+    const playlistsFilePath = path.join(__dirname, 'user-playlists.json');
+    fs.readFile(playlistsFilePath, 'utf8', (err, data) => {
+        let allPlaylists = {};
+        if (!err) {
+            try { allPlaylists = JSON.parse(data); } catch (e) {}
+        }
+        const userPlaylists = allPlaylists[userId] || {};
+        const result = {};
+        for (const [name, videos] of Object.entries(userPlaylists)) {
+            const validVideos = videos.filter(vPath => videoCache.has(vPath));
+            result[name] = validVideos.map(vPath => {
+                const video = videoCache.get(vPath);
+                return getVideoDetails([video])[0];
+            });
+        }
+        res.json(result);
+    });
+});
+
+app.post('/create-playlist', (req, res) => {
+    const { name } = req.body;
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('User not authenticated');
+    if (!name || !name.trim()) return res.status(400).send('Playlist name is required');
+    const playlistsFilePath = path.join(__dirname, 'user-playlists.json');
+    fs.readFile(playlistsFilePath, 'utf8', (err, data) => {
+        let allPlaylists = {};
+        if (!err) {
+            try { allPlaylists = JSON.parse(data); } catch (e) {}
+        }
+        if (!allPlaylists[userId]) allPlaylists[userId] = {};
+        if (allPlaylists[userId][name.trim()]) {
+            return res.status(409).send('Playlist already exists');
+        }
+        allPlaylists[userId][name.trim()] = [];
+        fs.writeFile(playlistsFilePath, JSON.stringify(allPlaylists, null, 2), err => {
+            if (err) return res.status(500).send('Error saving playlist');
+            res.sendStatus(200);
+        });
+    });
+});
+
+app.post('/save-to-playlist', (req, res) => {
+    const { playlist, video } = req.body;
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('User not authenticated');
+    if (!playlist || !video) return res.status(400).send('Playlist and video are required');
+    const playlistsFilePath = path.join(__dirname, 'user-playlists.json');
+    fs.readFile(playlistsFilePath, 'utf8', (err, data) => {
+        let allPlaylists = {};
+        if (!err) {
+            try { allPlaylists = JSON.parse(data); } catch (e) {}
+        }
+        if (!allPlaylists[userId]) allPlaylists[userId] = {};
+        if (!allPlaylists[userId][playlist]) allPlaylists[userId][playlist] = [];
+        if (allPlaylists[userId][playlist].includes(video)) {
+            return res.status(409).send('Video already in playlist');
+        }
+        allPlaylists[userId][playlist].push(video);
+        fs.writeFile(playlistsFilePath, JSON.stringify(allPlaylists, null, 2), err => {
+            if (err) return res.status(500).send('Error saving to playlist');
+            res.sendStatus(200);
+        });
+    });
+});
+
+app.post('/delete-playlist', (req, res) => {
+    const { name } = req.body;
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('User not authenticated');
+    const playlistsFilePath = path.join(__dirname, 'user-playlists.json');
+    fs.readFile(playlistsFilePath, 'utf8', (err, data) => {
+        let allPlaylists = {};
+        if (!err) {
+            try { allPlaylists = JSON.parse(data); } catch (e) {}
+        }
+        if (allPlaylists[userId] && allPlaylists[userId][name]) {
+            delete allPlaylists[userId][name];
+            fs.writeFile(playlistsFilePath, JSON.stringify(allPlaylists, null, 2), err => {
+                if (err) return res.status(500).send('Error deleting playlist');
+                res.sendStatus(200);
+            });
+        } else {
+            res.status(404).send('Playlist not found');
+        }
+    });
+});
+
+app.post('/remove-from-playlist', (req, res) => {
+    const { playlist, video } = req.body;
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('User not authenticated');
+    const playlistsFilePath = path.join(__dirname, 'user-playlists.json');
+    fs.readFile(playlistsFilePath, 'utf8', (err, data) => {
+        let allPlaylists = {};
+        if (!err) {
+            try { allPlaylists = JSON.parse(data); } catch (e) {}
+        }
+        if (allPlaylists[userId] && allPlaylists[userId][playlist]) {
+            allPlaylists[userId][playlist] = allPlaylists[userId][playlist].filter(v => v !== video);
+            fs.writeFile(playlistsFilePath, JSON.stringify(allPlaylists, null, 2), err => {
+                if (err) return res.status(500).send('Error removing from playlist');
+                res.sendStatus(200);
+            });
+        } else {
+            res.status(404).send('Playlist not found');
+        }
+    });
+});
+
 app.get('/subcount/:channel', (req, res) => {
     const channel = req.params.channel;
     const filePath = path.join(__dirname, 'subcount', `${channel}.txt`);

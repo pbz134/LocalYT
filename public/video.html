@@ -37,6 +37,17 @@
             align-items: center;
             margin: 10px 0;
         }
+        .channel-left {
+            display: flex;
+            align-items: center;
+        }
+        .channel-right {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            margin-left: auto;
+            padding-right: 50px;
+        }
         .channel-pic {
             width: 30px;
             height: 30px;
@@ -181,7 +192,6 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-left: auto;
         }
         .like-dislike-icons {
             display: flex;
@@ -198,7 +208,7 @@
             font-family: 'RobotoRegular', Arial, sans-serif;
             font-size: 14px;
             color: #aaa;
-            margin-right: 20px;
+            margin-right: 15px;
         }
         .like-dislike-bar-container {
             width: 140px;
@@ -206,7 +216,7 @@
             background-color: #235cad;
             border-radius: 2px;
             margin-top: 6px;
-            margin-left: -20px;
+            margin-left: -15px;
         }
         .like-bar {
             height: 100%;
@@ -216,7 +226,7 @@
         .share-container {
             display: flex;
             align-items: center;
-            margin-left: 70px;
+            margin-left: 25px;
         }
         .share-container img {
             width: 25px;
@@ -228,7 +238,144 @@
             font-family: 'RobotoRegular', Arial, sans-serif;
             font-size: 14px;
             color: #aaa;
-            margin-right: 50px;
+            margin-right: 25px;
+        }
+        .save-container {
+            display: flex;
+            align-items: center;
+            margin-left: 30px;
+            cursor: pointer;
+        }
+        .save-container img {
+            width: 25px;
+            height: 25px;
+            margin-right: 8px;
+            filter: invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%);
+        }
+        .save-container span {
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        /* Save to Playlist Modal */
+        .save-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+        .save-modal-content {
+            background-color: #1a1a1a;
+            padding: 20px;
+            border-radius: 8px;
+            width: 380px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        .save-modal-content h2 {
+            font-family: 'Kaleko205Round', Arial, sans-serif;
+            color: #fff;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .save-modal-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 22px;
+            font-weight: bold;
+            color: #fff;
+            background: none;
+            border: none;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        .save-modal-close:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .no-playlists-message {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .save-playlist-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #d2cfcf;
+            font-size: 14px;
+            transition: background-color 0.15s;
+        }
+        .save-playlist-item:hover {
+            background-color: #3f3f3f;
+        }
+        .save-playlist-item.already-saved {
+            color: #888;
+            cursor: default;
+        }
+        .save-playlist-item.already-saved:hover {
+            background-color: transparent;
+        }
+        .save-playlist-item .playlist-video-count {
+            color: #666;
+            font-size: 12px;
+            margin-left: 6px;
+        }
+        .save-playlist-item .check-icon {
+            color: #fff;
+            font-size: 18px;
+        }
+        .create-playlist-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #3f3f3f;
+        }
+        .create-playlist-row input {
+            flex: 1;
+            background: #0f0f0f;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 8px 10px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+        }
+        .create-playlist-row input:focus {
+            border-color: #3ea6ff;
+        }
+        .create-playlist-row button {
+            background-color: #3ea6ff;
+            color: #000;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            white-space: nowrap;
+        }
+        .create-playlist-row button:hover {
+            background-color: #65b8ff;
         }
         .sub-count {
             font-size: 12px;
@@ -238,7 +385,8 @@
             margin-top: 0;
         }
         .subscribe-button {
-            margin-left: 10px;
+            margin-left: 15px; /* Increased margin to prevent squishing */
+            margin-right: 15px; /* Added margin to separate from action buttons */
             padding: 5px 10px;
             cursor: pointer;
             font-family: 'RobotoRegular', Arial, sans-serif;
@@ -613,28 +761,34 @@
                 </div>
                 <div id="currentVideoTitle" class="current-video-title"></div>
                 <div id="channelInfo" class="channel-info">
-                    <img id="channelPic" class="channel-pic" alt="Channel Picture">
-                    
-                    <div class="channel-text-group">
-                        <div id="channelName" class="channel-name" id="channelNameLink" onclick="openChannelPage()"></div>
-                        <div id="subCount" class="sub-count"></div>
-                    </div>
-
-                    <button id="subscribeButton" class="subscribe-button">Subscribe</button>
-                    <div id="likeDislikeContainer" class="like-dislike-container">
-                        <div class="like-dislike-icons">
-                            <img id="likeButton" src="LocalYT-Rev-Files/like.svg" alt="Like">
-                            <span id="likeCount"></span>
-                            <img id="dislikeButton" src="LocalYT-Rev-Files/dislike.svg" alt="Dislike">
-                            <span id="dislikeCount"></span>
+                    <div class="channel-left">
+                        <img id="channelPic" class="channel-pic" alt="Channel Picture">
+                        <div class="channel-text-group">
+                            <div id="channelName" class="channel-name" onclick="openChannelPage()"></div>
+                            <div id="subCount" class="sub-count"></div>
                         </div>
-                        <div class="like-dislike-bar-container">
-                            <div id="likeBar" class="like-bar"></div>
-                        </div>
+                        <button id="subscribeButton" class="subscribe-button">Subscribe</button>
                     </div>
-                    <div id="shareContainer" class="share-container">
-                        <img src="LocalYT-Rev-Files/Share.svg" alt="Share">
-                        <span>Share</span>
+                    <div class="channel-right">
+                        <div id="likeDislikeContainer" class="like-dislike-container">
+                            <div class="like-dislike-icons">
+                                <img id="likeButton" src="LocalYT-Rev-Files/like.svg" alt="Like">
+                                <span id="likeCount"></span>
+                                <img id="dislikeButton" src="LocalYT-Rev-Files/dislike.svg" alt="Dislike">
+                                <span id="dislikeCount"></span>
+                            </div>
+                            <div class="like-dislike-bar-container">
+                                <div id="likeBar" class="like-bar"></div>
+                            </div>
+                        </div>
+                        <div id="shareContainer" class="share-container">
+                            <img src="LocalYT-Rev-Files/Share.svg" alt="Share">
+                            <span>Share</span>
+                        </div>
+                        <div id="saveContainer" class="save-container">
+                            <img src="LocalYT-Rev-Files/save.svg" alt="Save">
+                            <span>Save</span>
+                        </div>
                     </div>
                 </div>
         <div id="currentVideoDescription" class="video-description"></div>
@@ -662,6 +816,18 @@
     </div>
     <div id="copyMessage" class="copy-message">
         Video URL copied to clipboard!
+    </div>
+    <div id="saveModal" class="save-modal">
+        <div class="save-modal-content">
+            <button class="save-modal-close" id="saveModalClose">&times;</button>
+            <h2>Save to Playlist</h2>
+            <p id="noPlaylistsMessage" class="no-playlists-message" style="display:none;">No playlists yet. Create one below.</p>
+            <div id="savePlaylistList"></div>
+            <div class="create-playlist-row">
+                <input type="text" id="newPlaylistName" placeholder="New playlist name" maxlength="100">
+                <button id="createPlaylistBtn">Create</button>
+            </div>
+        </div>
     </div>
     <script>
 // Natural sorting function for videos with numbers in titles
@@ -1676,6 +1842,120 @@ document.addEventListener('click', function(e) {
                     copyMessage.style.display = 'none';
                 }, 2000);
             }
+
+// ===== PASTE THE SAVE TO PLAYLIST BLOCK RIGHT HERE =====
+
+            // ===== SAVE TO PLAYLIST =====
+            const saveContainer = document.getElementById('saveContainer');
+            const saveModal = document.getElementById('saveModal');
+            const saveModalClose = document.getElementById('saveModalClose');
+            const savePlaylistList = document.getElementById('savePlaylistList');
+            const noPlaylistsMessage = document.getElementById('noPlaylistsMessage');
+            const newPlaylistNameInput = document.getElementById('newPlaylistName');
+            const createPlaylistBtn = document.getElementById('createPlaylistBtn');
+
+            saveContainer.addEventListener('click', async () => {
+                try {
+                    const response = await fetch('/user-playlists');
+                    if (!response.ok) {
+                        alert('Please log in to save videos to playlists.');
+                        return;
+                    }
+                    const playlists = await response.json();
+                    renderSaveModal(playlists);
+                    newPlaylistNameInput.value = '';
+                    saveModal.style.display = 'flex';
+                } catch (e) {
+                    console.error('Error loading playlists:', e);
+                }
+            });
+
+            function renderSaveModal(playlists) {
+                savePlaylistList.innerHTML = '';
+                const playlistNames = Object.keys(playlists);
+
+                if (playlistNames.length === 0) {
+                    noPlaylistsMessage.style.display = 'block';
+                } else {
+                    noPlaylistsMessage.style.display = 'none';
+                    playlistNames.forEach(name => {
+                        const item = document.createElement('div');
+                        item.className = 'save-playlist-item';
+                        const videoCount = playlists[name].length;
+                        const isAlreadySaved = playlists[name].includes(videoSrc);
+
+                        if (isAlreadySaved) {
+                            item.classList.add('already-saved');
+                            item.innerHTML = '<span>' + escapeHtml(name) + '<span class="playlist-video-count">' + videoCount + ' videos</span></span><span class="check-icon">✓</span>';
+                        } else {
+                            item.innerHTML = '<span>' + escapeHtml(name) + '<span class="playlist-video-count">' + videoCount + ' videos</span></span>';
+                            item.addEventListener('click', () => saveToPlaylist(name));
+                        }
+                        savePlaylistList.appendChild(item);
+                    });
+                }
+            }
+
+            async function saveToPlaylist(playlistName) {
+                try {
+                    const response = await fetch('/save-to-playlist', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ playlist: playlistName, video: videoSrc })
+                    });
+                    if (response.status === 409) return;
+                    if (!response.ok) {
+                        alert('Error saving to playlist.');
+                        return;
+                    }
+                    const playlistsResponse = await fetch('/user-playlists');
+                    const playlists = await playlistsResponse.json();
+                    renderSaveModal(playlists);
+                } catch (e) {
+                    console.error('Error saving to playlist:', e);
+                }
+            }
+
+            async function createAndSavePlaylist() {
+                const name = newPlaylistNameInput.value.trim();
+                if (!name) return;
+                try {
+                    const createResponse = await fetch('/create-playlist', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name })
+                    });
+                    if (createResponse.status === 409) {
+                        alert('A playlist with this name already exists.');
+                        return;
+                    }
+                    if (!createResponse.ok) {
+                        alert('Error creating playlist.');
+                        return;
+                    }
+                    newPlaylistNameInput.value = '';
+                    const playlistsResponse = await fetch('/user-playlists');
+                    const playlists = await playlistsResponse.json();
+                    renderSaveModal(playlists);
+                    await saveToPlaylist(name);
+                } catch (e) {
+                    console.error('Error creating playlist:', e);
+                }
+            }
+
+            createPlaylistBtn.addEventListener('click', createAndSavePlaylist);
+            newPlaylistNameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') createAndSavePlaylist();
+            });
+
+            saveModalClose.addEventListener('click', () => {
+                saveModal.style.display = 'none';
+            });
+            saveModal.addEventListener('click', (e) => {
+                if (e.target === saveModal) saveModal.style.display = 'none';
+            });
+
+// ===== END OF SAVE TO PLAYLIST BLOCK =====
 
             if (timestamp) {
                 videoPlayer.currentTime = parseInt(timestamp, 10);
