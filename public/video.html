@@ -1967,6 +1967,7 @@ document.addEventListener('click', function(e) {
                 .then(playlists => {
                     const inPlaylist = Object.values(playlists).some(videos => videos.includes(videoSrc));
                     document.getElementById('saveIcon').src = inPlaylist ? 'LocalYT-Rev-Files/saved.svg' : 'LocalYT-Rev-Files/save.svg';
+                    document.getElementById('saveContainer').querySelector('span').textContent = inPlaylist ? 'Saved' : 'Save';
                 })
                 .catch(() => {});
 
