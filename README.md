@@ -84,4 +84,4 @@ What if I only have the video files and no metadata?
 ---
 
 ## TO DO
-- Implement custom user playlists
+- Fix liked_videos.html video info padding
