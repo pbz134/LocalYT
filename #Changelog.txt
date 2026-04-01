@@ -33,6 +33,7 @@ v3.80
 - Removed "Uploaded on" below video titles on all pages
 - Removed useless suggestion video grid at the end of videos
 - Suppressed all filestore logs in the terminal
+- Deleting your account on settings.html now requires its password and a confirmation
 
 v3.70
 - Added settings.html; The new settings page allows you to:
