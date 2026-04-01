@@ -301,9 +301,7 @@
             <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
-        <div class="user-actions">
-            <a href="login.html" class="login-button" id="loginButton">Login</a>
-        </div>
+
     </header>
 
     <div id="mySidebar" class="sidebar">
@@ -464,7 +462,7 @@
                 })
                 .then(data => {
                     if (data.username) {
-                        document.getElementById('loginButton').textContent = data.username;
+
                         return true;
                     }
                     return false;
@@ -640,5 +638,6 @@
             });
         }
     </script>
+    <script src="profile-pic.js"></script>
 </body>
 </html>

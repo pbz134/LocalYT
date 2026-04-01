@@ -7,9 +7,16 @@ const bcrypt = require('bcrypt');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 const rateLimit = require('express-rate-limit');
+const multer = require('multer');
+const upload = multer({ dest: path.join(__dirname, 'temp-uploads') });
 
 const app = express();
 const PORT = 3000;
+
+const tempUploadsDir = path.join(__dirname, 'temp-uploads');
+if (!fs.existsSync(tempUploadsDir)) {
+    fs.mkdirSync(tempUploadsDir, { recursive: true });
+}
 
 // --- BRUTE-FORCE PROTECTION SYSTEM ---
 const loginAttempts = new Map();
@@ -179,6 +186,7 @@ app.use('/channelbanner', express.static(path.join(__dirname, 'channelbanner')))
 app.use('/videostats', express.static(path.join(__dirname, 'videostats')));
 app.use('/descriptions', express.static(path.join(__dirname, 'descriptions')));
 app.use('/comments', express.static(path.join(__dirname, 'comments')));
+app.use('/user-profiles', express.static(path.join(__dirname, 'user-profiles')));
 app.use('/favicon.png', express.static(path.join(__dirname, 'favicon.png')));
 
 // --- DISCORD EMBED ROUTE ---
@@ -736,30 +744,41 @@ app.post('/reset-password', (req, res) => {
 
 // Delete Account
 app.post('/delete-account', (req, res) => {
+    const { password } = req.body;
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('Not authenticated');
+
+    if (!password) return res.status(400).send('Password is required');
 
     const usersFilePath = path.join(__dirname, 'users.json');
 
     try {
-        // 1. Remove from users.json
         const data = fs.readFileSync(usersFilePath, 'utf8');
         const usersData = JSON.parse(data);
 
+        // Find user and verify password
         let username = null;
-        for (const [name, user] of Object.entries(usersData)) {
-            if (user.id === userId) {
+        let user = null;
+        for (const [name, u] of Object.entries(usersData)) {
+            if (u.id === userId) {
                 username = name;
+                user = u;
                 break;
             }
         }
 
-        if (username) {
-            delete usersData[username];
-            fs.writeFileSync(usersFilePath, JSON.stringify(usersData, null, 2));
+        if (!user) return res.status(404).send('User not found');
+
+        // Verify password before deletion
+        if (!bcrypt.compareSync(password, user.password)) {
+            return res.status(403).send('Incorrect password');
         }
 
-        // 2. Remove preferences
+        // Remove from users.json
+        delete usersData[username];
+        fs.writeFileSync(usersFilePath, JSON.stringify(usersData, null, 2));
+
+        // Remove preferences
         if (fs.existsSync(preferencesFilePath)) {
             const prefData = fs.readFileSync(preferencesFilePath, 'utf8');
             const allPrefs = JSON.parse(prefData);
@@ -769,7 +788,7 @@ app.post('/delete-account', (req, res) => {
             }
         }
 
-        // 3. Destroy session
+        // Destroy session
         req.session.destroy(err => {
             if (err) return res.status(500).send('Error deleting session');
             res.sendStatus(200);
@@ -780,6 +799,74 @@ app.post('/delete-account', (req, res) => {
     }
 });
 
+// --- PROFILE PICTURE ROUTES ---
+
+// Ensure user-profiles directory exists
+const userProfileDir = path.join(__dirname, 'user-profiles');
+if (!fs.existsSync(userProfileDir)) {
+    fs.mkdirSync(userProfileDir, { recursive: true });
+}
+
+// Get current user's profile picture URL
+app.get('/user-profile-pic', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) {
+        return res.json({ hasCustomPic: false, picUrl: null });
+    }
+
+    const profilePicPath = path.join(userProfileDir, `${userId}.jpg`);
+    if (fs.existsSync(profilePicPath)) {
+        res.json({ hasCustomPic: true, picUrl: `/user-profiles/${userId}.jpg` });
+    } else {
+        res.json({ hasCustomPic: false, picUrl: null });
+    }
+});
+
+// Upload profile picture
+app.post('/user-profile-pic', upload.single('profilePic'), (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not logged in');
+
+    // When using upload.single(), the file is available at req.file, not req.files
+    if (!req.file) {
+        return res.status(400).send('No file uploaded');
+    }
+
+    const uploadedFile = req.file;
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+
+    if (!allowedMimes.includes(uploadedFile.mimetype)) {
+        return res.status(400).send('Only JPEG, PNG, and WebP images are allowed');
+    }
+
+    // Limit to 5MB
+    if (uploadedFile.size > 5 * 1024 * 1024) {
+        return res.status(400).send('Image must be under 5MB');
+    }
+
+    const targetPath = path.join(userProfileDir, `${userId}.jpg`);
+    
+    // multer already saved the file to temp-uploads, we need to move it
+    fs.rename(uploadedFile.path, targetPath, (err) => {
+        if (err) {
+            console.error('Error saving profile picture:', err);
+            return res.status(500).send('Error saving profile picture');
+        }
+        res.sendStatus(200);
+    });
+});
+
+// Delete profile picture (revert to placeholder)
+app.delete('/user-profile-pic', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not logged in');
+
+    const profilePicPath = path.join(userProfileDir, `${userId}.jpg`);
+    if (fs.existsSync(profilePicPath)) {
+        fs.unlinkSync(profilePicPath);
+    }
+    res.sendStatus(200);
+});
 
 // GET ALL TAGS (For settings suggestion list)
 app.get('/get-all-tags', (req, res) => {

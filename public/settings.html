@@ -187,9 +187,6 @@
         <a href="index.html" style="display: flex; align-items: center;">
             <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo">
         </a>
-        <div class="user-actions">
-            <a href="login.html" class="login-button" id="loginButton">Account</a>
-        </div>
     </header>
 
     <div class="settings-container">
@@ -284,7 +281,7 @@
                     if (!data.username) {
                         window.location.href = 'login.html';
                     } else {
-                        document.getElementById('loginButton').textContent = data.username;
+
                         loadPreferences();
                         loadAllTags();
                     }
@@ -500,5 +497,6 @@
             setTimeout(() => el.textContent = '', 3000);
         }
     </script>
+    <script src="profile-pic.js"></script>
 </body>
 </html>

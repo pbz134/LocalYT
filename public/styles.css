@@ -404,21 +404,7 @@ video {
     background-color: lightgray;
 }
 
-.user-actions a.login-button {
-    padding: 10px 20px;
-    background-color: #ff0000;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    text-decoration: none;
-    font-family: 'RobotoRegular', Arial, sans-serif;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.3s ease;
-    position: absolute;
-    right: 85px;
-    margin-top: -18px;
-}
+
 
 .categories-container {
     width: 200px;
@@ -465,3 +451,21 @@ img.search-icon {
     border-color: #fff;
 }
 /* --- End search icon --- */
+
+/* --- Profile Picture --- */
+.header-profile-pic {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    cursor: pointer;
+    transition: opacity 0.2s ease, box-shadow 0.2s ease;
+    flex-shrink: 0;
+}
+
+.user-actions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-right: 50px;
+}
