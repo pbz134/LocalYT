@@ -1,6 +1,6 @@
 {
   "name": "localyt-revamped",
-  "version": "3.8.0",
+  "version": "3.8.5",
   "description": "",
   "main": "server.js",
   "scripts": {
@@ -20,7 +20,7 @@
     "express-rate-limit": "^8.3.1",
     "express-session": "^1.18.1",
     "mp4box": "^2.1.2",
-    "multer": "^2.0.1",
+    "multer": "^2.1.1",
     "music-metadata": "^11.9.0",
     "node-id3": "^0.2.9",
     "proper-lockfile": "^4.1.2",
