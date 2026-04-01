@@ -1,6 +1,13 @@
 {
   "auto_tag_rules": [
     {
+      "name": "MMD Rule",
+      "match_type": "contains",
+      "match_value": "MMD",
+      "case_sensitive": true,
+      "tags": ["MMD", "Anime"]
+    },
+    {
       "name": "GTA Rule",
       "match_type": "contains",
       "match_value": "gta",
