@@ -18,14 +18,20 @@ v3.80
   - While watching a video, you can now add it to your own playlists
   - Access your playlists via the index.html sidebar, above the Settings button
   - Add a video to a playlist by clicking on the "Save" button on video.html
-- Removed "Uploaded on" from index.html
+- Add anti-spam measures
+  - Account creations will be restricted to one account per 10 minutes per device
+  - 5 failed consecutive login attempts will enable a 2-minute cooldown
+  - Too many failed consecutive login attempts (20) will block the device permanently
+  - If you want to reset this data, simply delete "login_attempts.json" or modify to your liking
+- Removed "Uploaded on" from all pages
 - Added scripts to LocalYT-Debug that allow you to easily fetch all metadata for whole channels or playlists
 - Updated #Setup-Tutorial.txt
 - Optimized MovePlaylistMetadata.py by making use of directory indexing
 - Removed rounded corners from video elements on playlist.html
 - Slightly increased the video player size
 - Made video.html and the search bar fully responsive
-- Removed "Uploaded on" below video titles
+- Removed "Uploaded on" below video titles on all pages
+- Suppressed all filestore logs in the terminal
 
 v3.70
 - Added settings.html; The new settings page allows you to:

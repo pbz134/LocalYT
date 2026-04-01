@@ -11,6 +11,143 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const PORT = 3000;
 
+// --- BRUTE-FORCE PROTECTION SYSTEM ---
+const loginAttempts = new Map();
+const loginAttemptsFile = path.join(__dirname, 'login_attempts.json');
+
+// Normalize IP address (remove IPv6 prefix for IPv4 addresses)
+function normalizeIp(ip) {
+    if (ip && ip.startsWith('::ffff:')) {
+        return ip.substring(7);
+    }
+    return ip;
+}
+
+// Get client IP from request
+function getClientIp(req) {
+    const forwardedFor = req.headers['x-forwarded-for'];
+    if (forwardedFor) {
+        const ips = forwardedFor.split(',').map(ip => ip.trim());
+        return normalizeIp(ips[0]);
+    }
+    return normalizeIp(req.ip || req.connection.remoteAddress || req.socket.remoteAddress);
+}
+
+// Load login attempts from file on startup
+function loadLoginAttempts() {
+    if (fs.existsSync(loginAttemptsFile)) {
+        try {
+            const data = fs.readFileSync(loginAttemptsFile, 'utf8');
+            const attempts = JSON.parse(data);
+            for (const [ip, attemptData] of Object.entries(attempts)) {
+                loginAttempts.set(ip, attemptData);
+            }
+            console.log(`Loaded login attempt data for ${loginAttempts.size} IPs.`);
+        } catch (err) {
+            console.error('Error loading login attempts:', err);
+        }
+    }
+}
+
+// Save login attempts to file
+function saveLoginAttempts() {
+    try {
+        const obj = {};
+        loginAttempts.forEach((data, ip) => {
+            obj[ip] = data;
+        });
+        fs.writeFileSync(loginAttemptsFile, JSON.stringify(obj, null, 2));
+    } catch (err) {
+        console.error('Error saving login attempts:', err);
+    }
+}
+
+// Get block duration based on attempt count
+function getBlockDuration(attempts) {
+    if (attempts >= 20) return -1; // Permanent
+    if (attempts >= 15) return 30 * 60 * 1000; // 30 minutes
+    if (attempts >= 10) return 5 * 60 * 1000; // 5 minutes
+    if (attempts >= 5) return 2 * 60 * 1000; // 2 minutes
+    return 0; // No block
+}
+
+// Get login attempt data for an IP
+function getLoginAttemptData(ip) {
+    return loginAttempts.get(ip);
+}
+
+// Check if IP is currently blocked
+function isIpBlocked(ip) {
+    const data = loginAttempts.get(ip);
+    if (!data) return false;
+    
+    if (data.permanent) return true;
+    
+    if (data.blockedUntil) {
+        if (Date.now() < data.blockedUntil) {
+            return true;
+        }
+        // Block expired - clear blockedUntil but keep attempt count
+        data.blockedUntil = null;
+    }
+    
+    return false;
+}
+
+// Get remaining block time in milliseconds (-1 for permanent)
+function getRemainingBlockTime(ip) {
+    const data = loginAttempts.get(ip);
+    if (!data) return 0;
+    
+    if (data.permanent) return -1;
+    
+    if (data.blockedUntil) {
+        const remaining = data.blockedUntil - Date.now();
+        if (remaining > 0) return remaining;
+    }
+    
+    return 0;
+}
+
+// Record failed login attempt
+function recordFailedAttempt(ip) {
+    let data = loginAttempts.get(ip);
+    
+    if (!data) {
+        data = { attempts: 0, lastAttemptTime: null, blockedUntil: null, permanent: false };
+        loginAttempts.set(ip, data);
+    }
+    
+    // Don't increment if already permanently blocked
+    if (data.permanent) return;
+    
+    // Don't increment if currently in a temporary block
+    if (data.blockedUntil && Date.now() < data.blockedUntil) return;
+    
+    data.attempts += 1;
+    data.lastAttemptTime = Date.now();
+    
+    const blockDuration = getBlockDuration(data.attempts);
+    
+    if (blockDuration === -1) {
+        data.permanent = true;
+        data.blockedUntil = null;
+    } else if (blockDuration > 0) {
+        data.blockedUntil = Date.now() + blockDuration;
+    }
+    
+    saveLoginAttempts();
+}
+
+// Reset login attempts on successful login
+function resetLoginAttempts(ip) {
+    loginAttempts.delete(ip);
+    saveLoginAttempts();
+}
+
+// Load existing login attempts on startup
+loadLoginAttempts();
+
 // Create limiter for recommendation endpoints
 const recommendationsLimiter = rateLimit({
     windowMs: 60 * 1000, // 1 minute
@@ -161,21 +298,21 @@ app.use(session({
     store: new FileStore({
         path: sessionsDir,
         ttl: 86400,
-        retries: 0,
-        reapInterval: 3600,
+        retries: 2,
+        reapInterval: -1,
         fileExtension: '.session',
-        reapAsync: true,
+        reapAsync: false,
         reapSyncFallback: false,
-        logFn: function(message) { console.log('FileStore:', message); },
+        logFn: function() {},  // Silence all FileStore logs
         encoding: 'utf8',
         encrypt: false
     }),
-    secret: 'your_secret_key',
+    secret: 'secret',
     resave: true,
     saveUninitialized: false,
     cookie: { 
         secure: false,
-        maxAge: 365 * 24 * 60 * 60 * 1000,
+        maxAge: 365 * 24 * 60 * 60 * 1000, // Make cookies valid for 1 year
         httpOnly: true,
         sameSite: 'lax'
     },
@@ -1155,6 +1292,67 @@ app.get('/viewcounts/:video', (req, res) => {
     });
 });
 
+// --- REGISTRATION COOLDOWN SYSTEM ---
+const registrationCooldowns = new Map();
+const REGISTER_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+
+// Check registration cooldown status (for page load)
+app.get('/register-status', (req, res) => {
+    const clientIp = getClientIp(req);
+    const cooldownEnd = registrationCooldowns.get(clientIp);
+    
+    if (cooldownEnd && Date.now() < cooldownEnd) {
+        return res.json({ 
+            blocked: true, 
+            remainingTime: cooldownEnd - Date.now() 
+        });
+    }
+    
+    // Clean up expired cooldown
+    if (cooldownEnd) registrationCooldowns.delete(clientIp);
+    
+    res.json({ blocked: false });
+});
+
+// Update the existing /register route to include the cooldown check
+app.post('/register', (req, res) => {
+    const clientIp = getClientIp(req);
+    const cooldownEnd = registrationCooldowns.get(clientIp);
+    
+    // Check if IP is currently on cooldown
+    if (cooldownEnd && Date.now() < cooldownEnd) {
+        return res.status(429).json({ 
+            blocked: true, 
+            remainingTime: cooldownEnd - Date.now(),
+            error: 'Please wait before creating another account.' 
+        });
+    }
+    
+    const { username, password } = req.body;
+    const usersFilePath = path.join(__dirname, 'users.json');
+    
+    fs.readFile(usersFilePath, 'utf8', (err, data) => {
+        let usersData = {};
+        if (!err) usersData = JSON.parse(data);
+        
+        if (usersData[username]) {
+            return res.status(400).json({ error: 'Username already exists' });
+        }
+        
+        const hashedPassword = bcrypt.hashSync(password, 10);
+        usersData[username] = { id: uuidv4(), password: hashedPassword };
+        
+        fs.writeFile(usersFilePath, JSON.stringify(usersData, null, 2), err => {
+            if (err) return res.status(500).json({ error: 'Error saving user' });
+            
+            // Set cooldown for this IP on successful registration
+            registrationCooldowns.set(clientIp, Date.now() + REGISTER_COOLDOWN_MS);
+            
+            res.sendStatus(200);
+        });
+    });
+});
+
 app.post('/register', (req, res) => {
     const { username, password } = req.body;
     const usersFilePath = path.join(__dirname, 'users.json');
@@ -1171,17 +1369,109 @@ app.post('/register', (req, res) => {
     });
 });
 
+// --- LOGIN WITH BRUTE-FORCE PROTECTION ---
 app.post('/login', (req, res) => {
+    const clientIp = getClientIp(req);
+    
+    // Check if permanently blocked FIRST
+    const attemptData = getLoginAttemptData(clientIp);
+    if (attemptData && attemptData.permanent) {
+        return res.status(403).json({ 
+            error: 'You have been permanently blocked for trying to log in too many times. Contact your LocalYT owner for support.',
+            permanent: true 
+        });
+    }
+    
+    // Check if temporarily blocked
+    if (isIpBlocked(clientIp)) {
+        const remainingTime = getRemainingBlockTime(clientIp);
+        const minutes = Math.ceil(remainingTime / 60000);
+        const seconds = Math.ceil((remainingTime % 60000) / 1000);
+        let timeString = minutes > 0 ? `${minutes} minute(s)` : `${seconds} second(s)`;
+        return res.status(429).json({ 
+            error: `Too many failed login attempts. Please try again in ${timeString}.`,
+            blocked: true,
+            remainingTime: remainingTime
+        });
+    }
+    
     const { username, password } = req.body;
     const usersFilePath = path.join(__dirname, 'users.json');
+    
     fs.readFile(usersFilePath, 'utf8', (err, data) => {
-        if (err) return res.status(500).send('Error reading users');
+        if (err) return res.status(500).json({ error: 'Error reading users' });
+        
         const usersData = JSON.parse(data);
         const user = usersData[username];
-        if (!user || !bcrypt.compareSync(password, user.password)) return res.status(401).send('Invalid username or password');
+        
+        if (!user || !bcrypt.compareSync(password, user.password)) {
+            // Record failed attempt
+            recordFailedAttempt(clientIp);
+            
+            // Check if this attempt triggered a block
+            const updatedData = getLoginAttemptData(clientIp);
+            
+            if (updatedData && updatedData.permanent) {
+                return res.status(403).json({ 
+                    error: 'You have been permanently blocked for trying to log in too many times. Contact your LocalYT owner for support.',
+                    permanent: true 
+                });
+            }
+            
+            if (updatedData && updatedData.blockedUntil && Date.now() < updatedData.blockedUntil) {
+                const remainingTime = updatedData.blockedUntil - Date.now();
+                const minutes = Math.ceil(remainingTime / 60000);
+                const seconds = Math.ceil((remainingTime % 60000) / 1000);
+                let timeString = minutes > 0 ? `${minutes} minute(s)` : `${seconds} second(s)`;
+                return res.status(429).json({ 
+                    error: `Too many failed login attempts. Please try again in ${timeString}.`,
+                    blocked: true,
+                    remainingTime: remainingTime
+                });
+            }
+            
+            return res.status(401).json({ error: 'Invalid username or password' });
+        }
+        
+        // Successful login - reset attempts for this IP
+        resetLoginAttempts(clientIp);
         req.session.userId = user.id;
         res.sendStatus(200);
     });
+});
+
+// --- CHECK LOGIN BLOCK STATUS (for page load) ---
+app.get('/login-status', (req, res) => {
+    const clientIp = getClientIp(req);
+    const attemptData = getLoginAttemptData(clientIp);
+    
+    if (!attemptData) {
+        return res.json({ blocked: false });
+    }
+    
+    if (attemptData.permanent) {
+        return res.json({ 
+            blocked: true, 
+            permanent: true,
+            error: 'You have been permanently blocked for trying to log in too many times. Contact your LocalYT owner for support.'
+        });
+    }
+    
+    if (isIpBlocked(clientIp)) {
+        const remainingTime = getRemainingBlockTime(clientIp);
+        const minutes = Math.ceil(remainingTime / 60000);
+        const seconds = Math.ceil((remainingTime % 60000) / 1000);
+        let timeString = minutes > 0 ? `${minutes} minute(s)` : `${seconds} second(s)`;
+        return res.json({ 
+            blocked: true, 
+            permanent: false,
+            error: `Too many failed login attempts. Please try again in ${timeString}.`,
+            remainingTime: remainingTime,
+            attempts: attemptData.attempts
+        });
+    }
+    
+    res.json({ blocked: false, attempts: attemptData.attempts || 0 });
 });
 
 app.get('/logout', (req, res) => {
