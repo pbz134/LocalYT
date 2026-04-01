@@ -9,9 +9,11 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHANNEL_FOLDERS = ['videos', 'subtitles', 'thumbnails', 'videolengths', 'videostats', 'viewcounts', 'descriptions', 'filedates', 'filenames', 'comments']
 CHANNEL_FILES = ['channelbanner', 'channelpic', 'subcount']
 MEDIA_EXTENSIONS = ('.mp4', '.mp3', '.mkv')
-JSON_FILES = ['users.json', 'userPreferences.json', 'subscriptions.json', 'watchHistory.json', 'likes.json', 'dislikes.json', 'recommendation_index.json', 'video_cache.json']
+JSON_FILES = ['users.json', 'userPreferences.json', 'subscriptions.json', 'watchHistory.json', 'likes.json', 'dislikes.json', 'recommendation_index.json', 'video_cache.json', 'login_attempts.json']
 SESSIONS_DIR = os.path.join(BASE_DIR, 'sessions')
 SERVER_SCRIPT = os.path.join(BASE_DIR, 'server.js')
+USER_PROFILES_DIR = os.path.join(BASE_DIR, 'user-profiles')
+TEMP_UPLOADS_DIR = os.path.join(BASE_DIR, 'temp-uploads')
 
 def clear_screen():
     try:
@@ -523,6 +525,30 @@ def clear_database():
                 print(f"  [+] Cleared folder: {folder}")
         except: pass
 
+    # Clear user-profiles directory
+    if os.path.exists(USER_PROFILES_DIR):
+        try:
+            for item in os.listdir(USER_PROFILES_DIR):
+                item_path = os.path.join(USER_PROFILES_DIR, item)
+                try:
+                    if os.path.isdir(item_path): shutil.rmtree(item_path)
+                    else: os.remove(item_path)
+                except: pass
+            print(f"  [+] Cleared folder: user-profiles")
+        except: pass
+
+    # Clear temp-uploads directory
+    if os.path.exists(TEMP_UPLOADS_DIR):
+        try:
+            for item in os.listdir(TEMP_UPLOADS_DIR):
+                item_path = os.path.join(TEMP_UPLOADS_DIR, item)
+                try:
+                    if os.path.isdir(item_path): shutil.rmtree(item_path)
+                    else: os.remove(item_path)
+                except: pass
+            print(f"  [+] Cleared folder: temp-uploads")
+        except: pass
+
     for j_file in JSON_FILES:
         try:
             j_path = os.path.join(BASE_DIR, j_file)
@@ -593,6 +619,19 @@ def manage_accounts():
                             json.dump(data, f, indent=2)
                         print(f"  [+] Cleaned {user_id} from {j_file}")
             except: pass
+        
+        # Delete user's profile image if it exists
+        profile_extensions = ['.jpg', '.png', '.webp']
+        for ext in profile_extensions:
+            profile_pic_path = os.path.join(USER_PROFILES_DIR, f"{user_id}{ext}")
+            if os.path.exists(profile_pic_path):
+                try:
+                    os.remove(profile_pic_path)
+                    print(f"  [+] Deleted profile image: {user_id}{ext}")
+                    break  # Only one profile image should exist, stop checking
+                except Exception as e:
+                    print(f"  [-] Error deleting profile image: {e}")
+        
         print("[*] Account deleted.\n")
     else:
         print("[-] Username not found.\n")
@@ -722,21 +761,15 @@ def find_server_pid():
     try:
         if os.name == 'nt':
             # Windows: use wmic or tasklist
+            # Added encoding='utf-8' to prevent UnicodeDecodeError on Windows
             result = subprocess.run(
                 ['wmic', 'process', 'where', "commandline like '%server.js%'", 'get', 'processid', '/format:csv'],
-                capture_output=True, text=True, timeout=10
+                capture_output=True, text=True, timeout=10, encoding='utf-8', errors='ignore'
             )
             for line in result.stdout.split('\n'):
                 line = line.strip()
                 if line and line.isdigit():
                     return int(line)
-            
-            # Fallback: try tasklist approach
-            result = subprocess.run(
-                ['tasklist', '/FI', 'IMAGENAME eq node.exe', '/FO', 'CSV'],
-                capture_output=True, text=True, timeout=10
-            )
-            # Just return None for fallback - we'll try pkill approach
         else:
             # Unix: use pgrep
             result = subprocess.run(
@@ -798,7 +831,7 @@ def logout_all_users():
     print("[*] All users have been logged out.\n")
 
 def reboot_server():
-    """Stop and restart the server process"""
+    """Stop the server process and launch it via #Launch-Server.bat"""
     print("\n[*] Checking server status...")
     
     running = is_server_running()
@@ -850,31 +883,33 @@ def reboot_server():
     else:
         print("  [!] Could not verify server was stopped")
     
-    # Start the server
-    if not os.path.exists(SERVER_SCRIPT):
-        print("  [-] server.js not found!")
+    # Start the server using #Launch-Server.bat
+    launch_bat = os.path.join(BASE_DIR, '#Launch-Server.bat')
+    
+    if not os.path.exists(launch_bat):
+        print("  [-] #Launch-Server.bat not found in root directory!")
         print()
         return
     
-    print("  [*] Starting server...")
+    print("  [*] Starting server via #Launch-Server.bat...")
     try:
         if os.name == 'nt':
-            # Windows: start in new window
+            # Windows: open a new cmd window, execute the bat file, and keep the window open (/K)
             subprocess.Popen(
-                ['node', 'server.js'],
-                cwd=BASE_DIR,
-                creationflags=subprocess.CREATE_NEW_CONSOLE
+                f'cmd /K "cd /D "{BASE_DIR}" && "#Launch-Server.bat""',
+                shell=True
             )
         else:
-            # Unix: start in background
+            # Unix: run in background (assuming bash can execute .bat via wine or similar isn't standard, 
+            # but providing a best-effort fallback using cmd.exe if available)
             subprocess.Popen(
-                ['node', 'server.js'],
+                ['cmd', '/c', launch_bat],
                 cwd=BASE_DIR,
                 start_new_session=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
-        print("  [+] Server started in a new process")
+        print("  [+] Server launch initiated")
     except Exception as e:
         print(f"  [-] Error starting server: {e}")
     
