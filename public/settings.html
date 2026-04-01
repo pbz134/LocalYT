@@ -156,6 +156,30 @@
             background: #444;
             border-radius: 4px;
         }
+
+        /* Delete account section styling */
+        .delete-account-form {
+            display: none;
+            margin-top: 12px;
+            padding: 15px;
+            background-color: #1a0000;
+            border: 1px solid #440000;
+            border-radius: 6px;
+        }
+        .delete-account-form.active {
+            display: block;
+        }
+        .delete-account-form p {
+            font-size: 13px;
+            color: #ccc;
+            margin: 0 0 12px 0;
+        }
+        .delete-form-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
     </style>
 </head>
 <body>
@@ -234,8 +258,18 @@
                 <h3 style="margin-bottom: 5px; font-size: 16px; color: #ff4444;">Delete Account</h3>
                 <p style="font-size: 13px; color: #aaa;">WARNING: Once deleted, you won't be able to recover it.</p>
                 <div class="inline-form" style="justify-content: flex-start;">
-                    <button class="btn btn-danger" onclick="deleteAccount()">Delete Account</button>
+                    <button class="btn btn-danger" onclick="toggleDeleteForm()">Delete Account</button>
                 </div>
+
+                <div id="deleteAccountForm" class="delete-account-form">
+                    <p>Enter your current password and type <strong style="color:#ff4444;">DELETE</strong> to permanently delete your account.</p>
+                    <div class="delete-form-row">
+                        <input type="password" id="deletePassword" placeholder="Current Password">
+                        <input type="text" id="deleteConfirmText" placeholder="Type DELETE">
+                        <button class="btn btn-danger" onclick="deleteAccount()">Confirm Delete</button>
+                    </div>
+                </div>
+
                 <div id="deleteStatus" class="status-msg"></div>
             </div>
         </div>
@@ -422,17 +456,41 @@
             });
         }
 
+        function toggleDeleteForm() {
+            const form = document.getElementById('deleteAccountForm');
+            form.classList.toggle('active');
+        }
+
         function deleteAccount() {
-            const confirmation = prompt("This will permanently delete your account. Type 'DELETE' to confirm.");
-            if (confirmation === 'DELETE') {
-                fetch('/delete-account', { method: 'POST' })
-                    .then(res => {
-                        if (res.ok) {
-                            alert("Account deleted.");
-                            window.location.href = 'index.html';
-                        }
-                    });
+            const password = document.getElementById('deletePassword').value;
+            const confirmText = document.getElementById('deleteConfirmText').value;
+
+            if (!password) {
+                showStatus('deleteStatus', 'Please enter your current password.', false);
+                return;
             }
+
+            if (confirmText !== 'DELETE') {
+                showStatus('deleteStatus', "Please type 'DELETE' to confirm.", false);
+                return;
+            }
+
+            fetch('/delete-account', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            })
+            .then(res => {
+                if (res.ok) {
+                    alert("Account deleted.");
+                    window.location.href = 'index.html';
+                } else {
+                    return res.text().then(msg => {
+                        showStatus('deleteStatus', msg, false);
+                    });
+                }
+            })
+            .catch(() => showStatus('deleteStatus', 'Error deleting account.', false));
         }
 
         function showStatus(elementId, message, success) {
