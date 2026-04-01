@@ -7,20 +7,94 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
     <style>
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
+        .about-page {
+            padding: 100px 20px 60px;
+            max-width: 780px;
+            margin: 0 auto;
             color: #d2cfcf;
         }
-        .container h1 {
-            font-size: 24px;
-            margin-bottom: 20px;
+
+        .about-header {
+            margin-bottom: 50px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid #2a2a2a;
         }
-        .container p {
+
+        .about-header h1 {
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            font-size: 32px;
+            font-weight: normal;
+            color: #ffffff;
+            margin: 0 0 12px 0;
+            letter-spacing: 0.3px;
+        }
+
+        .about-header p {
+            font-size: 15px;
+            color: #888;
+            margin: 0;
+            line-height: 1.7;
+        }
+
+        .about-section {
+            margin-bottom: 36px;
+        }
+
+        .about-section h2 {
+            font-family: 'RobotoRegular', Arial, sans-serif;
             font-size: 16px;
-            margin-bottom: 10px;
+            font-weight: normal;
+            color: #aaaaaa;
+            margin: 0 0 14px 0;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .about-section p {
+            font-size: 14px;
+            color: #b0adae;
+            margin: 0 0 10px 0;
+            line-height: 1.8;
+        }
+
+        .about-section p:last-child {
+            margin-bottom: 0;
+        }
+
+        .about-divider {
+            border: none;
+            border-top: 1px solid #1e1e1e;
+            margin: 0 0 36px 0;
+        }
+
+        .credits-grid {
+            display: grid;
+            grid-template-columns: 160px 1fr;
+            gap: 8px 24px;
+        }
+
+        .credits-grid .credit-label {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.8;
+        }
+
+        .credits-grid .credit-value {
+            font-size: 13px;
+            color: #b0adae;
+            line-height: 1.8;
+        }
+
+        .about-footer {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid #2a2a2a;
+        }
+
+        .about-footer p {
+            font-size: 13px;
+            color: #555;
+            margin: 0;
         }
     </style>
 </head>
@@ -33,50 +107,76 @@
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
     </header>
-    <div class="container">
-        <h1>About LocalYT</h1>
-        <p>LocalYT is a local video library inspired by pre-2020 video platforms</p>
-        <p>It allows you to watch locally-saved videos, integrate metadata to them, and keep track of your watch history</p>
-        <p></p>
-        <p>The algorithm is made possible through video tags, which are generated using LostRuins' koboldcpp API and Alibaba's Qwen2.5 1.5B Instruct model</p>
-        <p>Coding has been done by DeepSeek-AI's DeepSeek and Z.AI's GLM model series</p>
-        <p>LocalYT logo made by mitchib1440</p>
-        <p>Metadata handling is done through Python and Anaconda venvs</p>
-        <p>Powered by Node.js</p>
-        <p>Made by pbz134</p>
 
+    <div class="about-page">
+        <div class="about-header">
+            <h1>About LocalYT</h1>
+            <p>LocalYT is a local video library inspired by pre-2020 video platforms.</p>
+        </div>
+
+        <div class="about-section">
+            <h2>Overview</h2>
+            <p>It allows you to watch locally-saved videos, integrate metadata into them, and keep track of your watch history.</p>
+        </div>
+
+        <hr class="about-divider">
+
+        <div class="about-section">
+            <h2>Algorithm</h2>
+            <p>The algorithm is made possible through video tags, which are generated using LostRuins' koboldcpp API and Alibaba's Qwen2.5 1.5B Instruct model.</p>
+        </div>
+
+        <hr class="about-divider">
+
+        <div class="about-section">
+            <h2>Credits</h2>
+            <div class="credits-grid">
+                <span class="credit-label">Coding</span>
+                <span class="credit-value">DeepSeek-AI's DeepSeek and Z.AI's GLM model series</span>
+
+                <span class="credit-label">Logo</span>
+                <span class="credit-value">mitchib1440</span>
+
+                <span class="credit-label">SVG Icons</span>
+                <span class="credit-value">Google</span>
+
+                <span class="credit-label">Metadata</span>
+                <span class="credit-value">Python and Anaconda venvs</span>
+
+                <span class="credit-label">Runtime</span>
+                <span class="credit-value">Node.js</span>
+
+                <span class="credit-label">Created by</span>
+                <span class="credit-value">pbz134</span>
+            </div>
+        </div>
     </div>
+
     <script>
 // Handle logo clicks
 document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
     
     if (mainLogo) {
-        // Left click - navigate to homepage in same tab
         mainLogo.addEventListener('click', (event) => {
-            if (event.button === 0) { // Left click
+            if (event.button === 0) {
                 window.location.href = 'index.html';
             }
         });
         
-        // Middle click (mouse wheel) - open homepage in new tab
         mainLogo.addEventListener('mouseup', (event) => {
-            if (event.button === 1) { // Middle click
+            if (event.button === 1) {
                 event.preventDefault();
                 window.open('index.html', '_blank');
             }
         });
         
-        // Right click - open homepage in new tab (with context menu option)
         mainLogo.addEventListener('contextmenu', (event) => {
             event.preventDefault();
             window.open('index.html', '_blank');
         });
         
-        // Add title for accessibility
         mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
-        
-        // Add cursor styling
         mainLogo.style.cursor = 'pointer';
     }
 });
@@ -104,7 +204,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         };
                         suggestionsContainer.appendChild(suggestionElement);
 
-                        // Add event listeners for right-click and mouse wheel click
                         suggestionElement.addEventListener('contextmenu', (event) => {
                             event.preventDefault();
                             window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
@@ -126,7 +225,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // --- Search icon click ---
         document.getElementById('searchIcon').addEventListener('click', () => {
             const query = searchInput.value.trim();
             if (query) {
