@@ -4,6 +4,7 @@ v3.85
 - Implemented custom user profile pictures
   - Each user is now able to upload and use their own profile picture
   - It will be displayed on all pages
+- Added a script to /LocalYT-Debug to easily backup your user files
 
 v3.80
 - Implemented advanced conditional video tagging
@@ -256,5 +257,4 @@ Older versions: Undocumented
 TO DO:
 - Fix liked_videos.html video info padding
 - Fix search.html video title y positioning for titles longer than one line (video info pushes title up?)
-- Add custom user profile images
 - Add LocalYT documentation to the side bar on index.html
