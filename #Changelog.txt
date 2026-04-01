@@ -31,6 +31,7 @@ v3.80
 - Slightly increased the video player size
 - Made video.html and the search bar fully responsive
 - Removed "Uploaded on" below video titles on all pages
+- Removed useless suggestion video grid at the end of videos
 - Suppressed all filestore logs in the terminal
 
 v3.70
