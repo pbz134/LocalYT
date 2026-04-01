@@ -368,8 +368,8 @@
             border-color: #3ea6ff;
         }
         .create-playlist-row button {
-            background-color: #3ea6ff;
-            color: #000;
+            background-color: #cc0000;
+            color: #fff;
             border: none;
             padding: 8px 14px;
             border-radius: 4px;
@@ -380,7 +380,7 @@
             white-space: nowrap;
         }
         .create-playlist-row button:hover {
-            background-color: #65b8ff;
+            background-color: #c40000;
         }
         .sub-count {
             font-size: 12px;
@@ -1942,8 +1942,6 @@ document.addEventListener('click', function(e) {
                 }, 2000);
             }
 
-// ===== PASTE THE SAVE TO PLAYLIST BLOCK RIGHT HERE =====
-
             // ===== SAVE TO PLAYLIST =====
             const saveContainer = document.getElementById('saveContainer');
             const saveModal = document.getElementById('saveModal');
@@ -2054,7 +2052,7 @@ document.addEventListener('click', function(e) {
                 if (e.target === saveModal) saveModal.style.display = 'none';
             });
 
-// ===== END OF SAVE TO PLAYLIST BLOCK =====
+            // ===== END OF SAVE TO PLAYLIST BLOCK =====
 
             // Update save icon based on whether video is in a playlist
             fetch('/user-playlists')
