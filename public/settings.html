@@ -6,18 +6,184 @@
     <title>Settings - LocalYT</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
+    <!-- Include Cropper.js -->
+    <link rel="stylesheet" href="cropper.min.css">
+    <script src="cropper.min.js"></script>
     <style>
         body {
             background-color: #0f0f0f;
             color: #fff;
             font-family: 'RobotoRegular', Arial, sans-serif;
-            padding-top: 80px;
         }
-        .settings-container {
+
+        /* --- Settings Sidebar (styled like index.html sidebar) --- */
+        .settings-sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 250px;
+            height: 100%;
+            background-color: #111;
+            overflow-x: hidden;
+            padding-top: 60px;
+            z-index: 1;
+            box-sizing: border-box;
+        }
+
+        .settings-sidebar a {
+            padding: 8px 8px 8px 32px;
+            text-decoration: none;
+            font-size: 25px;
+            color: #818181;
+            display: block;
+            transition: 0.3s;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .settings-sidebar a:hover {
+            color: #f1f1f1;
+        }
+
+        .settings-sidebar a.active {
+            color: #f1f1f1;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid #f1f1f1;
+        }
+
+        /* --- Content Area --- */
+        .settings-content {
+            margin-left: 250px;
+            padding: 90px 20px 40px;
+            min-height: calc(100vh - 60px);
+        }
+
+        .tab-panel {
+            display: none;
             max-width: 800px;
             margin: 0 auto;
-            padding: 20px;
         }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* --- Profile Picture Tab --- */
+        .profile-page-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 20px 0 40px;
+        }
+
+        .profile-pic-display {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #444;
+            margin-bottom: 30px;
+        }
+
+        .crop-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .crop-modal-overlay.active {
+            display: flex;
+        }
+
+        .cropper-container-wrapper {
+            max-width: 90vw;
+            max-height: 70vh;
+            background: #000;
+        }
+
+        .cropper-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .profile-actions {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .profile-btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 5px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .profile-btn.primary {
+            background-color: #ff0000;
+            color: #fff;
+        }
+
+        .profile-btn.primary:hover {
+            background-color: #cc0000;
+        }
+
+        .profile-btn.secondary {
+            background-color: #333;
+            color: #ccc;
+        }
+
+        .profile-btn.secondary:hover {
+            background-color: #555;
+        }
+
+        .profile-status {
+            color: #888;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        #imageToCrop {
+            max-width: 100%;
+            display: block;
+        }
+
+        .hidden { display: none !important; }
+        #fileInput { display: none; }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            font-size: 14px;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        .toast.visible { opacity: 1; }
+        .toast.error { background-color: #cc0000; color: #fff; }
+        .toast.success { background-color: #2d7d32; color: #fff; }
+
+        /* --- Settings Tab --- */
         .settings-section {
             background-color: #1a1a1a;
             border: 1px solid #333;
@@ -25,13 +191,14 @@
             margin-bottom: 20px;
             border-radius: 8px;
         }
+
         .settings-section h2 {
             margin-top: 0;
             border-bottom: 1px solid #333;
             padding-bottom: 10px;
             color: #fff;
         }
-        /* Compact, Scrollable Preferences List */
+
         .pref-list-container {
             max-height: 400px;
             overflow-y: auto;
@@ -39,6 +206,7 @@
             background-color: #0f0f0f;
             margin-bottom: 15px;
         }
+
         .pref-item {
             display: flex;
             justify-content: space-between;
@@ -46,9 +214,11 @@
             padding: 8px 12px;
             border-bottom: 1px solid #222;
         }
+
         .pref-item:last-child {
             border-bottom: none;
         }
+
         .pref-tag {
             font-size: 14px;
             color: #ccc;
@@ -58,11 +228,13 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
         .pref-controls {
             display: flex;
             align-items: center;
             gap: 8px;
         }
+
         .pref-value {
             background-color: #222;
             border: 1px solid #444;
@@ -73,6 +245,7 @@
             font-size: 13px;
             border-radius: 2px;
         }
+
         .btn-remove {
             background: transparent;
             border: none;
@@ -82,6 +255,7 @@
             font-weight: bold;
             padding: 0 5px;
         }
+
         .btn-remove:hover {
             color: #ff4444;
         }
@@ -95,28 +269,35 @@
             border-radius: 4px;
             font-size: 14px;
         }
+
         .btn:hover {
             background-color: #444;
         }
+
         .btn-danger {
             background-color: #aa0000;
         }
+
         .btn-danger:hover {
             background-color: #cc0000;
         }
+
         .btn-save {
             background-color: #2196F3;
         }
+
         .btn-save:hover {
             background-color: #1e88e5;
         }
+
         .btn-logout {
             background-color: #555;
         }
+
         .btn-logout:hover {
             background-color: #666;
         }
-        
+
         input[type="text"], input[type="password"] {
             background-color: #0f0f0f;
             border: 1px solid #444;
@@ -125,8 +306,7 @@
             margin-right: 10px;
             border-radius: 4px;
         }
-        
-        /* Autocomplete styling */
+
         input[list] {
             background-color: #0f0f0f;
         }
@@ -137,27 +317,29 @@
             margin-top: 15px;
             align-items: center;
         }
+
         .status-msg {
             margin-top: 10px;
             font-size: 13px;
             min-height: 20px;
         }
+
         .success { color: #4caf50; }
         .error { color: #f44336; }
 
-        /* Scrollbar styling */
         .pref-list-container::-webkit-scrollbar {
             width: 8px;
         }
+
         .pref-list-container::-webkit-scrollbar-track {
             background: #1a1a1a;
         }
+
         .pref-list-container::-webkit-scrollbar-thumb {
             background: #444;
             border-radius: 4px;
         }
 
-        /* Delete account section styling */
         .delete-account-form {
             display: none;
             margin-top: 12px;
@@ -166,114 +348,190 @@
             border: 1px solid #440000;
             border-radius: 6px;
         }
+
         .delete-account-form.active {
             display: block;
         }
+
         .delete-account-form p {
             font-size: 13px;
             color: #ccc;
             margin: 0 0 12px 0;
         }
+
         .delete-form-row {
             display: flex;
             gap: 10px;
             align-items: center;
             flex-wrap: wrap;
         }
+
+        .tab-panel h1 {
+            margin-top: 0;
+        }
     </style>
 </head>
 <body>
     <header class="top-bar">
-        <a href="index.html" style="display: flex; align-items: center;">
-            <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo">
-        </a>
+        <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search">
+            <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
+            <div id="searchSuggestions" class="search-suggestions"></div>
+        </div>
+        <div class="user-actions" id="userActions"></div>
     </header>
 
-    <div class="settings-container">
-        <h1>Settings</h1>
+    <!-- Left Sidebar -->
+    <div class="settings-sidebar">
+        <a data-tab="profile" class="active">Profile Picture</a>
+        <a data-tab="settings">Settings</a>
+    </div>
 
-        <!-- Algorithm Section -->
-        <div class="settings-section">
-            <h2>Algorithm Preferences</h2>
-            <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;">Adjust scores to influence your recommendations. Higher = matching videos are more likely to appear.</p>
-            
-            <div id="preferencesContainer" class="pref-list-container">
-                <!-- Preferences loaded dynamically -->
-            </div>
-            
-            <!-- Add Tag Form -->
-            <div class="inline-form" style="margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 15px;">
-                <input type="text" id="newTagInput" list="allTagsList" placeholder="Add new tag..." style="flex-grow: 1;">
-                <datalist id="allTagsList"></datalist>
-                <button class="btn" onclick="addNewTag()">Add Tag</button>
-            </div>
+    <!-- Content Area -->
+    <div class="settings-content">
 
-            <div class="inline-form">
-                <button class="btn btn-save" onclick="savePreferences()">Save Preferences</button>
-                <button class="btn btn-danger" onclick="resetPreferences()">Reset All</button>
+        <!-- Profile Picture Tab -->
+        <div class="tab-panel active" id="tab-profile">
+            <h1>Profile Picture</h1>
+            <div class="profile-page-container">
+                <img id="profilePicDisplay" class="profile-pic-display" src="LocalYT-Rev-Files/user-profile-placeholder.jpg" alt="Profile Picture">
+                <div class="profile-actions">
+                    <button class="profile-btn primary" id="uploadBtn">Upload Picture</button>
+                    <button class="profile-btn secondary hidden" id="removeBtn">Remove Picture</button>
+                </div>
+                <div class="profile-status" id="profileStatus">Using default profile picture</div>
             </div>
-            <div id="prefStatus" class="status-msg"></div>
         </div>
 
-        <!-- Account Management -->
-        <div class="settings-section">
-            <h2>Account Management</h2>
-            
-            <div style="margin-bottom: 20px;">
-                <h3 style="margin-bottom: 5px; font-size: 16px;">Rename Account</h3>
+        <!-- Settings Tab -->
+        <div class="tab-panel" id="tab-settings">
+            <h1>Settings</h1>
+
+            <!-- Algorithm Section -->
+            <div class="settings-section">
+                <h2>Algorithm Preferences</h2>
+                <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;">Adjust scores to influence your recommendations. Higher = matching videos are more likely to appear.</p>
+
+                <div id="preferencesContainer" class="pref-list-container">
+                </div>
+
+                <div class="inline-form" style="margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 15px;">
+                    <input type="text" id="newTagInput" list="allTagsList" placeholder="Add new tag..." style="flex-grow: 1;">
+                    <datalist id="allTagsList"></datalist>
+                    <button class="btn" id="addTagBtn">Add Tag</button>
+                </div>
+
                 <div class="inline-form">
-                    <input type="text" id="newUsername" placeholder="New Username">
-                    <button class="btn" onclick="renameAccount()">Rename</button>
+                    <button class="btn btn-save" id="savePrefsBtn">Save Preferences</button>
+                    <button class="btn btn-danger" id="resetPrefsBtn">Reset All</button>
                 </div>
-                <div id="renameStatus" class="status-msg"></div>
+                <div id="prefStatus" class="status-msg"></div>
             </div>
 
-            <div>
-                <h3 style="margin-bottom: 5px; font-size: 16px;">Change Password</h3>
-                <div class="inline-form" style="flex-wrap: wrap;">
-                    <input type="password" id="currentPassword" placeholder="Current Password">
-                    <input type="password" id="newPassword" placeholder="New Password">
-                    <button class="btn" onclick="changePassword()">Update</button>
+            <!-- Account Management -->
+            <div class="settings-section">
+                <h2>Account Management</h2>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 5px; font-size: 16px;">Rename Account</h3>
+                    <div class="inline-form">
+                        <input type="text" id="newUsername" placeholder="New Username">
+                        <button class="btn" id="renameBtn">Rename</button>
+                    </div>
+                    <div id="renameStatus" class="status-msg"></div>
                 </div>
-                <div id="passStatus" class="status-msg"></div>
+
+                <div>
+                    <h3 style="margin-bottom: 5px; font-size: 16px;">Change Password</h3>
+                    <div class="inline-form" style="flex-wrap: wrap;">
+                        <input type="password" id="currentPassword" placeholder="Current Password">
+                        <input type="password" id="newPassword" placeholder="New Password">
+                        <button class="btn" id="changePassBtn">Update</button>
+                    </div>
+                    <div id="passStatus" class="status-msg"></div>
+                </div>
             </div>
-        </div>
 
-        <!-- Danger Zone -->
-        <div class="settings-section">
-            <h2>Danger Zone</h2>
-            
-            <div style="margin-bottom: 20px;">
-                <h3 style="margin-bottom: 5px; font-size: 16px;">Logout</h3>
-                <p style="font-size: 13px; color: #aaa;">End your current session.</p>
-                <div class="inline-form" style="justify-content: flex-start;">
-                    <button class="btn btn-logout" onclick="logout()">Logout</button>
-                </div>
-            </div>
+            <!-- Danger Zone -->
+            <div class="settings-section">
+                <h2>Danger Zone</h2>
 
-            <div>
-                <h3 style="margin-bottom: 5px; font-size: 16px; color: #ff4444;">Delete Account</h3>
-                <p style="font-size: 13px; color: #aaa;">WARNING: Once deleted, you won't be able to recover it.</p>
-                <div class="inline-form" style="justify-content: flex-start;">
-                    <button class="btn btn-danger" onclick="toggleDeleteForm()">Delete Account</button>
-                </div>
-
-                <div id="deleteAccountForm" class="delete-account-form">
-                    <p>Enter your current password and type <strong style="color:#ff4444;">DELETE</strong> to permanently delete your account.</p>
-                    <div class="delete-form-row">
-                        <input type="password" id="deletePassword" placeholder="Current Password">
-                        <input type="text" id="deleteConfirmText" placeholder="Type DELETE">
-                        <button class="btn btn-danger" onclick="deleteAccount()">Confirm Delete</button>
+                <div style="margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 5px; font-size: 16px;">Logout</h3>
+                    <p style="font-size: 13px; color: #aaa;">End your current session.</p>
+                    <div class="inline-form" style="justify-content: flex-start;">
+                        <button class="btn btn-logout" id="logoutBtn">Logout</button>
                     </div>
                 </div>
 
-                <div id="deleteStatus" class="status-msg"></div>
+                <div>
+                    <h3 style="margin-bottom: 5px; font-size: 16px; color: #ff4444;">Delete Account</h3>
+                    <p style="font-size: 13px; color: #aaa;">WARNING: Once deleted, you won't be able to recover it.</p>
+                    <div class="inline-form" style="justify-content: flex-start;">
+                        <button class="btn btn-danger" id="toggleDeleteBtn">Delete Account</button>
+                    </div>
+
+                    <div id="deleteAccountForm" class="delete-account-form">
+                        <p>Enter your current password and type <strong style="color:#ff4444;">DELETE</strong> to permanently delete your account.</p>
+                        <div class="delete-form-row">
+                            <input type="password" id="deletePassword" placeholder="Current Password">
+                            <input type="text" id="deleteConfirmText" placeholder="Type DELETE">
+                            <button class="btn btn-danger" id="deleteAccountBtn">Confirm Delete</button>
+                        </div>
+                    </div>
+
+                    <div id="deleteStatus" class="status-msg"></div>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Cropper Modal -->
+    <div class="crop-modal-overlay" id="cropperModal">
+        <div class="cropper-container-wrapper">
+            <img id="imageToCrop" src="">
+        </div>
+        <div class="cropper-actions">
+            <button class="profile-btn secondary" id="cancelCropBtn">Cancel</button>
+            <button class="profile-btn primary" id="doneCropBtn">Done</button>
+        </div>
+    </div>
+
+    <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp">
+    <div class="toast error" id="errorToast"></div>
+    <div class="toast success" id="successToast"></div>
+
+    <script src="profile-pic.js"></script>
     <script>
-        // Check login status
+        // ==============================
+        // Tab Switching
+        // ==============================
+        const sidebarLinks = document.querySelectorAll('.settings-sidebar a');
+        const tabPanels = document.querySelectorAll('.tab-panel');
+
+        sidebarLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetTab = link.dataset.tab;
+
+                sidebarLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+
+                tabPanels.forEach(panel => panel.classList.remove('active'));
+                document.getElementById('tab-' + targetTab).classList.add('active');
+
+                // Load preferences when switching to settings tab
+                if (targetTab === 'settings') {
+                    loadPreferences();
+                    loadAllTags();
+                }
+            });
+        });
+
+        // ==============================
+        // Auth Check
+        // ==============================
         document.addEventListener('DOMContentLoaded', () => {
             fetch('/session-user')
                 .then(res => res.json())
@@ -281,16 +539,227 @@
                     if (!data.username) {
                         window.location.href = 'login.html';
                     } else {
-
+                        loadProfilePic();
                         loadPreferences();
                         loadAllTags();
                     }
                 })
                 .catch(() => window.location.href = 'login.html');
+
+            // Logo navigation
+            const mainLogo = document.getElementById('mainLogo');
+            if (mainLogo) {
+                mainLogo.addEventListener('click', (e) => {
+                    if (e.button === 0) window.location.href = 'index.html';
+                });
+                mainLogo.addEventListener('mouseup', (e) => {
+                    if (e.button === 1) { e.preventDefault(); window.open('index.html', '_blank'); }
+                });
+                mainLogo.addEventListener('contextmenu', (e) => {
+                    e.preventDefault(); window.open('index.html', '_blank');
+                });
+                mainLogo.title = 'Go to homepage';
+                mainLogo.style.cursor = 'pointer';
+            }
+
+            // Search functionality
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', () => {
+                const query = searchInput.value.toLowerCase();
+                if (query.length < 2) { document.getElementById('searchSuggestions').innerHTML = ''; return; }
+                fetch('/search-index').then(res => res.json()).then(data => {
+                    const suggestions = (data.videos || []).filter(v => v.displayName.toLowerCase().includes(query)).slice(0, 5);
+                    const container = document.getElementById('searchSuggestions');
+                    container.innerHTML = '';
+                    suggestions.forEach(s => {
+                        const el = document.createElement('div');
+                        el.className = 'suggestion-item';
+                        el.textContent = s.displayName;
+                        el.onclick = () => { window.location.href = `video.html?src=${encodeURIComponent(s.path)}`; };
+                        container.appendChild(el);
+                    });
+                });
+            });
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
+            });
+            document.getElementById('searchIcon').addEventListener('click', () => {
+                const q = searchInput.value.trim();
+                if (q) window.location.href = `search.html?q=${encodeURIComponent(q)}`;
+                else searchInput.focus();
+            });
         });
 
-        // Load all available tags for the suggestion list
+        // ==============================
+        // Profile Picture Logic
+        // ==============================
+        const PLACEHOLDER_SRC = '/LocalYT-Rev-Files/user-profile-placeholder.jpg';
+        const profilePicDisplay = document.getElementById('profilePicDisplay');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const removeBtn = document.getElementById('removeBtn');
+        const fileInput = document.getElementById('fileInput');
+        const profileStatus = document.getElementById('profileStatus');
+        const errorToast = document.getElementById('errorToast');
+        const successToast = document.getElementById('successToast');
+
+        const cropperModal = document.getElementById('cropperModal');
+        const imageToCrop = document.getElementById('imageToCrop');
+        const cancelCropBtn = document.getElementById('cancelCropBtn');
+        const doneCropBtn = document.getElementById('doneCropBtn');
+
+        let cropper = null;
+        let currentFile = null;
+
+        function showToast(el, msg) {
+            el.textContent = msg;
+            el.classList.add('visible');
+            setTimeout(() => el.classList.remove('visible'), 3000);
+        }
+
+        function loadProfilePic() {
+            profilePicDisplay.src = PLACEHOLDER_SRC;
+            removeBtn.classList.add('hidden');
+            profileStatus.textContent = 'Using default profile picture';
+
+            fetch('/user-profile-pic')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.hasCustomPic && data.picUrl) {
+                        profilePicDisplay.src = data.picUrl + '?t=' + Date.now();
+                        removeBtn.classList.remove('hidden');
+                        profileStatus.textContent = 'Custom profile picture set';
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function refreshHeaderPic() {
+            fetch('/user-profile-pic')
+                .then(res => res.json())
+                .then(data => {
+                    const headerPic = document.getElementById('headerProfilePic');
+                    if (!headerPic) return;
+                    if (data.hasCustomPic && data.picUrl) {
+                        headerPic.src = data.picUrl + '?t=' + Date.now();
+                    } else {
+                        headerPic.src = PLACEHOLDER_SRC;
+                    }
+                })
+                .catch(() => {});
+        }
+
+        uploadBtn.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                showToast(errorToast, 'Only JPEG, PNG, and WebP images are allowed');
+                fileInput.value = '';
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                showToast(errorToast, 'Image must be under 5MB');
+                fileInput.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                imageToCrop.src = event.target.result;
+                cropperModal.classList.add('active');
+
+                if (cropper) {
+                    cropper.destroy();
+                }
+
+                cropper = new Cropper(imageToCrop, {
+                    aspectRatio: 1 / 1,
+                    viewMode: 1,
+                    autoCropArea: 0.9,
+                    responsive: true
+                });
+            };
+            reader.readAsDataURL(file);
+            currentFile = file;
+        });
+
+        cancelCropBtn.addEventListener('click', () => {
+            cropperModal.classList.remove('active');
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+            fileInput.value = '';
+            currentFile = null;
+        });
+
+        doneCropBtn.addEventListener('click', () => {
+            if (!cropper || !currentFile) return;
+
+            const canvasData = cropper.getData();
+
+            const formData = new FormData();
+            formData.append('profilePic', currentFile);
+            formData.append('x', Math.round(canvasData.x));
+            formData.append('y', Math.round(canvasData.y));
+            formData.append('width', Math.round(canvasData.width));
+            formData.append('height', Math.round(canvasData.height));
+
+            doneCropBtn.disabled = true;
+            doneCropBtn.textContent = 'Processing...';
+
+            fetch('/user-profile-pic', {
+                method: 'POST',
+                body: formData
+            })
+            .then(async res => {
+                const text = await res.text();
+                if (!res.ok) throw new Error(text);
+
+                showToast(successToast, 'Profile picture updated!');
+                loadProfilePic();
+                refreshHeaderPic();
+
+                cropperModal.classList.remove('active');
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+                fileInput.value = '';
+                currentFile = null;
+            })
+            .catch(err => {
+                console.error(err);
+                showToast(errorToast, err.message || 'Error uploading');
+            })
+            .finally(() => {
+                doneCropBtn.disabled = false;
+                doneCropBtn.textContent = 'Done';
+            });
+        });
+
+        removeBtn.addEventListener('click', () => {
+            fetch('/user-profile-pic', { method: 'DELETE' })
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to remove');
+                    showToast(successToast, 'Profile picture removed');
+                    profilePicDisplay.src = PLACEHOLDER_SRC;
+                    removeBtn.classList.add('hidden');
+                    profileStatus.textContent = 'Using default profile picture';
+                    refreshHeaderPic();
+                })
+                .catch(err => showToast(errorToast, err.message));
+        });
+
+        // ==============================
+        // Settings Logic
+        // ==============================
         let allAvailableTags = [];
+
         function loadAllTags() {
             fetch('/get-all-tags')
                 .then(res => res.json())
@@ -303,7 +772,8 @@
                         option.value = tag;
                         datalist.appendChild(option);
                     });
-                });
+                })
+                .catch(() => {});
         }
 
         function loadPreferences() {
@@ -312,25 +782,25 @@
                 .then(data => {
                     const container = document.getElementById('preferencesContainer');
                     container.innerHTML = '';
-                    
+
                     if (Object.keys(data).length === 0) {
                         container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No preferences found. Watch videos to build your algorithm!</div>';
                         return;
                     }
 
-                    // Sort by value desc
                     const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
 
                     sorted.forEach(([tag, value]) => {
                         createPrefItem(tag, value, container);
                     });
-                });
+                })
+                .catch(() => {});
         }
 
         function createPrefItem(tag, value, container) {
             const div = document.createElement('div');
             div.className = 'pref-item';
-            div.dataset.tag = tag; 
+            div.dataset.tag = tag;
             div.innerHTML = `
                 <span class="pref-tag" title="${tag}">${tag}</span>
                 <div class="pref-controls">
@@ -338,35 +808,34 @@
                     <button class="btn-remove" title="Remove Tag">&times;</button>
                 </div>
             `;
-            
+
             div.querySelector('.btn-remove').addEventListener('click', () => {
                 div.remove();
             });
-            
+
             container.appendChild(div);
         }
 
-        function addNewTag() {
+        document.getElementById('addTagBtn').addEventListener('click', () => {
             const input = document.getElementById('newTagInput');
             const tagName = input.value.trim();
-            
+
             if (!tagName) return;
 
             const container = document.getElementById('preferencesContainer');
-            
-            // Check if already exists
+
             const existing = container.querySelector(`[data-tag="${tagName}"]`);
             if (existing) {
                 showStatus('prefStatus', 'Tag already in list.', false);
                 return;
             }
 
-            createPrefItem(tagName, 50, container); // Default value 50
-            input.value = ''; // Clear input
+            createPrefItem(tagName, 50, container);
+            input.value = '';
             showStatus('prefStatus', 'Tag added. Click Save to confirm.', true);
-        }
+        });
 
-        function savePreferences() {
+        document.getElementById('savePrefsBtn').addEventListener('click', () => {
             const container = document.getElementById('preferencesContainer');
             const items = container.querySelectorAll('.pref-item');
             const newPrefs = {};
@@ -378,7 +847,6 @@
                 newPrefs[tag] = value;
             });
 
-            // Send the entire object to overwrite the file
             fetch('/save-preferences', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -387,15 +855,15 @@
             .then(res => {
                 if (res.ok) {
                     showStatus('prefStatus', 'Preferences saved successfully!', true);
-                    loadPreferences(); // Reload to re-sort
+                    loadPreferences();
                 } else {
                     showStatus('prefStatus', 'Error saving preferences.', false);
                 }
             })
             .catch(() => showStatus('prefStatus', 'Error saving preferences.', false));
-        }
+        });
 
-        function resetPreferences() {
+        document.getElementById('resetPrefsBtn').addEventListener('click', () => {
             if (confirm('Are you sure you want to clear all your viewing preferences?')) {
                 fetch('/reset-preferences', { method: 'POST' })
                     .then(res => {
@@ -405,16 +873,16 @@
                         }
                     });
             }
-        }
+        });
 
-        function logout() {
+        document.getElementById('logoutBtn').addEventListener('click', () => {
             window.location.href = '/logout';
-        }
+        });
 
-        function renameAccount() {
+        document.getElementById('renameBtn').addEventListener('click', () => {
             const newUsername = document.getElementById('newUsername').value;
             if (!newUsername) return;
-            
+
             fetch('/rename-account', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -429,9 +897,9 @@
                     showStatus('renameStatus', msg, false);
                 }
             });
-        }
+        });
 
-        function changePassword() {
+        document.getElementById('changePassBtn').addEventListener('click', () => {
             const currentPassword = document.getElementById('currentPassword').value;
             const newPassword = document.getElementById('newPassword').value;
             if (!currentPassword || !newPassword) return;
@@ -451,14 +919,13 @@
                     showStatus('passStatus', msg, false);
                 }
             });
-        }
+        });
 
-        function toggleDeleteForm() {
-            const form = document.getElementById('deleteAccountForm');
-            form.classList.toggle('active');
-        }
+        document.getElementById('toggleDeleteBtn').addEventListener('click', () => {
+            document.getElementById('deleteAccountForm').classList.toggle('active');
+        });
 
-        function deleteAccount() {
+        document.getElementById('deleteAccountBtn').addEventListener('click', () => {
             const password = document.getElementById('deletePassword').value;
             const confirmText = document.getElementById('deleteConfirmText').value;
 
@@ -488,7 +955,7 @@
                 }
             })
             .catch(() => showStatus('deleteStatus', 'Error deleting account.', false));
-        }
+        });
 
         function showStatus(elementId, message, success) {
             const el = document.getElementById(elementId);
@@ -497,6 +964,5 @@
             setTimeout(() => el.textContent = '', 3000);
         }
     </script>
-    <script src="profile-pic.js"></script>
 </body>
 </html>
