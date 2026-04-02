@@ -10,6 +10,7 @@ v3.85
 - Added support for channel descriptions
   - These will be displayed in a new "About" tab on channel.html
   - Additional channel stats (such as Joined date and total view count) will be displayed
+- Added invidiual links to channel subpages (e.g. /playlists & /about)
 - Removed duplicate divider on channel.html
 
 v3.80
