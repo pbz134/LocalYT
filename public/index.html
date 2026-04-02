@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -98,7 +98,6 @@
         <a href="liked_videos.html">Liked Videos</a>
         <a href="subscribed_channels.html">Subscriptions</a>
         <a href="user_playlists.html">Playlists</a>
-        <a href="settings.html">Settings</a>
         <a href="about.html">About</a>
     </div>
     <div class="container" id="videoContainer"></div>
@@ -422,7 +421,9 @@ document.getElementById('searchIcon').addEventListener('click', () => {
                         <div class="video-length"></div>
                     </div>
                     <div class="video-info">
-                        <img src="${channelPicSrc}" alt="${channel}" class="channel-pic" loading="lazy">
+                        <div class="channel-pic-link" style="cursor: pointer;">
+                            <img src="${channelPicSrc}" alt="${channel}" class="channel-pic" loading="lazy">
+                        </div>
                         <div class="video-details">
                             <div class="video-title" onclick="window.location.href='video.html?src=${encodeURIComponent(video.path)}'">${videoTitle}</div>
                             <div class="channel-name" onclick="window.location.href='channel.html?channel=${encodeURIComponent(channel)}'">${channel}</div>
@@ -438,9 +439,9 @@ document.getElementById('searchIcon').addEventListener('click', () => {
 
                 setupVideoLinkEvents(videoElement.querySelector('.video-title'), video.path);
                 
-                // --- MODIFICATION START: Setup events for channel links ---
+                // --- MODIFICATION: Setup events for channel pic links ---
+                setupChannelLinkEvents(videoElement.querySelector('.channel-pic-link'), channel);
                 setupChannelLinkEvents(videoElement.querySelector('.channel-name'), channel);
-                // --- MODIFICATION END ---
 
                 const videoFilename = video.path.split('/').pop();
                 const videoNameWithoutExt = stripExtension(videoFilename);
@@ -470,6 +471,11 @@ document.getElementById('searchIcon').addEventListener('click', () => {
         }
 
         function setupChannelLinkEvents(element, channel) {
+            // Handle left click
+            element.addEventListener('click', () => {
+                window.location.href = `channel.html?channel=${encodeURIComponent(channel)}`;
+            });
+
             // Handle right-click
             element.addEventListener('contextmenu', (event) => {
                 event.preventDefault();
@@ -483,9 +489,6 @@ document.getElementById('searchIcon').addEventListener('click', () => {
                     window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
                 }
             });
-            
-            // Optional: Ensure cursor indicates clickable link
-            element.style.cursor = 'pointer';
         }
     </script>
     <script src="profile-pic.js"></script>

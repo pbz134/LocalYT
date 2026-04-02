@@ -14,6 +14,11 @@ v3.85
 - Removed duplicate divider on channel.html
 - Made playlists always use the first video for their thumbnail
 - Made playlist thumbnails less dark
+- Added a profile modal
+  - Clicking on your profile image toggles a model with various settings
+  - Log in or out, access the settings easier and send feedback or access the source code
+  - Documentation, Appearance and Language are placeholders for now!
+- Moved Settings button from the index.html sidebar to the profile modal
 
 v3.80
 - Implemented advanced conditional video tagging
