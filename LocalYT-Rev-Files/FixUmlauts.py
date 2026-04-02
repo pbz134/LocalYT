@@ -16,6 +16,8 @@ def rename_files():
         'comments',
         'channelbanner',
         'channelpic',
+        'channelstats',
+        'channeldesc',
         'descriptions',
         'filedates',
         'filenames',
