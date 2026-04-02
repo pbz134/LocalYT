@@ -40,10 +40,6 @@
             display: block;
             margin-top: 5px;
         }
-        .divider {
-            border-top: 1px solid #3f3f3f;
-            margin: 20px 0;
-        }
         .tabs {
             display: flex;
             margin-left: 230px;
@@ -234,6 +230,75 @@
             width: 100%;
             font-style: italic;
         }
+        
+        /* About Tab Styles */
+        .about-container {
+            display: flex;
+            gap: 40px;
+            margin-left: 230px;
+            max-width: 1200px;
+        }
+        .about-description {
+            flex: 2;
+            min-width: 0;
+        }
+        .about-description h3 {
+            color: #fff;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        .about-description .description-text {
+            color: #ccc;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        .about-stats {
+            flex: 1;
+            min-width: 200px;
+        }
+        .about-stats h3 {
+            color: #fff;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        .stats-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+        .stats-item {
+            color: #ccc;
+            font-size: 14px;
+            padding: 12px 0;
+            border-bottom: 1px solid #3f3f3f;
+        }
+        .stats-item:first-of-type {
+            border-top: 1px solid #3f3f3f;
+        }
+        .stats-item.total-views {
+            font-weight: normal;
+        }
+        .share-button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: transparent;
+            color: #ccc;
+            border: none;
+            padding: 8px 0;
+            cursor: pointer;
+            font-size: 14px;
+            transition: opacity 0.2s;
+        }
+        .share-button:hover {
+            filter: brightness(1.4);
+        }
+        .share-button img {
+            width: 16px;
+            height: 16px;
+            filter: invert(1);
+        }
     </style>
 </head>
 <body>
@@ -250,12 +315,13 @@
         <img id="channelPic" class="channel-pic" alt="Channel Picture" loading="lazy">
         <div id="channelName" class="channel-name"></div>
     </div>
-    <div class="divider"></div>
+
     
     <!-- Tabs -->
     <div class="tabs">
         <div class="tab active" data-tab="videos">VIDEOS</div>
         <div class="tab" data-tab="playlists">PLAYLISTS</div>
+        <div class="tab" data-tab="about">ABOUT</div>
     </div>
 
     <!-- Videos Tab -->
@@ -274,6 +340,27 @@
     <!-- Playlists Tab -->
     <div id="playlistsTab" class="tab-content">
         <div class="playlists-container" id="playlistsContainer"></div>
+    </div>
+
+    <!-- About Tab -->
+    <div id="aboutTab" class="tab-content">
+        <div class="about-container">
+            <div class="about-description">
+                <h3>Description</h3>
+                <div id="channelDescription" class="description-text">Loading...</div>
+            </div>
+            <div class="about-stats">
+                <h3>Stats</h3>
+                <div class="stats-list">
+                    <div class="stats-item" id="statsJoined">Joined --</div>
+                    <div class="stats-item total-views" id="statsViews">-- views</div>
+                    <button class="share-button" id="shareChannelBtn">
+                        <img src="LocalYT-Rev-Files/share.svg" alt="Share">
+                        Share
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -621,6 +708,68 @@ document.addEventListener('DOMContentLoaded', () => {
         resetAndRender();
     });
 
+    // Function to format date to "Mon DD, YYYY"
+    function formatJoinDate(date) {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const day = date.getDate();
+        const month = months[date.getMonth()];
+        const year = date.getFullYear();
+        return `${month} ${day}, ${year}`;
+    }
+
+    // Calculate and update stats
+    function updateAboutStats() {
+        // Fetch stats from JSON file
+        fetch(`/channelstats/${encodeURIComponent(channel)}.json`)
+            .then(response => {
+                if (response.ok) return response.json();
+                throw new Error('No stats file');
+            })
+            .then(data => {
+                // Update Join Date
+                if (data.channel_creation_date) {
+                    const date = parseEuropeanDate(data.channel_creation_date);
+                    if (date.getTime() > 0) {
+                        document.getElementById('statsJoined').textContent = `Joined ${formatJoinDate(date)}`;
+                    }
+                }
+
+                // Update Total Views
+                if (data.total_views_raw) {
+                    document.getElementById('statsViews').textContent = `${parseInt(data.total_views_raw).toLocaleString('en-US')} views`;
+                } else if (data.total_views) {
+                    // Fallback to string version if raw isn't available
+                    document.getElementById('statsViews').textContent = `${data.total_views} views`;
+                }
+            })
+            .catch(() => {
+                // Fallback if file doesn't exist
+                document.getElementById('statsJoined').textContent = 'Joined --';
+                document.getElementById('statsViews').textContent = '0 views';
+            });
+    }
+
+    // Share button functionality
+    document.getElementById('shareChannelBtn').addEventListener('click', () => {
+        const channelUrl = `${window.location.origin}/channel.html?channel=${encodeURIComponent(channel)}`;
+        
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(channelUrl).then(() => {
+                const btn = document.getElementById('shareChannelBtn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<img src="LocalYT-Rev-Files/share.svg" alt="Share"> Copied!';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert(`Channel URL: ${channelUrl}`);
+            });
+        } else {
+            alert(`Channel URL: ${channelUrl}`);
+        }
+    });
+
     // Load videos from search-index
     fetch('/search-index')
         .then(response => response.json())
@@ -658,15 +807,18 @@ document.addEventListener('DOMContentLoaded', () => {
             Promise.all(videoPromises).then(videosWithDetails => {
                 currentVideos = videosWithDetails;
                 
-                // FIX: Sort videos immediately after fetching them
+                // Sort videos immediately after fetching them
                 sortVideosArray();
+                
+                // Update About tab stats
+                updateAboutStats();
                 
                 hasMoreVideos = currentVideos.length > 0;
                 
                 // Clear the initial loading spinner
                 videosContainer.innerHTML = '';
                 
-                // FIX: Load first batch of videos (triggers render)
+                // Load first batch of videos (triggers render)
                 loadMoreVideos();
                 
                 const videoCount = currentVideos.length;
@@ -707,6 +859,17 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(error => {
             console.error('Error fetching playlists:', error);
+        });
+
+    // Load channel description
+    fetch(`/channel-description/${encodeURIComponent(channel)}`)
+        .then(response => response.text())
+        .then(description => {
+            document.getElementById('channelDescription').textContent = description || 'No description available.';
+        })
+        .catch(error => {
+            console.error('Error fetching channel description:', error);
+            document.getElementById('channelDescription').textContent = 'No description available.';
         });
 
     // Search functionality

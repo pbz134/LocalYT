@@ -3,8 +3,14 @@
 v3.85
 - Implemented custom user profile pictures
   - Each user is now able to upload and use their own profile picture
-  - It will be displayed on all pages
+  - It will be displayed on all pages, removing the now deprecated "Login" button
+  - The upload size limit is 5MB
 - Added a script to /LocalYT-Debug to easily backup your user files
+- Channels' profile images on index.html can now be clicked
+- Added support for channel descriptions
+  - These will be displayed in a new "About" tab on channel.html
+  - Additional channel stats (such as Joined date and total view count) will be displayed
+- Removed duplicate divider on channel.html
 
 v3.80
 - Implemented advanced conditional video tagging
