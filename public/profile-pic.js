@@ -193,7 +193,6 @@
                 margin-top: 8px;
                 background-color: #212121;
                 border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 12px;
                 min-width: 220px;
                 box-shadow: 0 4px 20px rgba(0,0,0,0.5);
                 z-index: 2000;
