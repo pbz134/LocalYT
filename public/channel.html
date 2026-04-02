@@ -197,7 +197,7 @@
             padding: 20px;
             color: #888;
             width: 100%;
-            display: none; /* Hidden by default */
+            display: none;
         }
         .loading-spinner.visible {
             display: block;
@@ -221,7 +221,7 @@
             width: 100%;
             visibility: hidden;
             position: relative;
-            bottom: 50px; /* Position it above the footer */
+            bottom: 50px;
         }
         .no-more-videos {
             text-align: center;
@@ -230,7 +230,7 @@
             width: 100%;
             font-style: italic;
         }
-        
+
         /* About Tab Styles */
         .about-container {
             display: flex;
@@ -299,6 +299,24 @@
             height: 16px;
             filter: invert(1);
         }
+        .tab-loading-placeholder {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+            font-size: 15px;
+        }
+        .tab-loading-placeholder::after {
+            content: '';
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            margin-left: 10px;
+            border: 2px solid #666;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
@@ -316,7 +334,6 @@
         <div id="channelName" class="channel-name"></div>
     </div>
 
-    
     <!-- Tabs -->
     <div class="tabs">
         <div class="tab active" data-tab="videos">VIDEOS</div>
@@ -339,7 +356,9 @@
 
     <!-- Playlists Tab -->
     <div id="playlistsTab" class="tab-content">
-        <div class="playlists-container" id="playlistsContainer"></div>
+        <div class="playlists-container" id="playlistsContainer">
+            <div class="tab-loading-placeholder">Loading playlists</div>
+        </div>
     </div>
 
     <!-- About Tab -->
@@ -347,7 +366,9 @@
         <div class="about-container">
             <div class="about-description">
                 <h3>Description</h3>
-                <div id="channelDescription" class="description-text">Loading...</div>
+                <div id="channelDescription" class="description-text">
+                    <div class="tab-loading-placeholder">Loading</div>
+                </div>
             </div>
             <div class="about-stats">
                 <h3>Stats</h3>
@@ -365,46 +386,74 @@
 
     <script>
 // Configuration
-const VIDEOS_PER_PAGE = 20; // Number of videos to load initially and per batch
+const VIDEOS_PER_PAGE = 20;
+
+// Parse the channel and tab from the URL
+// Supports:
+//   ?channel=YTBestOfs              → videos (default)
+//   ?channel=YTBestOfs/playlists   → playlists
+//   ?channel=YTBestOfs/about       → about
+function parseChannelUrl() {
+    const raw = new URLSearchParams(window.location.search).get('channel') || '';
+    const decoded = decodeURIComponent(raw);
+
+    const validTabs = ['videos', 'playlists', 'about'];
+    const tabNames = validTabs.find(t => decoded.endsWith('/' + t));
+
+    if (tabNames) {
+        return {
+            channel: decoded.slice(0, -(tabNames.length + 1)),
+            tab: tabNames
+        };
+    }
+    return { channel: decoded, tab: 'videos' };
+}
+
+// Build the URL for a given channel + tab
+function buildChannelUrl(channel, tab) {
+    if (tab === 'videos') {
+        return `channel.html?channel=${encodeURIComponent(channel)}`;
+    }
+    return `channel.html?channel=${encodeURIComponent(channel)}/${tab}`;
+}
+
+const { channel, tab: initialTab } = parseChannelUrl();
 
 // Handle logo clicks
 document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
-    
+
     if (mainLogo) {
         mainLogo.addEventListener('click', (event) => {
-            if (event.button === 0) { // Left click
+            if (event.button === 0) {
                 window.location.href = 'index.html';
             }
         });
-        
+
         mainLogo.addEventListener('mouseup', (event) => {
-            if (event.button === 1) { // Middle click
+            if (event.button === 1) {
                 event.preventDefault();
                 window.open('index.html', '_blank');
             }
         });
-        
+
         mainLogo.addEventListener('contextmenu', (event) => {
             event.preventDefault();
             window.open('index.html', '_blank');
         });
-        
+
         mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
         mainLogo.style.cursor = 'pointer';
     }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const channel = decodeURIComponent(urlParams.get('channel'));
     const videosContainer = document.getElementById('channelVideosContainer');
     const playlistsContainer = document.getElementById('playlistsContainer');
     const channelPic = document.getElementById('channelPic');
     const channelName = document.getElementById('channelName');
     const channelBanner = document.getElementById('channelBanner');
     const sortToggle = document.getElementById('sortToggle');
-    const sortIcon = sortToggle.querySelector('.sort-icon');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const loadMoreTrigger = document.getElementById('loadMoreTrigger');
     const noMoreVideos = document.getElementById('noMoreVideos');
@@ -416,26 +465,72 @@ document.addEventListener('DOMContentLoaded', () => {
     let hasMoreVideos = true;
     let intersectionObserver = null;
 
+    // Track which tabs have already been loaded so we don't re-fetch
+    const loadedTabs = new Set();
+
     channelBanner.style.backgroundImage = `url('/channelbanner/${encodeURIComponent(channel)}.jpg')`;
     channelPic.src = `/channelpic/${encodeURIComponent(channel)}.jpg`;
     channelName.textContent = channel;
-
     document.title = `${channel} - LocalYT`;
 
-    // Tab functionality
+    // --- Tab switching (pushes to address bar) ---
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+        const targetTab = document.querySelector(`.tab[data-tab="${tabName}"]`);
+        const targetContent = document.getElementById(`${tabName}Tab`);
+
+        if (targetTab) targetTab.classList.add('active');
+        if (targetContent) targetContent.classList.add('active');
+
+        // Update the URL without reloading
+        const newUrl = buildChannelUrl(channel, tabName);
+        history.pushState({ tab: tabName }, '', newUrl);
+
+        // Lazy-load tab content on first visit
+        if (!loadedTabs.has(tabName)) {
+            loadTabContent(tabName);
+        }
+    }
+
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            
-            tab.classList.add('active');
-            document.getElementById(`${tab.dataset.tab}Tab`).classList.add('active');
+            switchTab(tab.dataset.tab);
         });
     });
 
+    // Handle browser back/forward
+    window.addEventListener('popstate', (event) => {
+        const tabName = event.state?.tab || 'videos';
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+        const targetTab = document.querySelector(`.tab[data-tab="${tabName}"]`);
+        const targetContent = document.getElementById(`${tabName}Tab`);
+        if (targetTab) targetTab.classList.add('active');
+        if (targetContent) targetContent.classList.add('active');
+
+        if (!loadedTabs.has(tabName)) {
+            loadTabContent(tabName);
+        }
+    });
+
+    // --- Lazy-load content for a specific tab ---
+    function loadTabContent(tabName) {
+        switch (tabName) {
+            case 'playlists':
+                loadPlaylists();
+                break;
+            case 'about':
+                loadAbout();
+                break;
+        }
+        loadedTabs.add(tabName);
+    }
+
     function parseEuropeanDate(dateString) {
         if (!dateString || dateString === 'Unknown date') return new Date(0);
-        
         const parts = dateString.split('.');
         if (parts.length === 3) {
             const day = parseInt(parts[0], 10);
@@ -457,7 +552,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dateB = parseEuropeanDate(b.fileDate).getTime();
                 return sortNewestFirst ? dateB - dateA : dateA - dateB;
             } catch (e) {
-                console.error('Error sorting videos:', e);
                 return 0;
             }
         });
@@ -470,16 +564,13 @@ document.addEventListener('DOMContentLoaded', () => {
             sortToggle.innerHTML = '<span class="sort-icon">↑</span> Oldest First';
         }
 
-        // Reset rendered count and re-render
         renderedVideoCount = 0;
         videosContainer.innerHTML = '';
         hasMoreVideos = currentVideos.length > 0;
-        
-        // Hide any messages
+
         loadingSpinner.classList.remove('visible');
         noMoreVideos.style.display = 'none';
-        
-        // Load first batch
+
         loadMoreVideos();
     }
 
@@ -489,7 +580,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const videoTitle = video.displayName;
         const videoPathWithoutExt = stripExtension(video.path);
         const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
-        
+
         videoElement.innerHTML = `
             <div class="thumbnail-container">
                 <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
@@ -499,9 +590,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="video-description"></div>
         `;
 
-        // Fetch metadata
         const descriptionDiv = videoElement.querySelector('.video-description');
-        
+
         Promise.all([
             fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(response => response.ok ? response.text() : '0'),
             fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(response => response.ok ? response.text() : 'Unknown date')
@@ -513,12 +603,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             descriptionDiv.textContent = `${formattedViewCount} views • Uploaded on ${fileDate}`;
         })
-        .catch(error => {
-            console.error('Error fetching metadata:', error);
+        .catch(() => {
             descriptionDiv.textContent = 'Views unavailable';
         });
 
-        // Fetch video length
         const videoFilename = video.path.split('/').pop();
         const videoNameWithoutExt = stripExtension(videoFilename);
         fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
@@ -526,19 +614,14 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(length => {
                 videoElement.querySelector('.video-length').textContent = length;
             })
-            .catch(error => {
-                console.error('Error fetching video length:', error);
-            });
+            .catch(() => {});
 
-        // Video click handlers
         const videoLink = videoElement.querySelector('.video-title');
         const videoThumb = videoElement.querySelector('.video-thumbnail');
-        
-        // Left click
+
         videoThumb.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
         videoLink.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
-        
-        // Right click (open in new tab)
+
         videoThumb.addEventListener('contextmenu', (event) => {
             event.preventDefault();
             window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
@@ -548,10 +631,8 @@ document.addEventListener('DOMContentLoaded', () => {
             window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
         });
 
-        // Middle click / Mouse wheel click (open in new tab)
-        // Using 'mouseup' for broader compatibility and 'auxclick' for modern standard
         const openInNewTabHandler = (event) => {
-            if (event.button === 1) { // Button 1 is the middle mouse button
+            if (event.button === 1) {
                 event.preventDefault();
                 window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
             }
@@ -559,7 +640,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         videoThumb.addEventListener('mouseup', openInNewTabHandler);
         videoLink.addEventListener('mouseup', openInNewTabHandler);
-        
         videoThumb.addEventListener('auxclick', openInNewTabHandler);
         videoLink.addEventListener('auxclick', openInNewTabHandler);
 
@@ -567,13 +647,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function loadMoreVideos() {
-        // Don't load if already loading or no more videos
         if (isLoadingMore || !hasMoreVideos) return;
-        
+
         const startIndex = renderedVideoCount;
         const endIndex = Math.min(startIndex + VIDEOS_PER_PAGE, currentVideos.length);
-        
-        // Check if we've reached the end
+
         if (startIndex >= currentVideos.length) {
             hasMoreVideos = false;
             loadingSpinner.classList.remove('visible');
@@ -585,21 +663,19 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingSpinner.classList.add('visible');
         noMoreVideos.style.display = 'none';
 
-        // Use requestAnimationFrame for smoother rendering
         requestAnimationFrame(() => {
             const fragment = document.createDocumentFragment();
-            
+
             for (let i = startIndex; i < endIndex; i++) {
                 const video = currentVideos[i];
                 const videoElement = createVideoElement(video);
                 fragment.appendChild(videoElement);
             }
-            
+
             videosContainer.appendChild(fragment);
             renderedVideoCount = endIndex;
             isLoadingMore = false;
-            
-            // Check if we've loaded all videos
+
             if (renderedVideoCount >= currentVideos.length) {
                 hasMoreVideos = false;
                 loadingSpinner.classList.remove('visible');
@@ -612,20 +688,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function checkAndLoadMore() {
         if (!hasMoreVideos || isLoadingMore) return;
-        
         const trigger = loadMoreTrigger;
         if (!trigger) return;
-        
         const rect = trigger.getBoundingClientRect();
         const windowHeight = window.innerHeight || document.documentElement.clientHeight;
-        
-        // Load more when trigger is within 300px of viewport (increased buffer)
         if (rect.top <= windowHeight + 300) {
             loadMoreVideos();
         }
     }
 
-    // Setup intersection observer for more efficient lazy loading
     function setupIntersectionObserver() {
         if (window.IntersectionObserver) {
             intersectionObserver = new IntersectionObserver(
@@ -636,22 +707,30 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
                 },
-                {
-                    root: null,
-                    rootMargin: '300px', // Increased margin for earlier loading
-                    threshold: 0
-                }
+                { root: null, rootMargin: '300px', threshold: 0 }
             );
-
             if (loadMoreTrigger) {
                 intersectionObserver.observe(loadMoreTrigger);
             }
         }
     }
 
+    // --- Playlists (lazy-loaded) ---
+    function loadPlaylists() {
+        fetch(`/channel-playlists/${encodeURIComponent(channel)}`)
+            .then(response => response.json())
+            .then(playlists => {
+                renderPlaylists(playlists);
+            })
+            .catch(error => {
+                console.error('Error fetching playlists:', error);
+                playlistsContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">Failed to load playlists</p>';
+            });
+    }
+
     function renderPlaylists(playlists) {
         playlistsContainer.innerHTML = '';
-        
+
         if (playlists.length === 0) {
             playlistsContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">No playlists found</p>';
             return;
@@ -660,7 +739,7 @@ document.addEventListener('DOMContentLoaded', () => {
         playlists.forEach(playlist => {
             const playlistElement = document.createElement('div');
             playlistElement.className = 'playlist-item';
-            
+
             fetch(`/playlist-videos/${encodeURIComponent(channel)}/${encodeURIComponent(playlist.path)}`)
                 .then(response => response.json())
                 .then(videos => {
@@ -668,12 +747,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         const firstVideo = videos[0];
                         const videoPathWithoutExt = stripExtension(firstVideo.path);
                         const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
-                        
+
                         playlistElement.innerHTML = `
                             <div class="playlist-thumbnail" style="background-image: url('${thumbnailSrc}')">
-                                <div class="playlist-overlay">
-                                    ${videos.length} videos
-                                </div>
+                                <div class="playlist-overlay">${videos.length} videos</div>
                             </div>
                             <div class="playlist-title">${playlist.name}</div>
                             <div class="playlist-video-count">${playlist.videoCount} videos</div>
@@ -681,18 +758,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         playlistElement.innerHTML = `
                             <div class="playlist-thumbnail" style="background-color: #333">
-                                <div class="playlist-overlay">
-                                    0 videos
-                                </div>
+                                <div class="playlist-overlay">0 videos</div>
                             </div>
                             <div class="playlist-title">${playlist.name}</div>
                             <div class="playlist-video-count">0 videos</div>
                         `;
                     }
                 })
-                .catch(error => {
-                    console.error('Error fetching playlist videos:', error);
-                });
+                .catch(() => {});
 
             playlistElement.addEventListener('click', () => {
                 window.location.href = `playlist.html?channel=${encodeURIComponent(channel)}&playlist=${encodeURIComponent(playlist.path)}`;
@@ -702,13 +775,49 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- About (lazy-loaded) ---
+    function loadAbout() {
+        // Description
+        fetch(`/channel-description/${encodeURIComponent(channel)}`)
+            .then(response => response.text())
+            .then(description => {
+                document.getElementById('channelDescription').textContent = description || 'No description available.';
+            })
+            .catch(() => {
+                document.getElementById('channelDescription').textContent = 'No description available.';
+            });
+
+        // Stats
+        fetch(`/channelstats/${encodeURIComponent(channel)}.json`)
+            .then(response => {
+                if (response.ok) return response.json();
+                throw new Error('No stats file');
+            })
+            .then(data => {
+                if (data.channel_creation_date) {
+                    const date = parseEuropeanDate(data.channel_creation_date);
+                    if (date.getTime() > 0) {
+                        document.getElementById('statsJoined').textContent = `Joined ${formatJoinDate(date)}`;
+                    }
+                }
+                if (data.total_views_raw) {
+                    document.getElementById('statsViews').textContent = `${parseInt(data.total_views_raw).toLocaleString('en-US')} views`;
+                } else if (data.total_views) {
+                    document.getElementById('statsViews').textContent = `${data.total_views} views`;
+                }
+            })
+            .catch(() => {
+                document.getElementById('statsJoined').textContent = 'Joined --';
+                document.getElementById('statsViews').textContent = '0 views';
+            });
+    }
+
     sortToggle.addEventListener('click', () => {
         sortNewestFirst = !sortNewestFirst;
         sortVideosArray();
         resetAndRender();
     });
 
-    // Function to format date to "Mon DD, YYYY"
     function formatJoinDate(date) {
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const day = date.getDate();
@@ -717,52 +826,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${month} ${day}, ${year}`;
     }
 
-    // Calculate and update stats
-    function updateAboutStats() {
-        // Fetch stats from JSON file
-        fetch(`/channelstats/${encodeURIComponent(channel)}.json`)
-            .then(response => {
-                if (response.ok) return response.json();
-                throw new Error('No stats file');
-            })
-            .then(data => {
-                // Update Join Date
-                if (data.channel_creation_date) {
-                    const date = parseEuropeanDate(data.channel_creation_date);
-                    if (date.getTime() > 0) {
-                        document.getElementById('statsJoined').textContent = `Joined ${formatJoinDate(date)}`;
-                    }
-                }
-
-                // Update Total Views
-                if (data.total_views_raw) {
-                    document.getElementById('statsViews').textContent = `${parseInt(data.total_views_raw).toLocaleString('en-US')} views`;
-                } else if (data.total_views) {
-                    // Fallback to string version if raw isn't available
-                    document.getElementById('statsViews').textContent = `${data.total_views} views`;
-                }
-            })
-            .catch(() => {
-                // Fallback if file doesn't exist
-                document.getElementById('statsJoined').textContent = 'Joined --';
-                document.getElementById('statsViews').textContent = '0 views';
-            });
-    }
-
-    // Share button functionality
+    // Share button
     document.getElementById('shareChannelBtn').addEventListener('click', () => {
         const channelUrl = `${window.location.origin}/channel.html?channel=${encodeURIComponent(channel)}`;
-        
+
         if (navigator.clipboard) {
             navigator.clipboard.writeText(channelUrl).then(() => {
                 const btn = document.getElementById('shareChannelBtn');
                 const originalText = btn.innerHTML;
                 btn.innerHTML = '<img src="LocalYT-Rev-Files/share.svg" alt="Share"> Copied!';
-                setTimeout(() => {
-                    btn.innerHTML = originalText;
-                }, 2000);
-            }).catch(err => {
-                console.error('Failed to copy:', err);
+                setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+            }).catch(() => {
                 alert(`Channel URL: ${channelUrl}`);
             });
         } else {
@@ -770,20 +844,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Load videos from search-index
+    // --- Load videos (always loaded on page init) ---
+    loadedTabs.add('videos');
+
     fetch('/search-index')
         .then(response => response.json())
         .then(data => {
             const videos = data.videos || [];
-            // Filter for current channel
             const channelVideos = videos.filter(video => video.path.startsWith(`${channel}/`));
-            
-            // Show initial loading state
+
             videosContainer.innerHTML = '<div class="loading-spinner visible">Loading videos...</div>';
-            
+
             const videoPromises = channelVideos.map(video => {
                 const videoPathWithoutExt = stripExtension(video.path);
-                
+
                 return Promise.all([
                     fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(r => r.ok ? r.text() : '0'),
                     fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(r => r.ok ? r.text() : 'Unknown date')
@@ -796,81 +870,59 @@ document.addEventListener('DOMContentLoaded', () => {
                     };
                 })
                 .catch(() => {
-                    return { 
-                        ...video, 
-                        viewCount: '0',
-                        fileDate: 'Unknown date' 
-                    };
+                    return { ...video, viewCount: '0', fileDate: 'Unknown date' };
                 });
             });
 
             Promise.all(videoPromises).then(videosWithDetails => {
                 currentVideos = videosWithDetails;
-                
-                // Sort videos immediately after fetching them
                 sortVideosArray();
-                
-                // Update About tab stats
-                updateAboutStats();
-                
+
                 hasMoreVideos = currentVideos.length > 0;
-                
-                // Clear the initial loading spinner
                 videosContainer.innerHTML = '';
-                
-                // Load first batch of videos (triggers render)
                 loadMoreVideos();
-                
+
                 const videoCount = currentVideos.length;
                 fetch(`/subcount/${encodeURIComponent(channel)}`)
                     .then(response => response.ok ? response.text() : '0')
                     .then(subCount => {
                         channelName.innerHTML = `${channel}<span class="video-count">${subCount} subscribers • ${videoCount} videos</span>`;
                     })
-                    .catch(error => {
-                        console.error('Error fetching subscriber count:', error);
+                    .catch(() => {
                         channelName.innerHTML = `${channel}<span class="video-count">${videoCount} videos</span>`;
                     });
 
-                // Setup lazy loading
                 setupIntersectionObserver();
-                
-                // Add scroll listener as fallback for older browsers
+
                 window.addEventListener('scroll', () => {
-                    if (!intersectionObserver) {
-                        checkAndLoadMore();
-                    }
+                    if (!intersectionObserver) checkAndLoadMore();
                 });
-                
-                // Also check on resize
                 window.addEventListener('resize', () => {
-                    if (!intersectionObserver) {
-                        checkAndLoadMore();
-                    }
+                    if (!intersectionObserver) checkAndLoadMore();
                 });
             });
         });
 
-    // Load playlists
-    fetch(`/channel-playlists/${encodeURIComponent(channel)}`)
-        .then(response => response.json())
-        .then(playlists => {
-            renderPlaylists(playlists);
-        })
-        .catch(error => {
-            console.error('Error fetching playlists:', error);
-        });
+    // --- Activate the initial tab from the URL ---
+    // The videos tab content is already visible by default in HTML,
+    // so we only need to handle non-default tabs.
+    if (initialTab !== 'videos') {
+        // Deactivate the default videos tab visually
+        document.querySelector('.tab[data-tab="videos"]').classList.remove('active');
+        document.getElementById('videosTab').classList.remove('active');
 
-    // Load channel description
-    fetch(`/channel-description/${encodeURIComponent(channel)}`)
-        .then(response => response.text())
-        .then(description => {
-            document.getElementById('channelDescription').textContent = description || 'No description available.';
-        })
-        .catch(error => {
-            console.error('Error fetching channel description:', error);
-            document.getElementById('channelDescription').textContent = 'No description available.';
-        });
+        // Activate the requested tab
+        const targetTab = document.querySelector(`.tab[data-tab="${initialTab}"]`);
+        const targetContent = document.getElementById(`${initialTab}Tab`);
+        if (targetTab) targetTab.classList.add('active');
+        if (targetContent) targetContent.classList.add('active');
+
+        // Load its content
+        loadTabContent(initialTab);
+    }
+
+    // Replace the initial history entry so back/forward works correctly
+    history.replaceState({ tab: initialTab }, '', buildChannelUrl(channel, initialTab));
 
     // Search functionality
     const searchInput = document.getElementById('searchInput');
@@ -918,7 +970,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Search icon click ---
     document.getElementById('searchIcon').addEventListener('click', () => {
         const query = searchInput.value.trim();
         if (query) {
