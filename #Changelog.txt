@@ -19,6 +19,7 @@ v3.85
   - Log in or out, access the settings easier and send feedback or access the source code
   - Documentation, Appearance and Language are placeholders for now!
 - Moved Settings button from the index.html sidebar to the profile modal
+- Merged settings.html and user_profile_pic.html into one page
 
 v3.80
 - Implemented advanced conditional video tagging
