@@ -80,7 +80,7 @@ How does the algorithm actually work?
 
 What if I only have the video files and no metadata?
 - No metadata is no problem! All missing data, such as thumbnails, view counts, various stats and even channels' profile pictures are simply being generated.
-- You can also use the built-in metadata fetcher at /LocalYT-Debug to get the nesessary metadata for your videos
+- You can also use the built-in metadata fetcher at /LocalYT-Debug to get the necessary metadata for your videos
 - Note that you need to have video links ready which you can get with `download-channel-or-playlist.bat`
 
 ---
