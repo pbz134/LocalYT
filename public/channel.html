@@ -137,7 +137,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.35);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -389,10 +389,6 @@
 const VIDEOS_PER_PAGE = 20;
 
 // Parse the channel and tab from the URL
-// Supports:
-//   ?channel=YTBestOfs              → videos (default)
-//   ?channel=YTBestOfs/playlists   → playlists
-//   ?channel=YTBestOfs/about       → about
 function parseChannelUrl() {
     const raw = new URLSearchParams(window.location.search).get('channel') || '';
     const decoded = decodeURIComponent(raw);
@@ -465,7 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let hasMoreVideos = true;
     let intersectionObserver = null;
 
-    // Track which tabs have already been loaded so we don't re-fetch
+    // Track which tabs have already been loaded
     const loadedTabs = new Set();
 
     channelBanner.style.backgroundImage = `url('/channelbanner/${encodeURIComponent(channel)}.jpg')`;
@@ -484,11 +480,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (targetTab) targetTab.classList.add('active');
         if (targetContent) targetContent.classList.add('active');
 
-        // Update the URL without reloading
         const newUrl = buildChannelUrl(channel, tabName);
         history.pushState({ tab: tabName }, '', newUrl);
 
-        // Lazy-load tab content on first visit
         if (!loadedTabs.has(tabName)) {
             loadTabContent(tabName);
         }
@@ -728,6 +722,44 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
+    function pickPreviewVideo(videos) {
+        if (!videos || videos.length === 0) return null;
+
+        // Fetch upload dates for all videos in the playlist
+        const datePromises = videos.map(video => {
+            const videoPathWithoutExt = stripExtension(video.path);
+            return fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
+                .then(response => response.ok ? response.text() : 'Unknown date')
+                .then(dateString => ({
+                    video: video,
+                    date: dateString.trim() || 'Unknown date',
+                    dateObj: parseEuropeanDate(dateString.trim())
+                }))
+                .catch(() => ({
+                    video: video,
+                    date: 'Unknown date',
+                    dateObj: new Date(0)
+                }));
+        });
+
+        return Promise.all(datePromises).then(videosWithDates => {
+            // Sort by upload date descending (newest first)
+            videosWithDates.sort((a, b) => {
+                const timeDiff = b.dateObj.getTime() - a.dateObj.getTime();
+                if (timeDiff !== 0) return timeDiff;
+                // If dates are identical, sort alphabetically by display name (A-Z)
+                const nameA = (a.video.displayName || '').toLowerCase();
+                const nameB = (b.video.displayName || '').toLowerCase();
+                if (nameA < nameB) return -1;
+                if (nameA > nameB) return 1;
+                return 0;
+            });
+
+            // Return the first video (most recent, or first A-Z if tied)
+            return videosWithDates[0].video;
+        });
+    }
+
     function renderPlaylists(playlists) {
         playlistsContainer.innerHTML = '';
 
@@ -736,16 +768,22 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        playlists.forEach(playlist => {
-            const playlistElement = document.createElement('div');
-            playlistElement.className = 'playlist-item';
-
-            fetch(`/playlist-videos/${encodeURIComponent(channel)}/${encodeURIComponent(playlist.path)}`)
+        // Fetch videos for all playlists in parallel
+        const playlistPromises = playlists.map(playlist => {
+            return fetch(`/playlist-videos/${encodeURIComponent(channel)}/${encodeURIComponent(playlist.path)}`)
                 .then(response => response.json())
-                .then(videos => {
-                    if (videos.length > 0) {
-                        const firstVideo = videos[0];
-                        const videoPathWithoutExt = stripExtension(firstVideo.path);
+                .then(videos => ({ playlist, videos }))
+                .catch(() => ({ playlist, videos: [] }));
+        });
+
+        Promise.all(playlistPromises).then(results => {
+            results.forEach(({ playlist, videos }) => {
+                const playlistElement = document.createElement('div');
+                playlistElement.className = 'playlist-item';
+
+                if (videos.length > 0) {
+                    pickPreviewVideo(videos).then(previewVideo => {
+                        const videoPathWithoutExt = stripExtension(previewVideo.path);
                         const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
 
                         playlistElement.innerHTML = `
@@ -755,29 +793,28 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="playlist-title">${playlist.name}</div>
                             <div class="playlist-video-count">${playlist.videoCount} videos</div>
                         `;
-                    } else {
-                        playlistElement.innerHTML = `
-                            <div class="playlist-thumbnail" style="background-color: #333">
-                                <div class="playlist-overlay">0 videos</div>
-                            </div>
-                            <div class="playlist-title">${playlist.name}</div>
-                            <div class="playlist-video-count">0 videos</div>
-                        `;
-                    }
-                })
-                .catch(() => {});
+                    });
+                } else {
+                    playlistElement.innerHTML = `
+                        <div class="playlist-thumbnail" style="background-color: #333">
+                            <div class="playlist-overlay">0 videos</div>
+                        </div>
+                        <div class="playlist-title">${playlist.name}</div>
+                        <div class="playlist-video-count">0 videos</div>
+                    `;
+                }
 
-            playlistElement.addEventListener('click', () => {
-                window.location.href = `playlist.html?channel=${encodeURIComponent(channel)}&playlist=${encodeURIComponent(playlist.path)}`;
+                playlistElement.addEventListener('click', () => {
+                    window.location.href = `playlist.html?channel=${encodeURIComponent(channel)}&playlist=${encodeURIComponent(playlist.path)}`;
+                });
+
+                playlistsContainer.appendChild(playlistElement);
             });
-
-            playlistsContainer.appendChild(playlistElement);
         });
     }
 
     // --- About (lazy-loaded) ---
     function loadAbout() {
-        // Description
         fetch(`/channel-description/${encodeURIComponent(channel)}`)
             .then(response => response.text())
             .then(description => {
@@ -787,7 +824,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('channelDescription').textContent = 'No description available.';
             });
 
-        // Stats
         fetch(`/channelstats/${encodeURIComponent(channel)}.json`)
             .then(response => {
                 if (response.ok) return response.json();
@@ -904,24 +940,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
     // --- Activate the initial tab from the URL ---
-    // The videos tab content is already visible by default in HTML,
-    // so we only need to handle non-default tabs.
     if (initialTab !== 'videos') {
-        // Deactivate the default videos tab visually
         document.querySelector('.tab[data-tab="videos"]').classList.remove('active');
         document.getElementById('videosTab').classList.remove('active');
 
-        // Activate the requested tab
         const targetTab = document.querySelector(`.tab[data-tab="${initialTab}"]`);
         const targetContent = document.getElementById(`${initialTab}Tab`);
         if (targetTab) targetTab.classList.add('active');
         if (targetContent) targetContent.classList.add('active');
 
-        // Load its content
         loadTabContent(initialTab);
     }
 
-    // Replace the initial history entry so back/forward works correctly
     history.replaceState({ tab: initialTab }, '', buildChannelUrl(channel, initialTab));
 
     // Search functionality

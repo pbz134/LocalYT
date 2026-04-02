@@ -12,6 +12,8 @@ v3.85
   - Additional channel stats (such as Joined date and total view count) will be displayed
 - Added invidiual links to channel subpages (e.g. /playlists & /about)
 - Removed duplicate divider on channel.html
+- Made playlists always use the first video for their thumbnail
+- Made playlist thumbnails less dark
 
 v3.80
 - Implemented advanced conditional video tagging
