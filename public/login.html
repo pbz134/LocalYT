@@ -13,7 +13,7 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: #0f0f0f;
+            background: var(--main-bg-color);
             color: #fff;
         }
 
@@ -28,6 +28,7 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            min-width: 300px;
         }
 
         .login-container h2 {
@@ -47,7 +48,7 @@
         }
 
         .form-group input {
-            width: 90%; /* Adjusted width */
+            width: 90%;
             padding: 10px;
             font-size: 16px;
             border: 2px solid #444;
@@ -62,6 +63,11 @@
             outline: none;
         }
 
+        .form-group input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         button {
             width: 100%;
             padding: 10px;
@@ -74,13 +80,19 @@
             transition: background-color 0.3s ease;
         }
 
-        button:hover {
+        button:hover:not(:disabled) {
             background-color: #cc0000;
+        }
+
+        button:disabled {
+            background-color: #444;
+            cursor: not-allowed;
         }
 
         .user-actions {
             display: flex;
             gap: 10px;
+            margin-top: 15px;
         }
 
         .user-actions a {
@@ -91,6 +103,23 @@
 
         .user-actions a:hover {
             text-decoration: underline;
+        }
+
+        .status-message {
+            text-align: center;
+            font-size: 14px;
+            margin-top: 15px;
+            line-height: 1.5;
+            max-width: 340px;
+            display: none;
+        }
+
+        .status-message.yellow {
+            color: #ffaa00;
+        }
+
+        .status-message.red {
+            color: #ff4444;
         }
     </style>
 </head>
@@ -107,17 +136,77 @@
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" required>
             </div>
-            <button type="submit">Login</button>
+            <button type="submit" id="loginButton">Login</button>
         </form>
-        <div class="user-actions">
+        <div class="user-actions" id="userActions">
             <a href="register.html">Don't have an account? Register</a>
         </div>
     </div>
+    <div id="statusMessage" class="status-message"></div>
     <script>
-        document.getElementById('loginForm').addEventListener('submit', function(event) {
+        const loginForm = document.getElementById('loginForm');
+        const loginButton = document.getElementById('loginButton');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const statusMessage = document.getElementById('statusMessage');
+
+        let refreshTimer = null;
+
+        function formatTime(ms) {
+            const totalSeconds = Math.ceil(ms / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            if (minutes > 0) {
+                return `${minutes} minute(s) and ${seconds} second(s)`;
+            }
+            return `${seconds} second(s)`;
+        }
+
+        function showTempBlock(remainingTime) {
+            loginButton.disabled = true;
+            usernameInput.disabled = true;
+            passwordInput.disabled = true;
+            statusMessage.className = 'status-message yellow';
+            statusMessage.style.display = 'block';
+            statusMessage.textContent = `Too many failed login attempts. Please try again in ${formatTime(remainingTime)}.`;
+
+            if (refreshTimer) clearTimeout(refreshTimer);
+            refreshTimer = setTimeout(() => {
+                window.location.reload();
+            }, remainingTime + 1000);
+        }
+
+        function showPermBlock() {
+            loginButton.disabled = true;
+            usernameInput.disabled = true;
+            passwordInput.disabled = true;
+            statusMessage.className = 'status-message red';
+            statusMessage.style.display = 'block';
+            statusMessage.innerHTML = 'You have been permanently blocked for trying to log in too many times.<br>Contact your LocalYT administrator for support.';
+        }
+
+        // Check if IP is blocked on page load
+        fetch('/login-status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.blocked) {
+                    if (data.permanent) {
+                        showPermBlock();
+                    } else {
+                        showTempBlock(data.remainingTime);
+                    }
+                }
+            })
+            .catch(() => {});
+
+        loginForm.addEventListener('submit', function(event) {
             event.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
+
+            const username = usernameInput.value;
+            const password = passwordInput.value;
+
+            loginButton.disabled = true;
+            loginButton.textContent = 'Logging in...';
 
             fetch('/login', {
                 method: 'POST',
@@ -129,12 +218,32 @@
             .then(response => {
                 if (response.ok) {
                     window.location.href = 'index.html';
-                } else {
-                    alert('Invalid username or password');
+                    return null;
                 }
+                return response.json();
+            })
+            .then(data => {
+                if (!data) return;
+
+                if (data.permanent) {
+                    showPermBlock();
+                    return;
+                }
+
+                if (data.blocked) {
+                    showTempBlock(data.remainingTime);
+                    return;
+                }
+
+                loginButton.disabled = false;
+                loginButton.textContent = 'Login';
+                alert(data.error || 'Invalid username or password');
             })
             .catch(error => {
                 console.error('Error:', error);
+                loginButton.disabled = false;
+                loginButton.textContent = 'Login';
+                alert('An error occurred. Please try again.');
             });
         });
     </script>

@@ -51,6 +51,36 @@
         }
     }
 
+    function toggleAppearanceMode() {
+        const root = document.documentElement;
+        const currentMode = localStorage.getItem('appearanceMode');
+
+        if (currentMode === 'oled') {
+            // Switch to Regular Dark
+            root.style.setProperty('--main-bg-color', '#0f0f0f');
+            root.style.setProperty('--secondary-bg-color', '#212121');
+            root.style.setProperty('--input-bg-color', '#1a1a1a');
+            localStorage.setItem('appearanceMode', 'dark');
+        } else {
+            // Switch to OLED (Pure Black)
+            root.style.setProperty('--main-bg-color', '#000000');
+            root.style.setProperty('--secondary-bg-color', '#000000');
+            root.style.setProperty('--input-bg-color', '#000000');
+            localStorage.setItem('appearanceMode', 'oled');
+        }
+    }
+
+    function updateAppearanceText(item) {
+        const currentMode = localStorage.getItem('appearanceMode');
+        const textSpan = item.querySelector('.profile-menu-text');
+        if (currentMode === 'oled') {
+            textSpan.textContent = 'Appearance: OLED';
+            item.querySelector('.profile-menu-icon').src = '/LocalYT-Rev-Files/appearance.svg'; // Optional: change icon if you have one
+        } else {
+            textSpan.textContent = 'Appearance: Dark';
+        }
+    }
+
     function initProfilePic() {
         let userActions = document.querySelector('.user-actions');
         if (!userActions) {
@@ -59,6 +89,12 @@
             const topBar = document.querySelector('.top-bar');
             if (topBar) topBar.appendChild(userActions);
         }
+    // Apply saved appearance mode
+    if (localStorage.getItem('appearanceMode') === 'oled') {
+        document.documentElement.style.setProperty('--main-bg-color', '#000000');
+        document.documentElement.style.setProperty('--secondary-bg-color', '#000000');
+        document.documentElement.style.setProperty('--input-bg-color', '#000000');
+    }
 
         // Ensure container has relative positioning for the modal
         userActions.style.position = 'relative';
@@ -109,8 +145,20 @@
                         }).catch(err => console.error('Logout failed:', err));
                     }));
 
-                    // Appearance (Placeholder)
-                    menuInstance.appendChild(createMenuItem('appearance.svg', 'Appearance: Dark'));
+                    // Appearance (Toggle Logic)
+                    const appearanceItem = createMenuItem('appearance.svg', 'Appearance: Dark');
+
+                    // Update text based on current state
+                    updateAppearanceText(appearanceItem);
+
+                    appearanceItem.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        toggleAppearanceMode();
+                        updateAppearanceText(appearanceItem);
+                        closeMenu();
+                    });
+
+                    menuInstance.appendChild(appearanceItem);
 
                     // Language (Placeholder)
                     menuInstance.appendChild(createMenuItem('language.svg', 'Language: English'));
@@ -191,7 +239,7 @@
                 top: 100%;
                 right: 0;
                 margin-top: 8px;
-                background-color: #212121;
+                background-color: var(--secondary-bg-color);
                 border: 1px solid rgba(255, 255, 255, 0.1);
                 min-width: 220px;
                 box-shadow: 0 4px 20px rgba(0,0,0,0.5);

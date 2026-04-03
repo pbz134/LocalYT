@@ -20,6 +20,8 @@ v3.85
   - Documentation, Appearance and Language are placeholders for now!
 - Moved Settings button from the index.html sidebar to the profile modal
 - Merged settings.html and user_profile_pic.html into one page
+- Added an option to toggle between regular dark mode and OLED dark mode
+  - This makes the background pure black (000000) or keeps the regular dark grey (0f0f0f)
 
 v3.80
 - Implemented advanced conditional video tagging
