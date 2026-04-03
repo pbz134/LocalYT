@@ -21,10 +21,13 @@ v3.85
 - Moved Settings button from the index.html sidebar to the profile modal
 - Merged settings.html and user_profile_pic.html into one page
 - Added an option to toggle between regular dark mode and OLED dark mode
-  - This makes the background pure black (000000) or keeps the regular dark grey (0f0f0f)
+  - This makes the background and some elements pure black (000000) or keeps the regular dark grey (0f0f0f)
 - Full German language support
   - Change the language from English to German in your profile modal
   - All pages will be properly translated (report any missing translations in the GitHub issues!)
+- channel.html now loads channels' subscriber and video counts first
+- channel.html now shows placeholder thumbnails for playlists until actual thumbnails have been fetched
+  - This makes playlists show up instantly on large channels without having to wait for all video thumbnails to load
 
 v3.80
 - Implemented advanced conditional video tagging

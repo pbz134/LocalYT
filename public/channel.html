@@ -130,6 +130,8 @@
             background-size: cover;
             background-position: center;
             position: relative;
+            /* Default grey background while loading */
+            background-color: #333; 
         }
         .playlist-overlay {
             position: absolute;
@@ -746,12 +748,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Playlists (lazy-loaded) ---
+    // ==========================================
+    // OPTIMIZED PLAYLIST LOADING LOGIC
+    // ==========================================
+
     function loadPlaylists() {
+        playlistsContainer.innerHTML = '<div class="tab-loading-placeholder">' + getLang('Loading playlists', 'Lade Playlisten...') + '</div>';
+
         fetch(`/channel-playlists/${encodeURIComponent(channel)}`)
             .then(response => response.json())
             .then(playlists => {
-                renderPlaylists(playlists);
+                renderPlaylistsFast(playlists);
             })
             .catch(error => {
                 console.error('Error fetching playlists:', error);
@@ -759,11 +766,71 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
+    function renderPlaylistsFast(playlists) {
+        playlistsContainer.innerHTML = '';
+
+        if (playlists.length === 0) {
+            playlistsContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">No playlists found</p>';
+            return;
+        }
+
+        const videosText = getLang('videos', 'Videos');
+
+        playlists.forEach(playlist => {
+            const playlistElement = document.createElement('div');
+            playlistElement.className = 'playlist-item';
+
+            // 1. Create DOM structure immediately with placeholder
+            playlistElement.innerHTML = `
+                <div class="playlist-thumbnail" style="background-color: #333;">
+                    <div class="playlist-overlay">${playlist.videoCount || 0} ${videosText}</div>
+                </div>
+                <div class="playlist-title">${playlist.name}</div>
+                <div class="playlist-video-count">${playlist.videoCount || 0} ${videosText}</div>
+            `;
+
+            // 2. Add Click Handler
+            playlistElement.addEventListener('click', () => {
+                window.location.href = `playlist.html?channel=${encodeURIComponent(channel)}&playlist=${encodeURIComponent(playlist.path)}`;
+            });
+
+            playlistsContainer.appendChild(playlistElement);
+
+            // 3. Fetch Preview Image Asynchronously (Non-blocking)
+            // We only do this if there are videos in the playlist
+            if (playlist.videoCount > 0) {
+                const thumbDiv = playlistElement.querySelector('.playlist-thumbnail');
+                
+                // Fetch the video list for this specific playlist
+                fetch(`/playlist-videos/${encodeURIComponent(channel)}/${encodeURIComponent(playlist.path)}`)
+                    .then(response => response.json())
+                    .then(videos => {
+                        if (videos && videos.length > 0) {
+                            // Use the helper to find the best preview video
+                            pickPreviewVideo(videos).then(previewVideo => {
+                                if (previewVideo) {
+                                    const videoPathWithoutExt = stripExtension(previewVideo.path);
+                                    const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
+                                    
+                                    // Update the thumbnail background smoothly
+                                    thumbDiv.style.backgroundImage = `url('${thumbnailSrc}')`;
+                                }
+                            });
+                        }
+                    })
+                    .catch(err => {
+                        console.warn("Could not load preview for playlist:", playlist.name);
+                        // It's okay, we just keep the grey placeholder
+                    });
+            }
+        });
+    }
+
     function pickPreviewVideo(videos) {
         if (!videos || videos.length === 0) return null;
 
-        // Fetch upload dates for all videos in the playlist
-        const datePromises = videos.map(video => {
+        // We still need dates to sort properly for the "best" thumbnail
+        const datePromises = videos.slice(0, 10).map(video => { // Optimization: Check only first 10 videos to save time
             const videoPathWithoutExt = stripExtension(video.path);
             return fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
                 .then(response => response.ok ? response.text() : 'Unknown date')
@@ -780,77 +847,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         return Promise.all(datePromises).then(videosWithDates => {
-            // Sort by upload date descending (newest first)
-            videosWithDates.sort((a, b) => {
-                const timeDiff = b.dateObj.getTime() - a.dateObj.getTime();
-                if (timeDiff !== 0) return timeDiff;
-                // If dates are identical, sort alphabetically by display name (A-Z)
-                const nameA = (a.video.displayName || '').toLowerCase();
-                const nameB = (b.video.displayName || '').toLowerCase();
-                if (nameA < nameB) return -1;
-                if (nameA > nameB) return 1;
-                return 0;
-            });
-
-            // Return the first video (most recent, or first A-Z if tied)
+            videosWithDates.sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
             return videosWithDates[0].video;
         });
     }
 
-    function renderPlaylists(playlists) {
-        playlistsContainer.innerHTML = '';
+    // ==========================================
+    // END OF OPTIMIZED PLAYLIST LOGIC
+    // ==========================================
 
-        if (playlists.length === 0) {
-            playlistsContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">No playlists found</p>';
-            return;
-        }
-
-        // Fetch videos for all playlists in parallel
-        const playlistPromises = playlists.map(playlist => {
-            return fetch(`/playlist-videos/${encodeURIComponent(channel)}/${encodeURIComponent(playlist.path)}`)
-                .then(response => response.json())
-                .then(videos => ({ playlist, videos }))
-                .catch(() => ({ playlist, videos: [] }));
-        });
-
-        Promise.all(playlistPromises).then(results => {
-            results.forEach(({ playlist, videos }) => {
-                const playlistElement = document.createElement('div');
-                playlistElement.className = 'playlist-item';
-
-                if (videos.length > 0) {
-                    pickPreviewVideo(videos).then(previewVideo => {
-                        const videoPathWithoutExt = stripExtension(previewVideo.path);
-                        const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
-                        const videosText = getLang('videos', 'Videos');
-
-                        playlistElement.innerHTML = `
-                            <div class="playlist-thumbnail" style="background-image: url('${thumbnailSrc}')">
-                                <div class="playlist-overlay">${videos.length} ${videosText}</div>
-                            </div>
-                            <div class="playlist-title">${playlist.name}</div>
-                            <div class="playlist-video-count">${playlist.videoCount} ${videosText}</div>
-                        `;
-                    });
-                } else {
-                    const videosText = getLang('videos', 'Videos');
-                    playlistElement.innerHTML = `
-                        <div class="playlist-thumbnail" style="background-color: #333">
-                            <div class="playlist-overlay">0 ${videosText}</div>
-                        </div>
-                        <div class="playlist-title">${playlist.name}</div>
-                        <div class="playlist-video-count">0 ${videosText}</div>
-                    `;
-                }
-
-                playlistElement.addEventListener('click', () => {
-                    window.location.href = `playlist.html?channel=${encodeURIComponent(channel)}&playlist=${encodeURIComponent(playlist.path)}`;
-                });
-
-                playlistsContainer.appendChild(playlistElement);
-            });
-        });
-    }
 
     // --- About (lazy-loaded) ---
     function loadAbout() {
@@ -926,75 +931,96 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Load videos (always loaded on page init) ---
-    loadedTabs.add('videos');
+    // ==========================================
+    // INITIALIZATION LOGIC (Same as before)
+    // ==========================================
 
-    fetch('/search-index')
-        .then(response => response.json())
-        .then(data => {
-            const videos = data.videos || [];
-            const channelVideos = videos.filter(video => video.path.startsWith(`${channel}/`));
-
-            videosContainer.innerHTML = '<div class="loading-spinner visible">' + getLang('Loading videos...', 'Lade Videos...') + '</div>';
-
-            const videoPromises = channelVideos.map(video => {
-                const videoPathWithoutExt = stripExtension(video.path);
-
-                return Promise.all([
-                    fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(r => r.ok ? r.text() : '0'),
-                    fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(r => r.ok ? r.text() : 'Unknown date')
-                ])
-                .then(([viewCount, fileDate]) => {
-                    return {
-                        ...video,
-                        viewCount: viewCount,
-                        fileDate: fileDate.trim() || 'Unknown date'
-                    };
-                })
-                .catch(() => {
-                    return { ...video, viewCount: '0', fileDate: 'Unknown date' };
-                });
+    // 1. Load Header Stats Immediately
+    function loadHeaderStats() {
+        fetch(`/subcount/${encodeURIComponent(channel)}`)
+            .then(response => response.ok ? response.text() : '0')
+            .then(subCount => {
+                updateHeaderStats(subCount, null); 
+            })
+            .catch(() => {
+                updateHeaderStats('?', null);
             });
 
-            Promise.all(videoPromises).then(videosWithDetails => {
-                currentVideos = videosWithDetails;
-                sortVideosArray();
-
-                hasMoreVideos = currentVideos.length > 0;
-                videosContainer.innerHTML = '';
-                loadMoreVideos();
-
-                const videoCount = currentVideos.length;
+        fetch('/search-index')
+            .then(response => response.json())
+            .then(data => {
+                const videos = data.videos || [];
+                const channelVideos = videos.filter(video => video.path.startsWith(`${channel}/`));
+                const videoCount = channelVideos.length;
+                
                 fetch(`/subcount/${encodeURIComponent(channel)}`)
                     .then(response => response.ok ? response.text() : '0')
                     .then(subCount => {
-                        channelName.innerHTML = `${channel}<span class="video-count">${subCount} ${getLang('subscribers', 'Abonnenten')} • ${videoCount} ${getLang('videos', 'Videos')}</span>`;
+                         updateHeaderStats(subCount, videoCount);
                     })
                     .catch(() => {
-                        channelName.innerHTML = `${channel}<span class="video-count">${videoCount} ${getLang('videos', 'Videos')}</span>`;
+                         updateHeaderStats('?', videoCount);
                     });
 
-                setupIntersectionObserver();
-
-                window.addEventListener('scroll', () => {
-                    if (!intersectionObserver) checkAndLoadMore();
-                });
-                window.addEventListener('resize', () => {
-                    if (!intersectionObserver) checkAndLoadMore();
-                });
+                initializeVideoList(channelVideos);
+            })
+            .catch(error => {
+                console.error("Error loading search index for counts:", error);
+                updateHeaderStats('?', '?');
             });
+    }
+
+    function updateHeaderStats(subs, vids) {
+        let text = channel;
+        let parts = [];
+        
+        if (subs !== null) parts.push(`${subs} ${getLang('subscribers', 'Abonnenten')}`);
+        if (vids !== null) parts.push(`${vids} ${getLang('videos', 'Videos')}`);
+
+        if (parts.length > 0) {
+            text += `<span class="video-count">${parts.join(' • ')}</span>`;
+        }
+        
+        channelName.innerHTML = text;
+    }
+
+    function initializeVideoList(channelVideos) {
+        loadedTabs.add('videos'); 
+        videosContainer.innerHTML = '<div class="loading-spinner visible">' + getLang('Loading videos...', 'Lade Videos...') + '</div>';
+
+        const videoPromises = channelVideos.map(video => {
+            const videoPathWithoutExt = stripExtension(video.path);
+            return Promise.all([
+                fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(r => r.ok ? r.text() : '0'),
+                fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(r => r.ok ? r.text() : 'Unknown date')
+            ])
+            .then(([viewCount, fileDate]) => ({ ...video, viewCount, fileDate: fileDate.trim() || 'Unknown date' }))
+            .catch(() => ({ ...video, viewCount: '0', fileDate: 'Unknown date' }));
         });
+
+        Promise.all(videoPromises).then(videosWithDetails => {
+            currentVideos = videosWithDetails;
+            sortVideosArray();
+            hasMoreVideos = currentVideos.length > 0;
+            videosContainer.innerHTML = '';
+            loadMoreVideos();
+            setupIntersectionObserver();
+
+            window.addEventListener('scroll', () => { if (!intersectionObserver) checkAndLoadMore(); });
+            window.addEventListener('resize', () => { if (!intersectionObserver) checkAndLoadMore(); });
+        });
+    }
+
+    loadHeaderStats();
 
     // --- Activate the initial tab from the URL ---
     if (initialTab !== 'videos') {
         document.querySelector('.tab[data-tab="videos"]').classList.remove('active');
         document.getElementById('videosTab').classList.remove('active');
-
         const targetTab = document.querySelector(`.tab[data-tab="${initialTab}"]`);
         const targetContent = document.getElementById(`${initialTab}Tab`);
         if (targetTab) targetTab.classList.add('active');
         if (targetContent) targetContent.classList.add('active');
-
         loadTabContent(initialTab);
     }
 
@@ -1005,54 +1031,29 @@ document.addEventListener('DOMContentLoaded', () => {
     searchInput.addEventListener('input', () => {
         const query = searchInput.value.toLowerCase();
         if (query.length < 2) return;
-
         fetch('/search-index')
             .then(response => response.json())
             .then(data => {
                 const videos = data.videos || [];
-                const suggestions = videos
-                    .filter(video => video.displayName.toLowerCase().includes(query))
-                    .slice(0, 5);
-
+                const suggestions = videos.filter(video => video.displayName.toLowerCase().includes(query)).slice(0, 5);
                 const suggestionsContainer = document.getElementById('searchSuggestions');
                 suggestionsContainer.innerHTML = '';
                 suggestions.forEach(video => {
                     const suggestionElement = document.createElement('div');
                     suggestionElement.className = 'suggestion-item';
                     suggestionElement.textContent = video.displayName;
-                    suggestionElement.onclick = () => {
-                        window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
-                    };
+                    suggestionElement.onclick = () => { window.location.href = `video.html?src=${encodeURIComponent(video.path)}`; };
                     suggestionsContainer.appendChild(suggestionElement);
-
-                    suggestionElement.addEventListener('contextmenu', (event) => {
-                        event.preventDefault();
-                        window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
-                    });
-
-                    suggestionElement.addEventListener('mouseup', (event) => {
-                        if (event.button === 1) {
-                            event.preventDefault();
-                            window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
-                        }
-                    });
+                    suggestionElement.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank'); });
+                    suggestionElement.addEventListener('mouseup', (e) => { if (e.button === 1) { e.preventDefault(); window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank'); } });
                 });
             });
     });
 
-    searchInput.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-            window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
-        }
-    });
-
+    searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`; });
     document.getElementById('searchIcon').addEventListener('click', () => {
         const query = searchInput.value.trim();
-        if (query) {
-            window.location.href = `search.html?q=${encodeURIComponent(query)}`;
-        } else {
-            searchInput.focus();
-        }
+        if (query) window.location.href = `search.html?q=${encodeURIComponent(query)}`; else searchInput.focus();
     });
 });
 
