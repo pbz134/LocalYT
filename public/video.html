@@ -1623,7 +1623,7 @@ document.addEventListener('click', function(e) {
                     <div class="suggestion-info">
                         <div class="suggestion-title">${suggestionTitle}</div>
                         <div class="suggestion-channel">${channel}</div>
-                        <div class="view-count">${video.viewCount} views</div>
+                        <div class="view-count">${video.viewCount} ${getLang('views', 'Aufrufe')}</div>
                     </div>
                 `;
                 container.appendChild(suggestionElement);
