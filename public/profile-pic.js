@@ -90,7 +90,7 @@
         const currentLang = localStorage.getItem('language');
         const newLang = currentLang === 'de' ? 'en' : 'de';
         localStorage.setItem('language', newLang);
-        applyLanguage(); // Apply changes immediately
+        location.reload();
     }
 
     function updateLanguageText(item) {
