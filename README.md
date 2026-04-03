@@ -90,3 +90,4 @@ What if I only have the video files and no metadata?
 - Fix liked_videos.html video info padding
 - Fix search.html video title y positioning for titles longer than one line (video info pushes title up?)
 - Work on the documentation in the user modal
+- Add a search index for faster search suggestions
