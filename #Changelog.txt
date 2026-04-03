@@ -28,6 +28,8 @@ v3.85
 - channel.html now loads channels' subscriber and video counts first
 - channel.html now shows placeholder thumbnails for playlists until actual thumbnails have been fetched
   - This makes playlists show up instantly on large channels without having to wait for all video thumbnails to load
+- Tags are only added to userPreferences.json when the user spends at least 20 seconds on the page
+  - This is to reduce tag counts of unwanted videos to increase
 
 v3.80
 - Implemented advanced conditional video tagging

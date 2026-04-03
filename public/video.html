@@ -1480,11 +1480,14 @@ document.addEventListener('click', function(e) {
                     })
                     .catch(error => console.error('Error fetching user subscriptions:', error));
 
-                fetch('/updatePreferences', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ video: videoSrc })
-                });
+                // Tags are now only added when the user spends at least 20 seconds on the page
+                setTimeout(() => {
+                    fetch('/updatePreferences', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ video: videoSrc })
+                    });
+                }, 20000);
 
                 fetch('/add-to-history', {
                     method: 'POST',
