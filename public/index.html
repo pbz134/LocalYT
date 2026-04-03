@@ -87,21 +87,26 @@
         <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
         <div class="category-container" id="categoryContainer"></div>
         <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Search">
+            <input type="text" id="searchInput" placeholder="">
             <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
     </header>
     <div id="mySidebar" class="sidebar">
         <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
-        <a href="watch_history.html">Watch History</a>
-        <a href="liked_videos.html">Liked Videos</a>
-        <a href="subscribed_channels.html">Subscriptions</a>
-        <a href="user_playlists.html">Playlists</a>
-        <a href="about.html">About</a>
+        <a href="watch_history.html" id="sidebarWatchHistory">Watch History</a>
+        <a href="liked_videos.html" id="sidebarLikedVideos">Liked Videos</a>
+        <a href="subscribed_channels.html" id="sidebarSubscriptions">Subscriptions</a>
+        <a href="user_playlists.html" id="sidebarPlaylists">Playlists</a>
+        <a href="about.html" id="sidebarAbout">About</a>
     </div>
     <div class="container" id="videoContainer"></div>
     <script>
+// --- Language Helper ---
+function getLang(en, de) {
+    return localStorage.getItem('language') === 'de' ? de : en;
+}
+
 // Handle logo clicks
 document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
@@ -128,6 +133,14 @@ document.addEventListener('DOMContentLoaded', () => {
         mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
         mainLogo.style.cursor = 'pointer';
     }
+
+    // --- UI Translation ---
+    document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
+    document.getElementById('sidebarWatchHistory').textContent = getLang('Watch History', 'Wiedergabeverlauf');
+    document.getElementById('sidebarLikedVideos').textContent = getLang('Liked Videos', 'Videos, die ich mag');
+    document.getElementById('sidebarSubscriptions').textContent = getLang('Subscriptions', 'Abonnements');
+    document.getElementById('sidebarPlaylists').textContent = getLang('Playlists', 'Playlisten');
+    document.getElementById('sidebarAbout').textContent = getLang('About', 'Über');
 });
 
         // Helper function to strip file extension for thumbnail and metadata paths
@@ -427,7 +440,7 @@ document.getElementById('searchIcon').addEventListener('click', () => {
                         <div class="video-details">
                             <div class="video-title" onclick="window.location.href='video.html?src=${encodeURIComponent(video.path)}'">${videoTitle}</div>
                             <div class="channel-name" onclick="window.location.href='channel.html?channel=${encodeURIComponent(channel)}'">${channel}</div>
-                            <div class="video-description">${video.viewCount} views • ${video.fileDate}</div>
+                            <div class="video-description">${video.viewCount} ${getLang('views', 'Aufrufe')} • ${video.fileDate}</div>
                         </div>
                     </div>
                 `;

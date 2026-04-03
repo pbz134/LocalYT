@@ -2,6 +2,11 @@
     const PLACEHOLDER = '/LocalYT-Rev-Files/user-profile-placeholder.jpg';
     let menuInstance = null;
 
+    // --- Language Helper ---
+    function getLang(en, de) {
+        return localStorage.getItem('language') === 'de' ? de : en;
+    }
+
     // Helper to create menu items
     function createMenuItem(icon, text, onClick) {
         const item = document.createElement('div');
@@ -74,10 +79,115 @@
         const currentMode = localStorage.getItem('appearanceMode');
         const textSpan = item.querySelector('.profile-menu-text');
         if (currentMode === 'oled') {
-            textSpan.textContent = 'Appearance: OLED';
+            textSpan.textContent = getLang('Appearance: OLED', 'Erscheinungsbild: OLED');
             item.querySelector('.profile-menu-icon').src = '/LocalYT-Rev-Files/appearance.svg'; // Optional: change icon if you have one
         } else {
-            textSpan.textContent = 'Appearance: Dark';
+            textSpan.textContent = getLang('Appearance: Dark', 'Erscheinungsbild: Dunkel');
+        }
+    }
+
+    function toggleLanguage() {
+        const currentLang = localStorage.getItem('language');
+        const newLang = currentLang === 'de' ? 'en' : 'de';
+        localStorage.setItem('language', newLang);
+        applyLanguage(); // Apply changes immediately
+    }
+
+    function updateLanguageText(item) {
+        const currentLang = localStorage.getItem('language');
+        const textSpan = item.querySelector('.profile-menu-text');
+        if (currentLang === 'de') {
+            textSpan.textContent = getLang('Language: German', 'Sprache: Deutsch');
+        } else {
+            textSpan.textContent = getLang('Language: English', 'Sprache: Englisch');
+        }
+    }
+
+    // This function applies the selected language to the page content
+    function applyLanguage() {
+        const lang = localStorage.getItem('language');
+        
+        // Dictionary of all translatable text
+        const dict = {
+            // Header / Main Buttons
+            'subscribeButton': { en: 'Subscribe', de: 'Abonnieren' },
+            'subscribedState': { en: 'Subscribed', de: 'Abonniert' },
+            'shareContainer': { en: 'Share', de: 'Teilen' },
+            'saveContainer': { en: 'Save', de: 'Speichern' },
+            'savedState': { en: 'Saved', de: 'Gespeichert' },
+            
+            // Description / Info
+            'descriptionToggleMore': { en: 'Show more', de: 'Mehr anzeigen' },
+            'descriptionToggleLess': { en: 'Show less', de: 'Weniger anzeigen' },
+            'noDescription': { en: 'No description available for this video.', de: 'Keine Beschreibung für dieses Video verfügbar.' },
+            
+            // Comments Section
+            'commentsCount': { en: 'Comments', de: 'Kommentare' },
+            
+            // Save Modal
+            'saveModalTitle': { en: 'Save to Playlist', de: 'In Playlist speichern' },
+            'noPlaylistsMessage': { en: 'No playlists yet. Create one below.', de: 'Keine Playlisten vorhanden. Erstellen Sie unten eine.' },
+            'newPlaylistName': { en: 'New playlist name', de: 'Name der neuen Playlist' },
+            'createPlaylistBtn': { en: 'Create', de: 'Erstellen' },
+            
+            // Share Modal
+            'shareModalTitle': { en: 'Share Video', de: 'Video teilen' },
+            'copyWithTimestamp': { en: 'Copy Link + Timestamp', de: 'Link + Zeitstempel kopieren' },
+            'copyWithoutTimestamp': { en: 'Copy Link', de: 'Link kopieren' },
+            'copyMessage': { en: 'Video URL copied to clipboard!', de: 'Video-URL in die Zwischenablage kopiert!' },
+            
+            // Sidebar
+            'recHeader': { en: 'Recommended', de: 'Empfohlen' }
+        };
+
+        // 1. Update Elements by ID
+        Object.keys(dict).forEach(key => {
+            const el = document.getElementById(key);
+            if (el) {
+                // Handle inputs (placeholder)
+                if (el.tagName === 'INPUT') {
+                    el.placeholder = dict[key][lang] || dict[key]['en'];
+                } 
+                // Handle spans inside buttons (Share/Save)
+                else if (el.querySelector('span')) {
+                    el.querySelector('span').textContent = dict[key][lang] || dict[key]['en'];
+                } 
+                // Handle standard elements
+                else {
+                    el.textContent = dict[key][lang] || dict[key]['en'];
+                }
+            }
+        });
+        
+        // 2. Update Modal Titles (Selectors for H2 inside modals)
+        const saveH2 = document.querySelector('#saveModal h2');
+        if (saveH2) saveH2.textContent = dict.saveModalTitle[lang];
+        
+        const shareH2 = document.querySelector('#shareModal h2');
+        if (shareH2) shareH2.textContent = dict.shareModalTitle[lang];
+
+        // 3. Handle Dynamic States (Text set via JS logic)
+        const subBtn = document.getElementById('subscribeButton');
+        if (subBtn) {
+             if (subBtn.classList.contains('subscribed')) {
+                subBtn.textContent = dict.subscribedState[lang];
+            } else {
+                subBtn.textContent = dict.subscribeButton[lang];
+            }
+        }
+
+        const saveSpan = document.querySelector('#saveContainer span');
+        if (saveSpan) {
+            // Check if it is in the "Saved" state by checking the icon src or a class if you prefer
+            // Since we don't have a class, we check the icon src associated with it
+            const saveIcon = document.getElementById('saveIcon');
+            const isSaved = saveIcon && saveIcon.src.includes('saved.svg');
+            
+            if (isSaved) {
+                saveSpan.textContent = dict.savedState[lang];
+            } else {
+                saveSpan.textContent = dict.saveContainer[lang];
+            }
         }
     }
 
@@ -94,6 +204,11 @@
         document.documentElement.style.setProperty('--main-bg-color', '#000000');
         document.documentElement.style.setProperty('--secondary-bg-color', '#000000');
         document.documentElement.style.setProperty('--input-bg-color', '#000000');
+    }
+
+    // Apply saved Language on load
+    if (localStorage.getItem('language') === 'de') {
+        applyLanguage();
     }
 
         // Ensure container has relative positioning for the modal
@@ -139,14 +254,14 @@
                         .catch(() => {});
 
                     // Sign Out
-                    menuInstance.appendChild(createMenuItem('signout.svg', 'Sign Out', () => {
+                    menuInstance.appendChild(createMenuItem('signout.svg', getLang('Sign Out', 'Abmelden'), () => {
                         fetch('/logout').then(() => {
                             window.location.href = '/login.html';
                         }).catch(err => console.error('Logout failed:', err));
                     }));
 
                     // Appearance (Toggle Logic)
-                    const appearanceItem = createMenuItem('appearance.svg', 'Appearance: Dark');
+                    const appearanceItem = createMenuItem('appearance.svg', getLang('Appearance: Dark', 'Erscheinungsbild: Dunkel'));
 
                     // Update text based on current state
                     updateAppearanceText(appearanceItem);
@@ -160,26 +275,36 @@
 
                     menuInstance.appendChild(appearanceItem);
 
-                    // Language (Placeholder)
-                    menuInstance.appendChild(createMenuItem('language.svg', 'Language: English'));
+                    // Language (Toggle Logic)
+                    const languageItem = createMenuItem('language.svg', getLang('Language: English', 'Sprache: Englisch'));
+                    updateLanguageText(languageItem); // Set initial text
+                    
+                    languageItem.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        toggleLanguage();
+                        updateLanguageText(languageItem);
+                        closeMenu();
+                    });
+                    
+                    menuInstance.appendChild(languageItem);
 
                     // Settings
-                    menuInstance.appendChild(createMenuItem('settings.svg', 'Settings', () => {
+                    menuInstance.appendChild(createMenuItem('settings.svg', getLang('Settings', 'Einstellungen'), () => {
                         window.location.href = 'settings.html';
                     }));
 
                     // Help
-                    menuInstance.appendChild(createMenuItem('help.svg', 'Help', () => {
+                    menuInstance.appendChild(createMenuItem('help.svg', getLang('Help', 'Hilfe'), () => {
                         window.location.href = 'documentation.html';
                     }));
 
                     // Source Code
-                    menuInstance.appendChild(createMenuItem('sourcecode.svg', 'Source Code', () => {
+                    menuInstance.appendChild(createMenuItem('sourcecode.svg', getLang('Source Code', 'Quellcode'), () => {
                         window.open('https://github.com/pbz134/LocalYT', '_blank');
                     }));
 
                     // Send Feedback
-                    menuInstance.appendChild(createMenuItem('feedback.svg', 'Send Feedback', () => {
+                    menuInstance.appendChild(createMenuItem('feedback.svg', getLang('Send Feedback', 'Feedback senden'), () => {
                         window.open('https://github.com/pbz134/LocalYT/issues', '_blank');
                     }));
 
@@ -187,22 +312,22 @@
                     // --- LOGGED OUT STATE ---
                     
                     // Sign In
-                    menuInstance.appendChild(createMenuItem('signout.svg', 'Sign In', () => {
+                    menuInstance.appendChild(createMenuItem('signout.svg', getLang('Sign In', 'Anmelden'), () => {
                         window.location.href = 'login.html';
                     }));
 
                     // Help
-                    menuInstance.appendChild(createMenuItem('help.svg', 'Help', () => {
+                    menuInstance.appendChild(createMenuItem('help.svg', getLang('Help', 'Hilfe'), () => {
                         window.location.href = 'documentation.html';
                     }));
 
                     // Source Code
-                    menuInstance.appendChild(createMenuItem('sourcecode.svg', 'Source Code', () => {
+                    menuInstance.appendChild(createMenuItem('sourcecode.svg', getLang('Source Code', 'Quellcode'), () => {
                         window.open('https://github.com/pbz134/LocalYT', '_blank');
                     }));
 
                     // Send Feedback
-                    menuInstance.appendChild(createMenuItem('feedback.svg', 'Send Feedback', () => {
+                    menuInstance.appendChild(createMenuItem('feedback.svg', getLang('Send Feedback', 'Feedback senden'), () => {
                         window.open('https://github.com/pbz134/LocalYT/issues', '_blank');
                     }));
                 }
@@ -210,7 +335,7 @@
             .catch(err => {
                 console.error('Error checking session:', err);
                 // Fallback: Show Sign In on error
-                menuInstance.appendChild(createMenuItem('signout.svg', 'Sign In', () => {
+                menuInstance.appendChild(createMenuItem('signout.svg', getLang('Sign In', 'Anmelden'), () => {
                     window.location.href = 'login.html';
                 }));
             });

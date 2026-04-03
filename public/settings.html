@@ -11,7 +11,7 @@
     <script src="cropper.min.js"></script>
     <style>
         body {
-            background-color: #0f0f0f;
+            background: var(--main-bg-color);
             color: #fff;
             font-family: 'RobotoRegular', Arial, sans-serif;
         }
@@ -23,7 +23,7 @@
             top: 0;
             width: 250px;
             height: 100%;
-            background-color: #111;
+            background: var(--main-bg-color);
             overflow-x: hidden;
             padding-top: 60px;
             z-index: 1;
@@ -203,7 +203,7 @@
             max-height: 400px;
             overflow-y: auto;
             border: 1px solid #333;
-            background-color: #0f0f0f;
+            background: var(--main-bg-color);
             margin-bottom: 15px;
         }
 
@@ -299,7 +299,7 @@
         }
 
         input[type="text"], input[type="password"] {
-            background-color: #0f0f0f;
+            background: var(--main-bg-color);
             border: 1px solid #444;
             color: #fff;
             padding: 8px;
@@ -308,7 +308,7 @@
         }
 
         input[list] {
-            background-color: #0f0f0f;
+            background: var(--main-bg-color);
         }
 
         .inline-form {
@@ -375,7 +375,7 @@
     <header class="top-bar">
         <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
         <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Search">
+            <input type="text" id="searchInput" placeholder="">
             <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
@@ -384,8 +384,8 @@
 
     <!-- Left Sidebar -->
     <div class="settings-sidebar">
-        <a data-tab="profile" class="active">Profile Picture</a>
-        <a data-tab="settings">Settings</a>
+        <a data-tab="profile" class="active" id="sidebarProfile">Profile Picture</a>
+        <a data-tab="settings" id="sidebarSettings">Settings</a>
     </div>
 
     <!-- Content Area -->
@@ -393,7 +393,7 @@
 
         <!-- Profile Picture Tab -->
         <div class="tab-panel active" id="tab-profile">
-            <h1>Profile Picture</h1>
+            <h1 id="profileHeading">Profile Picture</h1>
             <div class="profile-page-container">
                 <img id="profilePicDisplay" class="profile-pic-display" src="LocalYT-Rev-Files/user-profile-placeholder.jpg" alt="Profile Picture">
                 <div class="profile-actions">
@@ -406,18 +406,18 @@
 
         <!-- Settings Tab -->
         <div class="tab-panel" id="tab-settings">
-            <h1>Settings</h1>
+            <h1 id="settingsHeading">Settings</h1>
 
             <!-- Algorithm Section -->
             <div class="settings-section">
-                <h2>Algorithm Preferences</h2>
-                <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;">Adjust scores to influence your recommendations. Higher = matching videos are more likely to appear.</p>
+                <h2 id="algoPrefsHeading">Algorithm Preferences</h2>
+                <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;" id="algoPrefsDesc">Adjust scores to influence your recommendations. Higher = matching videos are more likely to appear.</p>
 
                 <div id="preferencesContainer" class="pref-list-container">
                 </div>
 
                 <div class="inline-form" style="margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 15px;">
-                    <input type="text" id="newTagInput" list="allTagsList" placeholder="Add new tag..." style="flex-grow: 1;">
+                    <input type="text" id="newTagInput" list="allTagsList" placeholder="" style="flex-grow: 1;">
                     <datalist id="allTagsList"></datalist>
                     <button class="btn" id="addTagBtn">Add Tag</button>
                 </div>
@@ -431,22 +431,22 @@
 
             <!-- Account Management -->
             <div class="settings-section">
-                <h2>Account Management</h2>
+                <h2 id="accountMgmtHeading">Account Management</h2>
 
                 <div style="margin-bottom: 20px;">
-                    <h3 style="margin-bottom: 5px; font-size: 16px;">Rename Account</h3>
+                    <h3 style="margin-bottom: 5px; font-size: 16px;" id="renameHeading">Rename Account</h3>
                     <div class="inline-form">
-                        <input type="text" id="newUsername" placeholder="New Username">
+                        <input type="text" id="newUsername" placeholder="">
                         <button class="btn" id="renameBtn">Rename</button>
                     </div>
                     <div id="renameStatus" class="status-msg"></div>
                 </div>
 
                 <div>
-                    <h3 style="margin-bottom: 5px; font-size: 16px;">Change Password</h3>
+                    <h3 style="margin-bottom: 5px; font-size: 16px;" id="changePassHeading">Change Password</h3>
                     <div class="inline-form" style="flex-wrap: wrap;">
-                        <input type="password" id="currentPassword" placeholder="Current Password">
-                        <input type="password" id="newPassword" placeholder="New Password">
+                        <input type="password" id="currentPassword" placeholder="">
+                        <input type="password" id="newPassword" placeholder="">
                         <button class="btn" id="changePassBtn">Update</button>
                     </div>
                     <div id="passStatus" class="status-msg"></div>
@@ -455,28 +455,28 @@
 
             <!-- Danger Zone -->
             <div class="settings-section">
-                <h2>Danger Zone</h2>
+                <h2 id="dangerZoneHeading">Danger Zone</h2>
 
                 <div style="margin-bottom: 20px;">
-                    <h3 style="margin-bottom: 5px; font-size: 16px;">Logout</h3>
-                    <p style="font-size: 13px; color: #aaa;">End your current session.</p>
+                    <h3 style="margin-bottom: 5px; font-size: 16px;" id="logoutHeading">Logout</h3>
+                    <p style="font-size: 13px; color: #aaa;" id="logoutDesc">End your current session.</p>
                     <div class="inline-form" style="justify-content: flex-start;">
                         <button class="btn btn-logout" id="logoutBtn">Logout</button>
                     </div>
                 </div>
 
                 <div>
-                    <h3 style="margin-bottom: 5px; font-size: 16px; color: #ff4444;">Delete Account</h3>
-                    <p style="font-size: 13px; color: #aaa;">WARNING: Once deleted, you won't be able to recover it.</p>
+                    <h3 style="margin-bottom: 5px; font-size: 16px; color: #ff4444;" id="deleteAccHeading">Delete Account</h3>
+                    <p style="font-size: 13px; color: #aaa;" id="deleteAccDesc">WARNING: Once deleted, you won't be able to recover it.</p>
                     <div class="inline-form" style="justify-content: flex-start;">
                         <button class="btn btn-danger" id="toggleDeleteBtn">Delete Account</button>
                     </div>
 
                     <div id="deleteAccountForm" class="delete-account-form">
-                        <p>Enter your current password and type <strong style="color:#ff4444;">DELETE</strong> to permanently delete your account.</p>
+                        <p id="deleteWarningText">Enter your current password and type <strong style="color:#ff4444;">DELETE</strong> to permanently delete your account.</p>
                         <div class="delete-form-row">
-                            <input type="password" id="deletePassword" placeholder="Current Password">
-                            <input type="text" id="deleteConfirmText" placeholder="Type DELETE">
+                            <input type="password" id="deletePassword" placeholder="">
+                            <input type="text" id="deleteConfirmInput" placeholder="">
                             <button class="btn btn-danger" id="deleteAccountBtn">Confirm Delete</button>
                         </div>
                     </div>
@@ -504,465 +504,520 @@
 
     <script src="profile-pic.js"></script>
     <script>
-        // ==============================
-        // Tab Switching
-        // ==============================
-        const sidebarLinks = document.querySelectorAll('.settings-sidebar a');
-        const tabPanels = document.querySelectorAll('.tab-panel');
+// --- Language Helper ---
+function getLang(en, de) {
+    return localStorage.getItem('language') === 'de' ? de : en;
+}
 
-        sidebarLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const targetTab = link.dataset.tab;
+// ==============================
+// UI Translation
+// ==============================
+function applyTranslations() {
+    document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
+    
+    // Sidebar
+    document.getElementById('sidebarProfile').textContent = getLang('Profile Picture', 'Profilbild');
+    document.getElementById('sidebarSettings').textContent = getLang('Settings', 'Einstellungen');
+    
+    // Profile tab
+    document.getElementById('profileHeading').textContent = getLang('Profile Picture', 'Profilbild');
+    document.getElementById('uploadBtn').textContent = getLang('Upload Picture', 'Bild hochladen');
+    document.getElementById('removeBtn').textContent = getLang('Remove Picture', 'Bild entfernen');
+    
+    // Settings tab
+    document.getElementById('settingsHeading').textContent = getLang('Settings', 'Einstellungen');
+    document.getElementById('algoPrefsHeading').textContent = getLang('Algorithm Preferences', 'Algorithmus-Einstellungen');
+    document.getElementById('algoPrefsDesc').textContent = getLang('Adjust scores to influence your recommendations. Higher = matching videos are more likely to appear.', 'Passe die Werte an, um Ihre Empfehlungen zu beeinflussen. Höher = passende Videos werden eher angezeigt.');
+    document.getElementById('newTagInput').placeholder = getLang('Add new tag...', 'Neuen Tag hinzufügen...');
+    document.getElementById('addTagBtn').textContent = getLang('Add Tag', 'Tag hinzufügen');
+    document.getElementById('savePrefsBtn').textContent = getLang('Save Preferences', 'Einstellungen speichern');
+    document.getElementById('resetPrefsBtn').textContent = getLang('Reset All', 'Alle zurücksetzen');
+    
+    // Account Management
+    document.getElementById('accountMgmtHeading').textContent = getLang('Account Management', 'Kontoverwaltung');
+    document.getElementById('renameHeading').textContent = getLang('Rename Account', 'Konto umbenennen');
+    document.getElementById('newUsername').placeholder = getLang('New Username', 'Neuer Benutzername');
+    document.getElementById('renameBtn').textContent = getLang('Rename', 'Umbenennen');
+    document.getElementById('changePassHeading').textContent = getLang('Change Password', 'Passwort ändern');
+    document.getElementById('currentPassword').placeholder = getLang('Current Password', 'Aktuelles Passwort');
+    document.getElementById('newPassword').placeholder = getLang('New Password', 'Neues Passwort');
+    document.getElementById('changePassBtn').textContent = getLang('Update', 'Aktualisieren');
+    
+    // Danger Zone
+    document.getElementById('dangerZoneHeading').textContent = getLang('Danger Zone', 'Gefahrenzone');
+    document.getElementById('logoutHeading').textContent = getLang('Logout', 'Abmelden');
+    document.getElementById('logoutDesc').textContent = getLang('End your current session.', 'Beende deine aktuelle Sitzung.');
+    document.getElementById('logoutBtn').textContent = getLang('Logout', 'Abmelden');
+    document.getElementById('deleteAccHeading').textContent = getLang('Delete Account', 'Konto löschen');
+    document.getElementById('deleteAccDesc').textContent = getLang('WARNING: Once deleted, you won\'t be able to recover it.', 'WARNUNG: Sobald dein Konto gelöscht ist, kann es nicht wiederhergestellt werden.');
+    document.getElementById('toggleDeleteBtn').textContent = getLang('Delete Account', 'Konto löschen');
+    document.getElementById('deleteWarningText').innerHTML = getLang('Enter your current password and type <strong style="color:#ff4444;">DELETE</strong> to permanently delete your account.', 'Gib dein aktuelles Passwort ein und tippe <strong style="color:#ff4444;">DELETE</strong>, um dein Konto permanent zu löschen.');
+    document.getElementById('deletePassword').placeholder = getLang('Current Password', 'Aktuelles Passwort');
+    document.getElementById('deleteConfirmInput').placeholder = getLang('Type DELETE', 'DELETE eingeben');
+    document.getElementById('deleteAccountBtn').textContent = getLang('Confirm Delete', 'Löschen bestaetigen');
+    
+    // Modal buttons
+    document.getElementById('cancelCropBtn').textContent = getLang('Cancel', 'Abbrechen');
+    document.getElementById('doneCropBtn').textContent = getLang('Done', 'Fertig');
+}
 
-                sidebarLinks.forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
+// ==============================
+// Tab Switching
+// ==============================
+const sidebarLinks = document.querySelectorAll('.settings-sidebar a');
+const tabPanels = document.querySelectorAll('.tab-panel');
 
-                tabPanels.forEach(panel => panel.classList.remove('active'));
-                document.getElementById('tab-' + targetTab).classList.add('active');
+sidebarLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetTab = link.dataset.tab;
 
-                // Load preferences when switching to settings tab
-                if (targetTab === 'settings') {
-                    loadPreferences();
-                    loadAllTags();
-                }
-            });
-        });
+        sidebarLinks.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
 
-        // ==============================
-        // Auth Check
-        // ==============================
-        document.addEventListener('DOMContentLoaded', () => {
-            fetch('/session-user')
-                .then(res => res.json())
-                .then(data => {
-                    if (!data.username) {
-                        window.location.href = 'login.html';
-                    } else {
-                        loadProfilePic();
-                        loadPreferences();
-                        loadAllTags();
-                    }
-                })
-                .catch(() => window.location.href = 'login.html');
+        tabPanels.forEach(panel => panel.classList.remove('active'));
+        document.getElementById('tab-' + targetTab).classList.add('active');
 
-            // Logo navigation
-            const mainLogo = document.getElementById('mainLogo');
-            if (mainLogo) {
-                mainLogo.addEventListener('click', (e) => {
-                    if (e.button === 0) window.location.href = 'index.html';
-                });
-                mainLogo.addEventListener('mouseup', (e) => {
-                    if (e.button === 1) { e.preventDefault(); window.open('index.html', '_blank'); }
-                });
-                mainLogo.addEventListener('contextmenu', (e) => {
-                    e.preventDefault(); window.open('index.html', '_blank');
-                });
-                mainLogo.title = 'Go to homepage';
-                mainLogo.style.cursor = 'pointer';
+        if (targetTab === 'settings') {
+            loadPreferences();
+            loadAllTags();
+        }
+    });
+});
+
+// ==============================
+// Auth Check
+// ==============================
+document.addEventListener('DOMContentLoaded', () => {
+    applyTranslations();
+    
+    fetch('/session-user')
+        .then(res => res.json())
+        .then(data => {
+            if (!data.username) {
+                window.location.href = 'login.html';
+            } else {
+                loadProfilePic();
+                loadPreferences();
+                loadAllTags();
             }
+        })
+        .catch(() => window.location.href = 'login.html');
 
-            // Search functionality
-            const searchInput = document.getElementById('searchInput');
-            searchInput.addEventListener('input', () => {
-                const query = searchInput.value.toLowerCase();
-                if (query.length < 2) { document.getElementById('searchSuggestions').innerHTML = ''; return; }
-                fetch('/search-index').then(res => res.json()).then(data => {
-                    const suggestions = (data.videos || []).filter(v => v.displayName.toLowerCase().includes(query)).slice(0, 5);
-                    const container = document.getElementById('searchSuggestions');
-                    container.innerHTML = '';
-                    suggestions.forEach(s => {
-                        const el = document.createElement('div');
-                        el.className = 'suggestion-item';
-                        el.textContent = s.displayName;
-                        el.onclick = () => { window.location.href = `video.html?src=${encodeURIComponent(s.path)}`; };
-                        container.appendChild(el);
-                    });
-                });
-            });
-            searchInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
-            });
-            document.getElementById('searchIcon').addEventListener('click', () => {
-                const q = searchInput.value.trim();
-                if (q) window.location.href = `search.html?q=${encodeURIComponent(q)}`;
-                else searchInput.focus();
+    const mainLogo = document.getElementById('mainLogo');
+    if (mainLogo) {
+        mainLogo.addEventListener('click', (e) => {
+            if (e.button === 0) window.location.href = 'index.html';
+        });
+        mainLogo.addEventListener('mouseup', (e) => {
+            if (e.button === 1) { e.preventDefault(); window.open('index.html', '_blank'); }
+        });
+        mainLogo.addEventListener('contextmenu', (e) => {
+            e.preventDefault(); window.open('index.html', '_blank');
+        });
+        mainLogo.title = 'Go to homepage';
+        mainLogo.style.cursor = 'pointer';
+    }
+
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.toLowerCase();
+        if (query.length < 2) { document.getElementById('searchSuggestions').innerHTML = ''; return; }
+        fetch('/search-index').then(res => res.json()).then(data => {
+            const suggestions = (data.videos || []).filter(v => v.displayName.toLowerCase().includes(query)).slice(0, 5);
+            const container = document.getElementById('searchSuggestions');
+            container.innerHTML = '';
+            suggestions.forEach(s => {
+                const el = document.createElement('div');
+                el.className = 'suggestion-item';
+                el.textContent = s.displayName;
+                el.onclick = () => { window.location.href = 'video.html?src=' + encodeURIComponent(s.path); };
+                container.appendChild(el);
             });
         });
+    });
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') window.location.href = 'search.html?q=' + encodeURIComponent(searchInput.value);
+    });
+    document.getElementById('searchIcon').addEventListener('click', () => {
+        const q = searchInput.value.trim();
+        if (q) window.location.href = 'search.html?q=' + encodeURIComponent(q);
+        else searchInput.focus();
+    });
+});
 
-        // ==============================
-        // Profile Picture Logic
-        // ==============================
-        const PLACEHOLDER_SRC = '/LocalYT-Rev-Files/user-profile-placeholder.jpg';
-        const profilePicDisplay = document.getElementById('profilePicDisplay');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const removeBtn = document.getElementById('removeBtn');
-        const fileInput = document.getElementById('fileInput');
-        const profileStatus = document.getElementById('profileStatus');
-        const errorToast = document.getElementById('errorToast');
-        const successToast = document.getElementById('successToast');
+// ==============================
+// Profile Picture Logic
+// ==============================
+var PLACEHOLDER_SRC = '/LocalYT-Rev-Files/user-profile-placeholder.jpg';
+var profilePicDisplay = document.getElementById('profilePicDisplay');
+var uploadBtn = document.getElementById('uploadBtn');
+var removeBtn = document.getElementById('removeBtn');
+var fileInput = document.getElementById('fileInput');
+var profileStatus = document.getElementById('profileStatus');
+var errorToast = document.getElementById('errorToast');
+var successToast = document.getElementById('successToast');
 
-        const cropperModal = document.getElementById('cropperModal');
-        const imageToCrop = document.getElementById('imageToCrop');
-        const cancelCropBtn = document.getElementById('cancelCropBtn');
-        const doneCropBtn = document.getElementById('doneCropBtn');
+var cropperModal = document.getElementById('cropperModal');
+var imageToCrop = document.getElementById('imageToCrop');
+var cancelCropBtn = document.getElementById('cancelCropBtn');
+var doneCropBtn = document.getElementById('doneCropBtn');
 
-        let cropper = null;
-        let currentFile = null;
+var cropper = null;
+var currentFile = null;
 
-        function showToast(el, msg) {
-            el.textContent = msg;
-            el.classList.add('visible');
-            setTimeout(() => el.classList.remove('visible'), 3000);
+function showToast(el, msg) {
+    el.textContent = msg;
+    el.classList.add('visible');
+    setTimeout(function() { el.classList.remove('visible'); }, 3000);
+}
+
+function loadProfilePic() {
+    profilePicDisplay.src = PLACEHOLDER_SRC;
+    removeBtn.classList.add('hidden');
+    profileStatus.textContent = getLang('Using default profile picture', 'Standard-Profilbild wird verwendet');
+
+    fetch('/user-profile-pic')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.hasCustomPic && data.picUrl) {
+                profilePicDisplay.src = data.picUrl + '?t=' + Date.now();
+                removeBtn.classList.remove('hidden');
+                profileStatus.textContent = getLang('Custom profile picture set', 'Eigenes Profilbild festgelegt');
+            }
+        })
+        .catch(function() {});
+}
+
+function refreshHeaderPic() {
+    fetch('/user-profile-pic')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            var headerPic = document.getElementById('headerProfilePic');
+            if (!headerPic) return;
+            if (data.hasCustomPic && data.picUrl) {
+                headerPic.src = data.picUrl + '?t=' + Date.now();
+            } else {
+                headerPic.src = PLACEHOLDER_SRC;
+            }
+        })
+        .catch(function() {});
+}
+
+uploadBtn.addEventListener('click', function() { fileInput.click(); });
+
+fileInput.addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+
+    var allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (allowedTypes.indexOf(file.type) === -1) {
+        showToast(errorToast, getLang('Only JPEG, PNG, and WebP images are allowed', 'Nur JPEG-, PNG- und WebP-Bilder sind zulaessig'));
+        fileInput.value = '';
+        return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+        showToast(errorToast, getLang('Image must be under 5MB', 'Bild muss unter 5 MB sein'));
+        fileInput.value = '';
+        return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = function(event) {
+        imageToCrop.src = event.target.result;
+        cropperModal.classList.add('active');
+
+        if (cropper) {
+            cropper.destroy();
         }
 
-        function loadProfilePic() {
+        cropper = new Cropper(imageToCrop, {
+            aspectRatio: 1 / 1,
+            viewMode: 1,
+            autoCropArea: 0.9,
+            responsive: true
+        });
+    };
+    reader.readAsDataURL(file);
+    currentFile = file;
+});
+
+cancelCropBtn.addEventListener('click', function() {
+    cropperModal.classList.remove('active');
+    if (cropper) {
+        cropper.destroy();
+        cropper = null;
+    }
+    fileInput.value = '';
+    currentFile = null;
+});
+
+doneCropBtn.addEventListener('click', function() {
+    if (!cropper || !currentFile) return;
+
+    var canvasData = cropper.getData();
+
+    var formData = new FormData();
+    formData.append('profilePic', currentFile);
+    formData.append('x', Math.round(canvasData.x));
+    formData.append('y', Math.round(canvasData.y));
+    formData.append('width', Math.round(canvasData.width));
+    formData.append('height', Math.round(canvasData.height));
+
+    doneCropBtn.disabled = true;
+    doneCropBtn.textContent = getLang('Processing...', 'Verarbeitung...');
+
+    fetch('/user-profile-pic', {
+        method: 'POST',
+        body: formData
+    })
+    .then(async function(res) {
+        var text = await res.text();
+        if (!res.ok) throw new Error(text);
+
+        showToast(successToast, getLang('Profile picture updated!', 'Profilbild aktualisiert!'));
+        loadProfilePic();
+        refreshHeaderPic();
+
+        cropperModal.classList.remove('active');
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+        fileInput.value = '';
+        currentFile = null;
+    })
+    .catch(function(err) {
+        console.error(err);
+        showToast(errorToast, err.message || getLang('Error uploading', 'Fehler beim Hochladen'));
+    })
+    .finally(function() {
+        doneCropBtn.disabled = false;
+        doneCropBtn.textContent = getLang('Done', 'Fertig');
+    });
+});
+
+removeBtn.addEventListener('click', function() {
+    fetch('/user-profile-pic', { method: 'DELETE' })
+        .then(function(res) {
+            if (!res.ok) throw new Error(getLang('Failed to remove', 'Entfernen fehlgeschlagen'));
+            showToast(successToast, getLang('Profile picture removed', 'Profilbild entfernt'));
             profilePicDisplay.src = PLACEHOLDER_SRC;
             removeBtn.classList.add('hidden');
-            profileStatus.textContent = 'Using default profile picture';
+            profileStatus.textContent = getLang('Using default profile picture', 'Standard-Profilbild wird verwendet');
+            refreshHeaderPic();
+        })
+        .catch(function(err) { showToast(errorToast, err.message); });
+});
 
-            fetch('/user-profile-pic')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.hasCustomPic && data.picUrl) {
-                        profilePicDisplay.src = data.picUrl + '?t=' + Date.now();
-                        removeBtn.classList.remove('hidden');
-                        profileStatus.textContent = 'Custom profile picture set';
-                    }
-                })
-                .catch(() => {});
-        }
+// ==============================
+// Settings Logic
+// ==============================
+var allAvailableTags = [];
 
-        function refreshHeaderPic() {
-            fetch('/user-profile-pic')
-                .then(res => res.json())
-                .then(data => {
-                    const headerPic = document.getElementById('headerProfilePic');
-                    if (!headerPic) return;
-                    if (data.hasCustomPic && data.picUrl) {
-                        headerPic.src = data.picUrl + '?t=' + Date.now();
-                    } else {
-                        headerPic.src = PLACEHOLDER_SRC;
-                    }
-                })
-                .catch(() => {});
-        }
+function loadAllTags() {
+    fetch('/get-all-tags')
+        .then(function(res) { return res.json(); })
+        .then(function(tags) {
+            allAvailableTags = tags;
+            var datalist = document.getElementById('allTagsList');
+            datalist.innerHTML = '';
+            tags.forEach(function(tag) {
+                var option = document.createElement('option');
+                option.value = tag;
+                datalist.appendChild(option);
+            });
+        })
+        .catch(function() {});
+}
 
-        uploadBtn.addEventListener('click', () => fileInput.click());
+function loadPreferences() {
+    fetch('/get-preferences')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            var container = document.getElementById('preferencesContainer');
+            container.innerHTML = '';
 
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-            if (!allowedTypes.includes(file.type)) {
-                showToast(errorToast, 'Only JPEG, PNG, and WebP images are allowed');
-                fileInput.value = '';
+            if (Object.keys(data).length === 0) {
+                container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">' + getLang('No preferences found. Watch videos to build your algorithm!', 'Keine Einstellungen gefunden. Schau Videos, um deinen Algorithmus aufzubauen!') + '</div>';
                 return;
             }
 
-            if (file.size > 5 * 1024 * 1024) {
-                showToast(errorToast, 'Image must be under 5MB');
-                fileInput.value = '';
-                return;
-            }
+            var sorted = Object.entries(data).sort(function(a, b) { return b[1] - a[1]; });
 
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                imageToCrop.src = event.target.result;
-                cropperModal.classList.add('active');
-
-                if (cropper) {
-                    cropper.destroy();
-                }
-
-                cropper = new Cropper(imageToCrop, {
-                    aspectRatio: 1 / 1,
-                    viewMode: 1,
-                    autoCropArea: 0.9,
-                    responsive: true
-                });
-            };
-            reader.readAsDataURL(file);
-            currentFile = file;
-        });
-
-        cancelCropBtn.addEventListener('click', () => {
-            cropperModal.classList.remove('active');
-            if (cropper) {
-                cropper.destroy();
-                cropper = null;
-            }
-            fileInput.value = '';
-            currentFile = null;
-        });
-
-        doneCropBtn.addEventListener('click', () => {
-            if (!cropper || !currentFile) return;
-
-            const canvasData = cropper.getData();
-
-            const formData = new FormData();
-            formData.append('profilePic', currentFile);
-            formData.append('x', Math.round(canvasData.x));
-            formData.append('y', Math.round(canvasData.y));
-            formData.append('width', Math.round(canvasData.width));
-            formData.append('height', Math.round(canvasData.height));
-
-            doneCropBtn.disabled = true;
-            doneCropBtn.textContent = 'Processing...';
-
-            fetch('/user-profile-pic', {
-                method: 'POST',
-                body: formData
-            })
-            .then(async res => {
-                const text = await res.text();
-                if (!res.ok) throw new Error(text);
-
-                showToast(successToast, 'Profile picture updated!');
-                loadProfilePic();
-                refreshHeaderPic();
-
-                cropperModal.classList.remove('active');
-                if (cropper) {
-                    cropper.destroy();
-                    cropper = null;
-                }
-                fileInput.value = '';
-                currentFile = null;
-            })
-            .catch(err => {
-                console.error(err);
-                showToast(errorToast, err.message || 'Error uploading');
-            })
-            .finally(() => {
-                doneCropBtn.disabled = false;
-                doneCropBtn.textContent = 'Done';
+            sorted.forEach(function(entry) {
+                createPrefItem(entry[0], entry[1], container);
             });
-        });
+        })
+        .catch(function() {});
+}
 
-        removeBtn.addEventListener('click', () => {
-            fetch('/user-profile-pic', { method: 'DELETE' })
-                .then(res => {
-                    if (!res.ok) throw new Error('Failed to remove');
-                    showToast(successToast, 'Profile picture removed');
-                    profilePicDisplay.src = PLACEHOLDER_SRC;
-                    removeBtn.classList.add('hidden');
-                    profileStatus.textContent = 'Using default profile picture';
-                    refreshHeaderPic();
-                })
-                .catch(err => showToast(errorToast, err.message));
-        });
+function createPrefItem(tag, value, container) {
+    var div = document.createElement('div');
+    div.className = 'pref-item';
+    div.dataset.tag = tag;
+    div.innerHTML =
+        '<span class="pref-tag" title="' + tag + '">' + tag + '</span>' +
+        '<div class="pref-controls">' +
+            '<input type="number" class="pref-value" data-tag="' + tag + '" value="' + value + '">' +
+            '<button class="btn-remove" title="Remove Tag">&times;</button>' +
+        '</div>';
 
-        // ==============================
-        // Settings Logic
-        // ==============================
-        let allAvailableTags = [];
+    div.querySelector('.btn-remove').addEventListener('click', function() {
+        div.remove();
+    });
 
-        function loadAllTags() {
-            fetch('/get-all-tags')
-                .then(res => res.json())
-                .then(tags => {
-                    allAvailableTags = tags;
-                    const datalist = document.getElementById('allTagsList');
-                    datalist.innerHTML = '';
-                    tags.forEach(tag => {
-                        const option = document.createElement('option');
-                        option.value = tag;
-                        datalist.appendChild(option);
-                    });
-                })
-                .catch(() => {});
+    container.appendChild(div);
+}
+
+document.getElementById('addTagBtn').addEventListener('click', function() {
+    var input = document.getElementById('newTagInput');
+    var tagName = input.value.trim();
+
+    if (!tagName) return;
+
+    var container = document.getElementById('preferencesContainer');
+
+    var existing = container.querySelector('[data-tag="' + tagName + '"]');
+    if (existing) {
+        showStatus('prefStatus', getLang('Tag already in list.', 'Tag bereits in der Liste.'), false);
+        return;
+    }
+
+    createPrefItem(tagName, 50, container);
+    input.value = '';
+    showStatus('prefStatus', getLang('Tag added. Click Save to confirm.', 'Tag hinzugefügt. Klicke Speichern zum Bestätigen.'), true);
+});
+
+document.getElementById('savePrefsBtn').addEventListener('click', function() {
+    var container = document.getElementById('preferencesContainer');
+    var items = container.querySelectorAll('.pref-item');
+    var newPrefs = {};
+
+    items.forEach(function(item) {
+        var tag = item.dataset.tag;
+        var inputEl = item.querySelector('.pref-value');
+        var value = parseInt(inputEl.value) || 0;
+        newPrefs[tag] = value;
+    });
+
+    fetch('/save-preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preferences: newPrefs })
+    })
+    .then(function(res) {
+        if (res.ok) {
+            showStatus('prefStatus', getLang('Preferences saved successfully!', 'Einstellungen erfolgreich gespeichert!'), true);
+            loadPreferences();
+        } else {
+            showStatus('prefStatus', getLang('Error saving preferences.', 'Fehler beim Speichern der Einstellungen.'), false);
         }
+    })
+    .catch(function() { showStatus('prefStatus', getLang('Error saving preferences.', 'Fehler beim Speichern der Einstellungen.'), false); });
+});
 
-        function loadPreferences() {
-            fetch('/get-preferences')
-                .then(res => res.json())
-                .then(data => {
-                    const container = document.getElementById('preferencesContainer');
-                    container.innerHTML = '';
-
-                    if (Object.keys(data).length === 0) {
-                        container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No preferences found. Watch videos to build your algorithm!</div>';
-                        return;
-                    }
-
-                    const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
-
-                    sorted.forEach(([tag, value]) => {
-                        createPrefItem(tag, value, container);
-                    });
-                })
-                .catch(() => {});
-        }
-
-        function createPrefItem(tag, value, container) {
-            const div = document.createElement('div');
-            div.className = 'pref-item';
-            div.dataset.tag = tag;
-            div.innerHTML = `
-                <span class="pref-tag" title="${tag}">${tag}</span>
-                <div class="pref-controls">
-                    <input type="number" class="pref-value" data-tag="${tag}" value="${value}">
-                    <button class="btn-remove" title="Remove Tag">&times;</button>
-                </div>
-            `;
-
-            div.querySelector('.btn-remove').addEventListener('click', () => {
-                div.remove();
-            });
-
-            container.appendChild(div);
-        }
-
-        document.getElementById('addTagBtn').addEventListener('click', () => {
-            const input = document.getElementById('newTagInput');
-            const tagName = input.value.trim();
-
-            if (!tagName) return;
-
-            const container = document.getElementById('preferencesContainer');
-
-            const existing = container.querySelector(`[data-tag="${tagName}"]`);
-            if (existing) {
-                showStatus('prefStatus', 'Tag already in list.', false);
-                return;
-            }
-
-            createPrefItem(tagName, 50, container);
-            input.value = '';
-            showStatus('prefStatus', 'Tag added. Click Save to confirm.', true);
-        });
-
-        document.getElementById('savePrefsBtn').addEventListener('click', () => {
-            const container = document.getElementById('preferencesContainer');
-            const items = container.querySelectorAll('.pref-item');
-            const newPrefs = {};
-
-            items.forEach(item => {
-                const tag = item.dataset.tag;
-                const input = item.querySelector('.pref-value');
-                const value = parseInt(input.value) || 0;
-                newPrefs[tag] = value;
-            });
-
-            fetch('/save-preferences', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ preferences: newPrefs })
-            })
-            .then(res => {
+document.getElementById('resetPrefsBtn').addEventListener('click', function() {
+    if (confirm(getLang('Are you sure you want to clear all your viewing preferences?', 'Bist du sicher, dass du alle deine Ansichtseinstellungen loeschen moechtest?'))) {
+        fetch('/reset-preferences', { method: 'POST' })
+            .then(function(res) {
                 if (res.ok) {
-                    showStatus('prefStatus', 'Preferences saved successfully!', true);
+                    showStatus('prefStatus', getLang('All preferences have been reset.', 'Alle Einstellungen wurden zurueckgesetzt.'), true);
                     loadPreferences();
-                } else {
-                    showStatus('prefStatus', 'Error saving preferences.', false);
-                }
-            })
-            .catch(() => showStatus('prefStatus', 'Error saving preferences.', false));
-        });
-
-        document.getElementById('resetPrefsBtn').addEventListener('click', () => {
-            if (confirm('Are you sure you want to clear all your viewing preferences?')) {
-                fetch('/reset-preferences', { method: 'POST' })
-                    .then(res => {
-                        if (res.ok) {
-                            showStatus('prefStatus', 'All preferences have been reset.', true);
-                            loadPreferences();
-                        }
-                    });
-            }
-        });
-
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            window.location.href = '/logout';
-        });
-
-        document.getElementById('renameBtn').addEventListener('click', () => {
-            const newUsername = document.getElementById('newUsername').value;
-            if (!newUsername) return;
-
-            fetch('/rename-account', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ newUsername })
-            })
-            .then(res => res.text())
-            .then(msg => {
-                if (msg === 'OK') {
-                    showStatus('renameStatus', 'Account renamed! Refreshing...', true);
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showStatus('renameStatus', msg, false);
                 }
             });
-        });
+    }
+});
 
-        document.getElementById('changePassBtn').addEventListener('click', () => {
-            const currentPassword = document.getElementById('currentPassword').value;
-            const newPassword = document.getElementById('newPassword').value;
-            if (!currentPassword || !newPassword) return;
+document.getElementById('logoutBtn').addEventListener('click', function() {
+    window.location.href = '/logout';
+});
 
-            fetch('/reset-password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ currentPassword, newPassword })
-            })
-            .then(res => res.text())
-            .then(msg => {
-                if (msg === 'OK') {
-                    showStatus('passStatus', 'Password changed successfully.', true);
-                    document.getElementById('currentPassword').value = '';
-                    document.getElementById('newPassword').value = '';
-                } else {
-                    showStatus('passStatus', msg, false);
-                }
-            });
-        });
+document.getElementById('renameBtn').addEventListener('click', function() {
+    var newUsername = document.getElementById('newUsername').value;
+    if (!newUsername) return;
 
-        document.getElementById('toggleDeleteBtn').addEventListener('click', () => {
-            document.getElementById('deleteAccountForm').classList.toggle('active');
-        });
-
-        document.getElementById('deleteAccountBtn').addEventListener('click', () => {
-            const password = document.getElementById('deletePassword').value;
-            const confirmText = document.getElementById('deleteConfirmText').value;
-
-            if (!password) {
-                showStatus('deleteStatus', 'Please enter your current password.', false);
-                return;
-            }
-
-            if (confirmText !== 'DELETE') {
-                showStatus('deleteStatus', "Please type 'DELETE' to confirm.", false);
-                return;
-            }
-
-            fetch('/delete-account', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password })
-            })
-            .then(res => {
-                if (res.ok) {
-                    alert("Account deleted.");
-                    window.location.href = 'index.html';
-                } else {
-                    return res.text().then(msg => {
-                        showStatus('deleteStatus', msg, false);
-                    });
-                }
-            })
-            .catch(() => showStatus('deleteStatus', 'Error deleting account.', false));
-        });
-
-        function showStatus(elementId, message, success) {
-            const el = document.getElementById(elementId);
-            el.textContent = message;
-            el.className = 'status-msg ' + (success ? 'success' : 'error');
-            setTimeout(() => el.textContent = '', 3000);
+    fetch('/rename-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newUsername: newUsername })
+    })
+    .then(function(res) { return res.text(); })
+    .then(function(msg) {
+        if (msg === 'OK') {
+            showStatus('renameStatus', getLang('Account renamed! Refreshing...', 'Konto umbenannt! Seite wird neu geladen...'), true);
+            setTimeout(function() { location.reload(); }, 1000);
+        } else {
+            showStatus('renameStatus', msg, false);
         }
+    });
+});
+
+document.getElementById('changePassBtn').addEventListener('click', function() {
+    var currentPwd = document.getElementById('currentPassword').value;
+    var newPwd = document.getElementById('newPassword').value;
+    if (!currentPwd || !newPwd) return;
+
+    fetch('/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: currentPwd, newPassword: newPwd })
+    })
+    .then(function(res) { return res.text(); })
+    .then(function(msg) {
+        if (msg === 'OK') {
+            showStatus('passStatus', getLang('Password changed successfully.', 'Passwort erfolgreich geaendert.'), true);
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+        } else {
+            showStatus('passStatus', msg, false);
+        }
+    });
+});
+
+document.getElementById('toggleDeleteBtn').addEventListener('click', function() {
+    document.getElementById('deleteAccountForm').classList.toggle('active');
+});
+
+document.getElementById('deleteAccountBtn').addEventListener('click', function() {
+    var pwd = document.getElementById('deletePassword').value;
+    var confirmVal = document.getElementById('deleteConfirmInput').value;
+
+    if (!pwd) {
+        showStatus('deleteStatus', getLang('Please enter your current password.', 'Bitte gib dein aktuelles Passwort ein.'), false);
+        return;
+    }
+
+    if (confirmVal !== 'DELETE') {
+        showStatus('deleteStatus', getLang("Please type 'DELETE' to confirm.", "Bitte tippe 'LOESCHEN' zur Bestätigung."), false);
+        return;
+    }
+
+    fetch('/delete-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pwd })
+    })
+    .then(function(res) {
+        if (res.ok) {
+            alert(getLang("Account deleted.", "Konto geloescht."));
+            window.location.href = 'index.html';
+        } else {
+            return res.text().then(function(msg) {
+                showStatus('deleteStatus', msg, false);
+            });
+        }
+    })
+    .catch(function() { showStatus('deleteStatus', getLang('Error deleting account.', 'Fehler beim Loeschen des Kontos.'), false); });
+});
+
+function showStatus(elementId, message, success) {
+    var el = document.getElementById(elementId);
+    el.textContent = message;
+    el.className = 'status-msg ' + (success ? 'success' : 'error');
+    setTimeout(function() { el.textContent = ''; }, 3000);
+}
     </script>
 </body>
 </html>

@@ -22,6 +22,9 @@ v3.85
 - Merged settings.html and user_profile_pic.html into one page
 - Added an option to toggle between regular dark mode and OLED dark mode
   - This makes the background pure black (000000) or keeps the regular dark grey (0f0f0f)
+- Full German language support
+  - Change the language from English to German in your profile modal
+  - All pages will be properly translated (report any missing translations in the GitHub issues!)
 
 v3.80
 - Implemented advanced conditional video tagging

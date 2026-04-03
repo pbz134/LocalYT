@@ -847,6 +847,11 @@ function naturalCompare(a, b) {
     return a.displayName.localeCompare(b.displayName);
 }
 
+    // --- Language Helper ---
+    function getLang(en, de) {
+        return localStorage.getItem('language') === 'de' ? de : en;
+    }
+
 // Handle logo clicks
 document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
@@ -925,12 +930,33 @@ function formatRelativeTime(dateStr) {
     const wk  = Math.floor(day / 7);
     const mo  = Math.floor(day / 30);
     const yr  = Math.floor(day / 365);
-    if (sec < 60) return 'just now';
-    if (min < 60) return min + (min === 1 ? ' minute ago' : ' minutes ago');
-    if (hr < 24)  return hr + (hr === 1 ? ' hour ago' : ' hours ago');
-    if (day < 7)  return day + (day === 1 ? ' day ago' : ' days ago');
-    if (wk < 5)   return wk + (wk === 1 ? ' week ago' : ' weeks ago');
-    if (mo < 12)  return mo + (mo === 1 ? ' month ago' : ' months ago');
+
+    // Check language
+    const lang = localStorage.getItem('language');
+    const isDe = lang === 'de';
+
+    if (sec < 60) return isDe ? 'gerade eben' : 'just now';
+    if (min < 60) {
+        if (isDe) return `vor ${min} ${min === 1 ? 'Minute' : 'Minuten'}`;
+        return min + (min === 1 ? ' minute ago' : ' minutes ago');
+    }
+    if (hr < 24) {
+        if (isDe) return `vor ${hr} ${hr === 1 ? 'Stunde' : 'Stunden'}`;
+        return hr + (hr === 1 ? ' hour ago' : ' hours ago');
+    }
+    if (day < 7) {
+        if (isDe) return `vor ${day} ${day === 1 ? 'Tag' : 'Tagen'}`;
+        return day + (day === 1 ? ' day ago' : ' days ago');
+    }
+    if (wk < 5) {
+        if (isDe) return `vor ${wk} ${wk === 1 ? 'Woche' : 'Wochen'}`;
+        return wk + (wk === 1 ? ' week ago' : ' weeks ago');
+    }
+    if (mo < 12) {
+        if (isDe) return `vor ${mo} ${mo === 1 ? 'Monat' : 'Monaten'}`;
+        return mo + (mo === 1 ? ' month ago' : ' months ago');
+    }
+    if (isDe) return `vor ${yr} ${yr === 1 ? 'Jahr' : 'Jahren'}`;
     return yr + (yr === 1 ? ' year ago' : ' years ago');
 }
 
@@ -991,7 +1017,7 @@ function renderSingleComment(comment, isReply, channelPicUrl) {
                 <span class="comment-timestamp">${formatRelativeTime(comment.published_at)}</span>
             </div>
                         <div class="comment-text${isLong ? ' collapsed' : ''}">${processCommentText(comment.text)}</div>
-            ${isLong ? '<div class="comment-toggle-text" data-action="expand">Show more</div>' : ''}
+            ${isLong ? `<div class="comment-toggle-text" data-action="expand">${getLang('Show more', 'Mehr anzeigen')}</div>` : ''}
             <div class="comment-actions">
                 <div class="comment-like-btn"><img src="LocalYT-Rev-Files/like.svg" alt="" style="width:14px;height:14px;filter:invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%);"><span>${comment.likes || 0}</span></div>
             </div>
@@ -1115,10 +1141,10 @@ function bindCommentTextToggles(container) {
             const textEl = this.previousElementSibling;
             if (textEl.classList.contains('collapsed')) {
                 textEl.classList.remove('collapsed');
-                this.textContent = 'Show less';
+                this.textContent = getLang('Show less', 'Weniger anzeigen');
             } else {
                 textEl.classList.add('collapsed');
-                this.textContent = 'Show more';
+                this.textContent = getLang('Show more', 'Mehr anzeigen');
             }
         });
     });
@@ -1136,8 +1162,14 @@ function renderComments(comments, channelPicUrl) {
     container.innerHTML = '';
 
     if (!comments || comments.length === 0) {
-        countEl.textContent = 'Comments';
-        container.innerHTML = '<div class="no-comments">No comments available for this video.</div>';
+        const lang = localStorage.getItem('language');
+        if (lang === 'de') {
+            countEl.textContent = 'Kommentare';
+            container.innerHTML = '<div class="no-comments">Keine Kommentare verfügbar.</div>';
+        } else {
+            countEl.textContent = 'Comments';
+            container.innerHTML = '<div class="no-comments">No comments available for this video.</div>';
+        }
         return;
     }
 
@@ -1252,7 +1284,7 @@ function checkDescriptionCollapse() {
         desc.style.maxHeight = targetHeight + 'px';
         desc.classList.add('collapsed');
         toggle.style.display = 'block';
-        toggle.textContent = 'Show more';
+        toggle.textContent = getLang('Show more', 'Mehr anzeigen');
     } else {
         desc.style.maxHeight = '';
         desc.classList.remove('collapsed');
@@ -1266,12 +1298,12 @@ document.addEventListener('click', function(e) {
         if (desc.classList.contains('collapsed')) {
             desc.classList.remove('collapsed');
             desc.style.maxHeight = desc.scrollHeight + 'px';
-            e.target.textContent = 'Show less';
+            e.target.textContent = getLang('Show less', 'Weniger anzeigen');
         } else {
             desc.classList.add('collapsed');
             const lineHeight = parseFloat(getComputedStyle(desc).lineHeight) || 20;
             desc.style.maxHeight = (lineHeight * 8) + 'px';
-            e.target.textContent = 'Show more';
+            e.target.textContent = getLang('Show more', 'Mehr anzeigen');
         }
     }
 });
@@ -1355,7 +1387,8 @@ document.addEventListener('click', function(e) {
                 fetch(`/subcount/${encodeURIComponent(currentChannel)}`)
                     .then(response => response.text())
                     .then(subCountText => {
-                        subCount.textContent = `${subCountText} subscribers`;
+                        const subsWord = getLang('subscribers', 'Abonnenten');
+                        subCount.textContent = `${subCountText} ${subsWord}`;
                         // Setup wheel click after channel name is definitely set
                         setupChannelNameWheelClick(); 
                     })
@@ -1366,13 +1399,22 @@ document.addEventListener('click', function(e) {
                     });
 
 
-                Promise.all([
-                    fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(response => response.text()),
-                    fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(response => response.text())
-                ])
+            Promise.all([
+                fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(response => response.text()),
+                fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(response => response.text())
+            ])
                 .then(([viewCount, fileDate]) => {
-                    // FIX: Use .trim() on viewCount to remove the invisible newline character
-                    currentVideoDescription.textContent = `${viewCount.trim()} views - Uploaded on ${fileDate.trim()}\n\n`;
+                    // Use language helper for "views" and "Uploaded on"
+                    const viewsText = getLang('views', 'Aufrufe');
+                    const uploadedText = getLang('Uploaded on', 'Hochgeladen am');
+                    
+                    // Format view count: replace commas with dots for German
+                    let formattedViews = viewCount.trim();
+                    if (localStorage.getItem('language') === 'de') {
+                        formattedViews = formattedViews.replace(/,/g, '.');
+                    }
+
+                    currentVideoDescription.textContent = `${formattedViews} ${viewsText} - ${uploadedText} ${fileDate.trim()}\n\n`;
                     
                     // Logic for description filename (from previous fix)
                     const cleanDescName = videoSrc.split('/').pop().replace(/\.(mp4|mkv|avi|mov|webm)$/i, '');
@@ -1904,10 +1946,10 @@ document.addEventListener('click', function(e) {
 
             function updateSubscribeButton() {
                 if (isSubscribed) {
-                    subscribeButton.textContent = 'Subscribed';
+                    subscribeButton.textContent = getLang('Subscribed', 'Abonniert');
                     subscribeButton.classList.add('subscribed');
                 } else {
-                    subscribeButton.textContent = 'Subscribe';
+                    subscribeButton.textContent = getLang('Subscribe', 'Abonnieren');
                     subscribeButton.classList.remove('subscribed');
                 }
             }
@@ -2041,15 +2083,16 @@ document.addEventListener('click', function(e) {
 
             // ===== END OF SAVE TO PLAYLIST BLOCK =====
 
-            // Update save icon based on whether video is in a playlist
-            fetch('/user-playlists')
-                .then(r => r.ok ? r.json() : {})
-                .then(playlists => {
-                    const inPlaylist = Object.values(playlists).some(videos => videos.includes(videoSrc));
-                    document.getElementById('saveIcon').src = inPlaylist ? 'LocalYT-Rev-Files/saved.svg' : 'LocalYT-Rev-Files/save.svg';
-                    document.getElementById('saveContainer').querySelector('span').textContent = inPlaylist ? 'Saved' : 'Save';
-                })
-                .catch(() => {});
+        // Update save icon based on whether video is in a playlist
+        fetch('/user-playlists')
+            .then(r => r.ok ? r.json() : {})
+            .then(playlists => {
+                const inPlaylist = Object.values(playlists).some(videos => videos.includes(videoSrc));
+                document.getElementById('saveIcon').src = inPlaylist ? 'LocalYT-Rev-Files/saved.svg' : 'LocalYT-Rev-Files/save.svg';
+                // Use language-aware text
+                document.getElementById('saveContainer').querySelector('span').textContent = inPlaylist ? getLang('Saved', 'Gespeichert') : getLang('Save', 'Speichern');
+            })
+            .catch(() => {});
 
             if (timestamp) {
                 videoPlayer.currentTime = parseInt(timestamp, 10);
@@ -2103,6 +2146,17 @@ document.addEventListener('click', function(e) {
                 clickedElement.style.color = '#3ea6ff';
             }, 1000);
         }
+
+        // --- Language Check on Load ---
+        // This ensures translations apply AFTER video.html has created all the buttons
+        document.addEventListener('DOMContentLoaded', () => {
+            // Small timeout ensures dynamic content (like sidebar) is rendered
+            setTimeout(() => {
+                if (typeof applyLanguage === 'function') {
+                    applyLanguage();
+                }
+            }, 100);
+        });
     </script>
     <script src="profile-pic.js"></script>
 </body>

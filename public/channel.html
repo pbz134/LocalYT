@@ -98,7 +98,7 @@
         }
         .video-item {
             margin: 10px;
-            background: var(--main-bg-color)
+            background: var(--main-bg-color);
             overflow: hidden;
             width: 300px;
             text-align: center;
@@ -323,7 +323,7 @@
     <header class="top-bar">
         <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
         <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Search">
+            <input type="text" id="searchInput" placeholder="">
             <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
@@ -357,7 +357,7 @@
     <!-- Playlists Tab -->
     <div id="playlistsTab" class="tab-content">
         <div class="playlists-container" id="playlistsContainer">
-            <div class="tab-loading-placeholder">Loading playlists</div>
+            <div class="tab-loading-placeholder" id="playlistsLoadingText">Loading playlists</div>
         </div>
     </div>
 
@@ -365,19 +365,19 @@
     <div id="aboutTab" class="tab-content">
         <div class="about-container">
             <div class="about-description">
-                <h3>Description</h3>
+                <h3 id="aboutDescriptionHeader">Description</h3>
                 <div id="channelDescription" class="description-text">
                     <div class="tab-loading-placeholder">Loading</div>
                 </div>
             </div>
             <div class="about-stats">
-                <h3>Stats</h3>
+                <h3 id="aboutStatsHeader">Stats</h3>
                 <div class="stats-list">
                     <div class="stats-item" id="statsJoined">Joined --</div>
                     <div class="stats-item total-views" id="statsViews">-- views</div>
                     <button class="share-button" id="shareChannelBtn">
                         <img src="LocalYT-Rev-Files/share.svg" alt="Share">
-                        Share
+                        <span id="shareBtnText">Share</span>
                     </button>
                 </div>
             </div>
@@ -387,6 +387,11 @@
     <script>
 // Configuration
 const VIDEOS_PER_PAGE = 20;
+
+// --- Language Helper ---
+function getLang(en, de) {
+    return localStorage.getItem('language') === 'de' ? de : en;
+}
 
 // Parse the channel and tab from the URL
 function parseChannelUrl() {
@@ -469,24 +474,45 @@ document.addEventListener('DOMContentLoaded', () => {
     channelName.textContent = channel;
     document.title = `${channel} - LocalYT`;
 
-    // --- Tab switching (pushes to address bar) ---
-    function switchTab(tabName) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
-        const targetTab = document.querySelector(`.tab[data-tab="${tabName}"]`);
-        const targetContent = document.getElementById(`${tabName}Tab`);
-
-        if (targetTab) targetTab.classList.add('active');
-        if (targetContent) targetContent.classList.add('active');
-
-        const newUrl = buildChannelUrl(channel, tabName);
-        history.pushState({ tab: tabName }, '', newUrl);
-
-        if (!loadedTabs.has(tabName)) {
-            loadTabContent(tabName);
+    // --- UI Translation ---
+    function updateUITranslations() {
+        document.querySelector('.tab[data-tab="playlists"]').textContent = getLang('PLAYLISTS', 'PLAYLISTEN');
+        document.querySelector('.tab[data-tab="about"]').textContent = getLang('ABOUT', 'ÜBER');
+        
+        if (sortNewestFirst) {
+            sortToggle.innerHTML = '<span class="sort-icon">↓</span> ' + getLang('Newest First', 'Neueste zuerst');
+        } else {
+            sortToggle.innerHTML = '<span class="sort-icon">↑</span> ' + getLang('Oldest First', 'Älteste zuerst');
         }
+
+        document.getElementById('aboutDescriptionHeader').textContent = getLang('Description', 'Beschreibung');
+        
+        // Add these two lines here:
+        document.getElementById('aboutStatsHeader').textContent = getLang('Stats', 'Statistiken');
+        document.getElementById('shareBtnText').textContent = getLang('Share', 'Teilen');
+        document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
     }
+    updateUITranslations();
+
+    document.getElementById('playlistsLoadingText').textContent = getLang('Loading playlists', 'Lade Playlisten...');
+        // --- Tab switching (pushes to address bar) ---
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    
+            const targetTab = document.querySelector(`.tab[data-tab="${tabName}"]`);
+            const targetContent = document.getElementById(`${tabName}Tab`);
+    
+            if (targetTab) targetTab.classList.add('active');
+            if (targetContent) targetContent.classList.add('active');
+    
+            const newUrl = buildChannelUrl(channel, tabName);
+            history.pushState({ tab: tabName }, '', newUrl);
+    
+            if (!loadedTabs.has(tabName)) {
+                loadTabContent(tabName);
+            }
+        }
 
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => {
@@ -553,9 +579,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function resetAndRender() {
         if (sortNewestFirst) {
-            sortToggle.innerHTML = '<span class="sort-icon">↓</span> Newest First';
+            sortToggle.innerHTML = '<span class="sort-icon">↓</span> ' + getLang('Newest First', 'Neueste zuerst');
         } else {
-            sortToggle.innerHTML = '<span class="sort-icon">↑</span> Oldest First';
+            sortToggle.innerHTML = '<span class="sort-icon">↑</span> ' + getLang('Oldest First', 'Älteste zuerst');
         }
 
         renderedVideoCount = 0;
@@ -595,7 +621,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!isNaN(viewCount) && viewCount !== '0') {
                 formattedViewCount = parseInt(viewCount).toLocaleString();
             }
-            descriptionDiv.textContent = `${formattedViewCount} views • Uploaded on ${fileDate}`;
+
+            // Language formatting
+            const lang = localStorage.getItem('language');
+            let viewsText = getLang('views', 'Aufrufe');
+            let uploadedText = getLang('Uploaded on', 'Hochgeladen am');
+
+            // Swap comma to dot for German
+            if (lang === 'de') {
+                formattedViewCount = formattedViewCount.replace(/,/g, '.');
+            }
+
+            descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${fileDate}`;
         })
         .catch(() => {
             descriptionDiv.textContent = 'Views unavailable';
@@ -785,22 +822,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     pickPreviewVideo(videos).then(previewVideo => {
                         const videoPathWithoutExt = stripExtension(previewVideo.path);
                         const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
+                        const videosText = getLang('videos', 'Videos');
 
                         playlistElement.innerHTML = `
                             <div class="playlist-thumbnail" style="background-image: url('${thumbnailSrc}')">
-                                <div class="playlist-overlay">${videos.length} videos</div>
+                                <div class="playlist-overlay">${videos.length} ${videosText}</div>
                             </div>
                             <div class="playlist-title">${playlist.name}</div>
-                            <div class="playlist-video-count">${playlist.videoCount} videos</div>
+                            <div class="playlist-video-count">${playlist.videoCount} ${videosText}</div>
                         `;
                     });
                 } else {
+                    const videosText = getLang('videos', 'Videos');
                     playlistElement.innerHTML = `
                         <div class="playlist-thumbnail" style="background-color: #333">
-                            <div class="playlist-overlay">0 videos</div>
+                            <div class="playlist-overlay">0 ${videosText}</div>
                         </div>
                         <div class="playlist-title">${playlist.name}</div>
-                        <div class="playlist-video-count">0 videos</div>
+                        <div class="playlist-video-count">0 ${videosText}</div>
                     `;
                 }
 
@@ -833,18 +872,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.channel_creation_date) {
                     const date = parseEuropeanDate(data.channel_creation_date);
                     if (date.getTime() > 0) {
-                        document.getElementById('statsJoined').textContent = `Joined ${formatJoinDate(date)}`;
+                        document.getElementById('statsJoined').textContent = getLang('Joined', 'Beigetreten') + ' ' + formatJoinDate(date);
                     }
                 }
                 if (data.total_views_raw) {
-                    document.getElementById('statsViews').textContent = `${parseInt(data.total_views_raw).toLocaleString('en-US')} views`;
+                    let views = parseInt(data.total_views_raw).toLocaleString('en-US');
+                    if (localStorage.getItem('language') === 'de') views = views.replace(/,/g, '.');
+                    document.getElementById('statsViews').textContent = `${views} ${getLang('views', 'Aufrufe')}`;
                 } else if (data.total_views) {
-                    document.getElementById('statsViews').textContent = `${data.total_views} views`;
+                    document.getElementById('statsViews').textContent = `${data.total_views} ${getLang('views', 'Aufrufe')}`;
                 }
             })
             .catch(() => {
-                document.getElementById('statsJoined').textContent = 'Joined --';
-                document.getElementById('statsViews').textContent = '0 views';
+                document.getElementById('statsJoined').textContent = getLang('Joined', 'Beigetreten') + ' --';
+                document.getElementById('statsViews').textContent = `0 ${getLang('views', 'Aufrufe')}`;
             });
     }
 
@@ -855,7 +896,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function formatJoinDate(date) {
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthsEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthsDe = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+        
+        const lang = localStorage.getItem('language');
+        const months = lang === 'de' ? monthsDe : monthsEn;
+
         const day = date.getDate();
         const month = months[date.getMonth()];
         const year = date.getFullYear();
@@ -870,7 +916,7 @@ document.addEventListener('DOMContentLoaded', () => {
             navigator.clipboard.writeText(channelUrl).then(() => {
                 const btn = document.getElementById('shareChannelBtn');
                 const originalText = btn.innerHTML;
-                btn.innerHTML = '<img src="LocalYT-Rev-Files/share.svg" alt="Share"> Copied!';
+                btn.innerHTML = '<img src="LocalYT-Rev-Files/share.svg" alt="Share"> ' + getLang('Copied!', 'Kopiert!');
                 setTimeout(() => { btn.innerHTML = originalText; }, 2000);
             }).catch(() => {
                 alert(`Channel URL: ${channelUrl}`);
@@ -889,7 +935,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const videos = data.videos || [];
             const channelVideos = videos.filter(video => video.path.startsWith(`${channel}/`));
 
-            videosContainer.innerHTML = '<div class="loading-spinner visible">Loading videos...</div>';
+            videosContainer.innerHTML = '<div class="loading-spinner visible">' + getLang('Loading videos...', 'Lade Videos...') + '</div>';
 
             const videoPromises = channelVideos.map(video => {
                 const videoPathWithoutExt = stripExtension(video.path);
@@ -922,10 +968,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetch(`/subcount/${encodeURIComponent(channel)}`)
                     .then(response => response.ok ? response.text() : '0')
                     .then(subCount => {
-                        channelName.innerHTML = `${channel}<span class="video-count">${subCount} subscribers • ${videoCount} videos</span>`;
+                        channelName.innerHTML = `${channel}<span class="video-count">${subCount} ${getLang('subscribers', 'Abonnenten')} • ${videoCount} ${getLang('videos', 'Videos')}</span>`;
                     })
                     .catch(() => {
-                        channelName.innerHTML = `${channel}<span class="video-count">${videoCount} videos</span>`;
+                        channelName.innerHTML = `${channel}<span class="video-count">${videoCount} ${getLang('videos', 'Videos')}</span>`;
                     });
 
                 setupIntersectionObserver();

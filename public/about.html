@@ -102,7 +102,7 @@
     <header class="top-bar">
         <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
         <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Search">
+            <input type="text" id="searchInput" placeholder="">
             <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
@@ -110,49 +110,54 @@
 
     <div class="about-page">
         <div class="about-header">
-            <h1>About LocalYT</h1>
-            <p>LocalYT is a local video library inspired by pre-2020 video platforms.</p>
+            <h1 id="aboutTitle">About LocalYT</h1>
+            <p id="aboutSubtitle">LocalYT is a local video library inspired by pre-2020 video platforms.</p>
         </div>
 
         <div class="about-section">
-            <h2>Overview</h2>
-            <p>It allows you to watch locally-saved videos, integrate metadata into them, and keep track of your watch history.</p>
-        </div>
-
-        <hr class="about-divider">
-
-        <div class="about-section">
-            <h2>Algorithm</h2>
-            <p>The algorithm is made possible through video tags, which are generated using LostRuins' koboldcpp API and Alibaba's Qwen2.5 1.5B Instruct model.</p>
+            <h2 id="overviewHeading">Overview</h2>
+            <p id="overviewText">It allows you to watch locally-saved videos, integrate metadata into them, and keep track of your watch history.</p>
         </div>
 
         <hr class="about-divider">
 
         <div class="about-section">
-            <h2>Credits</h2>
+            <h2 id="algorithmHeading">Algorithm</h2>
+            <p id="algorithmText">The algorithm is made possible through video tags, which are generated using LostRuins' koboldcpp API and Alibaba's Qwen2.5 1.5B Instruct model.</p>
+        </div>
+
+        <hr class="about-divider">
+
+        <div class="about-section">
+            <h2 id="creditsHeading">Credits</h2>
             <div class="credits-grid">
-                <span class="credit-label">Coding</span>
-                <span class="credit-value">DeepSeek-AI's DeepSeek and Z.AI's GLM model series</span>
+                <span class="credit-label" id="creditCodingLabel">Coding</span>
+                <span class="credit-value" id="creditCodingValue">DeepSeek-AI's DeepSeek and Z.AI's GLM model series</span>
 
-                <span class="credit-label">Logo</span>
+                <span class="credit-label" id="creditLogoLabel">Logo</span>
                 <span class="credit-value">mitchib1440</span>
 
-                <span class="credit-label">SVG Icons</span>
+                <span class="credit-label" id="creditIconsLabel">SVG Icons</span>
                 <span class="credit-value">Google</span>
 
-                <span class="credit-label">Metadata</span>
-                <span class="credit-value">Python and Anaconda venvs</span>
+                <span class="credit-label" id="creditMetadataLabel">Metadata</span>
+                <span class="credit-value" id="creditMetadataValue">Python and Anaconda venvs</span>
 
-                <span class="credit-label">Runtime</span>
+                <span class="credit-label" id="creditRuntimeLabel">Runtime</span>
                 <span class="credit-value">Node.js</span>
 
-                <span class="credit-label">Created by</span>
+                <span class="credit-label" id="creditCreatedByLabel">Created by</span>
                 <span class="credit-value">pbz134</span>
             </div>
         </div>
     </div>
 
     <script>
+// --- Language Helper ---
+function getLang(en, de) {
+    return localStorage.getItem('language') === 'de' ? de : en;
+}
+
 // Handle logo clicks
 document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
@@ -179,60 +184,79 @@ document.addEventListener('DOMContentLoaded', () => {
         mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
         mainLogo.style.cursor = 'pointer';
     }
-});
-        const searchInput = document.getElementById('searchInput');
-        searchInput.addEventListener('input', () => {
-            const query = searchInput.value.toLowerCase();
-            fetch('/videos')
-                .then(response => response.json())
-                .then(videos => {
-                    const suggestions = videos
-                        .filter(video => video.displayName.toLowerCase().includes(query))
-                        .map(video => ({
-                            title: video.displayName,
-                            fullPath: video.path
-                        }));
 
-                    const suggestionsContainer = document.getElementById('searchSuggestions');
-                    suggestionsContainer.innerHTML = '';
-                    suggestions.forEach(suggestion => {
-                        const suggestionElement = document.createElement('div');
-                        suggestionElement.className = 'suggestion-item';
-                        suggestionElement.textContent = suggestion.title;
-                        suggestionElement.onclick = () => {
-                            window.location.href = `video.html?src=${encodeURIComponent(suggestion.fullPath)}`;
-                        };
-                        suggestionsContainer.appendChild(suggestionElement);
+    // --- UI Translation ---
+    document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
+    document.getElementById('aboutTitle').textContent = getLang('About LocalYT', 'Über LocalYT');
+    document.getElementById('aboutSubtitle').textContent = getLang('LocalYT is a local video library inspired by pre-2020 video platforms.', 'LocalYT ist eine lokale Videomediathek, die von Video-Plattformen vor 2020 inspiriert wurde.');
+    document.getElementById('overviewHeading').textContent = getLang('Overview', 'Übersicht');
+    document.getElementById('overviewText').textContent = getLang('It allows you to watch locally-saved videos, integrate metadata into them, and keep track of your watch history.', 'Es ermöglicht das Abspielen von lokal gespeicherten Videos, das Integrieren von Metadaten und das Aufbauen eines Wiedergabeverlaufs.');
+    document.getElementById('algorithmHeading').textContent = getLang('Algorithm', 'Algorithmus');
+    document.getElementById('algorithmText').textContent = getLang("The algorithm is made possible through video tags, which are generated using LostRuins' koboldcpp API and Alibaba's Qwen2.5 1.5B Instruct model.", "Der Algorithmus wird durch Video-Tags ermöglicht, die mit LostRuins' koboldcpp API und Alibabas Qwen2.5 1.5B Instruct-Modell generiert werden.");
+    document.getElementById('creditsHeading').textContent = getLang('Credits', 'Credits');
+    document.getElementById('creditCodingLabel').textContent = getLang('Coding', 'Programmierung');
+    document.getElementById('creditLogoLabel').textContent = getLang('Logo', 'Logo');
+    document.getElementById('creditIconsLabel').textContent = getLang('SVG Icons', 'SVG-Symbole');
+    document.getElementById('creditMetadataLabel').textContent = getLang('Metadata', 'Metadaten');
+    document.getElementById('creditCodingValue').textContent = getLang("DeepSeek-AI's DeepSeek and Z.AI's GLM model series", "DeepSeek-AIs DeepSeek und Z.AIs GLM-Modelle");
+    document.getElementById('creditMetadataValue').textContent = getLang('Python and Anaconda venvs', 'Python und Anaconda venvs');
+    document.getElementById('creditRuntimeLabel').textContent = getLang('Runtime', 'Laufzeitumgebung');
+    document.getElementById('creditCreatedByLabel').textContent = getLang('Created by', 'Erstellt von');
 
-                        suggestionElement.addEventListener('contextmenu', (event) => {
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.toLowerCase();
+        fetch('/videos')
+            .then(response => response.json())
+            .then(videos => {
+                const suggestions = videos
+                    .filter(video => video.displayName.toLowerCase().includes(query))
+                    .map(video => ({
+                        title: video.displayName,
+                        fullPath: video.path
+                    }));
+
+                const suggestionsContainer = document.getElementById('searchSuggestions');
+                suggestionsContainer.innerHTML = '';
+                suggestions.forEach(suggestion => {
+                    const suggestionElement = document.createElement('div');
+                    suggestionElement.className = 'suggestion-item';
+                    suggestionElement.textContent = suggestion.title;
+                    suggestionElement.onclick = () => {
+                        window.location.href = `video.html?src=${encodeURIComponent(suggestion.fullPath)}`;
+                    };
+                    suggestionsContainer.appendChild(suggestionElement);
+
+                    suggestionElement.addEventListener('contextmenu', (event) => {
+                        event.preventDefault();
+                        window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
+                    });
+
+                    suggestionElement.addEventListener('mouseup', (event) => {
+                        if (event.button === 1) {
                             event.preventDefault();
                             window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
-                        });
-
-                        suggestionElement.addEventListener('mouseup', (event) => {
-                            if (event.button === 1) {
-                                event.preventDefault();
-                                window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
-                            }
-                        });
+                        }
                     });
                 });
-        });
+            });
+    });
 
-        searchInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
-            }
-        });
+    searchInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
+        }
+    });
 
-        document.getElementById('searchIcon').addEventListener('click', () => {
-            const query = searchInput.value.trim();
-            if (query) {
-                window.location.href = `search.html?q=${encodeURIComponent(query)}`;
-            } else {
-                searchInput.focus();
-            }
-        });
+    document.getElementById('searchIcon').addEventListener('click', () => {
+        const query = searchInput.value.trim();
+        if (query) {
+            window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+        } else {
+            searchInput.focus();
+        }
+    });
+});
     </script>
     <script src="profile-pic.js"></script>
 </body>

@@ -297,7 +297,7 @@
         <button class="openbtn" onclick="toggleNav()">☰</button>
         <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
         <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Search">
+            <input type="text" id="searchInput" placeholder="">
             <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
@@ -306,11 +306,11 @@
 
     <div id="mySidebar" class="sidebar">
         <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
-        <a href="watch_history.html">Watch History</a>
-        <a href="liked_videos.html">Liked Videos</a>
-        <a href="subscribed_channels.html">Subscriptions</a>
-        <a href="settings.html">Settings</a>
-        <a href="about.html">About</a>
+        <a href="watch_history.html" id="sidebarWatchHistory">Watch History</a>
+        <a href="liked_videos.html" id="sidebarLikedVideos">Liked Videos</a>
+        <a href="subscribed_channels.html" id="sidebarSubscriptions">Subscriptions</a>
+        <a href="user_playlists.html" id="sidebarPlaylists">Playlists</a>
+        <a href="about.html" id="sidebarAbout">About</a>
     </div>
 
     <div id="main">
@@ -327,6 +327,12 @@
 
     <script>
         let selectedChannel = null;
+
+
+        // --- Language Helper ---
+        function getLang(en, de) {
+            return localStorage.getItem('language') === 'de' ? de : en;
+        }
 
         // --- Sidebar ---
         function toggleNav() {
@@ -394,7 +400,15 @@
                 mainLogo.title = "Go to homepage";
                 mainLogo.style.cursor = 'pointer';
             }
-        });
+
+        // --- UI Translation ---
+        document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
+document.getElementById('sidebarWatchHistory').textContent = getLang('Watch History', 'Wiedergabeverlauf');
+document.getElementById('sidebarLikedVideos').textContent = getLang('Liked Videos', 'Videos, die ich mag');
+document.getElementById('sidebarSubscriptions').textContent = getLang('Subscriptions', 'Abonnements');
+document.getElementById('sidebarPlaylists').textContent = getLang('Playlists', 'Playlisten');
+document.getElementById('sidebarAbout').textContent = getLang('About', 'Über');
+    });
 
         // --- Search ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -600,7 +614,7 @@
                         <div class="video-details">
                             <div class="video-title">${videoTitle}</div>
                             <div class="channel-name">${channel}</div>
-                            <div class="video-description">${video.viewCount} views &bull; ${video.fileDate}</div>
+                            <div class="video-description">${video.viewCount} ${getLang('views', 'Aufrufe')} &bull; ${video.fileDate}</div>
                         </div>
                     </div>
                 `;

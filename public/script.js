@@ -56,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     /* --- End search icon --- */
 
+    document.getElementById('searchInput').placeholder = getLang('Search', 'Suche');
     document.getElementById('searchInput').addEventListener('input', (event) => {
         const query = event.target.value.toLowerCase();
         const videos = document.querySelectorAll('.video-item');
