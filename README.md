@@ -89,4 +89,4 @@ What if I only have the video files and no metadata?
 ## TO DO
 - Fix liked_videos.html video info padding
 - Fix search.html video title y positioning for titles longer than one line (video info pushes title up?)
-- Work on the user modal placeholders (Whitemode, German language, Documentation)
+- Work on the documentation in the user modal
