@@ -1165,7 +1165,7 @@ function renderComments(comments, channelPicUrl) {
         const lang = localStorage.getItem('language');
         if (lang === 'de') {
             countEl.textContent = 'Kommentare';
-            container.innerHTML = '<div class="no-comments">Keine Kommentare verfügbar.</div>';
+            container.innerHTML = '<div class="no-comments">Keine Kommentare für dieses Video vorhanden.</div>';
         } else {
             countEl.textContent = 'Comments';
             container.innerHTML = '<div class="no-comments">No comments available for this video.</div>';
@@ -1428,7 +1428,7 @@ document.addEventListener('click', function(e) {
                 .then(description => {
                     if (description === null) {
                         currentVideoDescription.innerHTML = currentVideoDescription.textContent + 
-                            '<span class="no-description">No description available for this video.</span>';
+                            '<span class="no-description">' + getLang('No description available for this video.', 'Diesem Video wurde keine Beschreibung hinzugefügt.') + '</span>'
                     } else {
                         const descriptionWithLinks = detectAndStyleLinks(description);
                         currentVideoDescription.innerHTML = currentVideoDescription.textContent + descriptionWithLinks;
