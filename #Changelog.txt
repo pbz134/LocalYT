@@ -39,6 +39,7 @@ v3.90
 - Fixed the div element on the search bar that made one of its sides thicker
 - Optimized code for search suggestions (huge speed increase)
 - The playlist queue on video.html now auto-focuses on the current video inside the list
+- Playlist video links are now shortened when copying them with the modal
 
 v3.80
 - Implemented advanced conditional video tagging

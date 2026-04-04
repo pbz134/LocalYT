@@ -8,6 +8,7 @@ const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 const rateLimit = require('express-rate-limit');
 const multer = require('multer');
+const sharp = require('sharp');
 const upload = multer({ dest: path.join(__dirname, 'temp-uploads') });
 
 const app = express();
@@ -183,6 +184,8 @@ app.use('/filenames', express.static(path.join(__dirname, 'filenames')));
 app.use('/videolengths', express.static(path.join(__dirname, 'videolengths')));
 app.use('/channelpic', express.static(path.join(__dirname, 'channelpic')));
 app.use('/channelbanner', express.static(path.join(__dirname, 'channelbanner')));
+app.use('/channeldesc', express.static(path.join(__dirname, 'channeldesc')));
+app.use('/channelstats', express.static(path.join(__dirname, 'channelstats')));
 app.use('/videostats', express.static(path.join(__dirname, 'videostats')));
 app.use('/descriptions', express.static(path.join(__dirname, 'descriptions')));
 app.use('/comments', express.static(path.join(__dirname, 'comments')));
@@ -277,19 +280,87 @@ app.get('/video.html', (req, res) => {
 });
 
 // --- SHORT LINK REDIRECT ---
-// Must be before generic express.static so it catches /v/:code first
 app.get('/v/:code', (req, res) => {
     const code = req.params.code;
     const videoPath = shortCodeToVideoMap.get(code);
+    
     if (!videoPath) {
         return res.status(404).send('Short link not found');
     }
+
     let redirectUrl = `/video.html?src=${encodeURIComponent(videoPath)}`;
-    // Preserve optional query parameters (timestamp, playlist)
+    
+    // Preserve timestamp
     if (req.query.t) redirectUrl += `&t=${encodeURIComponent(req.query.t)}`;
-    if (req.query.playlist) redirectUrl += `&playlist=${encodeURIComponent(req.query.playlist)}`;
+
+    // Handle Playlist Short Code (?pl=...)
+    if (req.query.pl) {
+        const plCode = req.query.pl;
+        const playlistName = shortCodeToPlaylistMap.get(plCode);
+        
+        if (playlistName) {
+            // Found the real name, append it
+            redirectUrl += `&playlist=${encodeURIComponent(playlistName)}`;
+        } else {
+            // Fallback: If code not found, pass raw value (in case it's a manual test)
+            redirectUrl += `&playlist=${encodeURIComponent(plCode)}`;
+        }
+    }
+    
     res.redirect(redirectUrl);
 });
+
+// --- PLAYLIST SHORT LINK SYSTEM (DEFINITIONS) ---
+let playlistShortMap = new Map();       // playlist name -> short code
+let shortCodeToPlaylistMap = new Map(); // short code -> playlist name
+const PLAYLIST_SHORT_FILE = path.join(__dirname, 'playlist_shortlinks.json');
+
+function generatePlaylistShortCode() {
+    if (!SHORT_CODE_CHARS) return null; 
+    let code;
+    let attempts = 0;
+    do {
+        code = '';
+        for (let i = 0; i < 7; i++) {
+            code += SHORT_CODE_CHARS.charAt(Math.floor(Math.random() * SHORT_CODE_CHARS.length));
+        }
+        attempts++;
+        if (attempts > 100) break; 
+    } while (shortCodeToPlaylistMap.has(code) || shortCodeToVideoMap.has(code)); 
+    return code;
+}
+
+function getOrCreatePlaylistShortCode(playlistName) {
+    if (!playlistName || typeof playlistName !== 'string') return null;
+    
+    if (playlistShortMap.has(playlistName)) {
+        return playlistShortMap.get(playlistName);
+    }
+
+    const code = generatePlaylistShortCode();
+    if (!code) return null;
+
+    playlistShortMap.set(playlistName, code);
+    shortCodeToPlaylistMap.set(code, playlistName);
+    
+    // Auto-save when new ones are created
+    savePlaylistLinksToFile();
+    
+    return code;
+}
+
+function savePlaylistLinksToFile() {
+    const obj = {};
+    playlistShortMap.forEach((val, key) => { obj[key] = val; });
+    try {
+        fs.writeFileSync(PLAYLIST_SHORT_FILE, JSON.stringify(obj, null, 2));
+    } catch (err) {
+        console.error('Error saving playlist links:', err);
+    }
+}
+
+// NOTE: The initialization function is called at the bottom of the file 
+// to ensure videoArray is loaded first.
 
 // Generic public static middleware (loaded after specific routes)
 app.use(express.static(path.join(__dirname, 'public')));
@@ -570,6 +641,60 @@ initializeVideoCache();
 initializeShortLinks();
 initializeRecommendationIndex();
 
+// --- PLAYLIST SHORT LINK SYSTEM (INITIALIZATION) ---
+function initializePlaylistShortLinks() {
+    // 1. Load existing links from file
+    if (fs.existsSync(PLAYLIST_SHORT_FILE)) {
+        try {
+            const data = fs.readFileSync(PLAYLIST_SHORT_FILE, 'utf8');
+            const links = JSON.parse(data);
+            for (const [name, code] of Object.entries(links)) {
+                playlistShortMap.set(name, code);
+                shortCodeToPlaylistMap.set(code, name);
+            }
+            console.log(`Loaded ${playlistShortMap.size} playlist short links from file.`);
+        } catch (err) {
+            console.error('Error loading playlist links:', err);
+        }
+    }
+
+    // 2. Scan Video Cache and Generate Missing Links
+    let newCodesGenerated = 0;
+    const playlistsFound = new Set();
+
+    // videoArray is now defined because this runs after initializeVideoCache()
+    videoArray.forEach(video => {
+        const parts = video.path.split('/');
+        if (parts.length > 2) {
+            const playlistName = parts.slice(1, -1).join('/'); 
+            if (playlistName) {
+                playlistsFound.add(playlistName);
+            }
+        }
+    });
+
+    playlistsFound.forEach(playlistName => {
+        if (!playlistShortMap.has(playlistName)) {
+            const code = generatePlaylistShortCode();
+            if (code) {
+                playlistShortMap.set(playlistName, code);
+                shortCodeToPlaylistMap.set(code, playlistName);
+                newCodesGenerated++;
+            }
+        }
+    });
+
+    if (newCodesGenerated > 0) {
+        savePlaylistLinksToFile();
+        console.log(`Generated ${newCodesGenerated} new playlist short links. Total: ${playlistShortMap.size}`);
+    } else {
+        console.log(`Playlist short link index up to date. Total: ${playlistShortMap.size}`);
+    }
+}
+
+// Run playlist shortlink initialization
+initializePlaylistShortLinks();
+
 function getVideoDetails(videoSlice) {
     return videoSlice.map(video => {
         const viewCountPath = path.join(__dirname, 'viewcounts', `${video.basePath}.txt`);
@@ -822,12 +947,11 @@ app.get('/user-profile-pic', (req, res) => {
     }
 });
 
-// Upload profile picture
-app.post('/user-profile-pic', upload.single('profilePic'), (req, res) => {
+// Upload profile picture (with cropping and resizing)
+app.post('/user-profile-pic', upload.single('profilePic'), async (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('Not logged in');
 
-    // When using upload.single(), the file is available at req.file, not req.files
     if (!req.file) {
         return res.status(400).send('No file uploaded');
     }
@@ -836,24 +960,63 @@ app.post('/user-profile-pic', upload.single('profilePic'), (req, res) => {
     const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
 
     if (!allowedMimes.includes(uploadedFile.mimetype)) {
+        // Clean up temp file
+        fs.unlink(uploadedFile.path, () => {});
         return res.status(400).send('Only JPEG, PNG, and WebP images are allowed');
     }
 
     // Limit to 5MB
     if (uploadedFile.size > 5 * 1024 * 1024) {
+        fs.unlink(uploadedFile.path, () => {});
         return res.status(400).send('Image must be under 5MB');
     }
 
     const targetPath = path.join(userProfileDir, `${userId}.jpg`);
-    
-    // multer already saved the file to temp-uploads, we need to move it
-    fs.rename(uploadedFile.path, targetPath, (err) => {
-        if (err) {
-            console.error('Error saving profile picture:', err);
-            return res.status(500).send('Error saving profile picture');
+    const tempPath = uploadedFile.path;
+
+    try {
+        // Extract crop data from body
+        const { x, y, width, height } = req.body;
+        
+        let sharpInstance = sharp(tempPath);
+
+        // If cropping data is provided, extract that region
+        if (x && y && width && height) {
+            const cropX = parseInt(x);
+            const cropY = parseInt(y);
+            const cropW = parseInt(width);
+            const cropH = parseInt(height);
+
+            // Ensure valid dimensions
+            if (cropW > 0 && cropH > 0) {
+                sharpInstance = sharpInstance.extract({
+                    left: cropX,
+                    top: cropY,
+                    width: cropW,
+                    height: cropH
+                });
+            }
         }
+
+        // Resize to 500x500 and convert to JPEG
+        await sharpInstance
+            .resize(500, 500)
+            .jpeg({ quality: 90 })
+            .toFile(targetPath);
+
+        // Clean up the temp file
+        fs.unlink(tempPath, (err) => {
+            if (err) console.error('Error deleting temp file:', err);
+        });
+
         res.sendStatus(200);
-    });
+
+    } catch (err) {
+        console.error('Error processing image:', err);
+        // Clean up temp file on error
+        fs.unlink(tempPath, () => {});
+        res.status(500).send('Error processing image');
+    }
 });
 
 // Delete profile picture (revert to placeholder)
@@ -1918,6 +2081,18 @@ app.get('/playlist-videos/:channel/:playlist*', (req, res) => {
     res.json(videoFiles);
 });
 
+app.get('/channel-description/:channel', (req, res) => {
+    const channel = req.params.channel;
+    const filePath = path.join(__dirname, 'channeldesc', `${channel}.txt`);
+    
+    fs.readFile(filePath, 'utf8', (err, data) => {
+        if (err) {
+            return res.send(''); // Return empty string if no description exists
+        }
+        res.send(data);
+    });
+});
+
 app.get('/user-history', (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('User not authenticated');
@@ -1955,10 +2130,26 @@ app.get('/search-index', (req, res) => {
 // --- SHORT LINK API ---
 app.get('/api/shortlink', (req, res) => {
     const video = req.query.video;
+    const playlist = req.query.playlist; // Capture explicitly
+
     if (!video) return res.status(400).json({ error: 'Missing video parameter' });
-    const code = shortLinksMap.get(video);
-    if (!code) return res.status(404).json({ error: 'Short link not found for this video' });
-    res.json({ shortPath: `/v/${code}` });
+
+    // 1. Get Video Short Code
+    const videoCode = shortLinksMap.get(video);
+    if (!videoCode) return res.status(404).json({ error: 'Video short link not found' });
+
+    let shortPath = `/v/${videoCode}`;
+
+    // 2. Get Playlist Short Code (if provided and valid)
+    // We check specifically for truthy values to avoid creating codes for empty strings
+    if (playlist && playlist.trim() !== '') {
+        const plCode = getOrCreatePlaylistShortCode(playlist);
+        if (plCode) {
+            shortPath += `?pl=${plCode}`;
+        }
+    }
+
+    res.json({ shortPath: shortPath });
 });
 
 app.post('/add-to-history', (req, res) => {

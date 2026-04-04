@@ -1861,13 +1861,27 @@ document.addEventListener('click', function(e) {
                 shareModal.style.display = 'flex';
             });
 
+            // Helper to build the Short Link API URL
+            function getShortLinkApiUrl() {
+                let apiUrl = `/api/shortlink?video=${encodeURIComponent(videoSrc)}`;
+                
+                if (playlistName) { 
+                    apiUrl += `&playlist=${encodeURIComponent(playlistName)}`;
+                }
+                return apiUrl;
+            }
+
             copyWithTimestamp.addEventListener('click', async () => {
                 const currentTime = Math.floor(videoPlayer.currentTime);
                 try {
-                    const response = await fetch(`/api/shortlink?video=${encodeURIComponent(videoSrc)}`);
+                    const response = await fetch(getShortLinkApiUrl()); 
                     if (response.ok) {
                         const data = await response.json();
-                        copyToClipboard(`${window.location.origin}${data.shortPath}?t=${currentTime}`);
+                        // FIX: Use '&' if shortPath already has '?'
+                        const separator = data.shortPath.includes('?') ? '&' : '?';
+                        const finalUrl = new URL(window.location.origin + data.shortPath);
+                        finalUrl.searchParams.set('t', currentTime);
+                        copyToClipboard(finalUrl.toString());
                     } else {
                         copyToClipboard(`${window.location.origin}/video.html?src=${encodeURIComponent(videoSrc)}&t=${currentTime}`);
                     }
@@ -1879,7 +1893,7 @@ document.addEventListener('click', function(e) {
 
             copyWithoutTimestamp.addEventListener('click', async () => {
                 try {
-                    const response = await fetch(`/api/shortlink?video=${encodeURIComponent(videoSrc)}`);
+                    const response = await fetch(getShortLinkApiUrl());
                     if (response.ok) {
                         const data = await response.json();
                         copyToClipboard(`${window.location.origin}${data.shortPath}`);
