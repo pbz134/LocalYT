@@ -1543,7 +1543,7 @@ document.addEventListener('click', function(e) {
                 
                 const playlistHeader = document.createElement('div');
                 playlistHeader.className = 'playlist-section-header';
-                playlistHeader.innerHTML = `${decodeURIComponent(playlistName)} <a href="playlist.html?channel=${encodeURIComponent(currentChannel)}&playlist=${playlistName}">${getLang('View Full Playlist', 'Playlist ansehen')}</a>`
+                playlistHeader.innerHTML = `${decodeURIComponent(playlistName)} <a href="playlist.html?channel=${encodeURIComponent(currentChannel)}&playlist=${playlistName}">${getLang('View Full Playlist', 'Komplette Playlist ansehen')}</a>`
                 playlistSection.appendChild(playlistHeader);
 
                 // Container for the videos (will be scrollable if > 8 videos)
