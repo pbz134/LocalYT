@@ -153,6 +153,73 @@ def update_json_video_paths(json_file, old_name, new_name):
     except Exception as e:
         print(f"  [-] Error updating {json_file}: {e}")
 
+def update_json_playlist_shortlinks(json_file, old_name, new_name):
+    """
+    Update/verify playlist names in playlist_shortlinks.json when channel is renamed.
+    
+    Since playlist_shortlinks.json stores playlist names WITHOUT the channel prefix
+    (e.g., "Super Mario Galaxy 2" instead of "Channel/Super Mario Galaxy 2"),
+    we scan the videos directory to find which playlists belong to this channel,
+    then verify those entries are still valid.
+    """
+    try:
+        j_path = os.path.join(BASE_DIR, json_file)
+        if not os.path.exists(j_path):
+            return
+        
+        with open(j_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        modified = False
+        
+        # Get all playlists that exist under the NEW channel's folder structure
+        # (We check NEW name because folders were already renamed before this function is called)
+        channel_videos_dir = os.path.join(BASE_DIR, 'videos', new_name)
+        playlists_in_channel = set()
+        
+        if os.path.exists(channel_videos_dir):
+            for item in os.listdir(channel_videos_dir):
+                item_path = os.path.join(channel_videos_dir, item)
+                # Check if it's a directory (could be a playlist folder)
+                if os.path.isdir(item_path):
+                    # Verify it contains video files (it's actually a playlist, not just a folder)
+                    has_videos = any(
+                        f.lower().endswith(MEDIA_EXTENSIONS) 
+                        for f in os.listdir(item_path) 
+                        if os.path.isfile(os.path.join(item_path, f))
+                    )
+                    if has_videos:
+                        playlists_in_channel.add(item)
+                    
+                    # Also check for nested playlists: Channel/Playlist/Subplaylist/
+                    for subitem in os.listdir(item_path):
+                        subitem_path = os.path.join(item_path, subitem)
+                        if os.path.isdir(subitem_path):
+                            has_sub_videos = any(
+                                f.lower().endswith(MEDIA_EXTENSIONS) 
+                                for f in os.listdir(subitem_path) 
+                                if os.path.isfile(os.path.join(subitem_path, f))
+                            )
+                            if has_sub_videos:
+                                # Store as "Playlist/Subplaylist" for nested ones
+                                playlists_in_channel.add(f"{item}/{subitem}")
+        
+        # Verify matching entries exist in playlist_shortlinks.json
+        verified_count = 0
+        for playlist_name, code in data.items():
+            if playlist_name in playlists_in_channel:
+                print(f"  [+] Verified playlist short link: '{playlist_name}' -> {code}")
+                verified_count += 1
+                modified = True
+        
+        if modified:
+            print(f"  [+] Verified {verified_count} playlist(s) in {json_file}")
+        else:
+            print(f"  [*] No playlist entries found for this channel in {json_file}")
+            
+    except Exception as e:
+        print(f"  [-] Error updating {json_file}: {e}")
+
 def update_json_channel_keys(json_file, old_name, new_name):
     """Update channel keys in subscriptions JSON file"""
     try:
@@ -352,6 +419,77 @@ def remove_json_shortlinks(json_file, channel_name):
     except Exception as e:
         print(f"  [-] Error updating {json_file}: {e}")
 
+def remove_json_playlist_shortlinks(json_file, channel_name):
+    """
+    Remove playlists for a deleted channel from playlist_shortlinks.json.
+    
+    IMPORTANT: This should be called BEFORE the actual folder deletion,
+    so we can still scan the directory to find playlist names.
+    
+    Scans the channel's video directory to find all playlist names,
+    then removes those entries from playlist_shortlinks.json.
+    """
+    try:
+        j_path = os.path.join(BASE_DIR, json_file)
+        if not os.path.exists(j_path):
+            return
+        
+        with open(j_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        # Collect all playlist names that exist under this channel
+        channel_videos_dir = os.path.join(BASE_DIR, 'videos', channel_name)
+        playlists_to_remove = set()
+        
+        # Try to read from disk (folder should still exist if called before shutil.rmtree)
+        if os.path.exists(channel_videos_dir):
+            for item in os.listdir(channel_videos_dir):
+                item_path = os.path.join(channel_videos_dir, item)
+                if os.path.isdir(item_path):
+                    has_videos = any(
+                        f.lower().endswith(MEDIA_EXTENSIONS) 
+                        for f in os.listdir(item_path) 
+                        if os.path.isfile(os.path.join(item_path, f))
+                    )
+                    if has_videos:
+                        playlists_to_remove.add(item)
+                    
+                    # Check for nested playlists
+                    for subitem in os.listdir(item_path):
+                        subitem_path = os.path.join(item_path, subitem)
+                        if os.path.isdir(subitem_path):
+                            has_sub_videos = any(
+                                f.lower().endswith(MEDIA_EXTENSIONS) 
+                                for f in os.listdir(subitem_path) 
+                                if os.path.isfile(os.path.join(subitem_path, f))
+                            )
+                            if has_sub_videos:
+                                playlists_to_remove.add(f"{item}/{subitem}")
+        
+        # If we couldn't read from disk (already deleted), warn user
+        if not playlists_to_remove:
+            print(f"  [*] Could not determine playlists for channel '{channel_name}'")
+            print(f"      (Folder may already be deleted - call this function BEFORE folder deletion)")
+            print(f"      Manual cleanup of {json_file} may be required for orphaned entries")
+            return
+        
+        # Remove matching entries
+        new_data = {
+            k: v for k, v in data.items() 
+            if k not in playlists_to_remove
+        }
+        
+        removed_count = len(data) - len(new_data)
+        if removed_count > 0:
+            with open(j_path, 'w', encoding='utf-8') as f:
+                json.dump(new_data, f, indent=2)
+            print(f"  [+] Removed {removed_count} playlist(s) from {json_file}")
+        else:
+            print(f"  [*] No matching playlists found in {json_file}")
+            
+    except Exception as e:
+        print(f"  [-] Error updating {json_file}: {e}")
+
 def remove_channel_from_cache(json_file, channel_name):
     """Remove channel entries from cache JSON files"""
     try:
@@ -461,10 +599,17 @@ def rename_channel(old_name, new_name):
     update_json_history('watchHistory.json', old_name, new_name)
     update_json_shortlinks('shortlinks.json', old_name, new_name)
     
+    # UPDATE: Verify playlist short links for renamed channel
+    update_json_playlist_shortlinks('playlist_shortlinks.json', old_name, new_name)
+    
     print("[*] Channel rename complete!\n")
 
 def delete_channel(channel_name):
     print(f"\n[*] Attempting to delete channel '{channel_name}'...")
+    
+    # IMPORTANT: Remove playlist short links BEFORE deleting folders,
+    # so we can still scan the directory structure
+    remove_json_playlist_shortlinks('playlist_shortlinks.json', channel_name)
     
     # Delete folders
     for folder in CHANNEL_FOLDERS:
@@ -555,12 +700,21 @@ def clear_database():
             with open(j_path, 'w', encoding='utf-8') as f:
                 if j_file in ['users.json', 'userPreferences.json', 'subscriptions.json', 'recommendation_index.json']:
                     json.dump({}, f)
-                elif j_file == 'shortlinks.json':
+                elif j_file in ['shortlinks.json', 'playlist_shortlinks.json']:
                     json.dump({}, f)
                 else:
                     json.dump([], f)
             print(f"  [+] Emptied: {j_file}")
         except: pass
+    
+    # Explicitly clear playlist_shortlinks.json in case it's not in JSON_FILES list
+    try:
+        pl_path = os.path.join(BASE_DIR, 'playlist_shortlinks.json')
+        if os.path.exists(pl_path):
+            with open(pl_path, 'w', encoding='utf-8') as f:
+                json.dump({}, f)
+            print(f"  [+] Emptied: playlist_shortlinks.json")
+    except: pass
     
     print("\n[*] Database cleared successfully!\n")
 
@@ -740,7 +894,9 @@ def reinitiate_cache_scan():
     files_to_delete = [
         os.path.join(BASE_DIR, 'recommendation_index.json'),
         os.path.join(BASE_DIR, 'video_cache.json'),
-        os.path.join(BASE_DIR, 'shortlinks.json')
+        os.path.join(BASE_DIR, 'shortlinks.json'),
+        # ADD: Also delete playlist_shortlinks.json so it regenerates on startup
+        os.path.join(BASE_DIR, 'playlist_shortlinks.json')
     ]
     
     print("\n[*] Re-initiating cache scan...")
@@ -831,7 +987,6 @@ def logout_all_users():
     print("[*] All users have been logged out.\n")
 
 def reboot_server():
-    """Stop the server process and launch it via #Launch-Server.bat"""
     print("\n[*] Checking server status...")
     
     running = is_server_running()
@@ -964,6 +1119,18 @@ def print_stats():
     if os.path.exists(SESSIONS_DIR):
         active_sessions = len([f for f in os.listdir(SESSIONS_DIR) if f.endswith('.session')])
     print(f" Active Sessions: {active_sessions}")
+    
+    # Show playlist short link count
+    try:
+        pl_path = os.path.join(BASE_DIR, 'playlist_shortlinks.json')
+        if os.path.exists(pl_path):
+            with open(pl_path, 'r', encoding='utf-8') as f:
+                pl_data = json.load(f)
+            print(f" Playlist Short Links: {len(pl_data)}")
+        else:
+            print(" Playlist Short Links: 0 (file not found)")
+    except Exception as e:
+        print(f" Playlist Short Links: Error reading ({e})")
     
     print("=" * 45 + "\n")
 
