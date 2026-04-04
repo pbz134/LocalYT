@@ -8,12 +8,14 @@ from datetime import datetime
 FILES_TO_BACKUP = [
     "login_attempts.json",
     "shortlinks.json",
+    "playlist_shortlinks.json",
     "subscriptions.json",
     "user-playlists.json",
     "userPreferences.json",
     "users.json",
     "watchHistory.json",
-    "likes.json"
+    "likes.json",
+    "dislikes.json"
 ]
 
 # Define the directories to back up
