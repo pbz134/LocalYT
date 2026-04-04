@@ -154,6 +154,29 @@
             overflow-x: hidden;
             padding-right: 5px; /* Prevent scrollbar from covering content */
         }
+
+        /* Autoplay Toggle in Sidebar */
+        .sidebar-autoplay-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background-color: #1a1a1a;
+            border-radius: 6px;
+            border: 1px solid #333;
+        }
+        .sidebar-autoplay-label {
+            font-size: 13px;
+            color: #ccc;
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+        }
+        .sidebar-autoplay-toggle .toggle-switch {
+            flex-shrink: 0;
+        }
+
         .current-video-item {
             background-color: #3f3f3f;
         }
@@ -1509,6 +1532,9 @@ document.addEventListener('click', function(e) {
 
             // --- Sidebar Logic ---
             
+            // Create autoplay toggle at top of sidebar
+            createSidebarAutoplayToggle(suggestionsContainer, playlistName);
+            
             // 1. Load Playlist Videos if playlist parameter exists
             let playlistVideoCount = 0;
             if (playlistName && currentChannel) {
@@ -1732,6 +1758,12 @@ document.addEventListener('click', function(e) {
                 // ===== AUTOPLAY LOGIC =====
                 try {
                     const autoplaySettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
+                    
+                    // Ensure defaults if they are missing
+                    if (autoplaySettings.enabled && !autoplaySettings.nonPlaylistMode && !playlistName) {
+                         autoplaySettings.nonPlaylistMode = 'first-recommended';
+                    }
+
                     console.log('[Autoplay] Settings:', autoplaySettings);
                     console.log('[Autoplay] In playlist?', !!playlistName, playlistName);
                     
@@ -1753,7 +1785,9 @@ document.addEventListener('click', function(e) {
                                     await autoplayRandomDatabase();
                                     break;
                                 default:
-                                    console.warn('[Autoplay] Unknown mode:', autoplaySettings.nonPlaylistMode);
+                                    // FIX: Default to first recommended instead of doing nothing/random
+                                    console.warn('[Autoplay] Unknown/Default mode, falling back to first recommended');
+                                    await autoplayFirstRecommended();
                             }
                         } else {
                             console.log('[Autoplay] In playlist but playlistNext is disabled');
@@ -2306,6 +2340,74 @@ document.addEventListener('click', function(e) {
                 }
             }, 100);
         });
+
+function createSidebarAutoplayToggle(container, playlistName) {
+    const toggleDiv = document.createElement('div');
+    toggleDiv.className = 'sidebar-autoplay-toggle';
+    
+    const label = document.createElement('label');
+    label.className = 'sidebar-autoplay-label';
+    label.textContent = getLang('Autoplay', 'Automatische Wiedergabe');
+    
+    const switchLabel = document.createElement('label');
+    switchLabel.className = 'toggle-switch';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = 'sidebarAutoplayCheckbox';
+    
+    const slider = document.createElement('span');
+    slider.className = 'toggle-slider';
+    
+    switchLabel.appendChild(checkbox);
+    switchLabel.appendChild(slider);
+    
+    toggleDiv.appendChild(label);
+    toggleDiv.appendChild(switchLabel);
+    
+    // Insert at the top of the suggestions container
+    container.insertBefore(toggleDiv, container.firstChild);
+    
+    // Load current state from localStorage
+    const settings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
+    checkbox.checked = settings.enabled || false;
+    
+    // Handle toggle changes
+    checkbox.addEventListener('change', () => {
+        // CRITICAL: Read fresh from localStorage to avoid overwriting other changes
+        let currentSettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
+        
+        if (checkbox.checked) {
+            // --- ENABLED ---
+            currentSettings.enabled = true;
+            
+            if (playlistName) {
+                // In playlist: Ensure next-in-playlist is ON
+                currentSettings.playlistNext = true; 
+            } else {
+                // NOT in playlist: STRICTLY FORCE 'first-recommended'
+                // This overrides any previous 'random' setting from settings.html
+                currentSettings.nonPlaylistMode = 'first-recommended';
+            }
+        } else {
+            // --- DISABLED ---
+            currentSettings.enabled = false;
+        }
+        
+        // Save immediately
+        localStorage.setItem('autoplaySettings', JSON.stringify(currentSettings));
+        
+        // Debug verification
+        console.log('[Sidebar Toggle] Saved Settings:', JSON.stringify(currentSettings));
+    });
+    
+    // Allow clicking the text label to toggle as well
+    label.addEventListener('click', () => {
+        checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event('change'));
+    });
+}
+
     </script>
     <script src="profile-pic.js"></script>
 </body>
