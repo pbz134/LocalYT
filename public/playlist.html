@@ -84,12 +84,13 @@
             cursor: pointer;
         }
         .video-title {
-            padding: 10px;
+            padding: 10px 10px 2px 10px;
             text-align: left;
             font-weight: bold;
             font-family: 'RobotoRegular', sans-serif;
             cursor: pointer;
             color: #d2cfcf;
+            margin-bottom: -5px;
         }
         .video-description {
             text-align: left;
@@ -251,7 +252,10 @@ document.addEventListener('DOMContentLoaded', () => {
     fetch(`/subcount/${encodeURIComponent(channel)}`)
         .then(response => response.ok ? response.text() : '0')
         .then(subCount => {
-            let formattedSubCount = parseInt(subCount).toLocaleString();
+            // FIX: Remove commas before parsing to integer
+            let cleanCount = parseInt(subCount.replace(/,/g, ''));
+            let formattedSubCount = cleanCount.toLocaleString();
+            
             if (localStorage.getItem('language') === 'de') {
                 formattedSubCount = formattedSubCount.replace(/,/g, '.');
             }
@@ -278,7 +282,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const thumbnailSrc = `/thumbnails/${encodeURIComponent(video.path.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, ''))}.jpg`;
 
                 // Format view count for current language
-                let formattedViewCount = parseInt(video.viewCount || 0).toLocaleString();
+                let rawViews = (video.viewCount || "0").replace(/,/g, '');
+                let formattedViewCount = parseInt(rawViews).toLocaleString();
+                
                 if (localStorage.getItem('language') === 'de') {
                     formattedViewCount = formattedViewCount.replace(/,/g, '.');
                 }
