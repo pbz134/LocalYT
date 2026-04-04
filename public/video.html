@@ -524,6 +524,11 @@
                 border: none;
             }
 
+        .video-description .mention-link {
+            color: #3ea6ff;
+            cursor: pointer;
+        }
+
         .video-description .no-description {
             color: #999;
             font-style: italic;
@@ -1451,16 +1456,15 @@ document.addEventListener('click', function(e) {
                     const descriptionPath = `/descriptions/${encodeURIComponent(currentChannel)}/${encodeURIComponent(cleanDescName)}.txt`;
                     return fetch(descriptionPath);
                 })
-                .then(response => {
+                .then(async response => {
                     if (!response.ok) return null;
-                    return response.text();
-                })
-                .then(description => {
+                    const description = await response.text();
+                    
                     if (description === null) {
                         currentVideoDescription.innerHTML = currentVideoDescription.textContent + 
                             '<span class="no-description">' + getLang('No description available for this video.', 'Diesem Video wurde keine Beschreibung hinzugefügt.') + '</span>'
                     } else {
-                        const descriptionWithLinks = detectAndStyleLinks(description);
+                        const descriptionWithLinks = await detectAndStyleLinks(description);
                         currentVideoDescription.innerHTML = currentVideoDescription.textContent + descriptionWithLinks;
                     }
                 })
@@ -2291,21 +2295,100 @@ document.addEventListener('click', function(e) {
             window.location.href = `channel.html?channel=${encodeURIComponent(channel)}`;
         }
 
-        function detectAndStyleLinks(text) {
-            const urlRegex = /(https?:\/\/[^\s]+)/g;
-            const timestampRegex = /(\b\d{1,2}:\d{2}(?::\d{2})?\b)/g;
-            
-            let processedText = text.replace(urlRegex, function(url) {
-                return '<a href="' + url + '" target="_blank" style="color: #3ea6ff; text-decoration: none;">' + url + '</a>';
-            });
-            
-            processedText = processedText.replace(timestampRegex, function(timestamp) {
-                const seconds = convertTimestampToSeconds(timestamp);
-                return '<a href="#" onclick="seekToTimestamp(\'' + timestamp + '\'); return false;" style="color: #3ea6ff; text-decoration: none;">' + timestamp + '</a>';
-            });
-            
-            return processedText;
+async function detectAndStyleLinks(text) {
+    const urlRegex = /(https?:\/\/[^\s<]+)/g;
+    const timestampRegex = /(\b\d{1,2}:\d{2}(?::\d{2})?\b)/g;
+    const mentionRegex = /@(\w+)/g;
+
+    // 1. Handle URLs
+    let processedText = text.replace(urlRegex, function(url) {
+        return '<a href="' + url + '" target="_blank" style="color: #3ea6ff; text-decoration: none;">' + url + '</a>';
+    });
+
+    // 2. Handle Timestamps
+    processedText = processedText.replace(timestampRegex, function(timestamp) {
+        const seconds = convertTimestampToSeconds(timestamp);
+        return '<a href="#" onclick="seekToTimestamp(\'' + timestamp + '\'); return false;" style="color: #3ea6ff; text-decoration: none;">' + timestamp + '</a>';
+    });
+
+    // 3. Handle @Mentions (Check if Channel Image Exists)
+    const mentions = [];
+    let match;
+    while ((match = mentionRegex.exec(processedText)) !== null) {
+        if (!mentions.includes(match[1])) {
+            mentions.push(match[1]);
         }
+    }
+
+    if (mentions.length > 0) {
+        const checkPromises = mentions.map(channelName => {
+            return fetch(`/channelpic/${encodeURIComponent(channelName)}.jpg`, { method: 'HEAD' })
+                .then(res => ({ name: channelName, exists: res.ok }))
+                .catch(() => ({ name: channelName, exists: false }));
+        });
+
+        try {
+            const results = await Promise.all(checkPromises);
+            const existingChannels = results.filter(r => r.exists).map(r => r.name);
+            
+            let idCounter = 0;
+            
+            processedText = processedText.replace(mentionRegex, function(fullMatch, channelName) {
+                if (existingChannels.includes(channelName)) {
+                    const uniqueId = `mention-${idCounter++}`;
+                    const encodedChannel = encodeURIComponent(channelName);
+                    
+                    // Return span with ID so we can attach event listeners immediately after
+                    return `<span id="${uniqueId}" class="mention-link" data-channel="${encodedChannel}">${fullMatch}</span>`;
+                }
+                return fullMatch;
+            });
+            
+            // Attach event listeners to the newly created spans after they are in the DOM
+            // We use a small timeout to ensure the DOM has been updated if this is used immediately
+            setTimeout(() => {
+                existingChannels.forEach((channelName, index) => {
+                    const el = document.getElementById(`mention-${index}`);
+                    if (el) {
+                        const url = `channel.html?channel=${el.dataset.channel}`;
+                        
+                        // Left click (default behavior handled by CSS/onclick logic if needed, 
+                        // but here we specifically handle wheel and right click as requested)
+                        
+                        el.addEventListener('mouseup', (e) => {
+                            if (e.button === 1) { // Middle Click
+                                e.preventDefault();
+                                window.open(url, '_blank');
+                            }
+                        });
+                        
+                        el.addEventListener('auxclick', (e) => {
+                            if (e.button === 1) { // Middle Click Fallback
+                                e.preventDefault();
+                                window.open(url, '_blank');
+                            }
+                        });
+
+                        el.addEventListener('contextmenu', (e) => { // Right Click
+                            e.preventDefault();
+                            window.open(url, '_blank');
+                        });
+                        
+                        // Ensure left click also works to navigate
+                        el.addEventListener('click', () => {
+                             window.location.href = url;
+                        });
+                    }
+                });
+            }, 0);
+
+        } catch (e) {
+            console.log('Could not verify mentions:', e);
+        }
+    }
+
+    return processedText;
+}
 
         function convertTimestampToSeconds(timestamp) {
             const parts = timestamp.split(':').map(part => parseInt(part, 10));

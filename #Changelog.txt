@@ -44,6 +44,7 @@ v3.90
 - Optimized code for search suggestions (huge speed increase)
 - The playlist queue on video.html now auto-focuses on the current video inside the list
 - Playlist video links are now shortened when copying them with the modal
+- @ channel mentions in video descriptions will now be blue and clickable if the server finds a matching channel
 
 v3.80
 - Implemented advanced conditional video tagging
