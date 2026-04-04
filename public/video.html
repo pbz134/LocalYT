@@ -1510,7 +1510,7 @@ document.addEventListener('click', function(e) {
                 
                 const playlistHeader = document.createElement('div');
                 playlistHeader.className = 'playlist-section-header';
-                playlistHeader.innerHTML = `${decodeURIComponent(playlistName)} <a href="playlist.html?channel=${encodeURIComponent(currentChannel)}&playlist=${playlistName}">View Full Playlist</a>`;
+                playlistHeader.innerHTML = `${decodeURIComponent(playlistName)} <a href="playlist.html?channel=${encodeURIComponent(currentChannel)}&playlist=${playlistName}">${getLang('View Full Playlist', 'Playlist ansehen')}</a>`
                 playlistSection.appendChild(playlistHeader);
 
                 // Container for the videos (will be scrollable if > 8 videos)
@@ -1565,7 +1565,7 @@ document.addEventListener('click', function(e) {
                         recHeader.style.borderTop = '1px solid #3f3f3f';
                         recHeader.style.paddingTop = '10px';
                         recHeader.style.marginTop = '10px';
-                        recHeader.textContent = 'Recommended';
+                        recHeader.textContent = getLang('Recommended', 'Empfohlen');
                         suggestionsContainer.appendChild(recHeader);
                     }
 
