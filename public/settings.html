@@ -370,6 +370,114 @@
             margin-top: 0;
         }
 
+        /* --- Toggle Switch Styles --- */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #444;
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #fff;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #2196F3;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .setting-row:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            font-size: 14px;
+            color: #ccc;
+            flex-grow: 1;
+            margin-right: 15px;
+        }
+
+        .setting-description {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .setting-control {
+            flex-shrink: 0;
+        }
+
+        .autoplay-sub-options {
+            margin-left: 30px;
+            padding-left: 15px;
+            border-left: 2px solid #333;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .autoplay-sub-options.visible {
+            display: block;
+        }
+
+        .autoplay-sub-options .setting-row {
+            border-bottom: none;
+            padding: 8px 0;
+        }
+
+        select.setting-select {
+            background-color: #222;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            min-width: 200px;
+        }
+
+        select.setting-select:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
         /* --- Search Suggestions Visibility --- */
         .search-suggestions {
             display: none; /* Hidden by default when input is empty */
@@ -417,6 +525,58 @@
         <!-- Settings Tab -->
         <div class="tab-panel" id="tab-settings">
             <h1 id="settingsHeading">Settings</h1>
+
+            <!-- Autoplay Section (NEW) -->
+            <div class="settings-section">
+                <h2 id="autoplayHeading">Autoplay Settings</h2>
+
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div>Enable Autoplay</div>
+                        <div class="setting-description" id="autoplayDesc">Automatically play the next video when the current one ends</div>
+                    </div>
+                    <div class="setting-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="autoplayEnabled">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="autoplay-sub-options" id="autoplaySubOptions">
+                    <div class="setting-row">
+                        <div class="setting-label">
+                            <div>Autoplay next video in playlist</div>
+                            <div class="setting-description" id="playlistAutoplayDesc">When watching a playlist, automatically play the next video in sequence</div>
+                        </div>
+                        <div class="setting-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="autoplayPlaylistNext">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="setting-row">
+                        <div class="setting-label">
+                            <div>Autoplay behavior when not in a playlist</div>
+                            <div class="setting-description" id="nonPlaylistDesc">Choose what happens after a video ends when you're not watching a playlist</div>
+                        </div>
+                        <div class="setting-control">
+                            <select class="setting-select" id="autoplayNonPlaylistMode">
+                                <option value="first-recommended">Autoplay first recommended video from sidebar</option>
+                                <option value="random-recommended">Autoplay random recommended video from sidebar</option>
+                                <option value="random-database">Autoplay entirely random video from database</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="inline-form" style="margin-top: 15px;">
+                    <button class="btn btn-save" id="saveAutoplayBtn">Save Autoplay Settings</button>
+                </div>
+                <div id="autoplayStatus" class="status-msg"></div>
+            </div>
 
             <!-- Algorithm Section -->
             <div class="settings-section">
@@ -527,7 +687,7 @@ function applyTranslations() {
     
     // Sidebar
     document.getElementById('sidebarProfile').textContent = getLang('Profile Picture', 'Profilbild');
-    document.getElementById('sidebarSettings').textContent = getLang('Settings', 'Einstellungen');
+    document.getElementById('sidebarSettings').textContent = getLang('Account', 'Konto');
     
     // Profile tab
     document.getElementById('profileHeading').textContent = getLang('Profile Picture', 'Profilbild');
@@ -535,7 +695,26 @@ function applyTranslations() {
     document.getElementById('removeBtn').textContent = getLang('Remove Picture', 'Bild entfernen');
     
     // Settings tab
-    document.getElementById('settingsHeading').textContent = getLang('Settings', 'Einstellungen');
+    document.getElementById('settingsHeading').textContent = getLang('Account', 'Konto');
+    
+    // Autoplay Section (NEW)
+    document.getElementById('autoplayHeading').textContent = getLang('Autoplay Settings', 'Automatische Wiedergabe-Einstellungen');
+    document.getElementById('autoplayDesc').textContent = getLang('Automatically play the next video when the current one ends', 'Automatisch das nächste Video abspielen, wenn das aktuelle endet');
+    document.getElementById('playlistAutoplayDesc').textContent = getLang('When watching a playlist, automatically play the next video in sequence', 'Beim Ansehen einer Playlist automatisch das nächste Video abspielen');
+    document.getElementById('nonPlaylistDesc').textContent = getLang("Choose what happens after a video ends when you're not watching a playlist", 'Wähle, was passiert, wenn ein Video endet und du keine Playlist ansiehst');
+    
+    // Update dropdown options
+    const nonPlaylistSelect = document.getElementById('autoplayNonPlaylistMode');
+    if (nonPlaylistSelect) {
+        const options = nonPlaylistSelect.options;
+        options[0].text = getLang('Autoplay first recommended video from sidebar', 'Erstes empfohlenes Video aus der Seitenleiste abspielen');
+        options[1].text = getLang('Autoplay random recommended video from sidebar', 'Zufälliges empfohlenes Video aus der Seitenleiste abspielen');
+        options[2].text = getLang('Autoplay entirely random video from database', 'Völlig zufälliges Video aus der Datenbank abspielen');
+    }
+    
+    document.getElementById('saveAutoplayBtn').textContent = getLang('Save Autoplay Settings', 'Autoplay-Einstellungen speichern');
+    
+    // Algorithm Preferences
     document.getElementById('algoPrefsHeading').textContent = getLang('Algorithm Preferences', 'Algorithmus-Einstellungen');
     document.getElementById('algoPrefsDesc').textContent = getLang('Adjust scores to influence your recommendations. Higher = matching videos are more likely to appear.', 'Passe die Werte an, um deine Empfehlungen zu beeinflussen. Höher = passende Videos werden eher angezeigt.');
     document.getElementById('newTagInput').placeholder = getLang('Add new tag...', 'Neuen Tag hinzufügen...');
@@ -559,9 +738,9 @@ function applyTranslations() {
     document.getElementById('logoutDesc').textContent = getLang('End your current session.', 'Beende deine aktuelle Sitzung.');
     document.getElementById('logoutBtn').textContent = getLang('Logout', 'Abmelden');
     document.getElementById('deleteAccHeading').textContent = getLang('Delete Account', 'Konto löschen');
-    document.getElementById('deleteAccDesc').textContent = getLang('WARNING: Once deleted, you won\'t be able to recover it.', 'WARNUNG: Sobald gelöscht, kann es nicht wiederhergestellt werden.');
+    document.getElementById('deleteAccDesc').textContent = getLang("WARNING: Once deleted, you won't be able to recover it.", 'WARNUNG: Sobald gelöscht, kann es nicht wiederhergestellt werden.');
     document.getElementById('toggleDeleteBtn').textContent = getLang('Delete Account', 'Konto löschen');
-    document.getElementById('deleteWarningText').innerHTML = getLang('Enter your current password and type <strong style="color:#ff4444;">DELETE</strong> to permanently delete your account.', 'Gib dein aktuelles Passwort ein und tippe <strong style="color:#ff4444;">DELETE</strong>, um dein Konto permanent zu löschen.');
+    document.getElementById('deleteWarningText').innerHTML = getLang("Enter your current password and type <strong style='color:#ff4444;'>DELETE</strong> to permanently delete your account.", "Gib dein aktuelles Passwort ein und tippe <strong style='color:#ff4444;'>DELETE</strong>, um dein Konto permanent zu löschen.");
     document.getElementById('deletePassword').placeholder = getLang('Current Password', 'Aktuelles Passwort');
     document.getElementById('deleteConfirmInput').placeholder = getLang('Type DELETE', 'DELETE eingeben');
     document.getElementById('deleteAccountBtn').textContent = getLang('Confirm Delete', 'Löschen bestätigen');
@@ -591,6 +770,7 @@ sidebarLinks.forEach(link => {
         if (targetTab === 'settings') {
             loadPreferences();
             loadAllTags();
+            loadAutoplaySettings(); // Load autoplay settings when switching to settings tab
         }
     });
 });
@@ -610,6 +790,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadProfilePic();
                 loadPreferences();
                 loadAllTags();
+                loadAutoplaySettings(); // Load autoplay settings on page load
             }
         })
         .catch(() => window.location.href = 'login.html');
@@ -641,7 +822,67 @@ document.addEventListener('DOMContentLoaded', () => {
         if (q) window.location.href = 'search.html?q=' + encodeURIComponent(q);
         else searchInput.focus();
     });
+
+    // Initialize autoplay UI event listeners
+    initAutoplayUI();
 });
+
+// ==============================
+// Autoplay Settings Logic (NEW)
+// ==============================
+function initAutoplayUI() {
+    const autoplayEnabled = document.getElementById('autoplayEnabled');
+    const subOptions = document.getElementById('autoplaySubOptions');
+
+    // Show/hide sub-options based on main toggle
+    autoplayEnabled.addEventListener('change', () => {
+        if (autoplayEnabled.checked) {
+            subOptions.classList.add('visible');
+        } else {
+            subOptions.classList.remove('visible');
+        }
+    });
+
+    // Save button handler
+    document.getElementById('saveAutoplayBtn').addEventListener('click', saveAutoplaySettings);
+}
+
+function loadAutoplaySettings() {
+    // Load from localStorage or use defaults
+    const savedSettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
+    
+    const defaults = {
+        enabled: false,
+        playlistNext: true,
+        nonPlaylistMode: 'first-recommended'
+    };
+
+    const settings = { ...defaults, ...savedSettings };
+
+    document.getElementById('autoplayEnabled').checked = settings.enabled;
+    document.getElementById('autoplayPlaylistNext').checked = settings.playlistNext;
+    document.getElementById('autoplayNonPlaylistMode').value = settings.nonPlaylistMode;
+
+    // Update visibility of sub-options
+    const subOptions = document.getElementById('autoplaySubOptions');
+    if (settings.enabled) {
+        subOptions.classList.add('visible');
+    } else {
+        subOptions.classList.remove('visible');
+    }
+}
+
+function saveAutoplaySettings() {
+    const settings = {
+        enabled: document.getElementById('autoplayEnabled').checked,
+        playlistNext: document.getElementById('autoplayPlaylistNext').checked,
+        nonPlaylistMode: document.getElementById('autoplayNonPlaylistMode').value
+    };
+
+    localStorage.setItem('autoplaySettings', JSON.stringify(settings));
+    
+    showStatus('autoplayStatus', getLang('Autoplay settings saved successfully!', 'Autoplay-Einstellungen erfolgreich gespeichert!'), true);
+}
 
 // ==============================
 // Profile Picture Logic

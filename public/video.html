@@ -1646,6 +1646,8 @@ document.addEventListener('click', function(e) {
                         <div class="view-count">${video.viewCount} ${getLang('views', 'Aufrufe')}</div>
                     </div>
                 `;
+
+                suggestionElement.dataset.videoPath = video.path;
                 container.appendChild(suggestionElement);
 
                 const thumbLink = suggestionElement.querySelector('.thumbnail-container');
@@ -1727,14 +1729,41 @@ document.addEventListener('click', function(e) {
             );
 
             videoPlayer.addEventListener('ended', async () => {
-                const newSuggestedVideos = await generateSuggestedVideos(videoSrc);
-                const newSuggestedVideosJson = JSON.stringify(newSuggestedVideos);
-                const newSuggestedVideosBlob = new Blob([newSuggestedVideosJson], { type: 'application/json' });
-                const newSuggestedVideosUrl = URL.createObjectURL(newSuggestedVideosBlob);
-                
-                myFP.updateSuggestedVideosConfig({
-                    configUrl: newSuggestedVideosUrl
-                });
+                // ===== AUTOPLAY LOGIC =====
+                try {
+                    const autoplaySettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
+                    console.log('[Autoplay] Settings:', autoplaySettings);
+                    console.log('[Autoplay] In playlist?', !!playlistName, playlistName);
+                    
+                    if (autoplaySettings.enabled) {
+                        if (playlistName && autoplaySettings.playlistNext !== false) {
+                            console.log('[Autoplay] → Next in playlist');
+                            await autoplayNextInPlaylist();
+                        } 
+                        else if (!playlistName) {
+                            console.log('[Autoplay] → Non-playlist mode:', autoplaySettings.nonPlaylistMode);
+                            switch (autoplaySettings.nonPlaylistMode) {
+                                case 'first-recommended':
+                                    await autoplayFirstRecommended();
+                                    break;
+                                case 'random-recommended':
+                                    await autoplayRandomRecommended();
+                                    break;
+                                case 'random-database':
+                                    await autoplayRandomDatabase();
+                                    break;
+                                default:
+                                    console.warn('[Autoplay] Unknown mode:', autoplaySettings.nonPlaylistMode);
+                            }
+                        } else {
+                            console.log('[Autoplay] In playlist but playlistNext is disabled');
+                        }
+                    } else {
+                        console.log('[Autoplay] Disabled');
+                    }
+                } catch (e) {
+                    console.error('Autoplay error:', e);
+                }
             });
 
             document.addEventListener('keydown', (event) => {
@@ -1795,6 +1824,89 @@ document.addEventListener('click', function(e) {
                         break;
                 }
             });
+
+            // ===== AUTOPLAY HELPER FUNCTIONS =====
+            
+            async function autoplayNextInPlaylist() {
+                try {
+                    const response = await fetch(`/playlist-videos/${encodeURIComponent(currentChannel)}/${playlistName}`);
+                    if (!response.ok) return;
+                    
+                    const videos = await response.json();
+                    videos.sort(naturalCompare);
+                    
+                    // Find current video index
+                    const currentIndex = videos.findIndex(v => decodeURIComponent(v.path) === decodeURIComponent(videoSrc));
+                    
+                    if (currentIndex !== -1 && currentIndex < videos.length - 1) {
+                        // Go to next video in playlist
+                        const nextVideo = videos[currentIndex + 1];
+                        const nextUrl = `video.html?src=${encodeURIComponent(nextVideo.path)}&playlist=${encodeURIComponent(playlistName)}`;
+                        
+                        // Small delay so user sees the end screen briefly
+                        setTimeout(() => {
+                            window.location.href = nextUrl;
+                        }, 1500);
+                    }
+                } catch (e) {
+                    console.error('Error getting next playlist video:', e);
+                }
+            }
+
+            async function autoplayFirstRecommended() {
+                try {
+                    console.log('[Autoplay] Trying first recommended from sidebar...');
+                    
+                    const suggestionItems = document.querySelectorAll('#videoSuggestions .suggestion-item[data-video-path]');
+                    console.log('[Autoplay] Found items with data:', suggestionItems.length);
+                    
+                    // Filter out current video if it has current-video-item class
+                    const availableItems = Array.from(suggestionItems).filter(
+                        item => !item.classList.contains('current-video-item')
+                    );
+                    const pool = availableItems.length > 0 ? availableItems : Array.from(suggestionItems);
+                    
+                    if (pool.length > 0) {
+                        const firstVideo = pool[0].dataset.videoPath;
+                        const nextUrl = `video.html?src=${encodeURIComponent(firstVideo)}`;
+                        console.log('[Autoplay] Navigating to first recommended:', nextUrl);
+                        setTimeout(() => { window.location.href = nextUrl; }, 1500);
+                    } else {
+                        console.warn('[Autoplay] No sidebar items found');
+                    }
+                } catch (e) {
+                    console.error('[Autoplay] Error in first recommended:', e);
+                }
+            }
+
+            async function autoplayRandomRecommended() {
+                try {
+                    console.log('[Autoplay] Trying random recommended from sidebar...');
+                    
+                    const suggestionItems = document.querySelectorAll('#videoSuggestions .suggestion-item[data-video-path]');
+                    console.log('[Autoplay] Found items with data:', suggestionItems.length);
+                    
+                    // Filter out current video
+                    const availableItems = Array.from(suggestionItems).filter(
+                        item => !item.classList.contains('current-video-item')
+                    );
+                    const pool = availableItems.length > 0 ? availableItems : Array.from(suggestionItems);
+                    
+                    if (pool.length > 0) {
+                        const randomIndex = Math.floor(Math.random() * pool.length);
+                        const randomVideo = pool[randomIndex].dataset.videoPath;
+                        const nextUrl = `video.html?src=${encodeURIComponent(randomVideo)}`;
+                        console.log('[Autoplay] Navigating to random recommended:', nextUrl);
+                        setTimeout(() => { window.location.href = nextUrl; }, 1500);
+                    } else {
+                        console.warn('[Autoplay] No sidebar items found');
+                    }
+                } catch (e) {
+                    console.error('[Autoplay] Error in random recommended:', e);
+                }
+            }
+
+            // ===== END AUTOPLAY HELPERS =====
 
             const searchInput = document.getElementById('searchInput');
             searchInput.addEventListener('input', () => {
