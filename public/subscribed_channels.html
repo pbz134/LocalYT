@@ -290,6 +290,16 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        /* --- Search Suggestions Visibility --- */
+        .search-suggestions {
+            display: none; /* Hidden by default when input is empty */
+        }
+
+        /* Show suggestions only when the search container (input) is focused/active */
+        .search-container:focus-within .search-suggestions {
+            display: block;
+        }
     </style>
 </head>
 <body class="index-page">

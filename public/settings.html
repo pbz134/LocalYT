@@ -369,6 +369,16 @@
         .tab-panel h1 {
             margin-top: 0;
         }
+
+        /* --- Search Suggestions Visibility --- */
+        .search-suggestions {
+            display: none; /* Hidden by default when input is empty */
+        }
+
+        /* Show suggestions only when the search container (input) is focused/active */
+        .search-container:focus-within .search-suggestions {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -527,7 +537,7 @@ function applyTranslations() {
     // Settings tab
     document.getElementById('settingsHeading').textContent = getLang('Settings', 'Einstellungen');
     document.getElementById('algoPrefsHeading').textContent = getLang('Algorithm Preferences', 'Algorithmus-Einstellungen');
-    document.getElementById('algoPrefsDesc').textContent = getLang('Adjust scores to influence your recommendations. Higher = matching videos are more likely to appear.', 'Passe die Werte an, um Ihre Empfehlungen zu beeinflussen. Höher = passende Videos werden eher angezeigt.');
+    document.getElementById('algoPrefsDesc').textContent = getLang('Adjust scores to influence your recommendations. Higher = matching videos are more likely to appear.', 'Passe die Werte an, um deine Empfehlungen zu beeinflussen. Höher = passende Videos werden eher angezeigt.');
     document.getElementById('newTagInput').placeholder = getLang('Add new tag...', 'Neuen Tag hinzufügen...');
     document.getElementById('addTagBtn').textContent = getLang('Add Tag', 'Tag hinzufügen');
     document.getElementById('savePrefsBtn').textContent = getLang('Save Preferences', 'Einstellungen speichern');
@@ -549,12 +559,12 @@ function applyTranslations() {
     document.getElementById('logoutDesc').textContent = getLang('End your current session.', 'Beende deine aktuelle Sitzung.');
     document.getElementById('logoutBtn').textContent = getLang('Logout', 'Abmelden');
     document.getElementById('deleteAccHeading').textContent = getLang('Delete Account', 'Konto löschen');
-    document.getElementById('deleteAccDesc').textContent = getLang('WARNING: Once deleted, you won\'t be able to recover it.', 'WARNUNG: Sobald dein Konto gelöscht ist, kann es nicht wiederhergestellt werden.');
+    document.getElementById('deleteAccDesc').textContent = getLang('WARNING: Once deleted, you won\'t be able to recover it.', 'WARNUNG: Sobald gelöscht, kann es nicht wiederhergestellt werden.');
     document.getElementById('toggleDeleteBtn').textContent = getLang('Delete Account', 'Konto löschen');
     document.getElementById('deleteWarningText').innerHTML = getLang('Enter your current password and type <strong style="color:#ff4444;">DELETE</strong> to permanently delete your account.', 'Gib dein aktuelles Passwort ein und tippe <strong style="color:#ff4444;">DELETE</strong>, um dein Konto permanent zu löschen.');
     document.getElementById('deletePassword').placeholder = getLang('Current Password', 'Aktuelles Passwort');
     document.getElementById('deleteConfirmInput').placeholder = getLang('Type DELETE', 'DELETE eingeben');
-    document.getElementById('deleteAccountBtn').textContent = getLang('Confirm Delete', 'Löschen bestaetigen');
+    document.getElementById('deleteAccountBtn').textContent = getLang('Confirm Delete', 'Löschen bestätigen');
     
     // Modal buttons
     document.getElementById('cancelCropBtn').textContent = getLang('Cancel', 'Abbrechen');
@@ -619,26 +629,13 @@ document.addEventListener('DOMContentLoaded', () => {
         mainLogo.style.cursor = 'pointer';
     }
 
+    // --- Search Navigation Logic ---
     const searchInput = document.getElementById('searchInput');
-    searchInput.addEventListener('input', () => {
-        const query = searchInput.value.toLowerCase();
-        if (query.length < 2) { document.getElementById('searchSuggestions').innerHTML = ''; return; }
-        fetch('/search-index').then(res => res.json()).then(data => {
-            const suggestions = (data.videos || []).filter(v => v.displayName.toLowerCase().includes(query)).slice(0, 5);
-            const container = document.getElementById('searchSuggestions');
-            container.innerHTML = '';
-            suggestions.forEach(s => {
-                const el = document.createElement('div');
-                el.className = 'suggestion-item';
-                el.textContent = s.displayName;
-                el.onclick = () => { window.location.href = 'video.html?src=' + encodeURIComponent(s.path); };
-                container.appendChild(el);
-            });
-        });
-    });
+
     searchInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') window.location.href = 'search.html?q=' + encodeURIComponent(searchInput.value);
     });
+
     document.getElementById('searchIcon').addEventListener('click', () => {
         const q = searchInput.value.trim();
         if (q) window.location.href = 'search.html?q=' + encodeURIComponent(q);
@@ -712,7 +709,7 @@ fileInput.addEventListener('change', function(e) {
 
     var allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (allowedTypes.indexOf(file.type) === -1) {
-        showToast(errorToast, getLang('Only JPEG, PNG, and WebP images are allowed', 'Nur JPEG-, PNG- und WebP-Bilder sind zulaessig'));
+        showToast(errorToast, getLang('Only JPEG, PNG, and WebP images are allowed', 'Nur JPEG-, PNG- und WebP-Bilder sind zulässig'));
         fileInput.value = '';
         return;
     }
@@ -919,11 +916,11 @@ document.getElementById('savePrefsBtn').addEventListener('click', function() {
 });
 
 document.getElementById('resetPrefsBtn').addEventListener('click', function() {
-    if (confirm(getLang('Are you sure you want to clear all your viewing preferences?', 'Bist du sicher, dass du alle deine Ansichtseinstellungen loeschen moechtest?'))) {
+    if (confirm(getLang('Are you sure you want to clear all your viewing preferences?', 'Bist du sicher, dass du alle deine Ansichtseinstellungen löschen möchtest?'))) {
         fetch('/reset-preferences', { method: 'POST' })
             .then(function(res) {
                 if (res.ok) {
-                    showStatus('prefStatus', getLang('All preferences have been reset.', 'Alle Einstellungen wurden zurueckgesetzt.'), true);
+                    showStatus('prefStatus', getLang('All preferences have been reset.', 'Alle Einstellungen wurden zurückgesetzt.'), true);
                     loadPreferences();
                 }
             });
@@ -967,7 +964,7 @@ document.getElementById('changePassBtn').addEventListener('click', function() {
     .then(function(res) { return res.text(); })
     .then(function(msg) {
         if (msg === 'OK') {
-            showStatus('passStatus', getLang('Password changed successfully.', 'Passwort erfolgreich geaendert.'), true);
+            showStatus('passStatus', getLang('Password changed successfully.', 'Passwort erfolgreich geändert.'), true);
             document.getElementById('currentPassword').value = '';
             document.getElementById('newPassword').value = '';
         } else {
@@ -990,7 +987,7 @@ document.getElementById('deleteAccountBtn').addEventListener('click', function()
     }
 
     if (confirmVal !== 'DELETE') {
-        showStatus('deleteStatus', getLang("Please type 'DELETE' to confirm.", "Bitte tippe 'LOESCHEN' zur Bestätigung."), false);
+        showStatus('deleteStatus', getLang("Please type 'DELETE' to confirm.", "Bitte tippe 'DELETE' zur Bestätigung."), false);
         return;
     }
 
@@ -1001,7 +998,7 @@ document.getElementById('deleteAccountBtn').addEventListener('click', function()
     })
     .then(function(res) {
         if (res.ok) {
-            alert(getLang("Account deleted.", "Konto geloescht."));
+            alert(getLang('Account deleted.', 'Konto gelöscht.'));
             window.location.href = 'index.html';
         } else {
             return res.text().then(function(msg) {
@@ -1009,7 +1006,7 @@ document.getElementById('deleteAccountBtn').addEventListener('click', function()
             });
         }
     })
-    .catch(function() { showStatus('deleteStatus', getLang('Error deleting account.', 'Fehler beim Loeschen des Kontos.'), false); });
+    .catch(function() { showStatus('deleteStatus', getLang('Error deleting account.', 'Fehler beim Löschen des Kontos.'), false); });
 });
 
 function showStatus(elementId, message, success) {
@@ -1019,5 +1016,7 @@ function showStatus(elementId, message, success) {
     setTimeout(function() { el.textContent = ''; }, 3000);
 }
     </script>
+    <!-- External Search Suggestion Script (Handles dropdown logic) -->
+    <script src="search-suggestions.js"></script>
 </body>
 </html>

@@ -96,6 +96,16 @@
             color: #555;
             margin: 0;
         }
+
+        /* --- Search Suggestions Visibility --- */
+        .search-suggestions {
+            display: none; /* Hidden by default when input is empty */
+        }
+
+        /* Show suggestions only when the search container (input) is focused/active */
+        .search-container:focus-within .search-suggestions {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -158,7 +168,7 @@ function getLang(en, de) {
     return localStorage.getItem('language') === 'de' ? de : en;
 }
 
-// Handle logo clicks
+// Handle logo clicks and UI Translation
 document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
     
@@ -203,51 +213,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('creditRuntimeLabel').textContent = getLang('Runtime', 'Laufzeitumgebung');
     document.getElementById('creditCreatedByLabel').textContent = getLang('Created by', 'Erstellt von');
 
+    // --- Search Navigation Logic ---
     const searchInput = document.getElementById('searchInput');
-    searchInput.addEventListener('input', () => {
-        const query = searchInput.value.toLowerCase();
-        fetch('/videos')
-            .then(response => response.json())
-            .then(videos => {
-                const suggestions = videos
-                    .filter(video => video.displayName.toLowerCase().includes(query))
-                    .map(video => ({
-                        title: video.displayName,
-                        fullPath: video.path
-                    }));
-
-                const suggestionsContainer = document.getElementById('searchSuggestions');
-                suggestionsContainer.innerHTML = '';
-                suggestions.forEach(suggestion => {
-                    const suggestionElement = document.createElement('div');
-                    suggestionElement.className = 'suggestion-item';
-                    suggestionElement.textContent = suggestion.title;
-                    suggestionElement.onclick = () => {
-                        window.location.href = `video.html?src=${encodeURIComponent(suggestion.fullPath)}`;
-                    };
-                    suggestionsContainer.appendChild(suggestionElement);
-
-                    suggestionElement.addEventListener('contextmenu', (event) => {
-                        event.preventDefault();
-                        window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
-                    });
-
-                    suggestionElement.addEventListener('mouseup', (event) => {
-                        if (event.button === 1) {
-                            event.preventDefault();
-                            window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
-                        }
-                    });
-                });
-            });
-    });
-
+    
+    // Enter key navigates to search page
     searchInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
             window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
         }
     });
 
+    // Search icon click navigates to search page
     document.getElementById('searchIcon').addEventListener('click', () => {
         const query = searchInput.value.trim();
         if (query) {
@@ -258,6 +234,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
     </script>
+    <!-- External Search Suggestion Script (Handles dropdown logic) -->
+    <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>
 </body>
 </html>

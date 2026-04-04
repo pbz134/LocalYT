@@ -59,6 +59,16 @@
             font-size: 14px;
             margin-left: -45px;
         }
+
+        /* --- Search Suggestions Visibility --- */
+        .search-suggestions {
+            display: none; /* Hidden by default when input is empty */
+        }
+
+        /* Show suggestions only when the search container (input) is focused/active */
+        .search-container:focus-within .search-suggestions {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -109,6 +119,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set initial translations
     document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
     document.querySelector('.loading-indicator').textContent = getLang('Loading liked videos...', 'Lade Videos...');
+
+    // --- Search Navigation Logic ---
+    const searchInput = document.getElementById('searchInput');
+    
+    searchInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
+        }
+    });
+
+    document.getElementById('searchIcon').addEventListener('click', () => {
+        const query = searchInput.value.trim();
+        if (query) {
+            window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+        } else {
+            searchInput.focus();
+        }
+    });
 });
 
 // Helper function to strip file extension for thumbnail and metadata paths
@@ -289,68 +317,10 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Error loading liked videos:', error);
         container.innerHTML = `<div class="error-message">${getLang('Error loading liked videos. Please try again.', 'Fehler beim Laden der favorisierten Videos. Bitte versuche es erneut.')}</div>`;
     });
-
-    // Search functionality
-    const searchInput = document.getElementById('searchInput');
-    searchInput.addEventListener('input', () => {
-        const query = searchInput.value.toLowerCase();
-        if (query.length < 2) {
-            document.getElementById('searchSuggestions').innerHTML = '';
-            return;
-        }
-        
-        fetch('/search-index')
-            .then(response => response.json())
-            .then(data => {
-                const videos = data.videos || [];
-                const suggestions = videos
-                    .filter(video => video.displayName.toLowerCase().includes(query))
-                    .slice(0, 5);
-
-                const suggestionsContainer = document.getElementById('searchSuggestions');
-                suggestionsContainer.innerHTML = '';
-                
-                suggestions.forEach(suggestion => {
-                    const suggestionElement = document.createElement('div');
-                    suggestionElement.className = 'suggestion-item';
-                    suggestionElement.textContent = suggestion.displayName;
-                    suggestionElement.onclick = () => {
-                        window.location.href = `video.html?src=${encodeURIComponent(suggestion.path)}`;
-                    };
-                    suggestionsContainer.appendChild(suggestionElement);
-
-                    suggestionElement.addEventListener('contextmenu', (event) => {
-                        event.preventDefault();
-                        window.open(`video.html?src=${encodeURIComponent(suggestion.path)}`, '_blank');
-                    });
-
-                    suggestionElement.addEventListener('mouseup', (event) => {
-                        if (event.button === 1) {
-                            event.preventDefault();
-                            window.open(`video.html?src=${encodeURIComponent(suggestion.path)}`, '_blank');
-                        }
-                    });
-                });
-            });
-    });
-
-    searchInput.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-            window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
-        }
-    });
-
-    // --- Search icon click ---
-    document.getElementById('searchIcon').addEventListener('click', () => {
-        const query = searchInput.value.trim();
-        if (query) {
-            window.location.href = `search.html?q=${encodeURIComponent(query)}`;
-        } else {
-            searchInput.focus();
-        }
-    });
 });
     </script>
+    <!-- External Search Suggestion Script (Handles dropdown logic) -->
+    <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>
 </body>
 </html>

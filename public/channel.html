@@ -320,6 +320,16 @@
             animation: spin 0.8s linear infinite;
             vertical-align: middle;
         }
+
+        /* --- Search Suggestions Visibility --- */
+        .search-suggestions {
+            display: none; /* Hidden by default when input is empty */
+        }
+
+        /* Show suggestions only when the search container (input) is focused/active */
+        .search-container:focus-within .search-suggestions {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -1024,31 +1034,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     history.replaceState({ tab: initialTab }, '', buildChannelUrl(channel, initialTab));
 
-    // Search functionality
+    // --- Search Navigation Logic ---
     const searchInput = document.getElementById('searchInput');
-    searchInput.addEventListener('input', () => {
-        const query = searchInput.value.toLowerCase();
-        if (query.length < 2) return;
-        fetch('/search-index')
-            .then(response => response.json())
-            .then(data => {
-                const videos = data.videos || [];
-                const suggestions = videos.filter(video => video.displayName.toLowerCase().includes(query)).slice(0, 5);
-                const suggestionsContainer = document.getElementById('searchSuggestions');
-                suggestionsContainer.innerHTML = '';
-                suggestions.forEach(video => {
-                    const suggestionElement = document.createElement('div');
-                    suggestionElement.className = 'suggestion-item';
-                    suggestionElement.textContent = video.displayName;
-                    suggestionElement.onclick = () => { window.location.href = `video.html?src=${encodeURIComponent(video.path)}`; };
-                    suggestionsContainer.appendChild(suggestionElement);
-                    suggestionElement.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank'); });
-                    suggestionElement.addEventListener('mouseup', (e) => { if (e.button === 1) { e.preventDefault(); window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank'); } });
-                });
-            });
+
+    searchInput.addEventListener('keydown', (e) => { 
+        if (e.key === 'Enter') window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`; 
     });
 
-    searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`; });
     document.getElementById('searchIcon').addEventListener('click', () => {
         const query = searchInput.value.trim();
         if (query) window.location.href = `search.html?q=${encodeURIComponent(query)}`; else searchInput.focus();
@@ -1059,6 +1051,8 @@ function openVideo(videoSrc) {
     window.location.href = `video.html?src=${videoSrc}`;
 }
     </script>
+    <!-- External Search Suggestion Script -->
+    <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>
 </body>
 </html>

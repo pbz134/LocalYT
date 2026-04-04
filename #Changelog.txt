@@ -1,6 +1,6 @@
 +++LocalYT Revamped - Changelog+++
 
-v3.85
+v3.90
 - Implemented custom user profile pictures
   - Each user is now able to upload and use their own profile picture
   - It will be displayed on all pages, removing the now deprecated "Login" button
@@ -35,6 +35,9 @@ v3.85
   - Same-named metadata files that are in both the base directory and a playlist of the same channel will now be overwritten, preventing duplicates and displaying the correct metadata
 - Optimized loading of video elements on channel.html
 - Fixed the video info alignment on liked_videos.html
+- Search suggestions are now hidden when out of focus
+- Fixed the div element on the search bar that made one of its sides thicker
+- Optimized code for search suggestions (huge speed increase)
 
 v3.80
 - Implemented advanced conditional video tagging

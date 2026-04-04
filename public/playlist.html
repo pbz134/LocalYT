@@ -111,13 +111,23 @@
             font-size: 12px;
             font-weight: bold;
         }
+
+        /* --- Search Suggestions Visibility --- */
+        .search-suggestions {
+            display: none; /* Hidden by default when input is empty */
+        }
+
+        /* Show suggestions only when the search container (input) is focused/active */
+        .search-container:focus-within .search-suggestions {
+            display: block;
+        }
     </style>
 </head>
 <body>
     <header class="top-bar">
         <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
         <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Search">
+            <input type="text" id="searchInput" placeholder="">
             <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
@@ -142,9 +152,13 @@
     <div class="playlist-videos" id="playlistVideosContainer"></div>
 
     <script>
+// --- Language Helper ---
+function getLang(en, de) {
+    return localStorage.getItem('language') === 'de' ? de : en;
+}
+
 // Natural sorting function for videos with numbers in titles
 function naturalCompare(a, b) {
-    // Helper function to extract numbers from video titles
     const extractNumbers = (str) => {
         return (str.match(/\d+/g) || []).map(num => parseInt(num, 10));
     };
@@ -152,7 +166,6 @@ function naturalCompare(a, b) {
     const numsA = extractNumbers(a.displayName);
     const numsB = extractNumbers(b.displayName);
 
-    // Compare number by number
     for (let i = 0; i < Math.max(numsA.length, numsB.length); i++) {
         const numA = i < numsA.length ? numsA[i] : 0;
         const numB = i < numsB.length ? numsB[i] : 0;
@@ -162,11 +175,10 @@ function naturalCompare(a, b) {
         }
     }
     
-    // If all numbers match, fall back to string comparison
     return a.displayName.localeCompare(b.displayName);
 }
 
-// Handle logo clicks
+// Handle logo clicks and initial translations
 document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
     
@@ -192,165 +204,147 @@ document.addEventListener('DOMContentLoaded', () => {
         mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
         mainLogo.style.cursor = 'pointer';
     }
+
+    // --- Search Navigation Logic ---
+    const searchInput = document.getElementById('searchInput');
+    searchInput.placeholder = getLang('Search', 'Suchen');
+
+    searchInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
+        }
+    });
+
+    document.getElementById('searchIcon').addEventListener('click', () => {
+        const query = searchInput.value.trim();
+        if (query) {
+            window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+        } else {
+            searchInput.focus();
+        }
+    });
 });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const channel = decodeURIComponent(urlParams.get('channel'));
-            const playlist = decodeURIComponent(urlParams.get('playlist'));
-            const playlistTitle = document.getElementById('playlistTitle');
-            const playlistInfo = document.getElementById('playlistInfo');
-            const videosContainer = document.getElementById('playlistVideosContainer');
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const channel = decodeURIComponent(urlParams.get('channel'));
+    const playlist = decodeURIComponent(urlParams.get('playlist'));
+    const playlistTitle = document.getElementById('playlistTitle');
+    const playlistInfo = document.getElementById('playlistInfo');
+    const videosContainer = document.getElementById('playlistVideosContainer');
 
-            // Elements for Channel Header
-            const channelBanner = document.getElementById('channelBanner');
-            const channelPic = document.getElementById('channelPic');
-            const channelName = document.getElementById('channelName');
+    // Elements for Channel Header
+    const channelBanner = document.getElementById('channelBanner');
+    const channelPic = document.getElementById('channelPic');
+    const channelName = document.getElementById('channelName');
 
-            // Set Channel Info
-            channelBanner.style.backgroundImage = `url('/channelbanner/${encodeURIComponent(channel)}.jpg')`;
-            channelPic.src = `/channelpic/${encodeURIComponent(channel)}.jpg`;
-            
-            // Make channel picture clickable
-            channelPic.addEventListener('click', () => {
-                window.location.href = `channel.html?channel=${encodeURIComponent(channel)}`;
-            });
+    // Set Channel Info
+    channelBanner.style.backgroundImage = `url('/channelbanner/${encodeURIComponent(channel)}.jpg')`;
+    channelPic.src = `/channelpic/${encodeURIComponent(channel)}.jpg`;
+    
+    // Make channel picture clickable
+    channelPic.addEventListener('click', () => {
+        window.location.href = `channel.html?channel=${encodeURIComponent(channel)}`;
+    });
 
-            // Fetch Subscriber Count
-            fetch(`/subcount/${encodeURIComponent(channel)}`)
-                .then(response => response.ok ? response.text() : '0')
-                .then(subCount => {
-                    channelName.innerHTML = `${channel}<span class="video-count">${subCount} subscribers</span>`;
-                })
-                .catch(() => {
-                    channelName.textContent = channel;
-                });
-
-            playlistTitle.textContent = playlist;
-            document.title = `${playlist} - ${channel} - LocalYT`;
-
-            fetch(`/playlist-videos/${encodeURIComponent(channel)}/${encodeURIComponent(playlist)}`)
-                .then(response => response.json())
-                .then(videos => {
-                    // Sort videos using natural comparison for proper numeric ordering
-                    videos.sort(naturalCompare);
-                    
-                    playlistInfo.textContent = `${videos.length} videos`;
-                    
-                    videos.forEach(video => {
-                        const videoElement = document.createElement('div');
-                        videoElement.className = 'video-item';
-                        const videoTitle = video.displayName;
-                        const thumbnailSrc = `/thumbnails/${encodeURIComponent(video.path.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, ''))}.jpg`;
-                        
-                        videoElement.innerHTML = `
-                            <div class="thumbnail-container">
-                                <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
-                                <div class="video-length"></div>
-                            </div>
-                            <div class="video-title">${videoTitle}</div>
-                            <div class="video-description">${video.viewCount} views • Uploaded on ${video.fileDate}</div>
-                        `;
-                        
-                        videosContainer.appendChild(videoElement);
-
-                        // --- Click Handlers ---
-                        const videoThumb = videoElement.querySelector('.video-thumbnail');
-                        const videoLink = videoElement.querySelector('.video-title');
-                        
-                        // Construct URL with playlist parameter
-                        const encodedPath = encodeURIComponent(video.path);
-                        const videoUrl = `video.html?src=${encodedPath}&playlist=${encodeURIComponent(playlist)}`;
-
-                        // Left click
-                        const openHandler = () => { window.location.href = videoUrl; };
-                        
-                        videoThumb.addEventListener('click', openHandler);
-                        videoLink.addEventListener('click', openHandler);
-
-                        // Middle click (Mouse wheel)
-                        const handleMiddleClick = (e) => {
-                            if (e.button === 1) {
-                                e.preventDefault();
-                                window.open(videoUrl, '_blank');
-                            }
-                        };
-                        
-                        videoThumb.addEventListener('mouseup', handleMiddleClick);
-                        videoThumb.addEventListener('auxclick', handleMiddleClick);
-                        videoLink.addEventListener('mouseup', handleMiddleClick);
-                        videoLink.addEventListener('auxclick', handleMiddleClick);
-
-                        // Right click
-                        const handleRightClick = (e) => {
-                            e.preventDefault();
-                            window.open(videoUrl, '_blank');
-                        };
-                        
-                        videoThumb.addEventListener('contextmenu', handleRightClick);
-                        videoLink.addEventListener('contextmenu', handleRightClick);
-
-                        // Get video length
-                        fetch(`/videolengths/${channel}/${encodeURIComponent(video.path.split('/').pop().replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, ''))}.txt`)
-                            .then(response => response.text())
-                            .then(length => {
-                                videoElement.querySelector('.video-length').textContent = length;
-                            })
-                            .catch(error => {
-                                console.error('Error fetching video length:', error);
-                            });
-                    });
-                })
-                .catch(error => {
-                    console.error('Error fetching playlist videos:', error);
-                    videosContainer.innerHTML = '<p style="color: #888;">Error loading playlist videos</p>';
-                });
-
-            // Search functionality
-            const searchInput = document.getElementById('searchInput');
-            searchInput.addEventListener('input', () => {
-                const query = searchInput.value.toLowerCase();
-                fetch('/videos')
-                    .then(response => response.json())
-                    .then(videos => {
-                        const suggestions = videos
-                            .filter(video => video.displayName.toLowerCase().includes(query))
-                            .map(video => ({
-                                title: video.displayName,
-                                fullPath: video.path
-                            }));
-
-                        const suggestionsContainer = document.getElementById('searchSuggestions');
-                        suggestionsContainer.innerHTML = '';
-                        suggestions.forEach(suggestion => {
-                            const suggestionElement = document.createElement('div');
-                            suggestionElement.className = 'suggestion-item';
-                            suggestionElement.textContent = suggestion.title;
-                            suggestionElement.onclick = () => {
-                                window.location.href = `video.html?src=${encodeURIComponent(suggestion.fullPath)}`;
-                            };
-                            suggestionsContainer.appendChild(suggestionElement);
-                        });
-                    });
-            });
-
-            searchInput.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
-                    window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
-                }
-            });
-
-            // --- Search icon click ---
-            document.getElementById('searchIcon').addEventListener('click', () => {
-                const query = searchInput.value.trim();
-                if (query) {
-                    window.location.href = `search.html?q=${encodeURIComponent(query)}`;
-                } else {
-                    searchInput.focus();
-                }
-            });
+    // Fetch Subscriber Count
+    fetch(`/subcount/${encodeURIComponent(channel)}`)
+        .then(response => response.ok ? response.text() : '0')
+        .then(subCount => {
+            let formattedSubCount = parseInt(subCount).toLocaleString();
+            if (localStorage.getItem('language') === 'de') {
+                formattedSubCount = formattedSubCount.replace(/,/g, '.');
+            }
+            channelName.innerHTML = `${channel}<span class="video-count">${formattedSubCount} ${getLang('subscribers', 'Abonnenten')}</span>`;
+        })
+        .catch(() => {
+            channelName.textContent = channel;
         });
+
+    playlistTitle.textContent = playlist;
+    document.title = `${playlist} - ${channel} - LocalYT`;
+
+    fetch(`/playlist-videos/${encodeURIComponent(channel)}/${encodeURIComponent(playlist)}`)
+        .then(response => response.json())
+        .then(videos => {
+            videos.sort(naturalCompare);
+            
+            playlistInfo.textContent = `${videos.length} ${getLang('videos', 'Videos')}`;
+            
+            videos.forEach(video => {
+                const videoElement = document.createElement('div');
+                videoElement.className = 'video-item';
+                const videoTitle = video.displayName;
+                const thumbnailSrc = `/thumbnails/${encodeURIComponent(video.path.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, ''))}.jpg`;
+
+                // Format view count for current language
+                let formattedViewCount = parseInt(video.viewCount || 0).toLocaleString();
+                if (localStorage.getItem('language') === 'de') {
+                    formattedViewCount = formattedViewCount.replace(/,/g, '.');
+                }
+
+                videoElement.innerHTML = `
+                    <div class="thumbnail-container">
+                        <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
+                        <div class="video-length"></div>
+                    </div>
+                    <div class="video-title">${videoTitle}</div>
+                    <div class="video-description">${formattedViewCount} ${getLang('views', 'Aufrufe')} • ${getLang('Uploaded on', 'Hochgeladen am')} ${video.fileDate}</div>
+                `;
+                
+                videosContainer.appendChild(videoElement);
+
+                // --- Click Handlers ---
+                const videoThumb = videoElement.querySelector('.video-thumbnail');
+                const videoLink = videoElement.querySelector('.video-title');
+                
+                const encodedPath = encodeURIComponent(video.path);
+                const videoUrl = `video.html?src=${encodedPath}&playlist=${encodeURIComponent(playlist)}`;
+
+                const openHandler = () => { window.location.href = videoUrl; };
+                
+                videoThumb.addEventListener('click', openHandler);
+                videoLink.addEventListener('click', openHandler);
+
+                const handleMiddleClick = (e) => {
+                    if (e.button === 1) {
+                        e.preventDefault();
+                        window.open(videoUrl, '_blank');
+                    }
+                };
+                
+                videoThumb.addEventListener('mouseup', handleMiddleClick);
+                videoThumb.addEventListener('auxclick', handleMiddleClick);
+                videoLink.addEventListener('mouseup', handleMiddleClick);
+                videoLink.addEventListener('auxclick', handleMiddleClick);
+
+                const handleRightClick = (e) => {
+                    e.preventDefault();
+                    window.open(videoUrl, '_blank');
+                };
+                
+                videoThumb.addEventListener('contextmenu', handleRightClick);
+                videoLink.addEventListener('contextmenu', handleRightClick);
+
+                // Get video length
+                fetch(`/videolengths/${channel}/${encodeURIComponent(video.path.split('/').pop().replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, ''))}.txt`)
+                    .then(response => response.text())
+                    .then(length => {
+                        videoElement.querySelector('.video-length').textContent = length;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching video length:', error);
+                    });
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching playlist videos:', error);
+            videosContainer.innerHTML = `<p style="color: #888;">${getLang('Error loading playlist videos', 'Fehler beim Laden der Playlist-Videos')}</p>`;
+        });
+});
     </script>
+    <!-- External Search Suggestion Script (Handles dropdown logic) -->
+    <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>
 </body>
 </html>
