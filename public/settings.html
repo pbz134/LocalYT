@@ -526,13 +526,13 @@
         <div class="tab-panel" id="tab-settings">
             <h1 id="settingsHeading">Settings</h1>
 
-            <!-- Autoplay Section (NEW) -->
+            <!-- Autoplay Section -->
             <div class="settings-section">
                 <h2 id="autoplayHeading">Autoplay Settings</h2>
 
                 <div class="setting-row">
                     <div class="setting-label">
-                        <div>Enable Autoplay</div>
+                        <div id="autoplayEnabledLabel">Enable Autoplay</div>
                         <div class="setting-description" id="autoplayDesc">Automatically play the next video when the current one ends</div>
                     </div>
                     <div class="setting-control">
@@ -546,7 +546,7 @@
                 <div class="autoplay-sub-options" id="autoplaySubOptions">
                     <div class="setting-row">
                         <div class="setting-label">
-                            <div>Autoplay next video in playlist</div>
+                            <div id="playlistAutoplayLabel">Autoplay next video in playlist</div>
                             <div class="setting-description" id="playlistAutoplayDesc">When watching a playlist, automatically play the next video in sequence</div>
                         </div>
                         <div class="setting-control">
@@ -559,7 +559,7 @@
 
                     <div class="setting-row">
                         <div class="setting-label">
-                            <div>Autoplay behavior when not in a playlist</div>
+                            <div id="nonPlaylistModeLabel">Autoplay behavior when not in a playlist</div>
                             <div class="setting-description" id="nonPlaylistDesc">Choose what happens after a video ends when you're not watching a playlist</div>
                         </div>
                         <div class="setting-control">
@@ -697,9 +697,12 @@ function applyTranslations() {
     // Settings tab
     document.getElementById('settingsHeading').textContent = getLang('Account', 'Konto');
     
-    // Autoplay Section (NEW)
+    // Autoplay Section
     document.getElementById('autoplayHeading').textContent = getLang('Autoplay Settings', 'Automatische Wiedergabe-Einstellungen');
     document.getElementById('autoplayDesc').textContent = getLang('Automatically play the next video when the current one ends', 'Automatisch das nächste Video abspielen, wenn das aktuelle endet');
+    document.getElementById('autoplayEnabledLabel').textContent = getLang('Enable Autoplay', 'Automatische Wiedergabe aktivieren');
+    document.getElementById('playlistAutoplayLabel').textContent = getLang('Autoplay next video in playlist', 'Nächstes Video in Playlist abspielen');
+    document.getElementById('nonPlaylistModeLabel').textContent = getLang('Autoplay behavior when not in a playlist', 'Verhalten bei autom. Wiedergabe außerhalb von Playlists');
     document.getElementById('playlistAutoplayDesc').textContent = getLang('When watching a playlist, automatically play the next video in sequence', 'Beim Ansehen einer Playlist automatisch das nächste Video abspielen');
     document.getElementById('nonPlaylistDesc').textContent = getLang("Choose what happens after a video ends when you're not watching a playlist", 'Wähle, was passiert, wenn ein Video endet und du keine Playlist ansiehst');
     
@@ -828,7 +831,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==============================
-// Autoplay Settings Logic (NEW)
+// Autoplay Settings Logic
 // ==============================
 function initAutoplayUI() {
     const autoplayEnabled = document.getElementById('autoplayEnabled');
