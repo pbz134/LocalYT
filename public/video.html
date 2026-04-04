@@ -1543,6 +1543,19 @@ document.addEventListener('click', function(e) {
                             const isCurrent = decodeURIComponent(videoSrc) === video.path;
                             renderSuggestionItem(video, playlistContainer, playlistName, isCurrent);
                             playlistVideoCount++;
+
+                            // Auto-focus on the currently playing video in the sidebar (runs once on load)
+                            if (isCurrent) {
+                                requestAnimationFrame(() => {
+                                    const currentItem = playlistContainer.querySelector('.current-video-item');
+                                    if (currentItem) {
+                                        currentItem.scrollIntoView({ 
+                                            behavior: 'smooth', 
+                                            block: 'center' 
+                                        });
+                                    }
+                                });
+                            }
                         });
                     })
                     .catch(err => console.error("Error loading playlist sidebar", err));

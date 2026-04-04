@@ -38,6 +38,7 @@ v3.90
 - Search suggestions are now hidden when out of focus
 - Fixed the div element on the search bar that made one of its sides thicker
 - Optimized code for search suggestions (huge speed increase)
+- The playlist queue on video.html now auto-focuses on the current video inside the list
 
 v3.80
 - Implemented advanced conditional video tagging
