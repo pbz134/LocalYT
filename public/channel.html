@@ -40,6 +40,32 @@
             display: block;
             margin-top: 5px;
         }
+        .channel-header-right {
+            display: flex;
+            align-items: center;
+            margin-left: auto;
+            padding-right: 50px;
+        }
+        .subscribe-button {
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            font-size: 14px;
+            color: #fff;
+            background-color: red;
+            border: none;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+        .subscribe-button:hover {
+            background-color: #c40000;
+        }
+        .subscribe-button.subscribed {
+            background-color: darkgray;
+        }
+        .subscribe-button.subscribed:hover {
+            background-color: #999;
+        }
         .tabs {
             display: flex;
             margin-left: 230px;
@@ -345,6 +371,9 @@
     <div class="channel-header">
         <img id="channelPic" class="channel-pic" alt="Channel Picture" loading="lazy">
         <div id="channelName" class="channel-name"></div>
+        <div class="channel-header-right">
+            <button id="subscribeButton" class="subscribe-button">Subscribe</button>
+        </div>
     </div>
 
     <!-- Tabs -->
@@ -471,6 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingSpinner = document.getElementById('loadingSpinner');
     const loadMoreTrigger = document.getElementById('loadMoreTrigger');
     const noMoreVideos = document.getElementById('noMoreVideos');
+    const subscribeButton = document.getElementById('subscribeButton');
 
     let currentVideos = [];
     let sortNewestFirst = true;
@@ -478,6 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isLoadingMore = false;
     let hasMoreVideos = true;
     let intersectionObserver = null;
+    let isSubscribed = false;
 
     // Track which tabs have already been loaded
     const loadedTabs = new Set();
@@ -486,6 +517,40 @@ document.addEventListener('DOMContentLoaded', () => {
     channelPic.src = `/channelpic/${encodeURIComponent(channel)}.jpg`;
     channelName.textContent = channel;
     document.title = `${channel} - LocalYT`;
+
+    // --- Subscribe Button Logic ---
+    function updateSubscribeButton() {
+        if (isSubscribed) {
+            subscribeButton.textContent = getLang('Subscribed', 'Abonniert');
+            subscribeButton.classList.add('subscribed');
+        } else {
+            subscribeButton.textContent = getLang('Subscribe', 'Abonnieren');
+            subscribeButton.classList.remove('subscribed');
+        }
+    }
+
+    subscribeButton.addEventListener('click', () => {
+        isSubscribed = !isSubscribed;
+        updateSubscribeButton();
+
+        fetch('/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ channel: channel, isSubscribed })
+        });
+    });
+
+    // Fetch initial subscription status
+    fetch(`/user-subscriptions/${encodeURIComponent(channel)}`)
+        .then(response => response.ok ? response.json() : {})
+        .then(userSubscriptions => {
+            isSubscribed = userSubscriptions[channel] || false;
+            updateSubscribeButton();
+        })
+        .catch(error => {
+            console.error('Error fetching user subscriptions:', error);
+            updateSubscribeButton();
+        });
 
     // --- UI Translation ---
     function updateUITranslations() {
@@ -502,6 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('aboutStatsHeader').textContent = getLang('Stats', 'Statistiken');
         document.getElementById('shareBtnText').textContent = getLang('Share', 'Teilen');
         document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
+        updateSubscribeButton();
     }
     updateUITranslations();
 
