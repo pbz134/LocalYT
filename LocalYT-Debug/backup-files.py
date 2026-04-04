@@ -1,6 +1,7 @@
 import os
 import shutil
 import zipfile
+import json
 from datetime import datetime
 
 # Define the files to back up
@@ -29,6 +30,36 @@ METADATA_EXTENSIONS = {'.png', '.txt', '.jpg', '.json'}
 EXCLUDED_DIRS = {'node_modules', 'venv'}
 
 
+def get_config_path():
+    """Get the path to the external config file (stored next to the script)."""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(script_dir, "backup_config.json")
+
+
+def load_config():
+    """Load the configuration file, returning None if it doesn't exist yet."""
+    config_path = get_config_path()
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return None
+    return None
+
+
+def save_config(config):
+    """Save the configuration dictionary to the external config file."""
+    config_path = get_config_path()
+    try:
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=4)
+        return True
+    except IOError as e:
+        print(f"[ERROR] Failed to save config file: {e}")
+        return False
+
+
 def get_script_and_root_paths():
     """Get the script directory and server root (parent directory)."""
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -36,8 +67,8 @@ def get_script_and_root_paths():
     return script_dir, server_root
 
 
-def get_output_directory():
-    """Ask user for an output directory path, create if needed."""
+def prompt_for_new_path():
+    """The original logic: ask user for an output directory path, create if needed."""
     while True:
         dest_path = input("\nEnter the full path where you want to save the backup: ").strip()
         dest_path = dest_path.rstrip(os.sep)
@@ -63,6 +94,43 @@ def get_output_directory():
                 return dest_path
             else:
                 print(f"Error: '{dest_path}' exists but is a file, not a directory. Please try again.")
+
+
+def get_output_directory():
+    """Determine output path. Use config if available, otherwise ask manually."""
+    config = load_config()
+    
+    # If config doesn't exist, fallback to the original manual prompt
+    if not config:
+        return prompt_for_new_path(), False # False indicates it's a new, unsaved path
+    
+    saved_paths = config.get("saved_paths", [])
+    
+    # Fallback just in case config exists but is empty/corrupted
+    if not saved_paths:
+        return prompt_for_new_path(), False
+
+    # We have saved paths! Let the user pick one quickly.
+    while True:
+        print("\n--- Select Output Directory ---")
+        print("Saved paths (or press 'N' to enter a new path manually):")
+        for i, path in enumerate(saved_paths, 1):
+            exists_tag = "[Exists]" if os.path.exists(path) else "[Missing]"
+            print(f"  {i}. {path} {exists_tag}")
+        
+        choice = input("\nChoose an option: ").strip().lower()
+        
+        if choice == 'n':
+            return prompt_for_new_path(), False
+            
+        if choice.isdigit():
+            index = int(choice) - 1
+            if 0 <= index < len(saved_paths):
+                return saved_paths[index], True # True indicates it came from config
+            else:
+                print("Invalid selection. Please try again.")
+        else:
+            print("Invalid input. Please enter a number or 'N'.")
 
 
 def get_input_file():
@@ -94,7 +162,6 @@ def backup_user_files(server_root, dest_path):
     success_count = 0
     skip_count = 0
 
-    # --- Backup Files ---
     for filename in FILES_TO_BACKUP:
         source_file = os.path.join(server_root, filename)
         dest_file = os.path.join(dest_path, filename)
@@ -110,7 +177,6 @@ def backup_user_files(server_root, dest_path):
             print(f"[SKIP] File not found at root: {filename}")
             skip_count += 1
 
-    # --- Backup Directories ---
     for dirname in DIRS_TO_BACKUP:
         source_dir = os.path.join(server_root, dirname)
         dest_dir = os.path.join(dest_path, dirname)
@@ -133,12 +199,7 @@ def backup_user_files(server_root, dest_path):
 
 
 def backup_metadata_files(server_root, dest_path):
-    """Recursively scan server root for metadata files and create a ZIP preserving folder structure.
-    
-    - Only includes files that are INSIDE subdirectories (no loose files at base level)
-    - Excludes node_modules and venv directories (including Algorithm/venv)
-    """
-    # Normalize server root for reliable comparison (no trailing separator)
+    """Recursively scan server root for metadata files and create a ZIP preserving folder structure."""
     server_root_norm = os.path.normpath(server_root)
     
     print(f"\nScanning for metadata files in: {server_root_norm}")
@@ -148,31 +209,23 @@ def backup_metadata_files(server_root, dest_path):
     found_files = []
     skipped_root_files = []
     
-    # Recursively walk through the server root directory
     for current_root, dirs, files in os.walk(server_root_norm):
-        # Determine if we're at the root level using normalized paths
         is_root_level = (os.path.normpath(current_root) == server_root_norm)
-        
-        # Filter out excluded directories IN-PLACE to prevent descending into them
         dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
         
         for filename in files:
-            # Check if file has a metadata extension
             _, ext = os.path.splitext(filename)
             
             if ext.lower() in METADATA_EXTENSIONS:
                 full_path = os.path.join(current_root, filename)
                 
-                # SKIP ALL files at root/base level (only include files inside subdirectories)
                 if is_root_level:
                     skipped_root_files.append(filename)
                     continue
                 
-                # Get relative path from server root to preserve structure
                 rel_path = os.path.relpath(full_path, server_root_norm)
                 found_files.append((full_path, rel_path))
     
-    # Report skipped root-level files
     if skipped_root_files:
         print(f"\n[INFO] Skipped {len(skipped_root_files)} base-level file(s):")
         for f in sorted(skipped_root_files):
@@ -184,7 +237,6 @@ def backup_metadata_files(server_root, dest_path):
     
     print(f"\nFound {len(found_files)} metadata file(s) inside folders to archive.")
     
-    # Create timestamped zip filename
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     zip_filename = f"metadata_backup_{timestamp}.zip"
     zip_filepath = os.path.join(dest_path, zip_filename)
@@ -192,7 +244,6 @@ def backup_metadata_files(server_root, dest_path):
     try:
         with zipfile.ZipFile(zip_filepath, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for full_path, rel_path in found_files:
-                # Write file to zip with relative path to preserve folder structure
                 zipf.write(full_path, rel_path)
                 print(f"[OK] Added: {rel_path}")
                 
@@ -206,19 +257,16 @@ def backup_metadata_files(server_root, dest_path):
 
 def reapply_backup_zip(server_root, zip_filepath):
     """Extract a backup ZIP file to the server root, preserving structure."""
-    # Normalize server root
     server_root_norm = os.path.normpath(server_root)
     
     print(f"\nReapplying backup from: {zip_filepath}")
     print(f"Target directory: {server_root_norm}")
     
-    # First, show what's in the zip
     try:
         with zipfile.ZipFile(zip_filepath, 'r') as zipf:
             file_list = zipf.namelist()
             print(f"\nZIP contains {len(file_list)} item(s):")
             
-            # Show first few items as preview
             preview_count = min(10, len(file_list))
             for i in range(preview_count):
                 print(f"  - {file_list[i]}")
@@ -237,7 +285,6 @@ def reapply_backup_zip(server_root, zip_filepath):
             
             for item in file_list:
                 try:
-                    # Extract to server root, preserving structure
                     zipf.extract(item, server_root_norm)
                     success_count += 1
                 except Exception as e:
@@ -264,7 +311,6 @@ def main():
     print(f"\nScript location : {script_dir}")
     print(f"Server root     : {server_root}")
     
-    # Main menu
     print("\n" + "-" * 50)
     print("Select an option:")
     print("  1. Back up User Files (JSON data + folders)")
@@ -280,20 +326,26 @@ def main():
             print("Goodbye!")
             break
             
-        elif choice == '1':
-            # Backup user files - ask for output directory first
-            dest_path = get_output_directory()
-            backup_user_files(server_root, dest_path)
-            break
+        elif choice in ['1', '2']:
+            # Get path and a flag indicating if it was fetched from an existing config
+            dest_path, was_from_config = get_output_directory()
             
-        elif choice == '2':
-            # Backup metadata files - ask for output directory first
-            dest_path = get_output_directory()
-            backup_metadata_files(server_root, dest_path)
+            if choice == '1':
+                backup_user_files(server_root, dest_path)
+            else:
+                backup_metadata_files(server_root, dest_path)
+            
+            # Post-backup logic: Ask to save the path ONLY if it wasn't already loaded from config
+            if not was_from_config:
+                save_it = input(f"\nSave '{dest_path}' to config for future quick access? (y/n): ").strip().lower()
+                if save_it == 'y':
+                    new_config = {"saved_paths": [dest_path]}
+                    if save_config(new_config):
+                        print("Path saved! Future backups will offer this path automatically.")
+                        
             break
             
         elif choice == '3':
-            # Reapply backup - ask for input zip file first
             zip_filepath = get_input_file()
             reapply_backup_zip(server_root, zip_filepath)
             break
