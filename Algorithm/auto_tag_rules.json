@@ -1,6 +1,13 @@
 {
   "auto_tag_rules": [
     {
+      "name": "Genshin Impact Rule",
+      "match_type": "contains",
+      "match_value": "Genshin",
+      "case_sensitive": false,
+      "tags": ["Genshin Impact", "Gaming"]
+    },
+    {
       "name": "MMD Rule",
       "match_type": "contains",
       "match_value": "MMD",
