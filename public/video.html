@@ -2369,36 +2369,33 @@ function createSidebarAutoplayToggle(container, playlistName) {
     container.insertBefore(toggleDiv, container.firstChild);
     
     // Load current state from localStorage
-    const settings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
-    checkbox.checked = settings.enabled || false;
+    let currentSettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
     
-    // Handle toggle changes
+    // Apply defaults ONLY if properties don't exist yet (first time ever)
+    if (currentSettings.enabled === undefined) currentSettings.enabled = false;
+    if (currentSettings.playlistNext === undefined) currentSettings.playlistNext = true;
+    if (currentSettings.nonPlaylistMode === undefined) currentSettings.nonPlaylistMode = 'first-recommended';
+    
+    // Set initial checkbox state
+    checkbox.checked = currentSettings.enabled;
+    
+    // Handle toggle changes - ONLY switches enabled on/off, preserves mode!
     checkbox.addEventListener('change', () => {
-        // CRITICAL: Read fresh from localStorage to avoid overwriting other changes
-        let currentSettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
+        // Re-read to ensure we have absolute latest (in case settings page was open in another tab)
+        currentSettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
         
-        if (checkbox.checked) {
-            // --- ENABLED ---
-            currentSettings.enabled = true;
-            
-            if (playlistName) {
-                // In playlist: Ensure next-in-playlist is ON
-                currentSettings.playlistNext = true; 
-            } else {
-                // NOT in playlist: STRICTLY FORCE 'first-recommended'
-                // This overrides any previous 'random' setting from settings.html
-                currentSettings.nonPlaylistMode = 'first-recommended';
-            }
-        } else {
-            // --- DISABLED ---
-            currentSettings.enabled = false;
-        }
+        // Re-apply defaults if somehow missing
+        if (currentSettings.nonPlaylistMode === undefined) currentSettings.nonPlaylistMode = 'first-recommended';
+        if (currentSettings.playlistNext === undefined) currentSettings.playlistNext = true;
+        
+        // Simply flip the enabled flag - DO NOT touch nonPlaylistMode or playlistNext!
+        currentSettings.enabled = checkbox.checked;
         
         // Save immediately
         localStorage.setItem('autoplaySettings', JSON.stringify(currentSettings));
         
-        // Debug verification
-        console.log('[Sidebar Toggle] Saved Settings:', JSON.stringify(currentSettings));
+        console.log('[Sidebar Toggle] Autoplay ' + (checkbox.checked ? 'ENABLED' : 'DISABLED') + 
+                    '. Mode preserved: ' + currentSettings.nonPlaylistMode);
     });
     
     // Allow clicking the text label to toggle as well

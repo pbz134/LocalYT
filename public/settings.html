@@ -851,32 +851,30 @@ function initAutoplayUI() {
 }
 
 function loadAutoplaySettings() {
+    // Load from localStorage or use defaults
     const savedSettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
     
-    // Defaults MUST match what the sidebar toggle expects
+    // These are the TRUE defaults for first-time users
     const defaults = {
         enabled: false,
         playlistNext: true,
-        nonPlaylistMode: 'first-recommended' 
+        nonPlaylistMode: 'first-recommended'  // Standard behavior for new users
     };
 
-    // Merge saved settings over defaults
-    let settings = { ...defaults, ...savedSettings };
-
-    // SAFETY CHECK: If the mode is somehow invalid/missing/null, force it back to first-recommended
+    // Merge: saved settings override defaults, but we ensure all keys exist
+    const settings = { ...defaults, ...savedSettings };
+    
+    // Safety check: If mode is invalid/corrupted, reset to standard default
     const validModes = ['first-recommended', 'random-recommended', 'random-database'];
     if (!validModes.includes(settings.nonPlaylistMode)) {
-        console.warn('[Settings] Invalid mode detected, resetting to first-recommended');
         settings.nonPlaylistMode = 'first-recommended';
-        // Save the correction back to localStorage so video.html doesn't read bad data
-        localStorage.setItem('autoplaySettings', JSON.stringify(settings));
     }
 
     document.getElementById('autoplayEnabled').checked = settings.enabled;
     document.getElementById('autoplayPlaylistNext').checked = settings.playlistNext;
     document.getElementById('autoplayNonPlaylistMode').value = settings.nonPlaylistMode;
 
-    // Update visibility of sub-options
+    // Update visibility of sub-options based on main toggle
     const subOptions = document.getElementById('autoplaySubOptions');
     if (settings.enabled) {
         subOptions.classList.add('visible');
