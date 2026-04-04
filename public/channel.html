@@ -172,6 +172,7 @@
             margin-top: -4px;
             margin-left: -10px;
             color: #888;
+            min-height: 1.5em; /* Prevent layout shift */
         }
         .playlist-video-count {
             text-align: left;
@@ -488,8 +489,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         document.getElementById('aboutDescriptionHeader').textContent = getLang('Description', 'Beschreibung');
-        
-        // Add these two lines here:
         document.getElementById('aboutStatsHeader').textContent = getLang('Stats', 'Statistiken');
         document.getElementById('shareBtnText').textContent = getLang('Share', 'Teilen');
         document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
@@ -603,22 +602,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const videoPathWithoutExt = stripExtension(video.path);
         const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
 
+        // 1. Create HTML structure immediately. 
+        // Note: video.fileDate is already loaded (needed for sorting), so we can show it instantly.
+        // View count is not loaded yet, so we leave description empty or with loading text.
+        let formattedDate = video.fileDate;
+        
         videoElement.innerHTML = `
             <div class="thumbnail-container">
                 <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
                 <div class="video-length"></div>
             </div>
             <div class="video-title" onclick="openVideo('${encodeURIComponent(video.path)}')">${videoTitle}</div>
-            <div class="video-description"></div>
+            <div class="video-description">${getLang('Loading views...', 'Aufrufe werden geladen...')}</div>
         `;
 
         const descriptionDiv = videoElement.querySelector('.video-description');
 
+        // 2. Lazy Load "View Count" and "Video Length" asynchronously
+        // We use Promise.all to wait for both, but we don't block the UI creation.
         Promise.all([
             fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(response => response.ok ? response.text() : '0'),
-            fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(response => response.ok ? response.text() : 'Unknown date')
+            fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoPathWithoutExt.split('/').pop())}.txt`).then(response => response.ok ? response.text() : '')
         ])
-        .then(([viewCount, fileDate]) => {
+        .then(([viewCount, videoLength]) => {
             let formattedViewCount = viewCount;
             if (!isNaN(viewCount) && viewCount !== '0') {
                 formattedViewCount = parseInt(viewCount).toLocaleString();
@@ -634,27 +640,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 formattedViewCount = formattedViewCount.replace(/,/g, '.');
             }
 
-            descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${fileDate}`;
+            // Update description
+            descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${video.fileDate}`;
+            
+            // Update length
+            if (videoLength) {
+                videoElement.querySelector('.video-length').textContent = videoLength;
+            }
         })
         .catch(() => {
-            descriptionDiv.textContent = 'Views unavailable';
+            descriptionDiv.textContent = `${video.fileDate}`;
         });
 
-        const videoFilename = video.path.split('/').pop();
-        const videoNameWithoutExt = stripExtension(videoFilename);
-        fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
-            .then(response => response.ok ? response.text() : '')
-            .then(length => {
-                videoElement.querySelector('.video-length').textContent = length;
-            })
-            .catch(() => {});
-
+        // Click handlers
         const videoLink = videoElement.querySelector('.video-title');
         const videoThumb = videoElement.querySelector('.video-thumbnail');
 
         videoThumb.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
-        videoLink.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
-
+        
         videoThumb.addEventListener('contextmenu', (event) => {
             event.preventDefault();
             window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
@@ -696,6 +699,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingSpinner.classList.add('visible');
         noMoreVideos.style.display = 'none';
 
+        // Use requestAnimationFrame to ensure smooth rendering
         requestAnimationFrame(() => {
             const fragment = document.createDocumentFragment();
 
@@ -748,10 +752,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ==========================================
-    // OPTIMIZED PLAYLIST LOADING LOGIC
-    // ==========================================
-
     function loadPlaylists() {
         playlistsContainer.innerHTML = '<div class="tab-loading-placeholder">' + getLang('Loading playlists', 'Lade Playlisten...') + '</div>';
 
@@ -780,7 +780,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const playlistElement = document.createElement('div');
             playlistElement.className = 'playlist-item';
 
-            // 1. Create DOM structure immediately with placeholder
             playlistElement.innerHTML = `
                 <div class="playlist-thumbnail" style="background-color: #333;">
                     <div class="playlist-overlay">${playlist.videoCount || 0} ${videosText}</div>
@@ -789,30 +788,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="playlist-video-count">${playlist.videoCount || 0} ${videosText}</div>
             `;
 
-            // 2. Add Click Handler
             playlistElement.addEventListener('click', () => {
                 window.location.href = `playlist.html?channel=${encodeURIComponent(channel)}&playlist=${encodeURIComponent(playlist.path)}`;
             });
 
             playlistsContainer.appendChild(playlistElement);
 
-            // 3. Fetch Preview Image Asynchronously (Non-blocking)
-            // We only do this if there are videos in the playlist
             if (playlist.videoCount > 0) {
                 const thumbDiv = playlistElement.querySelector('.playlist-thumbnail');
                 
-                // Fetch the video list for this specific playlist
                 fetch(`/playlist-videos/${encodeURIComponent(channel)}/${encodeURIComponent(playlist.path)}`)
                     .then(response => response.json())
                     .then(videos => {
                         if (videos && videos.length > 0) {
-                            // Use the helper to find the best preview video
                             pickPreviewVideo(videos).then(previewVideo => {
                                 if (previewVideo) {
                                     const videoPathWithoutExt = stripExtension(previewVideo.path);
                                     const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
-                                    
-                                    // Update the thumbnail background smoothly
                                     thumbDiv.style.backgroundImage = `url('${thumbnailSrc}')`;
                                 }
                             });
@@ -820,7 +812,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                     .catch(err => {
                         console.warn("Could not load preview for playlist:", playlist.name);
-                        // It's okay, we just keep the grey placeholder
                     });
             }
         });
@@ -829,8 +820,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function pickPreviewVideo(videos) {
         if (!videos || videos.length === 0) return null;
 
-        // We still need dates to sort properly for the "best" thumbnail
-        const datePromises = videos.slice(0, 10).map(video => { // Optimization: Check only first 10 videos to save time
+        // Optimization: Check only first 10 videos
+        const datePromises = videos.slice(0, 10).map(video => {
             const videoPathWithoutExt = stripExtension(video.path);
             return fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
                 .then(response => response.ok ? response.text() : 'Unknown date')
@@ -852,12 +843,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ==========================================
-    // END OF OPTIMIZED PLAYLIST LOGIC
-    // ==========================================
-
-
-    // --- About (lazy-loaded) ---
     function loadAbout() {
         fetch(`/channel-description/${encodeURIComponent(channel)}`)
             .then(response => response.text())
@@ -913,7 +898,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${month} ${day}, ${year}`;
     }
 
-    // Share button
     document.getElementById('shareChannelBtn').addEventListener('click', () => {
         const channelUrl = `${window.location.origin}/channel.html?channel=${encodeURIComponent(channel)}`;
 
@@ -932,10 +916,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // INITIALIZATION LOGIC (Same as before)
+    // OPTIMIZED INITIALIZATION LOGIC
     // ==========================================
 
-    // 1. Load Header Stats Immediately
     function loadHeaderStats() {
         fetch(`/subcount/${encodeURIComponent(channel)}`)
             .then(response => response.ok ? response.text() : '0')
@@ -953,6 +936,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const channelVideos = videos.filter(video => video.path.startsWith(`${channel}/`));
                 const videoCount = channelVideos.length;
                 
+                // Update stats
                 fetch(`/subcount/${encodeURIComponent(channel)}`)
                     .then(response => response.ok ? response.text() : '0')
                     .then(subCount => {
@@ -962,6 +946,7 @@ document.addEventListener('DOMContentLoaded', () => {
                          updateHeaderStats('?', videoCount);
                     });
 
+                // Initialize video list with optimized sorting
                 initializeVideoList(channelVideos);
             })
             .catch(error => {
@@ -988,21 +973,34 @@ document.addEventListener('DOMContentLoaded', () => {
         loadedTabs.add('videos'); 
         videosContainer.innerHTML = '<div class="loading-spinner visible">' + getLang('Loading videos...', 'Lade Videos...') + '</div>';
 
+        // OPTIMIZATION:
+        // We only fetch DATES first. Dates are small text files.
+        // We need dates to SORT the videos correctly.
+        // We do NOT need view counts to sort.
         const videoPromises = channelVideos.map(video => {
             const videoPathWithoutExt = stripExtension(video.path);
-            return Promise.all([
-                fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(r => r.ok ? r.text() : '0'),
-                fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(r => r.ok ? r.text() : 'Unknown date')
-            ])
-            .then(([viewCount, fileDate]) => ({ ...video, viewCount, fileDate: fileDate.trim() || 'Unknown date' }))
-            .catch(() => ({ ...video, viewCount: '0', fileDate: 'Unknown date' }));
+            return fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
+                .then(response => response.ok ? response.text() : 'Unknown date')
+                .then(fileDate => ({ 
+                    ...video, 
+                    fileDate: fileDate.trim() || 'Unknown date',
+                    viewCount: '0' // Default, will load later
+                }))
+                .catch(() => ({ 
+                    ...video, 
+                    fileDate: 'Unknown date', 
+                    viewCount: '0' 
+                }));
         });
 
-        Promise.all(videoPromises).then(videosWithDetails => {
-            currentVideos = videosWithDetails;
-            sortVideosArray();
+        Promise.all(videoPromises).then(videosWithDates => {
+            currentVideos = videosWithDates;
+            sortVideosArray(); // Sort is now complete
+            
             hasMoreVideos = currentVideos.length > 0;
-            videosContainer.innerHTML = '';
+            videosContainer.innerHTML = ''; // Clear loading text
+            
+            // Load first batch immediately
             loadMoreVideos();
             setupIntersectionObserver();
 

@@ -19,21 +19,66 @@
             color: #ff6b6b;
             font-size: 16px;
         }
+        /* Styles to match channel.html layout alignment */
+        .video-info {
+            display: flex;
+            margin-top: 10px;
+        }
+        .video-details {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            margin-left: 10px;
+            overflow: hidden;
+        }
+        .channel-pic {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .video-title {
+            font-weight: bold;
+            color: #fff;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+        .channel-name {
+            color: #aaa;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .channel-name:hover {
+            color: #fff;
+        }
+        .video-description {
+            color: #888;
+            font-size: 14px;
+            margin-left: -45px;
+        }
     </style>
 </head>
 <body>
     <header class="top-bar">
         <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
         <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Search">
+            <input type="text" id="searchInput" placeholder="">
             <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
     </header>
     <div class="container" id="videoContainer">
-        <div class="loading-indicator" style="text-align: center; padding: 40px; color: #aaa;">Loading liked videos...</div>
+        <div class="loading-indicator" style="text-align: center; padding: 40px; color: #aaa;"></div>
     </div>
     <script>
+// --- Language Helper ---
+function getLang(en, de) {
+    return localStorage.getItem('language') === 'de' ? de : en;
+}
+
 // Handle logo clicks
 document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
@@ -60,6 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
         mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
         mainLogo.style.cursor = 'pointer';
     }
+
+    // Set initial translations
+    document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
+    document.querySelector('.loading-indicator').textContent = getLang('Loading liked videos...', 'Lade Videos...');
 });
 
 // Helper function to strip file extension for thumbnail and metadata paths
@@ -97,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (likedPaths.length === 0) {
             const noVideosElement = document.createElement('div');
             noVideosElement.className = 'no-videos-message';
-            noVideosElement.textContent = 'No liked videos yet. Click the like button on videos to add them here!';
+            noVideosElement.textContent = getLang('No liked videos yet. Click the like button on videos to add them here!', 'Noch keine favorisierten Videos. Klicke auf den Like-Button bei Videos, um sie hier hinzuzufügen!');
             container.appendChild(noVideosElement);
             return;
         }
@@ -140,14 +189,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="video-details">
                         <div class="video-title">${videoTitle}</div>
                         <div class="channel-name">${channel}</div>
-                        <div class="video-description"></div>
+                        <div class="video-description">${getLang('Loading views...', 'Aufrufe werden geladen...')}</div>
                     </div>
                 </div>
             `;
             container.appendChild(videoElement);
 
             // --- FETCH METADATA (View Count & Date) ---
-            // This logic matches search.html to ensure data is retrieved correctly
             const descriptionDiv = videoElement.querySelector('.video-description');
             
             Promise.all([
@@ -165,10 +213,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     formattedViewCount = parseInt(viewCount).toLocaleString();
                 }
                 
+                // Language formatting
+                const lang = localStorage.getItem('language');
+                let viewsText = getLang('views', 'Aufrufe');
+                let uploadedText = getLang('Uploaded on', 'Hochgeladen am');
+
+                // Swap comma to dot for German
+                if (lang === 'de') {
+                    formattedViewCount = formattedViewCount.replace(/,/g, '.');
+                }
+
                 // Clean the fileDate
                 const cleanFileDate = fileDate.replace(/\s+/g, ' ').trim();
                 
-                descriptionDiv.textContent = `${formattedViewCount} views • ${cleanFileDate}`;
+                descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${cleanFileDate}`;
             })
             .catch(error => {
                 console.error('Error fetching metadata:', error);
@@ -229,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .catch(error => {
         console.error('Error loading liked videos:', error);
-        container.innerHTML = '<div class="error-message">Error loading liked videos. Please try again.</div>';
+        container.innerHTML = `<div class="error-message">${getLang('Error loading liked videos. Please try again.', 'Fehler beim Laden der favorisierten Videos. Bitte versuche es erneut.')}</div>`;
     });
 
     // Search functionality

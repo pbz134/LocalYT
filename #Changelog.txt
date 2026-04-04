@@ -31,6 +31,10 @@ v3.85
 - Tags are only added to userPreferences.json when the user spends at least 20 seconds on the page
   - This is to reduce tag counts of unwanted videos to increase
 - Updated the debug tool to allow for backing up all video and channel metadata
+- Updated MovePlaylistMetadata.py
+  - Same-named metadata files that are in both the base directory and a playlist of the same channel will now be overwritten, preventing duplicates and displaying the correct metadata
+- Optimized loading of video elements on channel.html
+- Fixed the video info alignment on liked_videos.html
 
 v3.80
 - Implemented advanced conditional video tagging
