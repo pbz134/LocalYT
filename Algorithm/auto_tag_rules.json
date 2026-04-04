@@ -1,6 +1,90 @@
 {
   "auto_tag_rules": [
     {
+      "name": "Tetris Rule",
+      "match_type": "contains",
+      "match_value": "tetris",
+      "case_sensitive": false,
+      "tags": ["Nintendo", "Gaming", "Tetris"]
+    },
+    {
+      "name": "Nikke Rule",
+      "match_type": "contains",
+      "match_value": "nikke",
+      "case_sensitive": false,
+      "tags": ["Anime", "Goddess of Victory Nikke", "Gaming"]
+    },
+    {
+      "name": "Anime AMV Rule",
+      "match_type": "contains",
+      "match_value": "AMV",
+      "case_sensitive": true,
+      "tags": ["Anime", "AMV", "Music"]
+    },
+    {
+      "name": "Touhou Rule",
+      "match_type": "contains",
+      "match_value": "touhou",
+      "case_sensitive": false,
+      "tags": ["Touhou", "Anime", "Gaming"]
+    },
+    {
+      "name": "Cover Rule",
+      "match_type": "contains",
+      "match_value": "cover",
+      "case_sensitive": false,
+      "tags": ["Music", "Music Cover"]
+    },
+    {
+      "name": "Minecraft Rule",
+      "match_type": "contains",
+      "match_value": "minecraft",
+      "case_sensitive": false,
+      "tags": ["Minecraft", "Gaming"]
+    },
+    {
+      "name": "Horror Game Rule",
+      "match_type": "contains",
+      "match_value": "horror",
+      "case_sensitive": false,
+      "tags": ["Horror", "Gaming"]
+    },
+    {
+      "name": "Fortnite Rule",
+      "match_type": "contains",
+      "match_value": "fortnite",
+      "case_sensitive": false,
+      "tags": ["Fortnite", "Gaming"]
+    },
+    {
+      "name": "VTuber Rule",
+      "match_type": "contains",
+      "match_value": "vtuber",
+      "case_sensitive": false,
+      "tags": ["VTuber", "Anime"]
+    },
+    {
+      "name": Mukbang Rule",
+      "match_type": "contains",
+      "match_value": "Mukbang",
+      "case_sensitive": false,
+      "tags": ["Mukbang", "ASMR"]
+    },
+    {
+      "name": "YTP Rule (English)",
+      "match_type": "contains",
+      "match_value": "ytp",
+      "case_sensitive": false,
+      "tags": ["YTP", "Meme", "Comedy"]
+    },
+    {
+      "name": "YTP Rule (German)",
+      "match_type": "contains",
+      "match_value": "ytk",
+      "case_sensitive": false,
+      "tags": ["YTP", "Meme", "Comedy"]
+    },
+    {
       "name": "Genshin Impact Rule",
       "match_type": "contains",
       "match_value": "Genshin",
@@ -60,6 +144,13 @@
       "name": "Remix Rule",
       "match_type": "contains",
       "match_value": "remix",
+      "case_sensitive": false,
+      "tags": ["Music", "Remix"]
+    },
+    {
+      "name": "Bootleg Rule",
+      "match_type": "contains",
+      "match_value": "bootleg",
       "case_sensitive": false,
       "tags": ["Music", "Remix"]
     },
