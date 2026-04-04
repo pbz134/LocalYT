@@ -845,6 +845,9 @@
     <div id="copyMessage" class="copy-message">
         Video URL copied to clipboard!
     </div>
+    <div id="saveMessage" class="copy-message">
+        Saved to playlist
+    </div>
     <div id="saveModal" class="save-modal">
         <div class="save-modal-content">
             <button class="save-modal-close" id="saveModalClose">&times;</button>
@@ -2150,11 +2153,19 @@ document.addEventListener('click', function(e) {
                 document.body.removeChild(tempInput);
                 showCopyMessage();
             }
-
             function showCopyMessage() {
                 copyMessage.style.display = 'block';
                 setTimeout(() => {
                     copyMessage.style.display = 'none';
+                }, 2000);
+            }
+
+            function showSaveMessage() {
+                const saveMessage = document.getElementById('saveMessage');
+                saveMessage.textContent = getLang('Saved to playlist', 'Zur Playlist gespeichert');
+                saveMessage.style.display = 'block';
+                setTimeout(() => {
+                    saveMessage.style.display = 'none';
                 }, 2000);
             }
 
@@ -2221,9 +2232,13 @@ document.addEventListener('click', function(e) {
                         alert('Error saving to playlist.');
                         return;
                     }
-                    const playlistsResponse = await fetch('/user-playlists');
-                    const playlists = await playlistsResponse.json();
-                    renderSaveModal(playlists);
+                    // Close the modal immediately
+                    saveModal.style.display = 'none';
+                    // Update the save button text and icon instantly
+                    document.getElementById('saveIcon').src = 'LocalYT-Rev-Files/saved.svg';
+                    document.getElementById('saveContainer').querySelector('span').textContent = getLang('Saved', 'Gespeichert');
+                    // Show confirmation message at the bottom
+                    showSaveMessage();
                 } catch (e) {
                     console.error('Error saving to playlist:', e);
                 }

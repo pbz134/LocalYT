@@ -47,6 +47,8 @@ v3.90
 - @ channel mentions in video descriptions will now be blue and clickable if the server finds a matching channel
 - Made the Subscribe button pure white (#fff)
 - Added a Subscribe button to channel.html
+- The "Add to playlist" modal now closes after having added a video to a playlist
+  - A message popup appears, notifying the user about the addition to the playlist
 
 v3.80
 - Implemented advanced conditional video tagging
