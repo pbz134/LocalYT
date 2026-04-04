@@ -16,10 +16,14 @@ v3.90
 - Made playlist thumbnails less dark
 - Added a profile modal
   - Clicking on your profile image toggles a modal with various settings
-  - Log in or out, access the settings easier and send feedback or access the source code
-  - Documentation, Appearance and Language are placeholders for now!
+  - Log in or out, access the main settings easier and send feedback or access the source code
+  - Documentation is a placeholder for now, coming soon!
 - Moved Settings button from the index.html sidebar to the profile modal
 - Merged settings.html and user_profile_pic.html into one page
+- Implemented autoplay features, configurable in settings.html
+  - Choose what happens once a video finishes (play first/random recommended video, or play an entirely random video from the database)
+  - Autoplay for playlists can be toggled on or off
+- Added an Autoplay toggle above the Recommended sidebar
 - Added an option to toggle between regular dark mode and OLED dark mode
   - This makes the background and some elements pure black (000000) or keeps the regular dark grey (0f0f0f)
 - Full German language support
