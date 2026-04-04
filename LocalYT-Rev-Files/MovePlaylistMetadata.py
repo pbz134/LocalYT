@@ -94,6 +94,9 @@ def organize_txt_files():
                         dest_path = target_file
                     
                     if target_file != dest_path:
+                        # OVERWRITE: Remove existing file at destination if it exists
+                        if dest_path.exists():
+                            dest_path.unlink()
                         shutil.move(str(target_file), str(dest_path))
                         moves_made += 1
                     
@@ -185,6 +188,9 @@ def organize_thumbnail_files():
                 dest_path = thumbnail_file
             
             if thumbnail_file != dest_path:
+                # OVERWRITE: Remove existing file at destination if it exists
+                if dest_path.exists():
+                    dest_path.unlink()
                 shutil.move(str(thumbnail_file), str(dest_path))
                 moves_made += 1
             
