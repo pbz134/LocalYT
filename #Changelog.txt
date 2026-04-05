@@ -1,5 +1,8 @@
 +++LocalYT Revamped - Changelog+++
 
+v3.95
+- User settings now get saved in a "userSettings.json" file, allowing for them to persist
+
 v3.90
 - Implemented custom user profile pictures
   - Each user is now able to upload and use their own profile picture

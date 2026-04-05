@@ -1,13 +1,65 @@
 (function() {
     const PLACEHOLDER = '/LocalYT-Rev-Files/user-profile-placeholder.jpg';
     let menuInstance = null;
+    let currentUserId = null;
+
+    // --- Settings Storage Helpers ---
+    function getSetting(key, fallback) {
+        const val = localStorage.getItem(key);
+        return val !== null ? val : fallback;
+    }
+
+    function setSetting(key, value) {
+        localStorage.setItem(key, value);
+        if (currentUserId) {
+            saveSettingsToServer();
+        }
+    }
+
+    function saveSettingsToServer() {
+        const settings = {
+            language: localStorage.getItem('language'),
+            appearanceMode: localStorage.getItem('appearanceMode')
+        };
+        fetch('/user-settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ settings })
+        }).catch(err => console.error('Failed to sync settings:', err));
+    }
+
+    // Returns a promise that resolves ONLY after the settings are saved to the server
+    function saveSettingsToServerSync() {
+        const settings = {
+            language: localStorage.getItem('language'),
+            appearanceMode: localStorage.getItem('appearanceMode')
+        };
+        return fetch('/user-settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ settings })
+        }).catch(err => console.error('Failed to sync settings:', err));
+    }
+
+    function loadSettingsFromServer() {
+        return fetch('/user-settings')
+            .then(res => {
+                if (!res.ok) throw new Error('Not authenticated');
+                return res.json();
+            })
+            .then(settings => {
+                if (settings.language) localStorage.setItem('language', settings.language);
+                if (settings.appearanceMode) localStorage.setItem('appearanceMode', settings.appearanceMode);
+                return settings;
+            })
+            .catch(() => null);
+    }
 
     // --- Language Helper ---
     function getLang(en, de) {
-        return localStorage.getItem('language') === 'de' ? de : en;
+        return getSetting('language', 'en') === 'de' ? de : en;
     }
 
-    // Helper to create menu items
     function createMenuItem(icon, text, onClick) {
         const item = document.createElement('div');
         item.className = 'profile-menu-item';
@@ -49,7 +101,6 @@
             closeMenu();
         } else {
             menuInstance.classList.add('open');
-            // Timeout to prevent the same click from closing it immediately
             setTimeout(() => {
                 document.addEventListener('click', closeMenu);
             }, 0);
@@ -58,115 +109,110 @@
 
     function toggleAppearanceMode() {
         const root = document.documentElement;
-        const currentMode = localStorage.getItem('appearanceMode');
+        const currentMode = getSetting('appearanceMode', 'dark');
 
         if (currentMode === 'oled') {
-            // Switch to Regular Dark
             root.style.setProperty('--main-bg-color', '#0f0f0f');
             root.style.setProperty('--secondary-bg-color', '#212121');
             root.style.setProperty('--input-bg-color', '#1a1a1a');
-            localStorage.setItem('appearanceMode', 'dark');
+            setSetting('appearanceMode', 'dark');
         } else {
-            // Switch to OLED (Pure Black)
             root.style.setProperty('--main-bg-color', '#000000');
             root.style.setProperty('--secondary-bg-color', '#000000');
             root.style.setProperty('--input-bg-color', '#000000');
-            localStorage.setItem('appearanceMode', 'oled');
+            setSetting('appearanceMode', 'oled');
         }
     }
 
     function updateAppearanceText(item) {
-        const currentMode = localStorage.getItem('appearanceMode');
+        const currentMode = getSetting('appearanceMode', 'dark');
         const textSpan = item.querySelector('.profile-menu-text');
         if (currentMode === 'oled') {
             textSpan.textContent = getLang('Appearance: OLED', 'Erscheinungsbild: OLED');
-            item.querySelector('.profile-menu-icon').src = '/LocalYT-Rev-Files/appearance.svg'; // Optional: change icon if you have one
         } else {
             textSpan.textContent = getLang('Appearance: Dark', 'Erscheinungsbild: Dunkel');
         }
     }
 
-    function toggleLanguage() {
-        const currentLang = localStorage.getItem('language');
+    function toggleLanguage(item) {
+        const currentLang = getSetting('language', 'en');
         const newLang = currentLang === 'de' ? 'en' : 'de';
-        localStorage.setItem('language', newLang);
-        location.reload();
-    }
-
-    function updateLanguageText(item) {
-        const currentLang = localStorage.getItem('language');
-        const textSpan = item.querySelector('.profile-menu-text');
-        if (currentLang === 'de') {
-            textSpan.textContent = getLang('Language: German', 'Sprache: Deutsch');
+        setSetting('language', newLang);
+        
+        // Immediately update the menu text before reload
+        if (item) {
+            const currentMode = getSetting('appearanceMode', 'dark');
+            const textSpan = item.querySelector('.profile-menu-text');
+            if (newLang === 'de') {
+                textSpan.textContent = currentMode === 'oled' ? 'Erscheinungsbild: OLED' : 'Erscheinungsbild: Dunkel';
+            } else {
+                textSpan.textContent = currentMode === 'oled' ? 'Appearance: OLED' : 'Appearance: Dark';
+            }
+        }
+        
+        // Wait for server sync to finish before reloading
+        if (currentUserId) {
+            saveSettingsToServerSync().then(() => {
+                location.reload();
+            });
         } else {
-            textSpan.textContent = getLang('Language: English', 'Sprache: Englisch');
+            location.reload();
         }
     }
 
-    // This function applies the selected language to the page content
+    function updateLanguageText(item) {
+        const currentLang = getSetting('language', 'en');
+        const textSpan = item.querySelector('.profile-menu-text');
+        if (currentLang === 'de') {
+            textSpan.textContent = 'Sprache: Deutsch';
+        } else {
+            textSpan.textContent = 'Language: English';
+        }
+    }
+
     function applyLanguage() {
-        const lang = localStorage.getItem('language');
+        const lang = getSetting('language', 'en');
         
-        // Dictionary of all translatable text
         const dict = {
-            // Header / Main Buttons
             'subscribeButton': { en: 'Subscribe', de: 'Abonnieren' },
             'subscribedState': { en: 'Subscribed', de: 'Abonniert' },
             'shareContainer': { en: 'Share', de: 'Teilen' },
             'saveContainer': { en: 'Save', de: 'Speichern' },
             'savedState': { en: 'Saved', de: 'Gespeichert' },
-            
-            // Description / Info
             'descriptionToggleMore': { en: 'Show more', de: 'Mehr anzeigen' },
             'descriptionToggleLess': { en: 'Show less', de: 'Weniger anzeigen' },
             'noDescription': { en: 'No description available for this video.', de: 'Keine Beschreibung für dieses Video verfügbar.' },
-            
-            // Comments Section
             'commentsCount': { en: 'Comments', de: 'Kommentare' },
-            
-            // Save Modal
             'saveModalTitle': { en: 'Save to Playlist', de: 'In Playlist speichern' },
             'noPlaylistsMessage': { en: 'No playlists yet. Create one below.', de: 'Keine Playlisten vorhanden. Erstellen Sie unten eine.' },
             'newPlaylistName': { en: 'New playlist name', de: 'Name der neuen Playlist' },
             'createPlaylistBtn': { en: 'Create', de: 'Erstellen' },
-            
-            // Share Modal
             'shareModalTitle': { en: 'Share Video', de: 'Video teilen' },
             'copyWithTimestamp': { en: 'Copy Link + Timestamp', de: 'Link + Zeitstempel kopieren' },
             'copyWithoutTimestamp': { en: 'Copy Link', de: 'Link kopieren' },
             'copyMessage': { en: 'Video URL copied to clipboard!', de: 'Video-URL in die Zwischenablage kopiert!' },
-            
-            // Sidebar
             'recHeader': { en: 'Recommended', de: 'Empfohlen' }
         };
 
-        // 1. Update Elements by ID
         Object.keys(dict).forEach(key => {
             const el = document.getElementById(key);
             if (el) {
-                // Handle inputs (placeholder)
                 if (el.tagName === 'INPUT') {
                     el.placeholder = dict[key][lang] || dict[key]['en'];
-                } 
-                // Handle spans inside buttons (Share/Save)
-                else if (el.querySelector('span')) {
+                } else if (el.querySelector('span')) {
                     el.querySelector('span').textContent = dict[key][lang] || dict[key]['en'];
-                } 
-                // Handle standard elements
-                else {
+                } else {
                     el.textContent = dict[key][lang] || dict[key]['en'];
                 }
             }
         });
         
-        // 2. Update Modal Titles (Selectors for H2 inside modals)
         const saveH2 = document.querySelector('#saveModal h2');
         if (saveH2) saveH2.textContent = dict.saveModalTitle[lang];
         
         const shareH2 = document.querySelector('#shareModal h2');
         if (shareH2) shareH2.textContent = dict.shareModalTitle[lang];
 
-        // 3. Handle Dynamic States (Text set via JS logic)
         const subBtn = document.getElementById('subscribeButton');
         if (subBtn) {
              if (subBtn.classList.contains('subscribed')) {
@@ -178,8 +224,6 @@
 
         const saveSpan = document.querySelector('#saveContainer span');
         if (saveSpan) {
-            // Check if it is in the "Saved" state by checking the icon src or a class if you prefer
-            // Since we don't have a class, we check the icon src associated with it
             const saveIcon = document.getElementById('saveIcon');
             const isSaved = saveIcon && saveIcon.src.includes('saved.svg');
             
@@ -191,6 +235,15 @@
         }
     }
 
+    function applyAppearanceMode() {
+        const mode = getSetting('appearanceMode', 'dark');
+        if (mode === 'oled') {
+            document.documentElement.style.setProperty('--main-bg-color', '#000000');
+            document.documentElement.style.setProperty('--secondary-bg-color', '#000000');
+            document.documentElement.style.setProperty('--input-bg-color', '#000000');
+        }
+    }
+
     function initProfilePic() {
         let userActions = document.querySelector('.user-actions');
         if (!userActions) {
@@ -199,158 +252,146 @@
             const topBar = document.querySelector('.top-bar');
             if (topBar) topBar.appendChild(userActions);
         }
-    // Apply saved appearance mode
-    if (localStorage.getItem('appearanceMode') === 'oled') {
-        document.documentElement.style.setProperty('--main-bg-color', '#000000');
-        document.documentElement.style.setProperty('--secondary-bg-color', '#000000');
-        document.documentElement.style.setProperty('--input-bg-color', '#000000');
-    }
 
-    // Apply saved Language on load
-    if (localStorage.getItem('language') === 'de') {
-        applyLanguage();
-    }
+        applyAppearanceMode();
 
-        // Ensure container has relative positioning for the modal
+        if (getSetting('language', 'en') === 'de') {
+            applyLanguage();
+        }
+
         userActions.style.position = 'relative';
 
         const existing = document.getElementById('headerProfilePic');
         if (existing) existing.remove();
         
-        // Remove old menu if re-initializing
         const oldMenu = document.getElementById('profileMenuDropdown');
         if (oldMenu) oldMenu.remove();
 
-        // 1. Create Profile Picture
         const img = document.createElement('img');
         img.id = 'headerProfilePic';
         img.className = 'header-profile-pic';
         img.alt = 'Profile';
         img.src = PLACEHOLDER;
         
-        // 2. Create Modal/Dropdown
         menuInstance = document.createElement('div');
         menuInstance.id = 'profileMenuDropdown';
         menuInstance.className = 'profile-menu-dropdown';
 
-        // Check Session Status
+        let userData = null;
+
         fetch('/session-user')
             .then(res => {
                 if (res.ok) return res.json();
-                return null; // Not logged in
+                return null;
             })
-            .then(userData => {
+            .then(data => {
+                userData = data;
+                
                 if (userData && userData.username) {
-                    // --- LOGGED IN STATE ---
+                    currentUserId = userData.username;
                     
-                    // Load custom profile pic if available
-                    fetch('/user-profile-pic')
-                        .then(picRes => picRes.json())
-                        .then(picData => {
-                            if (picData.hasCustomPic && picData.picUrl) {
-                                img.src = picData.picUrl;
-                            }
-                        })
-                        .catch(() => {});
-
-                    // Sign Out
-                    menuInstance.appendChild(createMenuItem('signout.svg', getLang('Sign Out', 'Abmelden'), () => {
-                        fetch('/logout').then(() => {
-                            window.location.href = '/login.html';
-                        }).catch(err => console.error('Logout failed:', err));
-                    }));
-
-                    // Appearance (Toggle Logic)
-                    const appearanceItem = createMenuItem('appearance.svg', getLang('Appearance: Dark', 'Erscheinungsbild: Dunkel'));
-
-                    // Update text based on current state
-                    updateAppearanceText(appearanceItem);
-
-                    appearanceItem.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        toggleAppearanceMode();
-                        updateAppearanceText(appearanceItem);
-                        closeMenu();
+                    return loadSettingsFromServer().then(() => {
+                        applyAppearanceMode();
+                        if (getSetting('language', 'en') === 'de') {
+                            applyLanguage();
+                        }
+                        
+                        return fetch('/user-profile-pic')
+                            .then(picRes => picRes.json())
+                            .then(picData => {
+                                if (picData.hasCustomPic && picData.picUrl) {
+                                    img.src = picData.picUrl;
+                                }
+                            })
+                            .catch(() => {});
                     });
-
-                    menuInstance.appendChild(appearanceItem);
-
-                    // Language (Toggle Logic)
-                    const languageItem = createMenuItem('language.svg', getLang('Language: English', 'Sprache: Englisch'));
-                    updateLanguageText(languageItem); // Set initial text
-                    
-                    languageItem.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        toggleLanguage();
-                        updateLanguageText(languageItem);
-                        closeMenu();
-                    });
-                    
-                    menuInstance.appendChild(languageItem);
-
-                    // Settings
-                    menuInstance.appendChild(createMenuItem('settings.svg', getLang('Settings', 'Einstellungen'), () => {
-                        window.location.href = 'settings.html';
-                    }));
-
-                    // Help
-                    menuInstance.appendChild(createMenuItem('help.svg', getLang('Help', 'Hilfe'), () => {
-                        window.location.href = 'documentation.html';
-                    }));
-
-                    // Source Code
-                    menuInstance.appendChild(createMenuItem('sourcecode.svg', getLang('Source Code', 'Quellcode'), () => {
-                        window.open('https://github.com/pbz134/LocalYT', '_blank');
-                    }));
-
-                    // Send Feedback
-                    menuInstance.appendChild(createMenuItem('feedback.svg', getLang('Send Feedback', 'Feedback senden'), () => {
-                        window.open('https://github.com/pbz134/LocalYT/issues', '_blank');
-                    }));
-
-                } else {
-                    // --- LOGGED OUT STATE ---
-                    
-                    // Sign In
-                    menuInstance.appendChild(createMenuItem('signout.svg', getLang('Sign In', 'Anmelden'), () => {
-                        window.location.href = 'login.html';
-                    }));
-
-                    // Help
-                    menuInstance.appendChild(createMenuItem('help.svg', getLang('Help', 'Hilfe'), () => {
-                        window.location.href = 'documentation.html';
-                    }));
-
-                    // Source Code
-                    menuInstance.appendChild(createMenuItem('sourcecode.svg', getLang('Source Code', 'Quellcode'), () => {
-                        window.open('https://github.com/pbz134/LocalYT', '_blank');
-                    }));
-
-                    // Send Feedback
-                    menuInstance.appendChild(createMenuItem('feedback.svg', getLang('Send Feedback', 'Feedback senden'), () => {
-                        window.open('https://github.com/pbz134/LocalYT/issues', '_blank');
-                    }));
                 }
+                return null;
+            })
+            .then(() => {
+                buildMenu(userData);
             })
             .catch(err => {
                 console.error('Error checking session:', err);
-                // Fallback: Show Sign In on error
                 menuInstance.appendChild(createMenuItem('signout.svg', getLang('Sign In', 'Anmelden'), () => {
-                    window.location.href = 'login.html';
+                    window.location.href = '/login.html';
                 }));
             });
 
-        // Attach Events
+        function buildMenu(userData) {
+            if (userData && userData.username) {
+                menuInstance.appendChild(createMenuItem('signout.svg', getLang('Sign Out', 'Abmelden'), () => {
+                    fetch('/logout').then(() => {
+                        window.location.href = '/login.html';
+                    }).catch(err => console.error('Logout failed:', err));
+                }));
+
+                const appearanceItem = createMenuItem('appearance.svg', getLang('Appearance: Dark', 'Erscheinungsbild: Dunkel'));
+                updateAppearanceText(appearanceItem);
+
+                appearanceItem.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleAppearanceMode();
+                    updateAppearanceText(appearanceItem);
+                    closeMenu();
+                });
+
+                menuInstance.appendChild(appearanceItem);
+
+                const languageItem = createMenuItem('language.svg', getLang('Language: English', 'Sprache: Englisch'));
+                updateLanguageText(languageItem);
+                
+                languageItem.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleLanguage(languageItem);
+                    closeMenu();
+                });
+                
+                menuInstance.appendChild(languageItem);
+
+                menuInstance.appendChild(createMenuItem('settings.svg', getLang('Settings', 'Einstellungen'), () => {
+                    window.location.href = 'settings.html';
+                }));
+
+                menuInstance.appendChild(createMenuItem('help.svg', getLang('Help', 'Hilfe'), () => {
+                    window.location.href = 'documentation.html';
+                }));
+
+                menuInstance.appendChild(createMenuItem('sourcecode.svg', getLang('Source Code', 'Quellcode'), () => {
+                    window.open('https://github.com/pbz134/LocalYT', '_blank');
+                }));
+
+                menuInstance.appendChild(createMenuItem('feedback.svg', getLang('Send Feedback', 'Feedback senden'), () => {
+                    window.open('https://github.com/pbz134/LocalYT/issues', '_blank');
+                }));
+
+            } else {
+                menuInstance.appendChild(createMenuItem('signout.svg', getLang('Sign In', 'Anmelden'), () => {
+                    window.location.href = '/login.html';
+                }));
+
+                menuInstance.appendChild(createMenuItem('help.svg', getLang('Help', 'Hilfe'), () => {
+                    window.location.href = 'documentation.html';
+                }));
+
+                menuInstance.appendChild(createMenuItem('sourcecode.svg', getLang('Source Code', 'Quellcode'), () => {
+                    window.open('https://github.com/pbz134/LocalYT', '_blank');
+                }));
+
+                menuInstance.appendChild(createMenuItem('feedback.svg', getLang('Send Feedback', 'Feedback senden'), () => {
+                    window.open('https://github.com/pbz134/LocalYT/issues', '_blank');
+                }));
+            }
+        }
+
         img.onclick = function(e) {
             e.stopPropagation();
             toggleMenu();
         };
 
-        // Append to DOM
         userActions.appendChild(img);
         userActions.appendChild(menuInstance);
 
-        // Inject CSS for the menu
         injectMenuStyles();
     }
 

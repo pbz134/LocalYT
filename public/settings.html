@@ -784,20 +784,6 @@ sidebarLinks.forEach(link => {
 document.addEventListener('DOMContentLoaded', () => {
     applyTranslations();
     
-    fetch('/session-user')
-        .then(res => res.json())
-        .then(data => {
-            if (!data.username) {
-                window.location.href = 'login.html';
-            } else {
-                loadProfilePic();
-                loadPreferences();
-                loadAllTags();
-                loadAutoplaySettings(); // Load autoplay settings on page load
-            }
-        })
-        .catch(() => window.location.href = 'login.html');
-
     const mainLogo = document.getElementById('mainLogo');
     if (mainLogo) {
         mainLogo.addEventListener('click', (e) => {
@@ -828,6 +814,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize autoplay UI event listeners
     initAutoplayUI();
+
+    // Wait for profile-pic.js to finish its session check before loading settings
+    // This prevents race conditions where settings fetches fail because the session 
+    // check in this file fires before the cookie is fully validated.
+    function waitForSessionCheck() {
+        const headerPic = document.getElementById('headerProfilePic');
+        if (headerPic && headerPic.src && !headerPic.src.includes('user-profile-placeholder.jpg')) {
+            // Profile-pic.js successfully verified the session and loaded the custom pic
+            loadProfilePic();
+            loadPreferences();
+            loadAllTags();
+            loadAutoplaySettings();
+        } else {
+            // Fallback timeout: Wait a brief moment for profile-pic.js to finish
+            setTimeout(() => {
+                fetch('/session-user')
+                    .then(res => {
+                        if (!res.ok) throw new Error('Not logged in');
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (!data.username) {
+                            window.location.href = 'login.html';
+                        } else {
+                            loadProfilePic();
+                            loadPreferences();
+                            loadAllTags();
+                            loadAutoplaySettings();
+                        }
+                    })
+                    .catch(() => window.location.href = 'login.html');
+            }, 150);
+        }
+    }
+    
+    waitForSessionCheck();
 });
 
 // ==============================
@@ -851,36 +873,62 @@ function initAutoplayUI() {
 }
 
 function loadAutoplaySettings() {
-    // Load from localStorage or use defaults
-    const savedSettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
+    // Load from localStorage initially for immediate UI rendering
+    const savedLocal = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
     
-    // These are the TRUE defaults for first-time users
     const defaults = {
         enabled: false,
         playlistNext: true,
-        nonPlaylistMode: 'first-recommended'  // Standard behavior for new users
+        nonPlaylistMode: 'first-recommended'
     };
 
-    // Merge: saved settings override defaults, but we ensure all keys exist
-    const settings = { ...defaults, ...savedSettings };
-    
-    // Safety check: If mode is invalid/corrupted, reset to standard default
+    // Apply local state immediately so UI doesn't flash
+    const localMerged = { ...defaults, ...savedLocal };
     const validModes = ['first-recommended', 'random-recommended', 'random-database'];
-    if (!validModes.includes(settings.nonPlaylistMode)) {
-        settings.nonPlaylistMode = 'first-recommended';
+    if (!validModes.includes(localMerged.nonPlaylistMode)) {
+        localMerged.nonPlaylistMode = 'first-recommended';
     }
 
-    document.getElementById('autoplayEnabled').checked = settings.enabled;
-    document.getElementById('autoplayPlaylistNext').checked = settings.playlistNext;
-    document.getElementById('autoplayNonPlaylistMode').value = settings.nonPlaylistMode;
+    document.getElementById('autoplayEnabled').checked = localMerged.enabled;
+    document.getElementById('autoplayPlaylistNext').checked = localMerged.playlistNext;
+    document.getElementById('autoplayNonPlaylistMode').value = localMerged.nonPlaylistMode;
 
-    // Update visibility of sub-options based on main toggle
     const subOptions = document.getElementById('autoplaySubOptions');
-    if (settings.enabled) {
+    if (localMerged.enabled) {
         subOptions.classList.add('visible');
     } else {
         subOptions.classList.remove('visible');
     }
+
+    // Fetch server state (overrides localStorage if different on new device)
+    fetch('/autoplay-settings')
+        .then(res => {
+            if (!res.ok) throw new Error('Not authenticated');
+            return res.json();
+        })
+        .then(serverSettings => {
+            if (Object.keys(serverSettings).length > 0) {
+                const serverMerged = { ...defaults, ...serverSettings };
+                
+                if (!validModes.includes(serverMerged.nonPlaylistMode)) {
+                    serverMerged.nonPlaylistMode = 'first-recommended';
+                }
+
+                document.getElementById('autoplayEnabled').checked = serverMerged.enabled;
+                document.getElementById('autoplayPlaylistNext').checked = serverMerged.playlistNext;
+                document.getElementById('autoplayNonPlaylistMode').value = serverMerged.nonPlaylistMode;
+
+                if (serverMerged.enabled) {
+                    subOptions.classList.add('visible');
+                } else {
+                    subOptions.classList.remove('visible');
+                }
+
+                // Sync back to localStorage for video.js to read instantly
+                localStorage.setItem('autoplaySettings', JSON.stringify(serverMerged));
+            }
+        })
+        .catch(err => console.error('Could not load autoplay settings from server:', err));
 }
 
 function saveAutoplaySettings() {
@@ -890,9 +938,25 @@ function saveAutoplaySettings() {
         nonPlaylistMode: document.getElementById('autoplayNonPlaylistMode').value
     };
 
+    // Save to localStorage for instant access by the video player
     localStorage.setItem('autoplaySettings', JSON.stringify(settings));
-    
-    showStatus('autoplayStatus', getLang('Autoplay settings saved successfully!', 'Autoplay-Einstellungen erfolgreich gespeichert!'), true);
+
+    // Persist to server so it follows the user across devices
+    fetch('/autoplay-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ autoplay: settings })
+    })
+    .then(res => {
+        if (res.ok) {
+            showStatus('autoplayStatus', getLang('Autoplay settings saved successfully!', 'Autoplay-Einstellungen erfolgreich gespeichert!'), true);
+        } else {
+            showStatus('autoplayStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
+        }
+    })
+    .catch(() => {
+        showStatus('autoplayStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
+    });
 }
 
 // ==============================

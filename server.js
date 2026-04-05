@@ -867,7 +867,96 @@ app.post('/reset-password', (req, res) => {
     }
 });
 
-// Delete Account
+// --- USER SETTINGS SYSTEM ---
+const userSettingsFilePath = path.join(__dirname, 'userSettings.json');
+
+function ensureUserSettingsFile() {
+    if (!fs.existsSync(userSettingsFilePath)) {
+        fs.writeFileSync(userSettingsFilePath, JSON.stringify({}));
+    } else {
+        const data = fs.readFileSync(userSettingsFilePath, 'utf8');
+        try { JSON.parse(data); } catch (err) { fs.writeFileSync(userSettingsFilePath, JSON.stringify({})); }
+    }
+}
+
+ensureUserSettingsFile();
+
+// Get user settings (language, appearance, etc.)
+app.get('/user-settings', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+
+    try {
+        const data = fs.readFileSync(userSettingsFilePath, 'utf8');
+        const allSettings = JSON.parse(data);
+        res.json(allSettings[userId] || {});
+    } catch (err) {
+        res.status(500).send('Error reading settings');
+    }
+});
+
+// Save user settings
+// Save user settings
+app.post('/user-settings', (req, res) => {
+    const { settings } = req.body;
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+
+    if (!settings || typeof settings !== 'object') {
+        return res.status(400).send('Invalid settings object');
+    }
+
+    try {
+        const data = fs.readFileSync(userSettingsFilePath, 'utf8');
+        const allSettings = JSON.parse(data);
+        allSettings[userId] = settings;
+        fs.writeFileSync(userSettingsFilePath, JSON.stringify(allSettings, null, 2));
+        res.sendStatus(200);
+    } catch (err) {
+        console.error('Error saving user settings:', err);
+        res.status(500).send('Error saving settings');
+    }
+});
+
+// Get Autoplay Settings
+app.get('/autoplay-settings', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+
+    try {
+        const data = fs.readFileSync(userSettingsFilePath, 'utf8');
+        const allSettings = JSON.parse(data);
+        const userSettings = allSettings[userId] || {};
+        res.json(userSettings.autoplay || {});
+    } catch (err) {
+        res.status(500).send('Error reading autoplay settings');
+    }
+});
+
+// Save Autoplay Settings
+app.post('/autoplay-settings', (req, res) => {
+    const { autoplay } = req.body;
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+
+    if (!autoplay || typeof autoplay !== 'object') {
+        return res.status(400).send('Invalid autoplay settings object');
+    }
+
+    try {
+        const data = fs.readFileSync(userSettingsFilePath, 'utf8');
+        const allSettings = JSON.parse(data);
+        if (!allSettings[userId]) allSettings[userId] = {};
+        allSettings[userId].autoplay = autoplay;
+        fs.writeFileSync(userSettingsFilePath, JSON.stringify(allSettings, null, 2));
+        res.sendStatus(200);
+    } catch (err) {
+        console.error('Error saving autoplay settings:', err);
+        res.status(500).send('Error saving autoplay settings');
+    }
+});
+
+// Also clean up user settings when deleting account
 app.post('/delete-account', (req, res) => {
     const { password } = req.body;
     const userId = req.session.userId;
@@ -911,6 +1000,22 @@ app.post('/delete-account', (req, res) => {
                 delete allPrefs[userId];
                 fs.writeFileSync(preferencesFilePath, JSON.stringify(allPrefs, null, 2));
             }
+        }
+
+        // Remove user settings (language, appearance)
+        if (fs.existsSync(userSettingsFilePath)) {
+            const settingsData = fs.readFileSync(userSettingsFilePath, 'utf8');
+            const allSettings = JSON.parse(settingsData);
+            if (allSettings[userId]) {
+                delete allSettings[userId];
+                fs.writeFileSync(userSettingsFilePath, JSON.stringify(allSettings, null, 2));
+            }
+        }
+
+        // Remove profile picture
+        const profilePicPath = path.join(userProfileDir, `${userId}.jpg`);
+        if (fs.existsSync(profilePicPath)) {
+            fs.unlinkSync(profilePicPath);
         }
 
         // Destroy session
