@@ -73,9 +73,6 @@ https://www.youtube.com/@TWD98
 ---
 
 ## FAQ
-Is there a whitemode feature?
-- As of right now, there is no whitemode for LocalYT, but I will integrate that eventually, after I'm done polishing the UI
-
 How does the algorithm actually work?
 - The algorithm works by first creating a file list of all videos and saving them to a .txt file. KoboldCpp is then being used to launch a local LLM on your computer which analyzes the titles and guesses the most accurate tags from a large available tag pool. Once every video has been tagged and you are logged in to an account on the video page, you can start watching videos which makes the respective tags for that video increase in your account. The higher the value of a certain tag is, the more likely it is for LocalYT to recommend you similar videos!
 
@@ -89,4 +86,3 @@ What if I only have the video files and no metadata?
 ## TO DO
 - Fix search.html video title y positioning for titles longer than one line (video info pushes title up?)
 - Work on the documentation in the user modal
-- Add a Light Mode
