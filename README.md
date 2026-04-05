@@ -84,5 +84,4 @@ What if I only have the video files and no metadata?
 ---
 
 ## TO DO
-- Fix search.html video title y positioning for titles longer than one line (video info pushes title up?)
 - Work on the documentation in the user modal
