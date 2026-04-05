@@ -12,7 +12,7 @@ FILES_TO_BACKUP = [
     "subscriptions.json",
     "user-playlists.json",
     "userPreferences.json",
-    "userSettings.json"
+    "userSettings.json",
     "users.json",
     "watchHistory.json",
     "likes.json",
