@@ -197,9 +197,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const searchInput = document.getElementById('searchInput');
     searchInput.value = initialQuery;
 
+    // Set page title to search term + " - LocalYT"
+    document.title = initialQuery ? initialQuery + ' - LocalYT' : 'LocalYT';
+
     // --- UI Translation ---
     document.getElementById('searchInput').placeholder = getLang('Search', 'Suche');
-    document.getElementById('loadingIndicator').textContent = getLang('Loading search index...', 'Lade Suchindex...');
+    document.getElementById('loadingIndicator').textContent = getLang('Loading search index...', 'Lade Suchindex...');;
 
     // Initialize Web Worker if available
     if (window.Worker) {

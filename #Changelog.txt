@@ -50,6 +50,7 @@ v3.90
 - The "Add to playlist" modal now closes after having added a video to a playlist
   - A message popup appears, notifying the user about the addition to the playlist
 - backup-files.py now saves your commonly-used backup paths in a .json file for instant access
+- search.html now always shows the search term in the browser tab
 
 v3.80
 - Implemented advanced conditional video tagging
