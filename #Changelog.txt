@@ -2,6 +2,11 @@
 
 v3.95
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
+- Reduced the bottom margin of .sort-toggle on channel.html
+- Added OLED Dark Mode compatibility for the index.html sidebar
+- Added four new automatically-generated Topic channels to the index.html sidebar
+  - Gaming, Music, Sports and Movies
+  - Fitting videos get picked automatically from the database
 
 v3.90
 - Implemented custom user profile pictures
