@@ -9,6 +9,7 @@ v3.95
   - Fitting videos get picked automatically from the database
 - Added OLED Dark Mode for the sidebar on subscribed_channels.html
 - The sidebar now properly overlays on subscribed_channels.html
+- Changed the default profile picture to a blue one
 
 v3.90
 - Implemented custom user profile pictures
