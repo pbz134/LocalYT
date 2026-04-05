@@ -14,7 +14,7 @@
             z-index: 1;
             top: 0;
             left: 0;
-            background-color: #111;
+            background-color: var(--main-bg-color);
             overflow-x: hidden;
             transition: 0.5s;
             padding-top: 60px;
@@ -42,7 +42,6 @@
         }
 
         #main {
-            transition: margin-left .5s;
             padding: 16px;
         }
 
@@ -347,19 +346,15 @@
         // --- Sidebar ---
         function toggleNav() {
             const sidebar = document.getElementById("mySidebar");
-            const main = document.getElementById("main");
             if (sidebar.style.width === "250px") {
                 sidebar.style.width = "0";
-                main.style.marginLeft = "0";
             } else {
                 sidebar.style.width = "250px";
-                main.style.marginLeft = "250px";
             }
         }
 
         function closeNav() {
             document.getElementById("mySidebar").style.width = "0";
-            document.getElementById("main").style.marginLeft = "0";
         }
 
         // --- Helpers ---
