@@ -580,6 +580,20 @@ function initializeRecommendationIndex() {
     }
 }
 
+// --- LOAD CHANNEL HOME PREVIEW STATS ---
+const channelHomePreviewDir = path.join(__dirname, 'channel-home-previews');
+if (fs.existsSync(channelHomePreviewDir)) {
+    try {
+        const previewFiles = fs.readdirSync(channelHomePreviewDir).filter(f => f.endsWith('.json'));
+        console.log(`Loaded ${previewFiles.length} channel home previews.`);
+    } catch (err) {
+        console.error('Error reading channel home previews:', err);
+    }
+} else {
+    console.log('No channel home previews found. Run the Python generator script.');
+}
+app.use('/channel-home-previews', express.static(channelHomePreviewDir));
+
 // --- SHORT LINK SYSTEM ---
 const shortLinksFilePath = path.join(__dirname, 'shortlinks.json');
 let shortLinksMap = new Map();       // video path -> short code

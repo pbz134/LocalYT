@@ -6,6 +6,14 @@
     <title>Channel Videos</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
+    <script>
+    // Load Fluid Player for the HOME tab miniplayer
+    (function() {
+        const script = document.createElement('script');
+        script.src = 'fluidplayer.min.js';
+        document.head.appendChild(script);
+    })();
+    </script>
     <style>
         .channel-banner {
             width: 1400px;
@@ -157,8 +165,7 @@
             background-size: cover;
             background-position: center;
             position: relative;
-            /* Default grey background while loading */
-            background-color: #333; 
+            background-color: #333;
         }
         .playlist-overlay {
             position: absolute;
@@ -199,7 +206,7 @@
             margin-top: -4px;
             margin-left: -10px;
             color: #888;
-            min-height: 1.5em; /* Prevent layout shift */
+            min-height: 1.5em;
         }
         .playlist-video-count {
             text-align: left;
@@ -242,9 +249,6 @@
             border-top-color: transparent;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
         }
         .load-more-trigger {
             height: 20px;
@@ -350,12 +354,122 @@
 
         /* --- Search Suggestions Visibility --- */
         .search-suggestions {
-            display: none; /* Hidden by default when input is empty */
+            display: none;
         }
-
-        /* Show suggestions only when the search container (input) is focused/active */
         .search-container:focus-within .search-suggestions {
             display: block;
+        }
+
+        /* ===== HOME TAB STYLES ===== */
+        .home-preview-section {
+            margin-left: 230px;
+            max-width: 1100px;
+        }
+        .home-preview-row {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+        .home-player-wrapper {
+            flex: 0 0 640px;
+            max-width: 640px;
+            background: #000;
+            border-radius: 0;
+            overflow: hidden;
+            position: relative;
+            line-height: 0;
+        }
+        .home-player-wrapper video {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            display: block;
+            max-height: 360px;
+        }
+        .home-player-placeholder {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #1a1a1a;
+            color: #555;
+            font-size: 15px;
+        }
+        .home-info-panel {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .home-video-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            margin: 0 0 12px 0;
+            line-height: 1.3;
+            cursor: pointer;
+        }
+        .home-video-title:hover {
+            color: #ccc;
+        }
+        .home-video-meta {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        .home-video-description-box {
+            background-color: #282828;
+            padding: 15px;
+            border-radius: 5px;
+            flex: 1;
+            min-height: 100px;
+            overflow-y: auto;
+            max-height: 220px;
+        }
+        .home-video-description-text {
+            color: #ccc;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-line;
+            word-wrap: break-word;
+        }
+        .home-video-description-text.no-desc {
+            color: #666;
+            font-style: italic;
+        }
+        .home-video-description-text a {
+            color: #3ea6ff;
+            text-decoration: none;
+        }
+        .home-video-description-text a:hover {
+            text-decoration: underline;
+        }
+        .home-others-label {
+            margin-left: 230px;
+            max-width: 1100px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 16px;
+            margin-top: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #3f3f3f;
+        }
+        .home-others-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0;
+            margin-left: 230px;
+            max-width: 1100px;
+        }
+        .home-others-grid .video-item {
+            width: 280px;
+        }
+        .home-others-grid .video-thumbnail {
+            height: 157px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -379,13 +493,36 @@
 
     <!-- Tabs -->
     <div class="tabs">
-        <div class="tab active" data-tab="videos">VIDEOS</div>
+        <div class="tab active" data-tab="home">HOME</div>
+        <div class="tab" data-tab="videos">VIDEOS</div>
         <div class="tab" data-tab="playlists">PLAYLISTS</div>
         <div class="tab" data-tab="about">ABOUT</div>
     </div>
 
+    <!-- Home Tab -->
+    <div id="homeTab" class="tab-content active">
+        <div class="home-preview-section">
+            <div class="home-preview-row" id="homePreviewRow">
+                <div class="home-player-wrapper" id="homePlayerWrapper">
+                    <div class="home-player-placeholder" id="homePlayerPlaceholder">Loading...</div>
+                </div>
+                <div class="home-info-panel">
+                    <div class="home-video-title" id="homeVideoTitle"></div>
+                    <div class="home-video-meta" id="homeVideoMeta"></div>
+                    <div class="home-video-description-box">
+                        <div class="home-video-description-text" id="homeVideoDescription"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="home-others-label" id="homeOthersLabel"></div>
+        <div class="home-others-grid" id="homeOthersGrid">
+            <div class="tab-loading-placeholder" id="homeLoadingText">Loading videos...</div>
+        </div>
+    </div>
+
     <!-- Videos Tab -->
-    <div id="videosTab" class="tab-content active">
+    <div id="videosTab" class="tab-content">
         <button id="sortToggle" class="sort-toggle">
             <span class="sort-icon">↓</span> Newest First
         </button>
@@ -450,12 +587,12 @@ function parseChannelUrl() {
             tab: tabNames
         };
     }
-    return { channel: decoded, tab: 'videos' };
+    return { channel: decoded, tab: 'home' };
 }
 
 // Build the URL for a given channel + tab
 function buildChannelUrl(channel, tab) {
-    if (tab === 'videos') {
+    if (tab === 'home') {
         return `channel.html?channel=${encodeURIComponent(channel)}`;
     }
     return `channel.html?channel=${encodeURIComponent(channel)}/${tab}`;
@@ -511,6 +648,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let intersectionObserver = null;
     let isSubscribed = false;
 
+    // Home tab state
+    let homeFluidPlayerInstance = null;
+
     // Track which tabs have already been loaded
     const loadedTabs = new Set();
 
@@ -555,9 +695,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- UI Translation ---
     function updateUITranslations() {
+        document.querySelector('.tab[data-tab="home"]').textContent = getLang('HOME', 'STARTSEITE');
+        document.querySelector('.tab[data-tab="videos"]').textContent = getLang('VIDEOS', 'VIDEOS');
         document.querySelector('.tab[data-tab="playlists"]').textContent = getLang('PLAYLISTS', 'PLAYLISTEN');
         document.querySelector('.tab[data-tab="about"]').textContent = getLang('ABOUT', 'ÜBER');
-        
+
         if (sortNewestFirst) {
             sortToggle.innerHTML = '<span class="sort-icon">↓</span> ' + getLang('Newest First', 'Neueste zuerst');
         } else {
@@ -573,24 +715,35 @@ document.addEventListener('DOMContentLoaded', () => {
     updateUITranslations();
 
     document.getElementById('playlistsLoadingText').textContent = getLang('Loading playlists', 'Lade Playlisten...');
-        // --- Tab switching (pushes to address bar) ---
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    
-            const targetTab = document.querySelector(`.tab[data-tab="${tabName}"]`);
-            const targetContent = document.getElementById(`${tabName}Tab`);
-    
-            if (targetTab) targetTab.classList.add('active');
-            if (targetContent) targetContent.classList.add('active');
-    
-            const newUrl = buildChannelUrl(channel, tabName);
-            history.pushState({ tab: tabName }, '', newUrl);
-    
-            if (!loadedTabs.has(tabName)) {
-                loadTabContent(tabName);
+    document.getElementById('homeLoadingText').textContent = getLang('Loading videos...', 'Lade Videos...');
+    document.getElementById('homeOthersLabel').textContent = getLang('Other videos', 'Weitere Videos');
+
+    // --- Tab switching (pushes to address bar) ---
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+        const targetTab = document.querySelector(`.tab[data-tab="${tabName}"]`);
+        const targetContent = document.getElementById(`${tabName}Tab`);
+
+        if (targetTab) targetTab.classList.add('active');
+        if (targetContent) targetContent.classList.add('active');
+
+        const newUrl = buildChannelUrl(channel, tabName);
+        history.pushState({ tab: tabName }, '', newUrl);
+
+        if (!loadedTabs.has(tabName)) {
+            loadTabContent(tabName);
+        }
+
+        // Pause the home miniplayer when switching away from HOME tab
+        if (tabName !== 'home') {
+            const homeVideo = document.getElementById('homeVideoPlayer');
+            if (homeVideo) {
+                homeVideo.pause();
             }
         }
+    }
 
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => {
@@ -600,7 +753,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle browser back/forward
     window.addEventListener('popstate', (event) => {
-        const tabName = event.state?.tab || 'videos';
+        const tabName = event.state?.tab || 'home';
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 
@@ -617,6 +770,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Lazy-load content for a specific tab ---
     function loadTabContent(tabName) {
         switch (tabName) {
+            case 'home':
+                loadHomeTab();
+                break;
             case 'playlists':
                 loadPlaylists();
                 break;
@@ -626,6 +782,285 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         loadedTabs.add(tabName);
     }
+
+    // ===== HOME TAB LOGIC =====
+    function loadHomeTab() {
+        fetch(`/channel-home-previews/${encodeURIComponent(channel)}.json`)
+            .then(response => {
+                if (!response.ok) throw new Error('No preview file');
+                return response.json();
+            })
+            .then(videos => {
+                if (!videos || videos.length === 0) {
+                    document.getElementById('homePlayerPlaceholder').textContent = getLang('No videos found', 'Keine Videos gefunden');
+                    document.getElementById('homeOthersGrid').innerHTML = '';
+                    return;
+                }
+
+                const featuredVideo = videos[0];
+                const otherVideos = videos.slice(1, 13);
+
+                setupHomeMiniplayer(featuredVideo);
+                renderHomeOtherVideos(otherVideos);
+            })
+            .catch(error => {
+                console.error('Error loading home tab preview:', error);
+                document.getElementById('homePlayerPlaceholder').textContent = getLang('No videos found', 'Keine Videos gefunden');
+                document.getElementById('homeOthersGrid').innerHTML = '';
+            });
+    }
+
+    function setupHomeMiniplayer(video) {
+        const wrapper = document.getElementById('homePlayerWrapper');
+        const placeholder = document.getElementById('homePlayerPlaceholder');
+        const titleEl = document.getElementById('homeVideoTitle');
+        const metaEl = document.getElementById('homeVideoMeta');
+        const descEl = document.getElementById('homeVideoDescription');
+
+        const videoPathWithoutExt = stripExtension(video.path);
+        const extension = video.path.split('.').pop().toLowerCase();
+        const mimeType = getMimeType(extension);
+        const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
+
+        // Destroy previous Fluid Player instance if it exists
+        if (homeFluidPlayerInstance) {
+            try {
+                const oldVideo = document.getElementById('homeVideoPlayer');
+                if (oldVideo) {
+                    homeFluidPlayerInstance.destroy();
+                    oldVideo.remove();
+                }
+            } catch (e) {
+                // Ignore destroy errors
+            }
+            homeFluidPlayerInstance = null;
+        }
+
+        // Set title and make it link to the full video page
+        titleEl.textContent = video.displayName;
+        titleEl.onclick = () => { openVideo(encodeURIComponent(video.path)); };
+        titleEl.oncontextmenu = (e) => {
+            e.preventDefault();
+            window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+        };
+        titleEl.onmouseup = (e) => {
+            if (e.button === 1) {
+                e.preventDefault();
+                window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+            }
+        };
+
+        // Fetch metadata (views, date, length, description) in parallel
+        Promise.all([
+            fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(r => r.ok ? r.text() : '0'),
+            fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoPathWithoutExt.split('/').pop())}.txt`).then(r => r.ok ? r.text() : ''),
+            fetch(`/filenames/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(r => r.ok ? r.text() : video.displayName),
+            fetchDescription(video.path)
+        ])
+        .then(([viewCount, videoLength, displayName, description]) => {
+            let formattedViewCount = viewCount.trim();
+            if (!isNaN(formattedViewCount) && formattedViewCount !== '0') {
+                formattedViewCount = parseInt(formattedViewCount).toLocaleString();
+            }
+            if (localStorage.getItem('language') === 'de') {
+                formattedViewCount = formattedViewCount.replace(/,/g, '.');
+            }
+
+            const viewsText = getLang('views', 'Aufrufe');
+            const uploadedText = getLang('Uploaded on', 'Hochgeladen am');
+            metaEl.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${video.fileDate}` + (videoLength ? ` • ${videoLength}` : '');
+
+            if (displayName.trim()) {
+                titleEl.textContent = displayName.trim();
+            }
+
+            if (description) {
+                descEl.innerHTML = description;
+                descEl.classList.remove('no-desc');
+            } else {
+                descEl.textContent = getLang('No description available for this video.', 'Diesem Video wurde keine Beschreibung hinzugefügt.');
+                descEl.classList.add('no-desc');
+            }
+        })
+        .catch(() => {
+            metaEl.textContent = video.fileDate;
+            descEl.textContent = getLang('No description available.', 'Keine Beschreibung verfügbar.');
+            descEl.classList.add('no-desc');
+        });
+
+        // Create video element
+        const videoElement = document.createElement('video');
+        videoElement.id = 'homeVideoPlayer';
+        videoElement.preload = 'metadata'; // Prevents timeout by not forcing full load
+
+        const sourceElement = document.createElement('source');
+        sourceElement.src = `/videos/${encodeURIComponent(video.path)}`;
+        sourceElement.type = mimeType;
+        videoElement.appendChild(sourceElement);
+
+        // Replace placeholder with video
+        placeholder.remove();
+        wrapper.appendChild(videoElement);
+
+        // Wait for Fluid Player to be available, then initialize
+        function initPlayer() {
+            if (typeof fluidPlayer === 'function') {
+                homeFluidPlayerInstance = fluidPlayer('homeVideoPlayer', {
+                    "layoutControls": {
+                        "title": video.displayName,
+                        "controlBar": {
+                            "autoHideTimeout": 3,
+                            "animated": true,
+                            "autoHide": true
+                        },
+                        "htmlOnPauseBlock": { "html": null, "height": null, "width": null },
+                        "autoPlay": false,
+                        "mute": false,
+                        "allowTheatre": false,
+                        "playPauseAnimation": true,
+                        "playbackRateEnabled": true,
+                        "allowDownload": false,
+                        "playButtonShowing": false,
+                        "fillToContainer": true,
+                        "posterImage": thumbnailSrc,
+                        "posterImageSize": "cover"
+                    },
+                    "vastOptions": {
+                        "adList": [],
+                        "adCTAText": false,
+                        "adCTATextPosition": ""
+                    }
+                });
+            } else {
+                // Fluid Player not loaded yet, retry
+                setTimeout(initPlayer, 200);
+            }
+        }
+        initPlayer();
+    }
+
+    function fetchDescription(videoSrc) {
+        const pathParts = videoSrc.split('/');
+        const cleanDescName = pathParts[pathParts.length - 1].replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+        const descriptionPath = `/descriptions/${encodeURIComponent(pathParts[0])}/${encodeURIComponent(cleanDescName)}.txt`;
+
+        return fetch(descriptionPath)
+            .then(response => {
+                if (!response.ok) return null;
+                return response.text();
+            })
+            .then(description => {
+                if (!description) return null;
+                // Style links and timestamps in description
+                let processed = description;
+                const urlRegex = /(https?:\/\/[^\s<]+)/g;
+                processed = processed.replace(urlRegex, function(url) {
+                    return '<a href="' + url + '" target="_blank" style="color: #3ea6ff; text-decoration: none;">' + url + '</a>';
+                });
+                const timestampRegex = /(\b\d{1,2}:\d{2}(?::\d{2})?\b)/g;
+                processed = processed.replace(timestampRegex, function(ts) {
+                    return '<span style="color: #3ea6ff;">' + ts + '</span>';
+                });
+                return processed;
+            })
+            .catch(() => null);
+    }
+
+    function getMimeType(extension) {
+        const mimeTypes = {
+            'mp4': 'video/mp4',
+            'mkv': 'video/x-matroska',
+            'avi': 'video/x-msvideo',
+            'mov': 'video/quicktime',
+            'wmv': 'video/x-ms-wmv',
+            'flv': 'video/x-flv',
+            'webm': 'video/webm',
+            'mp3': 'audio/mp3'
+        };
+        return mimeTypes[extension.toLowerCase()] || 'video/mp4';
+    }
+
+    function renderHomeOtherVideos(videos) {
+        const grid = document.getElementById('homeOthersGrid');
+        grid.innerHTML = '';
+
+        if (videos.length === 0) {
+            grid.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">' + getLang('No other videos', 'Keine weiteren Videos') + '</p>';
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+
+        videos.forEach(video => {
+            const videoElement = document.createElement('div');
+            videoElement.className = 'video-item';
+            const videoPathWithoutExt = stripExtension(video.path);
+            const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
+
+            videoElement.innerHTML = `
+                <div class="thumbnail-container">
+                    <img src="${thumbnailSrc}" alt="${video.displayName}" class="video-thumbnail" loading="lazy">
+                    <div class="video-length"></div>
+                </div>
+                <div class="video-title" onclick="openVideo('${encodeURIComponent(video.path)}')">${video.displayName}</div>
+                <div class="video-description">${getLang('Loading views...', 'Aufrufe werden geladen...')}</div>
+            `;
+
+            const descriptionDiv = videoElement.querySelector('.video-description');
+
+            Promise.all([
+                fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(r => r.ok ? r.text() : '0'),
+                fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoPathWithoutExt.split('/').pop())}.txt`).then(r => r.ok ? r.text() : '')
+            ])
+            .then(([viewCount, videoLength]) => {
+                let formattedViewCount = viewCount;
+                if (!isNaN(viewCount) && viewCount !== '0') {
+                    formattedViewCount = parseInt(viewCount).toLocaleString();
+                }
+                if (localStorage.getItem('language') === 'de') {
+                    formattedViewCount = formattedViewCount.replace(/,/g, '.');
+                }
+                const viewsText = getLang('views', 'Aufrufe');
+                const uploadedText = getLang('Uploaded on', 'Hochgeladen am');
+                descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${video.fileDate}`;
+                if (videoLength) {
+                    videoElement.querySelector('.video-length').textContent = videoLength;
+                }
+            })
+            .catch(() => {
+                descriptionDiv.textContent = video.fileDate;
+            });
+
+            const videoThumb = videoElement.querySelector('.video-thumbnail');
+            const videoLink = videoElement.querySelector('.video-title');
+
+            videoThumb.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
+            videoThumb.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+            });
+            videoLink.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+            });
+
+            const middleHandler = (e) => {
+                if (e.button === 1) {
+                    e.preventDefault();
+                    window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                }
+            };
+            videoThumb.addEventListener('mouseup', middleHandler);
+            videoThumb.addEventListener('auxclick', middleHandler);
+            videoLink.addEventListener('mouseup', middleHandler);
+            videoLink.addEventListener('auxclick', middleHandler);
+
+            fragment.appendChild(videoElement);
+        });
+
+        grid.appendChild(fragment);
+    }
+    // ===== END HOME TAB LOGIC =====
 
     function parseEuropeanDate(dateString) {
         if (!dateString || dateString === 'Unknown date') return new Date(0);
@@ -679,11 +1114,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const videoPathWithoutExt = stripExtension(video.path);
         const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
 
-        // 1. Create HTML structure immediately. 
-        // Note: video.fileDate is already loaded (needed for sorting), so we can show it instantly.
-        // View count is not loaded yet, so we leave description empty or with loading text.
-        let formattedDate = video.fileDate;
-        
         videoElement.innerHTML = `
             <div class="thumbnail-container">
                 <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
@@ -695,8 +1125,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const descriptionDiv = videoElement.querySelector('.video-description');
 
-        // 2. Lazy Load "View Count" and "Video Length" asynchronously
-        // We use Promise.all to wait for both, but we don't block the UI creation.
         Promise.all([
             fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(response => response.ok ? response.text() : '0'),
             fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoPathWithoutExt.split('/').pop())}.txt`).then(response => response.ok ? response.text() : '')
@@ -707,20 +1135,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 formattedViewCount = parseInt(viewCount).toLocaleString();
             }
 
-            // Language formatting
             const lang = localStorage.getItem('language');
             let viewsText = getLang('views', 'Aufrufe');
             let uploadedText = getLang('Uploaded on', 'Hochgeladen am');
 
-            // Swap comma to dot for German
             if (lang === 'de') {
                 formattedViewCount = formattedViewCount.replace(/,/g, '.');
             }
 
-            // Update description
             descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${video.fileDate}`;
-            
-            // Update length
+
             if (videoLength) {
                 videoElement.querySelector('.video-length').textContent = videoLength;
             }
@@ -729,12 +1153,11 @@ document.addEventListener('DOMContentLoaded', () => {
             descriptionDiv.textContent = `${video.fileDate}`;
         });
 
-        // Click handlers
         const videoLink = videoElement.querySelector('.video-title');
         const videoThumb = videoElement.querySelector('.video-thumbnail');
 
         videoThumb.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
-        
+
         videoThumb.addEventListener('contextmenu', (event) => {
             event.preventDefault();
             window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
@@ -776,7 +1199,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingSpinner.classList.add('visible');
         noMoreVideos.style.display = 'none';
 
-        // Use requestAnimationFrame to ensure smooth rendering
         requestAnimationFrame(() => {
             const fragment = document.createDocumentFragment();
 
@@ -873,7 +1295,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (playlist.videoCount > 0) {
                 const thumbDiv = playlistElement.querySelector('.playlist-thumbnail');
-                
+
                 fetch(`/playlist-videos/${encodeURIComponent(channel)}/${encodeURIComponent(playlist.path)}`)
                     .then(response => response.json())
                     .then(videos => {
@@ -897,7 +1319,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function pickPreviewVideo(videos) {
         if (!videos || videos.length === 0) return null;
 
-        // Optimization: Check only first 10 videos
         const datePromises = videos.slice(0, 10).map(video => {
             const videoPathWithoutExt = stripExtension(video.path);
             return fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
@@ -965,7 +1386,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function formatJoinDate(date) {
         const monthsEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const monthsDe = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
-        
+
         const lang = localStorage.getItem('language');
         const months = lang === 'de' ? monthsDe : monthsEn;
 
@@ -1000,7 +1421,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch(`/subcount/${encodeURIComponent(channel)}`)
             .then(response => response.ok ? response.text() : '0')
             .then(subCount => {
-                updateHeaderStats(subCount, null); 
+                updateHeaderStats(subCount, null);
             })
             .catch(() => {
                 updateHeaderStats('?', null);
@@ -1012,8 +1433,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const videos = data.videos || [];
                 const channelVideos = videos.filter(video => video.path.startsWith(`${channel}/`));
                 const videoCount = channelVideos.length;
-                
-                // Update stats
+
                 fetch(`/subcount/${encodeURIComponent(channel)}`)
                     .then(response => response.ok ? response.text() : '0')
                     .then(subCount => {
@@ -1023,7 +1443,6 @@ document.addEventListener('DOMContentLoaded', () => {
                          updateHeaderStats('?', videoCount);
                     });
 
-                // Initialize video list with optimized sorting
                 initializeVideoList(channelVideos);
             })
             .catch(error => {
@@ -1035,49 +1454,44 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateHeaderStats(subs, vids) {
         let text = channel;
         let parts = [];
-        
+
         if (subs !== null) parts.push(`${subs} ${getLang('subscribers', 'Abonnenten')}`);
         if (vids !== null) parts.push(`${vids} ${getLang('videos', 'Videos')}`);
 
         if (parts.length > 0) {
             text += `<span class="video-count">${parts.join(' • ')}</span>`;
         }
-        
+
         channelName.innerHTML = text;
     }
 
     function initializeVideoList(channelVideos) {
-        loadedTabs.add('videos'); 
+        loadedTabs.add('videos');
         videosContainer.innerHTML = '<div class="loading-spinner visible">' + getLang('Loading videos...', 'Lade Videos...') + '</div>';
 
-        // OPTIMIZATION:
-        // We only fetch DATES first. Dates are small text files.
-        // We need dates to SORT the videos correctly.
-        // We do NOT need view counts to sort.
         const videoPromises = channelVideos.map(video => {
             const videoPathWithoutExt = stripExtension(video.path);
             return fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
                 .then(response => response.ok ? response.text() : 'Unknown date')
-                .then(fileDate => ({ 
-                    ...video, 
+                .then(fileDate => ({
+                    ...video,
                     fileDate: fileDate.trim() || 'Unknown date',
-                    viewCount: '0' // Default, will load later
+                    viewCount: '0'
                 }))
-                .catch(() => ({ 
-                    ...video, 
-                    fileDate: 'Unknown date', 
-                    viewCount: '0' 
+                .catch(() => ({
+                    ...video,
+                    fileDate: 'Unknown date',
+                    viewCount: '0'
                 }));
         });
 
         Promise.all(videoPromises).then(videosWithDates => {
             currentVideos = videosWithDates;
-            sortVideosArray(); // Sort is now complete
-            
+            sortVideosArray();
+
             hasMoreVideos = currentVideos.length > 0;
-            videosContainer.innerHTML = ''; // Clear loading text
-            
-            // Load first batch immediately
+            videosContainer.innerHTML = '';
+
             loadMoreVideos();
             setupIntersectionObserver();
 
@@ -1089,14 +1503,18 @@ document.addEventListener('DOMContentLoaded', () => {
     loadHeaderStats();
 
     // --- Activate the initial tab from the URL ---
-    if (initialTab !== 'videos') {
-        document.querySelector('.tab[data-tab="videos"]').classList.remove('active');
-        document.getElementById('videosTab').classList.remove('active');
+    if (initialTab !== 'home') {
+        document.querySelector('.tab[data-tab="home"]').classList.remove('active');
+        document.getElementById('homeTab').classList.remove('active');
         const targetTab = document.querySelector(`.tab[data-tab="${initialTab}"]`);
         const targetContent = document.getElementById(`${initialTab}Tab`);
         if (targetTab) targetTab.classList.add('active');
         if (targetContent) targetContent.classList.add('active');
         loadTabContent(initialTab);
+    } else {
+        // HOME is the default active tab, load its content
+        loadedTabs.add('home');
+        loadHomeTab();
     }
 
     history.replaceState({ tab: initialTab }, '', buildChannelUrl(channel, initialTab));
@@ -1104,8 +1522,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Search Navigation Logic ---
     const searchInput = document.getElementById('searchInput');
 
-    searchInput.addEventListener('keydown', (e) => { 
-        if (e.key === 'Enter') window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`; 
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
     });
 
     document.getElementById('searchIcon').addEventListener('click', () => {

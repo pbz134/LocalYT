@@ -10,6 +10,8 @@ v3.95
 - Added OLED Dark Mode for the sidebar on subscribed_channels.html
 - The sidebar now properly overlays on subscribed_channels.html
 - Changed the default profile picture to a blue one
+- Added a new "HOME" tab to channel.html
+  - An overview of a channel's videos will now be shown, with one large playable preview and 12 clickable thumbnails
 
 v3.90
 - Implemented custom user profile pictures
