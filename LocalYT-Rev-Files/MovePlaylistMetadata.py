@@ -9,7 +9,6 @@ def organize_txt_files():
     videos_base = script_dir.parent / "videos"
     
     target_dirs = {
-        "videostats": script_dir.parent / "videostats",
         "filenames": script_dir.parent / "filenames", 
         "viewcounts": script_dir.parent / "viewcounts"
     }
