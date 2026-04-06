@@ -352,6 +352,60 @@
             vertical-align: middle;
         }
 
+        /* --- Channel Search Tab Styles --- */
+        .tab-search-container {
+            display: flex;
+            align-items: center;
+        }
+        .tab[data-tab="search"] {
+            border-bottom: 2px solid transparent;
+            padding: 10px 12px;
+        }
+        .tab-search-icon {
+            width: 20px;
+            height: 20px;
+            filter: invert(100%);
+            pointer-events: none;
+            display: block;
+        }
+        .tab-search-bar {
+            display: none;
+            padding: 0 10px 0 0;
+        }
+        .tab-search-bar.active {
+            display: block;
+            width: 200px;
+        }
+        .tab-search-bar input {
+            width: 100%;
+            padding: 6px 10px;
+            font-size: 14px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            border: 1px solid #555;
+            background-color: var(--input-bg-color);
+            color: #fff;
+            border-radius: 3px;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color 0.2s ease;
+        }
+        .tab-search-bar input:focus {
+            border-color: #fff;
+        }
+        .channel-search-results {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            padding: 0px 20px;
+        }
+        .channel-search-no-results {
+            text-align: center;
+            color: #888;
+            width: 100%;
+            padding: 40px 0;
+            font-style: italic;
+        }
+
         /* --- Search Suggestions Visibility --- */
         .search-suggestions {
             display: none;
@@ -490,11 +544,20 @@
     </div>
 
     <!-- Tabs -->
+    <!-- Tabs -->
     <div class="tabs">
         <div class="tab active" data-tab="home">HOME</div>
         <div class="tab" data-tab="videos">VIDEOS</div>
         <div class="tab" data-tab="playlists">PLAYLISTS</div>
         <div class="tab" data-tab="about">ABOUT</div>
+        <div class="tab-search-container">
+            <div class="tab" data-tab="search">
+                <img src="LocalYT-Rev-Files/search_icon.svg" class="tab-search-icon" alt="Search">
+            </div>
+            <div class="tab-search-bar">
+                <input type="text" id="channelSearchInput" placeholder="">
+            </div>
+        </div>
     </div>
 
     <!-- Home Tab -->
@@ -560,6 +623,11 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Search Tab -->
+    <div id="searchTab" class="tab-content">
+        <div class="channel-search-results" id="channelSearchResults"></div>
     </div>
 
     <script>
@@ -776,6 +844,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case 'about':
                 loadAbout();
+                break;
+            default:
                 break;
         }
         loadedTabs.add(tabName);
@@ -1516,6 +1586,162 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     history.replaceState({ tab: initialTab }, '', buildChannelUrl(channel, initialTab));
+
+    // --- Channel Search Tab Logic ---
+    const channelSearchInput = document.getElementById('channelSearchInput');
+    const channelSearchResults = document.getElementById('channelSearchResults');
+    let channelSearchTimeout = null;
+
+    // Handle clicking the search tab to open the input
+    document.querySelector('.tab[data-tab="search"]').addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent switchTab from firing immediately on input click
+        const searchBar = document.querySelector('.tab-search-bar');
+        
+        if (!searchBar.classList.contains('active')) {
+            searchBar.classList.add('active');
+            channelSearchInput.focus();
+        } else {
+            switchTab('search');
+        }
+    });
+
+    // Close search bar if clicking outside of it
+    document.addEventListener('click', (e) => {
+        const searchBar = document.querySelector('.tab-search-bar');
+        if (searchBar.classList.contains('active') && 
+            !e.target.closest('.tab-search-container')) {
+            
+            searchBar.classList.remove('active');
+            channelSearchInput.value = '';
+        }
+    });
+
+    // Prevent input clicks from bubbling up and closing the bar
+    channelSearchInput.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+
+    // Trigger search on Enter
+    channelSearchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const query = channelSearchInput.value.trim().toLowerCase();
+            
+            if (!query) {
+                switchTab('search');
+                channelSearchResults.innerHTML = '<div class="channel-search-no-results">' + getLang('Type something to search.', 'Bitte etwas eingeben zum Suchen.') + '</div>';
+                return;
+            }
+
+            // Manually set the active states so it doesn't conflict with the async fetch
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            // Explicitly activate search tab and content
+            document.querySelector('.tab[data-tab="search"]').classList.add('active');
+            document.getElementById('searchTab').classList.add('active');
+            document.querySelector('.tab-search-bar').classList.add('active'); // Keep bar open!
+            
+            history.pushState({ tab: 'search' }, '', buildChannelUrl(channel, 'search'));
+            loadedTabs.add('search'); // Mark as loaded so switchTab doesn't wipe it later
+
+            channelSearchResults.innerHTML = '<div class="tab-loading-placeholder">' + getLang('Searching...', 'Suche...') + '</div>';
+
+            fetch('/search-index')
+                .then(response => response.json())
+                .then(data => {
+                    const allVideos = data.videos || [];
+                    
+                    // Filter by channel AND search query
+                    const results = allVideos.filter(v => 
+                        v.path.startsWith(channel + '/') && 
+                        v.displayName.toLowerCase().includes(query)
+                    );
+
+                    channelSearchResults.innerHTML = '';
+
+                    if (results.length === 0) {
+                        channelSearchResults.innerHTML = '<div class="channel-search-no-results">' + getLang('No videos found.', 'Keine Videos gefunden.') + '</div>';
+                        return;
+                    }
+
+                    const fragment = document.createDocumentFragment();
+                    results.forEach(video => {
+                        const videoElement = document.createElement('div');
+                        videoElement.className = 'video-item';
+                        const videoPathWithoutExt = stripExtension(video.path);
+                        const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
+
+                        videoElement.innerHTML = `
+                            <div class="thumbnail-container">
+                                <img src="${thumbnailSrc}" alt="${video.displayName}" class="video-thumbnail" loading="lazy">
+                                <div class="video-length"></div>
+                            </div>
+                            <div class="video-title" onclick="openVideo('${encodeURIComponent(video.path)}')">${video.displayName}</div>
+                            <div class="video-description">${getLang('Loading views...', 'Aufrufe werden geladen...')}</div>
+                        `;
+
+                        const descriptionDiv = videoElement.querySelector('.video-description');
+
+                        Promise.all([
+                            fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(r => r.ok ? r.text() : '0'),
+                            fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoPathWithoutExt.split('/').pop())}.txt`).then(r => r.ok ? r.text() : ''),
+                            fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(r => r.ok ? r.text() : 'Unknown date')
+                        ])
+                        .then(([viewCount, videoLength, fileDate]) => {
+                            let formattedViewCount = viewCount.trim();
+                            if (!isNaN(formattedViewCount) && formattedViewCount !== '0') {
+                                formattedViewCount = parseInt(formattedViewCount).toLocaleString();
+                            }
+                            if (localStorage.getItem('language') === 'de') {
+                                formattedViewCount = formattedViewCount.replace(/,/g, '.');
+                            }
+                            const viewsText = getLang('views', 'Aufrufe');
+                            const uploadedText = getLang('Uploaded on', 'Hochgeladen am');
+                            descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${fileDate.trim()}`;
+                            if (videoLength.trim()) {
+                                videoElement.querySelector('.video-length').textContent = videoLength.trim();
+                            }
+                        })
+                        .catch(() => {
+                            descriptionDiv.textContent = '';
+                        });
+
+                        const videoThumb = videoElement.querySelector('.video-thumbnail');
+                        const videoLink = videoElement.querySelector('.video-title');
+
+                        videoThumb.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
+                        videoThumb.addEventListener('contextmenu', (ev) => {
+                            ev.preventDefault();
+                            window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                        });
+                        videoLink.addEventListener('contextmenu', (ev) => {
+                            ev.preventDefault();
+                            window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                        });
+
+                        const middleHandler = (ev) => {
+                            if (ev.button === 1) {
+                                ev.preventDefault();
+                                window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                            }
+                        };
+                        videoThumb.addEventListener('mouseup', middleHandler);
+                        videoThumb.addEventListener('auxclick', middleHandler);
+                        videoLink.addEventListener('mouseup', middleHandler);
+                        videoLink.addEventListener('auxclick', middleHandler);
+
+                        fragment.appendChild(videoElement);
+                    });
+
+                    channelSearchResults.appendChild(fragment);
+                })
+                .catch(error => {
+                    console.error('Search error:', error);
+                    channelSearchResults.innerHTML = '<div class="channel-search-no-results">Search failed.</div>';
+                });
+        }
+    });
 
     // --- Search Navigation Logic ---
     const searchInput = document.getElementById('searchInput');

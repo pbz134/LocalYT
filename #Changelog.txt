@@ -12,6 +12,8 @@ v3.95
 - Changed the default profile picture to a blue one
 - Added a new "HOME" tab to channel.html
   - An overview of a channel's videos will now be shown, with one large playable preview and 12 clickable thumbnails
+- Added a new search tab to channel.html
+  - You can now search for specific videos in a channel
 
 v3.90
 - Implemented custom user profile pictures
