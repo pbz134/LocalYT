@@ -201,6 +201,103 @@ def organize_thumbnail_files():
     print(f"Moved {moves_made} thumbnails")
 
 
+def organize_comment_files():
+    """
+    Organizes comment JSON files based on video structure.
+    """
+    script_dir = Path(__file__).parent
+    videos_base = script_dir.parent / "videos"
+    comments_base = script_dir.parent / "comments"
+    
+    if not videos_base.exists():
+        print(f"Error: Videos directory not found at {videos_base}")
+        return
+    
+    if not comments_base.exists():
+        print(f"Error: Comments directory not found at {comments_base}")
+        return
+    
+    # PRE-BUILD LOOKUP: Scan all comments ONCE into hash map
+    # Structure: {channel: {base_name: file_path}}
+    comment_lookup = {}
+    total_comments = 0
+    
+    for channel_dir in comments_base.iterdir():
+        if not channel_dir.is_dir():
+            continue
+        
+        channel_name = channel_dir.name
+        comment_lookup[channel_name] = {}
+        
+        # Scan for .json files
+        for json_file in channel_dir.glob("*.json"):
+            base_name = json_file.stem
+            comment_lookup[channel_name][base_name] = json_file
+            total_comments += 1
+    
+    print(f"\nIndexed {total_comments} comment files for O(1) lookup")
+    
+    # Collect all videos to process (same as thumbnails)
+    videos_to_process = []
+    for root, dirs, files in os.walk(videos_base):
+        root_path = Path(root)
+        relative_path = root_path.relative_to(videos_base)
+        path_parts = list(relative_path.parts)
+        
+        if len(path_parts) >= 1:
+            video_files = [f for f in files if f.endswith(('.mp4', '.mkv', '.mp3'))]
+            if video_files:
+                channel = path_parts[0]
+                playlist = path_parts[1] if len(path_parts) >= 2 else None
+                for video_file in video_files:
+                    base_name = Path(video_file).stem
+                    videos_to_process.append((channel, playlist, base_name))
+    
+    print(f"Found {len(videos_to_process)} videos to match comments against")
+    
+    # Process with instant lookups
+    moves_made = 0
+    with tqdm(total=len(videos_to_process), desc="Processing comments", unit="video") as pbar:
+        for channel, playlist, base_name in videos_to_process:
+            # O(1) lookup
+            if channel not in comment_lookup:
+                pbar.update(1)
+                continue
+            if base_name not in comment_lookup[channel]:
+                pbar.update(1)
+                continue
+            
+            comment_file = comment_lookup[channel][base_name]
+            
+            # Handle already-moved files
+            if not comment_file.exists():
+                del comment_lookup[channel][base_name]
+                pbar.update(1)
+                continue
+            
+            # Determine destination
+            if playlist:
+                dest_dir = comment_file.parent / playlist
+                dest_dir.mkdir(exist_ok=True)
+                dest_path = dest_dir / comment_file.name
+            else:
+                dest_path = comment_file
+            
+            if comment_file != dest_path:
+                # OVERWRITE: Remove existing file at destination if it exists
+                if dest_path.exists():
+                    dest_path.unlink()
+                shutil.move(str(comment_file), str(dest_path))
+                moves_made += 1
+            
+            # Remove to prevent duplicate moves
+            del comment_lookup[channel][base_name]
+            
+            pbar.update(1)
+    
+    print(f"Moved {moves_made} comment files")
+
+
 def main():
     print("Starting organization of files...")
     print("=" * 60)
@@ -211,6 +308,9 @@ def main():
         
         print("\n--- ORGANIZING THUMBNAIL FILES ---")
         organize_thumbnail_files()
+
+        print("\n--- ORGANIZING COMMENT FILES ---")
+        organize_comment_files()
         
         print("\n" + "=" * 60)
         print("Organization completed successfully!")
