@@ -189,6 +189,7 @@ app.use('/channelstats', express.static(path.join(__dirname, 'channelstats')));
 app.use('/videostats', express.static(path.join(__dirname, 'videostats')));
 app.use('/descriptions', express.static(path.join(__dirname, 'descriptions')));
 app.use('/comments', express.static(path.join(__dirname, 'comments')));
+app.use('/subtitles', express.static(path.join(__dirname, 'subtitles')));
 app.use('/user-profiles', express.static(path.join(__dirname, 'user-profiles')));
 app.use('/favicon.png', express.static(path.join(__dirname, 'favicon.png')));
 

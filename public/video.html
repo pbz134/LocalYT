@@ -1399,6 +1399,17 @@ document.addEventListener('click', function(e) {
                 sourceElement.type = mimeType;
                 videoPlayer.appendChild(sourceElement);
 
+                // Add subtitle track dynamically (after innerHTML clear)
+                const videoNameForSubs = stripExtension(videoSrc.split('/').pop());
+                const trackElement = document.createElement('track');
+                trackElement.kind = 'metadata';
+                trackElement.srclang = 'en';
+                trackElement.label = 'Subtitles';
+                // currentChannel is set below, so we use a placeholder that gets updated after
+                trackElement.setAttribute('data-channel', '');
+                trackElement.setAttribute('data-videofile', videoNameForSubs);
+                videoPlayer.appendChild(trackElement);
+
                 const videoPathWithoutExt = stripExtension(videoSrc);
                 fetch(`/filenames/${encodeURIComponent(videoPathWithoutExt)}.txt`)
                     .then(response => response.text())
@@ -1410,6 +1421,13 @@ document.addEventListener('click', function(e) {
 
                 const pathParts = videoSrc.split('/');
                 currentChannel = pathParts[0];
+
+                // Update subtitle track src now that currentChannel is known
+                const subTrack = videoPlayer.querySelector('track[data-videofile]');
+                if (subTrack && currentChannel) {
+                    const videoFileForSub = subTrack.getAttribute('data-videofile');
+                    subTrack.src = `/subtitles/${encodeURIComponent(currentChannel)}/${encodeURIComponent(videoFileForSub)}.vtt`;
+                }
 
                 // Check if there's a playlist subfolder
                 let thumbnailPath;
@@ -1742,6 +1760,7 @@ document.addEventListener('click', function(e) {
                 'videoPlayer', {
                     "layoutControls": {
                         "title": videoTitle, // Dynamic video title
+                        "subtitlesEnabled": true,
                         "controlBar": {
                             "autoHideTimeout": 3,
                             "animated": true,
