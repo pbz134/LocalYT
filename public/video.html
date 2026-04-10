@@ -706,6 +706,7 @@
             border-radius: 20px;
             user-select: none;
             transition: background-color 0.15s;
+            margin-left: -8px;
         }
 
         .comment-like-btn svg {
@@ -773,7 +774,7 @@
     <header class="top-bar">
         <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
         <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Search">
+            <input type="text" id="searchInput" placeholder="Search" data-de-placeholder="Suchen">
             <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
@@ -1373,6 +1374,12 @@ document.addEventListener('click', function(e) {
             const copyMessage = document.getElementById('copyMessage');
             const suggestionsContainer = document.getElementById('videoSuggestions');
 
+            // --- Translate Search Bar ---
+            const searchInputEl = document.getElementById('searchInput');
+            if (searchInputEl) {
+                searchInputEl.placeholder = getLang('Search', 'Suchen');
+            }
+
             let likes = 0;
             let dislikes = 0;
             let isLiked = false;
@@ -1492,7 +1499,6 @@ document.addEventListener('click', function(e) {
                     })
                     .catch(error => console.error('Error fetching like/dislike counts:', error));
 
-                // FIXED: Handle 401 gracefully
                 fetch('/user-likes')
                     .then(response => response.ok ? response.json() : {})
                     .then(userLikes => {
