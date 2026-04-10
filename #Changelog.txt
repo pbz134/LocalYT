@@ -15,6 +15,7 @@ v3.95
 - Added a new search tab to channel.html
   - You can now search for specific videos in a channel
 - Added scripts to fix and manage directories and filenames of comments
+- user_playlists.html scrolls 3 elements instead of 2
 
 v3.90
 - Implemented custom user profile pictures

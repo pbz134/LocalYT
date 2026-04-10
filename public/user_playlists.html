@@ -456,10 +456,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const firstItem = grid.querySelector('.playlist-video-item');
             const itemWidth = firstItem ? firstItem.offsetWidth + 15 : 295;
             arrowLeft.addEventListener('click', () => {
-                grid.scrollBy({ left: -(itemWidth * 2), behavior: 'smooth' });
+                grid.scrollBy({ left: -(itemWidth * 3), behavior: 'smooth' });
             });
             arrowRight.addEventListener('click', () => {
-                grid.scrollBy({ left: itemWidth * 2, behavior: 'smooth' });
+                grid.scrollBy({ left: itemWidth * 3, behavior: 'smooth' });
             });
 
             grid.addEventListener('scroll', () => updateArrowVisibility(wrapper));
