@@ -1,0 +1,15 @@
+For regular launch from LocalYT server root:
+SET HF_HUB_OFFLINE=1
+SET HF_HOME=E:\#Ablage\LocalYT-Revamped-v3.90\subtitles\#STT
+SET TORCH_HOME=E:\#Ablage\LocalYT-Revamped-v3.90\subtitles\#STT
+ffmpeg -i "Midnight Club Die vergessene Legende von Rockstar Games.mp4" -vn -acodec copy "test_audio.m4a"
+.\venv\python.exe .\venv\Scripts\whisper-ctranslate2.exe "test_audio.m4a" --model small --compute_type int8
+
+
+
+For first launch from LocalYT server root:
+.\venv\python.exe -m pip install whisper-ctranslate2
+SET HF_HOME=E:\#Ablage\LocalYT-Revamped-v3.90\subtitles\#STT
+SET TORCH_HOME=E:\#Ablage\LocalYT-Revamped-v3.90\subtitles\#STT
+ffmpeg -i "Midnight Club Die vergessene Legende von Rockstar Games.mp4" -vn -acodec copy "test_audio.m4a"
+.\venv\python.exe .\venv\Scripts\whisper-ctranslate2.exe "test_audio.m4a" --model small --compute_type int8
