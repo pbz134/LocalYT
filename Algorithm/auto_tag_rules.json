@@ -64,7 +64,7 @@
       "tags": ["VTuber", "Anime"]
     },
     {
-      "name": Mukbang Rule",
+      "name": "Mukbang Rule",
       "match_type": "contains",
       "match_value": "Mukbang",
       "case_sensitive": false,
