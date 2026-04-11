@@ -113,6 +113,20 @@
       "tags": ["GTA", "Gaming"]
     },
     {
+      "name": "Mario Bros Rule",
+      "match_type": "contains",
+      "match_value": "mario bros",
+      "case_sensitive": false,
+      "tags": ["Mario Bros", "Gaming"]
+    },
+    {
+      "name": "Mario Kart Rule",
+      "match_type": "contains",
+      "match_value": "mario kart",
+      "case_sensitive": false,
+      "tags": ["Mario Kart", "Gaming"]
+    },
+    {
       "name": "Mario Rule",
       "match_type": "contains",
       "match_value": "mario",
