@@ -22,6 +22,7 @@ v3.95
   - While the feature works, an easy way to generate or extract subtitles will be added later
 - FixCommentUnderscores.py now skips underscore character removals from comments if a video matches its file name before the removal
 - Fixed video.html description detection for .mp3 files
+- Fixed the unclickable Sort button on channel.html
 
 v3.90
 - Implemented custom user profile pictures
