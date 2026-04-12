@@ -1030,10 +1030,19 @@ function renderSingleComment(comment, isReply, channelPicUrl) {
     const isLong = comment.text && comment.text.length > 180;
     const replyCls = isReply ? ' reply' : '';
 
+    // Check user preference for commenter avatar style
+    const commenterSettings = JSON.parse(localStorage.getItem('commenterProfileStyle') || '{}');
+    const commenterStyle = commenterSettings.style || 'modern';
+
     let avatarHtml;
     if (comment.is_uploader && channelPicUrl) {
-        avatarHtml = `<img class="comment-avatar" src="${channelPicUrl}" alt="">`;
+        // Uploader always uses their channel picture
+        avatarHtml = `<img class="comment-avatar" src="${channelPicUrl}" alt="" style="object-fit: cover;">`;
+    } else if (commenterStyle === 'classic') {
+        // Classic mode: use placeholder image for all commenters
+        avatarHtml = `<img class="comment-avatar" src="/LocalYT-Rev-Files/commenter-profile-placeholder.png" alt="" style="object-fit: cover;">`;
     } else {
+        // Modern mode (default): letters and colored backgrounds
         avatarHtml = `<div class="comment-avatar" style="background:${bg}">${initial}</div>`;
     }
 

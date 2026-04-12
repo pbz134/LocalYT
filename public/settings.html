@@ -623,6 +623,29 @@
                 </div>
             </div>
 
+            <!-- Commenter Profile Images Section -->
+            <div class="settings-section">
+                <h2 id="commenterProfileHeading">Commenter Profile Images</h2>
+    
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div id="commenterProfileLabel">Commenter Avatar Style</div>
+                        <div class="setting-description" id="commenterProfileDesc">Choose how commenter profile pictures appear in comments</div>
+                    </div>
+                    <div class="setting-control">
+                        <select class="setting-select" id="commenterProfileStyle">
+                            <option value="modern">Modern (Letters & Colors)</option>
+                            <option value="classic">Classic (Placeholder Image)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="inline-form" style="margin-top: 15px;">
+                    <button class="btn btn-save" id="saveCommenterStyleBtn">Save Preference</button>
+                </div>
+                <div id="commenterStyleStatus" class="status-msg"></div>
+            </div>
+
             <!-- Danger Zone -->
             <div class="settings-section">
                 <h2 id="dangerZoneHeading">Danger Zone</h2>
@@ -706,6 +729,22 @@ function applyTranslations() {
     document.getElementById('playlistAutoplayDesc').textContent = getLang('When watching a playlist, automatically play the next video in sequence', 'Beim Ansehen einer Playlist automatisch das nächste Video abspielen');
     document.getElementById('nonPlaylistDesc').textContent = getLang("Choose what happens after a video ends when you're not watching a playlist", 'Wähle, was passiert, wenn ein Video endet und du keine Playlist ansiehst');
     
+    // Commenter Profile Section
+    document.getElementById('commenterProfileHeading').textContent = getLang('Commenter Profile Images', 'Kommentar-Profilbilder');
+    document.getElementById('commenterProfileLabel').textContent = getLang('Commenter Avatar Style', 'Avatar-Stil für Kommentatoren');
+    document.getElementById('commenterProfileDesc').textContent = getLang('Choose how commenter profile pictures appear in comments', 'Wähle, wie Kommentar-Profilbilder angezeigt werden');
+    document.getElementById('saveCommenterStyleBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
+
+    // Update dropdown options text if needed (optional, since values are English)
+    const commenterSelect = document.getElementById('commenterProfileStyle');
+    if (commenterSelect) {
+        const options = commenterSelect.options;
+        // Option 0: Modern
+        options[0].text = getLang('Modern (Letters & Colors)', 'Modern (Buchstaben & Farben)');
+        // Option 1: Classic  
+        options[1].text = getLang('Classic (Placeholder Image)', 'Klassisch (Platzhalter-Bild)');
+    }
+
     // Update dropdown options
     const nonPlaylistSelect = document.getElementById('autoplayNonPlaylistMode');
     if (nonPlaylistSelect) {
@@ -754,6 +793,70 @@ function applyTranslations() {
 }
 
 // ==============================
+// Commenter Profile Style Logic
+// ==============================
+function loadCommenterProfileStyle() {
+    // Load from localStorage initially for immediate UI rendering
+    const savedLocal = JSON.parse(localStorage.getItem('commenterProfileStyle') || '{}');
+    const defaultStyle = 'modern';
+    const currentStyle = savedLocal.style || defaultStyle;
+    
+    document.getElementById('commenterProfileStyle').value = currentStyle;
+
+    // Fetch server state
+    fetch('/user-settings')
+        .then(res => {
+            if (!res.ok) throw new Error('Not authenticated');
+            return res.json();
+        })
+        .then(serverSettings => {
+            if (serverSettings && serverSettings.commenterProfileStyle) {
+                const serverStyle = serverSettings.commenterProfileStyle;
+                document.getElementById('commenterProfileStyle').value = serverStyle;
+                
+                // Sync back to localStorage for video.js to read instantly
+                localStorage.setItem('commenterProfileStyle', JSON.stringify({ style: serverStyle }));
+            }
+        })
+        .catch(err => console.error('Could not load commenter style from server:', err));
+}
+
+function saveCommenterProfileStyle() {
+    const style = document.getElementById('commenterProfileStyle').value;
+
+    // 1. Save to localStorage immediately for video.html to read
+    localStorage.setItem('commenterProfileStyle', JSON.stringify({ style: style }));
+
+    // 2. Fetch current server settings first so we don't overwrite language/appearance
+    fetch('/user-settings')
+        .then(res => res.json())
+        .then(currentSettings => {
+            // Merge the new style into existing settings
+            const updatedSettings = {
+                ...currentSettings,
+                commenterProfileStyle: style
+            };
+
+            // Send the complete updated object back to server
+            return fetch('/user-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings: updatedSettings })
+            });
+        })
+        .then(res => {
+            if (res.ok) {
+                showStatus('commenterStyleStatus', getLang('Commenter profile style saved!', 'Kommentar-Profilbildstil gespeichert!'), true);
+            } else {
+                showStatus('commenterStyleStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
+            }
+        })
+        .catch(() => {
+            showStatus('commenterStyleStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
+        });
+}
+
+// ==============================
 // Tab Switching
 // ==============================
 const sidebarLinks = document.querySelectorAll('.settings-sidebar a');
@@ -773,7 +876,8 @@ sidebarLinks.forEach(link => {
         if (targetTab === 'settings') {
             loadPreferences();
             loadAllTags();
-            loadAutoplaySettings(); // Load autoplay settings when switching to settings tab
+            loadAutoplaySettings();
+            loadCommenterProfileStyle()
         }
     });
 });
@@ -815,6 +919,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize autoplay UI event listeners
     initAutoplayUI();
 
+    // Initialize commenter profile style save button  <--- ADD THIS HERE
+    document.getElementById('saveCommenterStyleBtn')?.addEventListener('click', saveCommenterProfileStyle);
+
     // Wait for profile-pic.js to finish its session check before loading settings
     // This prevents race conditions where settings fetches fail because the session 
     // check in this file fires before the cookie is fully validated.
@@ -826,6 +933,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loadPreferences();
             loadAllTags();
             loadAutoplaySettings();
+            loadCommenterProfileStyle();
         } else {
             // Fallback timeout: Wait a brief moment for profile-pic.js to finish
             setTimeout(() => {
@@ -842,6 +950,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             loadPreferences();
                             loadAllTags();
                             loadAutoplaySettings();
+                            loadCommenterProfileStyle();
                         }
                     })
                     .catch(() => window.location.href = 'login.html');

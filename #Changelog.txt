@@ -23,6 +23,8 @@ v3.95
 - FixCommentUnderscores.py now skips underscore character removals from comments if a video matches its file name before the removal
 - Fixed video.html description detection for .mp3 files
 - Fixed the unclickable Sort button on channel.html
+- Added new commenter placeholder profile images
+  - Users can now choose between the modern images (letters on colored backgrounds) or familiar old profile images for comments
 
 v3.90
 - Implemented custom user profile pictures
