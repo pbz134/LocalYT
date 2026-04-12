@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mainLogo.addEventListener('contextmenu', (e) => {
             e.preventDefault(); window.open('index.html', '_blank');
         });
-        mainLogo.title = "Go to homepage";
+        mainLogotitle = "Go to homepage";
         mainLogo.style.cursor = 'pointer';
     }
 
@@ -559,7 +559,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                     '<div class="video-length"></div>' +
                                 '</div>' +
                                 '<div class="video-info">' +
-                                    '<img src="' + channelPicSrc + '" alt="' + escapeHtml(channel) + '" class="channel-pic" loading="lazy">' +
+                                    '<div class="channel-pic-link" style="cursor: pointer;">' +
+                                        '<img src="' + channelPicSrc + '" alt="' + escapeHtml(channel) + '" class="channel-pic" loading="lazy">' +
+                                    '</div>' +
                                     '<div class="video-details">' +
                                         '<div class="video-title">' + escapeHtml(videoTitle) + '</div>' +
                                         '<div class="channel-name">' + escapeHtml(channel) + '</div>' +
@@ -582,6 +584,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             titleEl.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(videoUrl, '_blank'); });
                             thumbContainer.addEventListener('mouseup', (e) => { if (e.button === 1) { e.preventDefault(); window.open(videoUrl, '_blank'); } });
                             titleEl.addEventListener('mouseup', (e) => { if (e.button === 1) { e.preventDefault(); window.open(videoUrl, '_blank'); } });
+
+                            // --- MODIFICATION: Setup events for channel pic links ---
+                            setupChannelLinkEvents(item.querySelector('.channel-pic-link'), channel);
+                            setupChannelLinkEvents(item.querySelector('.channel-name'), channel);
 
                             // Remove button
                             const removeBtn = item.querySelector('.remove-video-btn');
@@ -632,6 +638,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Error loading playlists:', e);
                 container.innerHTML = '<div class="no-playlists">' + getLang('Error loading playlists.', 'Fehler beim Laden der Playlisten.') + '</div>';
             }
+        }
+
+        // --- NEW FUNCTION: Setup events for channel links (matches index.html behavior) ---
+        function setupChannelLinkEvents(element, channel) {
+            // Handle left click
+            element.addEventListener('click', () => {
+                window.location.href = `channel.html?channel=${encodeURIComponent(channel)}`;
+            });
+
+            // Handle right-click
+            element.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+                window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
+            });
+
+            // Handle middle-click
+            element.addEventListener('mouseup', (event) => {
+                if (event.button === 1) {
+                    event.preventDefault();
+                    window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
+                }
+            });
         }
 
         // Search functionality

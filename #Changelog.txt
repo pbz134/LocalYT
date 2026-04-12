@@ -27,6 +27,7 @@ v3.95
   - Users can now choose between the modern images (letters on colored backgrounds) or familiar old profile images for comments
 - Added a placeholder channel banner at /LocalYT-Rev-Files/channel-banner-placeholder.png
   - Channels without a banner will now display this file instead
+- Channels on user_playlists.html are now clickable
 
 v3.90
 - Implemented custom user profile pictures
