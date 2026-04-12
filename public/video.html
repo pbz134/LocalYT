@@ -1480,7 +1480,7 @@ document.addEventListener('click', function(e) {
                     currentVideoDescription.textContent = `${formattedViews} ${viewsText} - ${uploadedText} ${fileDate.trim()}\n\n`;
                     
                     // Logic for description filename (from previous fix)
-                    const cleanDescName = videoSrc.split('/').pop().replace(/\.(mp4|mkv|avi|mov|webm)$/i, '');
+                    const cleanDescName = videoSrc.split('/').pop().replace(/\.(mp4|mkv|avi|mov|webm|mp3)$/i, '');
                     const descriptionPath = `/descriptions/${encodeURIComponent(currentChannel)}/${encodeURIComponent(cleanDescName)}.txt`;
                     return fetch(descriptionPath);
                 })

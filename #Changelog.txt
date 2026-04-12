@@ -21,6 +21,7 @@ v3.95
 - Added support for subtitle VTT files at /subtitles/[channelname]/[videoname].txt (see https://docs.fluidplayer.com/docs/configuration/subtitles/)
   - While the feature works, an easy way to generate or extract subtitles will be added later
 - FixCommentUnderscores.py now skips underscore character removals from comments if a video matches its file name before the removal
+- Fixed video.html description detection for .mp3 files
 
 v3.90
 - Implemented custom user profile pictures
