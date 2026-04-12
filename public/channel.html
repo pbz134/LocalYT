@@ -724,7 +724,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Track which tabs have already been loaded
     const loadedTabs = new Set();
 
-    channelBanner.style.backgroundImage = `url('/channelbanner/${encodeURIComponent(channel)}.jpg')`;
+    // Test if banner image exists, otherwise use placeholder
+    fetch(`/channelbanner/${encodeURIComponent(channel)}.jpg`, { method: 'HEAD' })
+        .then(response => {
+            if (response.ok) {
+                channelBanner.style.backgroundImage = `url('/channelbanner/${encodeURIComponent(channel)}.jpg')`;
+            } else {
+                channelBanner.style.backgroundImage = "url('LocalYT-Rev-Files/channel-banner-placeholder.png')";
+            }
+        })
+        .catch(() => {
+            channelBanner.style.backgroundImage = "url('LocalYT-Rev-Files/channel-banner-placeholder.png')";
+        });
+    
     channelPic.src = `/channelpic/${encodeURIComponent(channel)}.jpg`;
     channelName.textContent = channel;
     document.title = `${channel} - LocalYT`;
