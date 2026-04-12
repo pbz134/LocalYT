@@ -1345,7 +1345,7 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch(error => {
                 console.error('Error fetching playlists:', error);
-                playlistsContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">Failed to load playlists</p>';
+                playlistsContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">Failed to load playlists. Ensure that cache and metadata are up to date.</p>';
             });
     }
 

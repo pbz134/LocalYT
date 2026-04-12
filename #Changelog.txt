@@ -28,6 +28,7 @@ v3.95
 - Added a placeholder channel banner at /LocalYT-Rev-Files/channel-banner-placeholder.png
   - Channels without a banner will now display this file instead
 - Channels on user_playlists.html are now clickable
+- Clarified an error when channel playlists are unable to load on channel.html
 
 v3.90
 - Implemented custom user profile pictures
