@@ -265,7 +265,8 @@ def main():
         "videos",
         "videolengths",
         "videostats",
-        "viewcounts"
+        "viewcounts",
+        "subtitles"
     ]
     
     total_renamed = 0

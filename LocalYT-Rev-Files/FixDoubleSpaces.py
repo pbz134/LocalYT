@@ -12,7 +12,8 @@ SCAN_FOLDERS = [
     "thumbnails",
     "videolengths",
     "videostats",
-    "viewcounts"
+    "viewcounts",
+    "subtitles"
 ]
 
 VIDEO_EXTENSIONS = {".mp4", ".mkv", ".mp3"}

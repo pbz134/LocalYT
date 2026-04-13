@@ -69,7 +69,8 @@ def clean_all_files():
         'thumbnails',
         'filedates',
         'descriptions',
-        'videostats'
+        'videostats',
+        'subtitles'
     ]
     
     total_renamed = 0

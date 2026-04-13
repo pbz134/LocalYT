@@ -26,7 +26,8 @@ def rename_files():
         'videolengths',
         'videos',
         'videostats',
-        'viewcounts'
+        'viewcounts',
+        'subtitles'
     ]
     
     # Get the directory where the script is located
