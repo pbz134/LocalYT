@@ -3,6 +3,7 @@
 Thumbnail Processor - Scans for thumbnails and:
 - Adds left/right black bars to ALL 640x480 and 960x720 thumbnails to make them 16:9
 - For 480x360 thumbnails: crops if top/bottom black bars detected, otherwise adds side borders
+- For 320x240 thumbnails: crops to 320x180 if top/bottom black bars detected, otherwise skips
 - Adds borders to 1:1 thumbnails to make them 16:9 using the most common color
 - NEW: Adds black borders to portrait thumbnails with aspect ratio ~0.56 (e.g., 480x854, 720x1280)
 """
@@ -21,6 +22,7 @@ VALID_DIMENSIONS = {
     (640, 480): "4:3 (will add black borders to make 16:9)",
     (960, 720): "4:3 (will add black borders to make 16:9)",
     (480, 360): "4:3 (will crop or add borders to make 16:9)",
+    (320, 240): "4:3 (will crop to 320x180 if black bars detected)",
     (1, 1): "1:1 (square - will add borders to make 16:9 using most common color)"
 }
 
@@ -190,7 +192,7 @@ def add_black_bars_to_portrait(image):
 
 def detect_black_bars(image, threshold=30, sample_ratio=0.1):
     """
-    Detect if the image has black bars at top and bottom (for 480x360 images).
+    Detect if the image has black bars at top and bottom (for 480x360 and 320x240 images).
     
     Args:
         image: PIL Image object
@@ -319,7 +321,7 @@ def is_portrait_aspect_ratio(dimensions):
     width, height = dimensions
     
     # Skip if it's a known dimension that's handled elsewhere
-    if dimensions in [(640, 480), (960, 720), (480, 360)] or width == height:
+    if dimensions in [(640, 480), (960, 720), (480, 360), (320, 240)] or width == height:
         return False
     
     # Calculate aspect ratio (width/height)
@@ -482,6 +484,37 @@ def process_image(filepath, dry_run=False, backup=False, force=False):
                 
                 return result
             
+            # Handle 320x240 images - crop to 320x180 ONLY if top/bottom black bars detected
+            if dimensions == (320, 240):
+                # Detect black bars
+                has_top, has_bottom, top_height, bottom_height = detect_black_bars(img)
+                
+                if has_top and has_bottom:
+                    target_height = 180  # 320x180 is exactly 16:9
+                    
+                    if dry_run:
+                        result['status'] = 'would_crop_320'
+                        result['message'] = f"320x240 - Would crop from 240 to 180px -> 320x180 (16:9)"
+                        return result
+                    
+                    # Create backup if requested
+                    if backup:
+                        backup_path = filepath.with_suffix(filepath.suffix + '.backup')
+                        img.save(backup_path)
+                    
+                    # Crop to 16:9
+                    cropped = crop_to_16_9(img)
+                    
+                    # Save cropped image
+                    cropped.save(filepath)
+                    
+                    result['status'] = 'cropped_320'
+                    result['message'] = f"320x240 - Cropped from 240 to 180px -> 320x180 (16:9)"
+                else:
+                    result['message'] = f"320x240 - No black bars detected, skipping"
+                
+                return result
+            
             # NEW: Handle portrait images with aspect ratio around 0.56
             if is_portrait_aspect_ratio(dimensions):
                 width, height = dimensions
@@ -512,7 +545,7 @@ def process_image(filepath, dry_run=False, backup=False, force=False):
                 return result
             
             # If we get here, dimensions are not handled
-            result['message'] = f"Dimensions {dimensions} not processed (only 640x480, 960x720, 480x360, square, or portrait ~0.56 aspect ratio)"
+            result['message'] = f"Dimensions {dimensions} not processed (only 640x480, 960x720, 480x360, 320x240, square, or portrait ~0.56 aspect ratio)"
             
     except Exception as e:
         result['status'] = 'error'
@@ -565,6 +598,7 @@ def main():
     print("Processing rules:")
     print("  - 640x480 and 960x720 (4:3): ALWAYS add black borders to make 16:9")
     print("  - 480x360 (4:3): Crop to 16:9 if top/bottom black bars detected, otherwise add side borders")
+    print("  - 320x240 (4:3): Crop to 320x180 (16:9) ONLY if top/bottom black bars detected, otherwise skip")
     print("  - Square images: Add borders to make 16:9 using most common color")
     print(f"  - Portrait images (aspect ratio ~{PORTRAIT_ASPECT_RATIO_TARGET} ±{PORTRAIT_ASPECT_TOLERANCE}): Add black borders to make 16:9 landscape")
     print("  - Other dimensions: Skip")
@@ -580,6 +614,7 @@ def main():
         'bordered_640': [],
         'bordered_480': [],
         'cropped_480': [],
+        'cropped_320': [],  # New category for 320x240 crops
         'bordered_square': [],
         'bordered_portrait': [],  # New category for portrait images
         'skipped': [],
@@ -587,6 +622,7 @@ def main():
         'would_border_640': [],
         'would_border_480': [],
         'would_crop_480': [],
+        'would_crop_320': [],  # New category for 320x240 dry runs
         'would_border_square': [],
         'would_border_portrait': []  # New category for portrait dry runs
     }
@@ -600,6 +636,9 @@ def main():
             if result['status'] == 'cropped_480':
                 results['cropped_480'].append(result)
                 status = f"[{i}/{len(files)}] ✓ Cropped (480x360): {result['path']} - {result['message']}"
+            elif result['status'] == 'cropped_320':
+                results['cropped_320'].append(result)
+                status = f"[{i}/{len(files)}] ✓ Cropped (320x240): {result['path']} - {result['message']}"
             elif result['status'] == 'bordered_640':
                 results['bordered_640'].append(result)
                 status = f"[{i}/{len(files)}] ▢ Bordered (640x480/960x720): {result['path']} - {result['message']}"
@@ -615,6 +654,9 @@ def main():
             elif result['status'] == 'would_crop_480':
                 results['would_crop_480'].append(result)
                 status = f"[{i}/{len(files)}] 🔄 Would crop (480x360): {result['path']} - {result['message']}"
+            elif result['status'] == 'would_crop_320':
+                results['would_crop_320'].append(result)
+                status = f"[{i}/{len(files)}] 🔄 Would crop (320x240): {result['path']} - {result['message']}"
             elif result['status'] == 'would_add_border_640':
                 results['would_border_640'].append(result)
                 status = f"[{i}/{len(files)}] 🔲 Would add borders (640x480/960x720): {result['path']} - {result['message']}"
@@ -642,12 +684,14 @@ def main():
         print(f"Would add black borders to 640x480/960x720: {len(results['would_border_640'])} files")
         print(f"Would add black borders to 480x360: {len(results['would_border_480'])} files")
         print(f"Would crop 480x360: {len(results['would_crop_480'])} files")
+        print(f"Would crop 320x240: {len(results['would_crop_320'])} files")
         print(f"Would add borders to square: {len(results['would_border_square'])} files")
         print(f"Would add black borders to portrait: {len(results['would_border_portrait'])} files")
     else:
         print(f"Added black borders to 640x480/960x720: {len(results['bordered_640'])} files")
         print(f"Added black borders to 480x360: {len(results['bordered_480'])} files")
         print(f"Cropped 480x360: {len(results['cropped_480'])} files")
+        print(f"Cropped 320x240: {len(results['cropped_320'])} files")
         print(f"Added borders to square: {len(results['bordered_square'])} files")
         print(f"Added black borders to portrait: {len(results['bordered_portrait'])} files")
     

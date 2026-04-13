@@ -30,6 +30,7 @@ v3.95
 - Channels on user_playlists.html are now clickable
 - Clarified an error when channel playlists are unable to load on channel.html
 - Fixed EPERM issues and race conditions that would crash the server when multiple video.html tabs are opened at the same time
+- Added cropping of 320x240 thumbnails to CropThumbnails.py
 
 v3.90
 - Implemented custom user profile pictures
