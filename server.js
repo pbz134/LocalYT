@@ -378,12 +378,12 @@ app.use(session({
     store: new FileStore({
         path: sessionsDir,
         ttl: 86400,
-        retries: 2,
-        reapInterval: -1,
+        retries: 3,
+        reapInterval: -1, 
         fileExtension: '.session',
         reapAsync: false,
-        reapSyncFallback: false,
-        logFn: function() {},  // Silence all FileStore logs
+        reapSyncFallback: false, 
+        logFn: function() {},  
         encoding: 'utf8',
         encrypt: false
     }),
@@ -392,12 +392,12 @@ app.use(session({
     saveUninitialized: false,
     cookie: { 
         secure: false,
-        maxAge: 365 * 24 * 60 * 60 * 1000, // Make cookies valid for 1 year
+        maxAge: 365 * 24 * 60 * 60 * 1000, 
         httpOnly: true,
         sameSite: 'lax'
     },
     name: 'localyt.sid',
-    rolling: true
+    rolling: false
 }));
 
 const preferencesFilePath = path.join(__dirname, 'userPreferences.json');
@@ -2288,6 +2288,31 @@ app.post('/add-to-history', (req, res) => {
             res.sendStatus(200);
         });
     });
+});
+
+// --- ERROR HANDLING MIDDLEWARE ---
+app.use((err, req, res, next) => {
+    // Log the error for debugging
+    console.error('Server error:', err.message || err);
+    
+    // Don't try to send a response if headers were already sent
+    // This prevents "ERR_HTTP_HEADERS_SENT" crashes
+    if (res.headersSent) {
+        return;
+    }
+    
+    // If it's a JSON parse error (corrupted session file)
+    if (err instanceof SyntaxError && err.message.includes('JSON')) {
+        return res.status(500).send('Session data corrupted. Please refresh.');
+    }
+    
+    // If it's an EPERM error (file lock conflict from concurrent tabs)
+    if (err.code === 'EPERM') {
+        return res.status(503).send('Server busy. Please try again.');
+    }
+    
+    // Default error
+    res.status(500).send('Internal server error');
 });
 
 app.listen(PORT, () => {
