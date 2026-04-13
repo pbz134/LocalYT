@@ -86,4 +86,3 @@ What if I only have the video files and no metadata?
 ## TO DO
 - Work on the documentation in the user modal
 - Fix video.html MP4 filename encoding for % characters
-- Implement placeholder channel banners
