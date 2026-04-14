@@ -36,6 +36,7 @@ v3.95
 - All mouse-wheel-clickable elements don't initiate mouse-wheel scrolling anymore
 - Made playlists on channel.html openable in a new tab
 - Added a counter to playlist.html and user_playlists.html that displays the total length of all videos in it
+- Removed rounded thumbnail corners on subscribed_channels.html
 
 v3.90
 - Implemented custom user profile pictures
