@@ -19,7 +19,8 @@ v3.95
 - Added missing Search translation on video.html
 - Fixed like button positioning for comments
 - Added support for subtitle VTT files at /subtitles/[channelname]/[videoname].txt (see https://docs.fluidplayer.com/docs/configuration/subtitles/)
-  - While the feature works, an easy way to generate or extract subtitles will be added later
+- Added a script for automated video subtitle generation at /subtitles/#STT/run.bat
+  - Please read NOTE.txt before using this feature!
 - FixCommentUnderscores.py now skips underscore character removals from comments if a video matches its file name before the removal
 - Fixed video.html description detection for .mp3 files
 - Fixed the unclickable Sort button on channel.html
@@ -31,7 +32,6 @@ v3.95
 - Clarified an error when channel playlists are unable to load on channel.html
 - Fixed EPERM issues and race conditions that would crash the server when multiple video.html tabs are opened at the same time
 - Added cropping of 320x240 thumbnails to CropThumbnails.py
-- Added an experimental script for automated video subtitle generation at /subtitles/#STT/run.bat
 - Channel names can now be clicked on in watch_history.html
 - All mouse-wheel-clickable elements don't initiate mouse-wheel scrolling anymore
 - Made playlists on channel.html openable in a new tab

@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-"""
-LocalYT Subtitle Processor - FIXED VERSION
-Processes video files through Whisper with correct output naming
-"""
-
 import os
 import sys
 import subprocess
@@ -22,20 +17,45 @@ WHISPER_EXE = ROOT_DIR / "venv" / "Scripts" / "whisper-ctranslate2.exe"
 VIDEOS_DIR = ROOT_DIR / "videos"
 SUBTITLES_DIR = ROOT_DIR / "subtitles"
 
-MODEL_DIRS = [
-    SCRIPT_DIR / "hub" / "models--Systran--faster-whisper-small" / "snapshots",
-    ROOT_DIR / "hub" / "models--Systran--faster-whisper-small" / "snapshots",
-]
+# ==========================================
+# LOCAL MODEL CONFIGURATION
+# ==========================================
+
+# FIXED: Point to the 'Whisper' subfolder where your models actually are.
+# This resolves: E:\LocalYT\subtitles\#STT\Whisper
+LOCAL_MODEL_BASE_DIR = SCRIPT_DIR / "Whisper"
+
+AVAILABLE_MODELS = {
+    'tiny':   {'speed': '10x', 'vram': '0.5GB', 'desc': 'Fastest, medium accuracy'},
+    'base':   {'speed': '7x', 'vram': '0.7GB', 'desc': 'Fast, good accuracy'},
+    'small':  {'speed': '4x',  'vram': '1GB',   'desc': 'Best speed/accuracy balance'},
+    'medium': {'speed': '2x',  'vram': '2.5GB', 'desc': 'Slower, suitable for non-English'},
+    'large':  {'speed': '1x',  'vram': '5GB',   'desc': 'Slowest, highest accuracy'},
+}
 
 PROGRESS_UPDATE_INTERVAL = 0.5
 
-def find_model_directory():
-    """Find the Whisper model directory"""
-    for model_dir in MODEL_DIRS:
-        if model_dir.exists():
-            snapshots = list(model_dir.iterdir())
-            if snapshots:
-                return snapshots[0]
+def find_model_directory(model_name='small'):
+    """
+    Find the Whisper model directory for a specific model size.
+    Looks for folders named exactly like the model (Case-Insensitive) in LOCAL_MODEL_BASE_DIR.
+    
+    Expected Structure:
+    LOCAL_MODEL_BASE_DIR (Whisper)/
+    ├── Tiny/
+    ├── Base/
+    ├── Small/
+    ├── Medium/
+    └── Large/
+    """
+    # Construct the expected path: e.g., E:\...\Whisper\Medium
+    target_dir = LOCAL_MODEL_BASE_DIR / model_name.capitalize()
+    
+    if target_dir.exists() and target_dir.is_dir():
+        # Verify it looks like a model dir (has config.json or model.bin)
+        if (target_dir / "model.bin").exists() or (target_dir / "config.json").exists():
+            return target_dir
+            
     return None
 
 def format_duration(seconds):
@@ -120,6 +140,46 @@ def get_user_choice():
         if choice in ['A', 'S']:
             return choice
         print("Invalid choice. Please enter A or S.")
+
+def get_task_choice():
+    """Ask user whether to transcribe or translate"""
+    print()
+    print("Select Processing Mode:")
+    print("[1] Transcribe (Keep original language)")
+    print("[2] Translate (Translate to English)")
+    print()
+    
+    while True:
+        choice = input("Please select an option (1/2): ").strip()
+        if choice == '1':
+            return "transcribe"
+        elif choice == '2':
+            return "translate"
+        print("Invalid choice. Please enter 1 or 2.")
+
+def get_model_choice():
+    """Ask user which model to use"""
+    print()
+    print("Select AI Model:")
+    print("-" * 60)
+    keys = ['tiny', 'base', 'small', 'medium', 'large']
+    valid_keys = {}
+    
+    idx = 1
+    for key in keys:
+        info = AVAILABLE_MODELS[key]
+        print(f"[{idx}] {key.upper()}: {info['desc']}")
+        print(f"    Speed: ~{info['speed']} real-time | VRAM: {info['vram']}")
+        valid_keys[str(idx)] = key
+        idx += 1
+        
+    print("-" * 60)
+    
+    while True:
+        choice = input("Please select a model (1-5): ").strip()
+        if choice in valid_keys:
+            return valid_keys[choice]
+        print("Invalid choice. Please enter a number between 1 and 5.")
 
 def list_channels():
     """List all available channel directories"""
@@ -243,7 +303,7 @@ class ProgressTracker:
         self.process_start = time.time()
         
         print(f"\n{'='*70}")
-        print(f"📁 FILE [{self.file_index}/{self.total_files}]: {self.file_name}")
+        print(f"FILE [{self.file_index}/{self.total_files}]: {self.file_name}")
         print(f"   Size: {format_file_size(self.file_size)} | Duration: ~{format_duration(self.duration)}")
         print(f"{'='*70}")
         print()
@@ -273,12 +333,12 @@ class ProgressTracker:
             print_progress_bar(
                 progress,
                 1.0,
-                prefix=f'⏱️  Elapsed: {elapsed_str}',
+                prefix=f'Elapsed: {elapsed_str}',
                 suffix=f'| ETA: {eta_str}',
                 length=30
             )
         else:
-            sys.stdout.write(f'\r⏱️  Elapsed: {elapsed_str} | Processing...     ')
+            sys.stdout.write(f'\rElapsed: {elapsed_str} | Processing...     ')
             sys.stdout.flush()
     
     def complete(self, success, output_file=None):
@@ -287,91 +347,88 @@ class ProgressTracker:
         
         print()  # New line after progress bar
         
-        status_icon = "✅" if success else "❌"
+        status_icon = "[OK]" if success else "[FAIL]"
         status_text = "SUCCESS" if success else "FAILED"
         
         print(f"\n{status_icon} {status_text}")
-        print(f"   ⏱️  Total time: {format_duration(elapsed)}")
+        print(f"   Total time: {format_duration(elapsed)}")
         
         if output_file and output_file.exists():
             output_size = output_file.stat().st_size
-            print(f"   📄 Output: {output_file.name} ({format_file_size(output_size)})")
+            print(f"   Output: {output_file.name} ({format_file_size(output_size)})")
         
         if success and self.duration > 0:
             speed_ratio = self.duration / elapsed if elapsed > 0 else 0
-            print(f"   📊 Processing speed: {speed_ratio:.2f}x real-time")
+            print(f"   Processing speed: {speed_ratio:.2f}x real-time")
         
         print()
 
-def run_whisper_process(input_file, output_dir, original_filename, model_dir, tracker):
+def run_whisper_process(input_file, output_dir, original_filename, model_dir, tracker, task="transcribe", model_size="small"):
     """
     Run whisper-ctranslate2 with proper error handling.
-    Uses ONLY valid parameters.
     Returns (success: bool, actual_output_file: Path or None)
     """
-    # Build command with ONLY VALID parameters for whisper-ctranslate2
     cmd = [
         str(VENVPYTHON),
         str(WHISPER_EXE),
         str(input_file),                    # Input file (video or audio)
-        '--model', 'small',                  # Model size
+        '--model', model_size,              # Model size (tiny, base, small, medium, large)
         '--model_directory', str(model_dir), # Local model path
-        '--compute_type', 'int8',            # Quantization
-        '--output_dir', str(output_dir),     # Where to save output
-        '--output_format', 'vtt',            # Output format
-        # NOTE: No --output_filename - it's NOT a valid parameter!
+        '--compute_type', 'int8',           # Quantization
+        '--output_dir', str(output_dir),    # Where to save output
+        '--output_format', 'vtt',           # Output format
+        '--task', task,                     # Task: transcribe or translate
     ]
     
-    print(f"🔧 Running Whisper...")
+    task_display = "Translate to English" if task == "translate" else "Transcribe (Original Language)"
+    
+    print(f"Running Whisper...")
     print(f"   Input: {input_file.name}")
-    print(f"   Model: small (from local directory)")
+    print(f"   Mode:  {task_display}")
+    print(f"   Model: {model_size.upper()} (from local directory)")
     print(f"   Output format: VTT")
     print()
     
     tracker.update(force=True)
     
-    # Run the process and CAPTURE OUTPUT FOR DEBUGGING
     try:
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
-            timeout=None  # Let it run as long as needed
+            timeout=None 
         )
         
-        # Check result
+        # FIX: Stricter error checking
         if result.returncode != 0:
-            print(f"\n❌ ERROR: Whisper failed!")
-            print(f"   Return code: {result.returncode}")
-            print(f"\n--- STDOUT ---")
-            print(result.stdout)
-            print(f"\n--- STDERR ---")
-            print(result.stderr)
-            print("-" * 50)
+            print(f"\n[FAIL] Whisper failed with error code {result.returncode}!")
+            if result.stderr:
+                print(f"   Error Details:\n{result.stderr[:500]}")
+            elif result.stdout:
+                 print(f"   Output:\n{result.stdout[:500]}")
             return False, None
         
-        # Success! Now find what file was created
-        print(f"✅ Whisper completed successfully!")
-        
-        # Look for .vtt files in output directory
+        # Check if output actually exists immediately after run
         vtt_files = list(output_dir.glob('*.vtt'))
         
         if not vtt_files:
-            print(f"⚠️  Warning: No .vtt file found in {output_dir}")
-            return True, None
+            # If no files found, check if whisper reported success but wrote nothing (weird edge case)
+            # or if it failed silently.
+            print(f"\n[FAIL] Whisper finished, but NO .vtt file was created in {output_dir}")
+            if result.stdout:
+                print(f"   Process Output: {result.stdout[:200]}")
+            return False, None
         
-        # Get the most recently created/modified .vtt file
         latest_vtt = max(vtt_files, key=lambda p: p.stat().st_mtime)
-        
-        print(f"📄 Created file: {latest_vtt.name}")
+        print(f"Created file: {latest_vtt.name}")
         
         return True, latest_vtt
         
     except subprocess.TimeoutExpired:
-        print(f"\n❌ ERROR: Process timed out!")
+        print(f"\n[FAIL] Process timed out!")
         return False, None
     except Exception as e:
-        print(f"\n❌ EXCEPTION: {e}")
+        print(f"\n[FAIL] EXCEPTION: {e}")
         import traceback
         traceback.print_exc()
         return False, None
@@ -382,38 +439,33 @@ def rename_output_if_needed(actual_output, expected_output, original_filename):
     Returns the final output Path.
     """
     if actual_output is None:
-        return expected_output  # Couldn't determine actual output
+        return expected_output 
     
-    # If already has correct name, great!
     if actual_output.name == f"{original_filename}.vtt":
         return actual_output
     
-    # Need to rename
-    final_output = expected_output  # This is where we WANT it
+    final_output = expected_output 
     
-    print(f"🔧 Renaming output:")
+    print(f"Renaming output:")
     print(f"   From: {actual_output.name}")
     print(f"   To:   {final_output.name}")
     
     try:
-        # If target exists, remove it first
         if final_output.exists():
             final_output.unlink()
         
-        # Rename the file
         actual_output.rename(final_output)
-        print(f"   ✅ Renamed successfully!")
+        print(f"   Renamed successfully!")
         return final_output
         
     except Exception as e:
-        print(f"   ⚠️  Rename failed: {e}")
+        print(f"   Rename failed: {e}")
         print(f"   Keeping original name: {actual_output.name}")
         return actual_output
 
-def process_file_with_progress(file_index, total_files, file_path, model_dir):
+def process_file_with_progress(file_index, total_files, file_path, model_dir, task_mode, model_size):
     """
     Process a single file with detailed progress tracking.
-    Handles both MP3 and video files correctly.
     """
     tracker = ProgressTracker(file_index, total_files, file_path)
     
@@ -422,7 +474,6 @@ def process_file_with_progress(file_index, total_files, file_path, model_dir):
     
     tracker.start_processing()
     
-    # Calculate EXPECTED output path (based on original filename)
     rel_path = file_path.relative_to(VIDEOS_DIR)
     expected_output = SUBTITLES_DIR / rel_path.with_suffix('.vtt')
     
@@ -432,14 +483,11 @@ def process_file_with_progress(file_index, total_files, file_path, model_dir):
     temp_audio = None
     
     try:
-        # Determine input for whisper
         if ext == '.mp3':
-            # MP3: Use directly
             whisper_input = file_path
-            print(f"🎵 Processing MP3 directly...")
+            print(f"Processing MP3 directly...")
         else:
-            # Video: Extract audio first
-            print(f"🎬 Step 1/2: Extracting audio track...")
+            print(f"Step 1/2: Extracting audio track...")
             tracker.update(force=True)
             
             temp_audio = SCRIPT_DIR / f"temp_audio_{os.getpid()}.m4a"
@@ -460,34 +508,33 @@ def process_file_with_progress(file_index, total_files, file_path, model_dir):
             )
             
             if not temp_audio.exists():
-                print(f"❌ ERROR: Failed to extract audio from {file_path.name}")
+                print(f"[FAIL] Failed to extract audio from {file_path.name}")
                 if ffmpeg_result.stderr:
                     print(f"   FFmpeg error: {ffmpeg_result.stderr[:500]}")
                 tracker.complete(False)
                 return False
             
-            print(f"✅ Audio extracted: {temp_audio.name}")
+            print(f"Audio extracted: {temp_audio.name}")
             print()
             
-            # Use extracted audio as input
             whisper_input = temp_audio
             
-            print(f"🎤 Step 2/2: Running Whisper on extracted audio...")
+            print(f"Step 2/2: Running Whisper on extracted audio...")
         
-        # Run Whisper (the main processing step)
         success, actual_output = run_whisper_process(
             whisper_input, 
             out_dir, 
             filename, 
             model_dir, 
-            tracker
+            tracker,
+            task=task_mode,
+            model_size=model_size
         )
         
-        # Cleanup temp audio if we created one
         if temp_audio and temp_audio.exists():
             try:
                 temp_audio.unlink()
-                print(f"🧹 Cleaned up temp file: {temp_audio.name}")
+                print(f"Cleaned up temp file: {temp_audio.name}")
             except:
                 pass
         
@@ -495,19 +542,16 @@ def process_file_with_progress(file_index, total_files, file_path, model_dir):
             tracker.complete(False)
             return False
         
-        # Rename output to match original filename if needed
         final_output = rename_output_if_needed(actual_output, expected_output, filename)
         
-        # Complete with success
         tracker.complete(True, final_output)
         return True
         
     except Exception as e:
-        print(f"\n❌ UNEXPECTED ERROR: {e}")
+        print(f"\n[FAIL] UNEXPECTED ERROR: {e}")
         import traceback
         traceback.print_exc()
         
-        # Cleanup temp file on error
         if temp_audio and temp_audio.exists():
             try:
                 temp_audio.unlink()
@@ -522,24 +566,24 @@ def print_final_summary(stats, start_time):
     total_time = time.time() - start_time
     
     print("\n" + "=" * 70)
-    print("🎉 BATCH PROCESS COMPLETE - SUMMARY")
+    print("BATCH PROCESS COMPLETE - SUMMARY")
     print("=" * 70)
     print()
-    print(f"📊 Total Files Processed: {stats['total']}")
+    print(f"Total Files Processed: {stats['total']}")
     if stats['total'] > 0:
-        print(f"✅ Successful:             {stats['success']} ({stats['success']/stats['total']*100:.1f}%)")
-    print(f"❌ Failed:                  {stats['failed']}")
+        print(f"Successful:             {stats['success']} ({stats['success']/stats['total']*100:.1f}%)")
+    print(f"Failed:                  {stats['failed']}")
     print()
-    print(f"⏱️  Total Runtime:           {format_duration(total_time)}")
+    print(f"Total Runtime:           {format_duration(total_time)}")
     
     if stats['total'] > 0 and total_time > 0:
         avg_time = total_time / stats['total']
-        print(f"📈 Average Time per File:   {format_duration(avg_time)}")
+        print(f"Average Time per File:   {format_duration(avg_time)}")
     
     print()
     
     if stats['failed'] > 0:
-        print("⚠️  Some files failed to process. Check error messages above.")
+        print("Some files failed to process. Check error messages above.")
     
     print("=" * 70)
 
@@ -550,59 +594,67 @@ def main():
     print_header()
     check_venv()
     
-    print(f"📂 Root Directory:       {ROOT_DIR}")
-    print(f"📹 Videos Directory:     {VIDEOS_DIR}")
-    print(f"💾 Subtitles Directory:  {SUBTITLES_DIR}")
+    print(f"Root Directory:       {ROOT_DIR}")
+    print(f"Videos Directory:     {VIDEOS_DIR}")
+    print(f"Subtitles Directory:  {SUBTITLES_DIR}")
+    print(f"Models Directory:     {LOCAL_MODEL_BASE_DIR}")
     
-    model_dir = find_model_directory()
-    if model_dir:
-        print(f"🤖 Whisper Model:        Found at {model_dir.parent.parent.name}")
-    else:
-        print("⚠️  Whisper Model:        Not found!")
-        print("   The script will likely fail without a model.")
-    print()
-    
+    # Get choices first so we can verify model existence
     choice = get_user_choice()
+    task_mode = get_task_choice()
+    model_size = get_model_choice()
+    
+    # Verify model exists based on selection
+    model_dir = find_model_directory(model_size)
+    if model_dir:
+        print(f"Model Found ({model_size.upper()}): {model_dir}")
+    else:
+        print(f"FATAL ERROR: Model '{model_size}' NOT FOUND at {LOCAL_MODEL_BASE_DIR / model_size.capitalize()}")
+        print("Please ensure the folder exists and contains model.bin.")
+        input("\nPress Enter to exit...")
+        sys.exit(1)
+    
+    print()
     
     if choice == 'A':
         target_dir = VIDEOS_DIR
-        print(f"\n🔍 Scanning ALL channels...")
+        print(f"\nScanning ALL channels...")
     else:
         channels = list_channels()
         
         if not channels:
-            print("❌ ERROR: No channels found!")
+            print("ERROR: No channels found!")
             input("\nPress Enter to exit...")
             sys.exit(1)
         
         channel_name, target_dir = get_channel_name(channels)
-        print(f"\n📺 Selected channel: {channel_name}")
+        print(f"\nSelected channel: {channel_name}")
     
     files_to_process = find_videos_needing_subtitles(target_dir)
     
     if not files_to_process:
         print("\n" + "=" * 50)
-        print("✨ No missing subtitles found. Everything is up to date!")
+        print("No missing subtitles found. Everything is up to date!")
         print("=" * 50)
         input("\nPress Enter to exit...")
         return
     
     print("\n" + "=" * 70)
-    print(f"📋 Found {len(files_to_process)} files needing subtitle generation")
+    print(f"Found {len(files_to_process)} files needing subtitle generation")
     print("=" * 70)
     
     total_size = sum(f.stat().st_size for f in files_to_process)
-    print(f"💾 Total size to process: {format_file_size(total_size)}")
+    print(f"Total size to process: {format_file_size(total_size)}")
     print()
     
-    confirm = input(f"▶️  Process {len(files_to_process)} files? (y/n): ").strip().lower()
+    confirm = input(f"Process {len(files_to_process)} files? (y/n): ").strip().lower()
     if confirm != 'y':
-        print("❌ Cancelled.")
+        print("Cancelled.")
         input("\nPress Enter to exit...")
         return
     
     print()
-    print("🚀 Starting processing...")
+    print("Starting processing...")
     print("=" * 70)
     print()
     
@@ -613,12 +665,12 @@ def main():
     }
     
     for i, file_path in enumerate(files_to_process, 1):
-        if process_file_with_progress(i, len(files_to_process), file_path, model_dir):
+        if process_file_with_progress(i, len(files_to_process), file_path, model_dir, task_mode, model_size):
             stats['success'] += 1
         else:
             stats['failed'] += 1
         
-        print()  # Spacer between files
+        print() 
     
     print_final_summary(stats, overall_start)
     
