@@ -378,6 +378,9 @@ def run_whisper_process(input_file, output_dir, original_filename, model_dir, tr
         '--output_dir', str(output_dir),    # Where to save output
         '--output_format', 'vtt',           # Output format
         '--task', task,                     # Task: transcribe or translate
+        # NEW: VAD filter settings to skip silent/non-speech sections for faster processing
+        '--vad_filter', 'True',             # Enable Voice Activity Detection to skip silence
+        '--vad_min_silence_duration_ms', '1000',  # Only remove silences longer than 1 second
     ]
     
     task_display = "Translate to English" if task == "translate" else "Transcribe (Original Language)"
@@ -387,6 +390,7 @@ def run_whisper_process(input_file, output_dir, original_filename, model_dir, tr
     print(f"   Mode:  {task_display}")
     print(f"   Model: {model_size.upper()} (from local directory)")
     print(f"   Output format: VTT")
+    print(f"   VAD Filter: ENABLED (skip silences >1s)")  # Updated status line
     print()
     
     tracker.update(force=True)
