@@ -35,6 +35,7 @@ v3.95
 - Channel names can now be clicked on in watch_history.html
 - All mouse-wheel-clickable elements don't initiate mouse-wheel scrolling anymore
 - Made playlists on channel.html openable in a new tab
+- Added a counter to playlist.html and user_playlists.html that displays the total length of all videos in it
 
 v3.90
 - Implemented custom user profile pictures

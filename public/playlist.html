@@ -63,6 +63,12 @@
             color: #888;
             font-size: 14px;
         }
+        /* New style for the duration element */
+        .playlist-duration {
+            color: #888;
+            font-size: 14px;
+            margin-top: 4px; /* Slight spacing from info above */
+        }
         .playlist-videos {
             display: flex;
             flex-wrap: wrap;
@@ -148,6 +154,8 @@
     <div class="playlist-header">
         <div class="playlist-title" id="playlistTitle"></div>
         <div class="playlist-info" id="playlistInfo"></div>
+        <!-- Added element for Total Duration -->
+        <div class="playlist-duration" id="playlistDuration"></div>
     </div>
 
     <div class="playlist-videos" id="playlistVideosContainer"></div>
@@ -179,6 +187,36 @@ function naturalCompare(a, b) {
     return a.displayName.localeCompare(b.displayName);
 }
 
+// Helper to parse "HH:MM:SS" or "MM:SS" string into total seconds
+function parseDurationString(durationStr) {
+    if (!durationStr) return 0;
+    const parts = durationStr.split(':').map(Number);
+    let seconds = 0;
+    // Handle HH:MM:SS
+    if (parts.length === 3) {
+        seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+    } 
+    // Handle MM:SS
+    else if (parts.length === 2) {
+        seconds = parts[0] * 60 + parts[1];
+    }
+    return seconds;
+}
+
+// Helper to format total seconds back into "HH:MM:SS"
+function formatTotalDuration(totalSeconds) {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    // Pad with zeros
+    const h = hours.toString().padStart(2, '0');
+    const m = minutes.toString().padStart(2, '0');
+    const s = seconds.toString().padStart(2, '0');
+
+    return `${h}:${m}:${s}`;
+}
+
 // Handle logo clicks and initial translations
 document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
@@ -199,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         mainLogo.addEventListener('contextmenu', (event) => {
             event.preventDefault();
-            window.open('index.html', '_blank');
+                window.open('index.html', '_blank');
         });
         
         mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
@@ -232,6 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const playlist = decodeURIComponent(urlParams.get('playlist'));
     const playlistTitle = document.getElementById('playlistTitle');
     const playlistInfo = document.getElementById('playlistInfo');
+    const playlistDurationEl = document.getElementById('playlistDuration'); // Get new element
     const videosContainer = document.getElementById('playlistVideosContainer');
 
     // Elements for Channel Header
@@ -274,6 +313,9 @@ document.addEventListener('DOMContentLoaded', () => {
             videos.sort(naturalCompare);
             
             playlistInfo.textContent = `${videos.length} ${getLang('videos', 'Videos')}`;
+
+            // Variable to accumulate total time in seconds
+            let totalPlaylistSeconds = 0;
             
             videos.forEach(video => {
                 const videoElement = document.createElement('div');
@@ -332,11 +374,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 videoThumb.addEventListener('contextmenu', handleRightClick);
                 videoLink.addEventListener('contextmenu', handleRightClick);
 
-                // Get video length
+                // Get video length and add to total
                 fetch(`/videolengths/${channel}/${encodeURIComponent(video.path.split('/').pop().replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, ''))}.txt`)
                     .then(response => response.text())
                     .then(length => {
                         videoElement.querySelector('.video-length').textContent = length;
+                        
+                        // Add logic for total duration calculation
+                        const secs = parseDurationString(length.trim());
+                        totalPlaylistSeconds += secs;
+
+                        // Update the DOM element with the running total
+                        // We do this inside the fetch so it updates as lengths load
+                        const formattedTotal = formatTotalDuration(totalPlaylistSeconds);
+                        playlistDurationEl.textContent = `${getLang('Total duration', 'Gesamtdauer')}: ${formattedTotal}`;
                     })
                     .catch(error => {
                         console.error('Error fetching video length:', error);

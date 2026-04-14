@@ -42,6 +42,7 @@
             display: flex;
             align-items: baseline;
             gap: 8px;
+            flex-wrap: wrap; /* Allow wrapping if text is long */
         }
         .playlist-title {
             font-size: 18px;
@@ -51,6 +52,12 @@
         .playlist-video-count {
             font-size: 13px;
             color: #888;
+        }
+        /* New style for total duration */
+        .playlist-total-duration {
+            font-size: 13px;
+            color: #888;
+            margin-left: 8px;
         }
         .playlist-delete-btn {
             background: none;
@@ -276,6 +283,12 @@
             .playlist-video-count {
                 font-size: 12px;
             }
+            .playlist-total-duration {
+                font-size: 12px;
+                width: 100%; /* Stack on very small screens */
+                margin-left: 0;
+                margin-top: 2px;
+            }
             .playlist-video-item {
                 flex: 0 0 175px;
             }
@@ -339,6 +352,35 @@
 // --- Language Helper ---
 function getLang(en, de) {
     return localStorage.getItem('language') === 'de' ? de : en;
+}
+
+// Helper to parse "HH:MM:SS" or "MM:SS" string into total seconds
+function parseDurationString(durationStr) {
+    if (!durationStr) return 0;
+    const parts = durationStr.split(':').map(Number);
+    let seconds = 0;
+    // Handle HH:MM:SS
+    if (parts.length === 3) {
+        seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+    } 
+    // Handle MM:SS
+    else if (parts.length === 2) {
+        seconds = parts[0] * 60 + parts[1];
+    }
+    return seconds;
+}
+
+// Helper to format total seconds back into "HH:MM:SS"
+function formatTotalDuration(totalSeconds) {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    const h = hours.toString().padStart(2, '0');
+    const m = minutes.toString().padStart(2, '0');
+    const s = seconds.toString().padStart(2, '0');
+
+    return `${h}:${m}:${s}`;
 }
 
 // Handle logo clicks
@@ -508,10 +550,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     const titleGroup = document.createElement('div');
                     titleGroup.className = 'playlist-title-group';
+                    
                     const videoCountText = videos.length === 1 
                         ? ('1 ' + getLang('video', 'Video')) 
                         : (videos.length + ' ' + getLang('videos', 'Videos'));
+                        
                     titleGroup.innerHTML = '<span class="playlist-title">' + escapeHtml(name) + '</span><span class="playlist-video-count">' + videoCountText + '</span>';
+                    
+                    // Create element for Total Duration
+                    const durationSpan = document.createElement('span');
+                    durationSpan.className = 'playlist-total-duration';
+                    titleGroup.appendChild(durationSpan);
 
                     const deleteBtn = document.createElement('button');
                     deleteBtn.className = 'playlist-delete-btn';
@@ -542,6 +591,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         const grid = document.createElement('div');
                         grid.className = 'playlist-videos-grid';
+
+                        // Variable to track total duration for this specific playlist
+                        let currentPlaylistTotalSeconds = 0;
 
                         videos.forEach(video => {
                             const item = document.createElement('div');
@@ -619,6 +671,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 .then(length => {
                                     const lengthEl = item.querySelector('.video-length');
                                     if (lengthEl) lengthEl.textContent = length;
+
+                                    // Calculate and Update Total Duration
+                                    const secs = parseDurationString(length.trim());
+                                    currentPlaylistTotalSeconds += secs;
+                                    
+                                    const formattedTotal = formatTotalDuration(currentPlaylistTotalSeconds);
+                                    durationSpan.textContent = `• ${getLang('Total duration', 'Gesamtdauer')}: ${formattedTotal}`;
                                 })
                                 .catch(() => {});
                         });
