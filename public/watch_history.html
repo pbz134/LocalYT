@@ -17,6 +17,32 @@
         .search-container:focus-within .search-suggestions:not(:empty) {
             display: block;
         }
+
+        /* --- FIX: Prevent Middle-Click Autoscroll (Pan Mode) --- */
+        
+        /* Prevent selection on interactive items to stop scroll behavior */
+        .video-item,
+        .video-title,
+        .thumbnail-container,
+        .channel-name,
+        .suggestion-item,
+        #mainLogo {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* Ensure cursor looks normal, not like a scroll tool */
+        .video-item * {
+            cursor: default;
+        }
+        
+        .video-title,
+        .thumbnail-container,
+        .channel-name,
+        .suggestion-item,
+        #mainLogo {
+            cursor: pointer;
+        }
     </style>
 
 </head>
@@ -30,6 +56,7 @@
         </div>
     </header>
     <div class="container" id="videoContainer"></div>
+    
     <script>
 // Handle logo clicks
 document.addEventListener('DOMContentLoaded', () => {
@@ -64,15 +91,38 @@ document.addEventListener('DOMContentLoaded', () => {
         mainLogo.style.cursor = 'pointer';
     }
 });
-        // Helper function to strip file extension for thumbnail and metadata paths
+
+// ======================================================================
+// FIX: Prevent Middle-Click Autoscroll (Pan Mode)
+// ======================================================================
+document.addEventListener('mousedown', function(e) {
+    if (e.button === 1) {
+        const target = e.target.closest(
+            'a, ' + 
+            '.video-item, ' + 
+            '.video-title, ' + 
+            '.thumbnail-container, ' + 
+            '.channel-name, ' + 
+            '.suggestion-item, ' +
+            '#mainLogo'
+        );
+        
+        if (target) {
+            e.preventDefault();
+            if (target.tagName === 'A' && target.href) {
+                window.open(target.href, '_blank');
+            }
+        }
+    }
+}, true);
+
         function stripExtension(filename) {
             return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
         }
 
-        // Helper function to get video file extension
         function getVideoExtension(path) {
             const match = path.match(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i);
-            return match ? match[1] : 'mp4'; // Default to mp4 if no extension found
+            return match ? match[1] : 'mp4';
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -105,13 +155,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         `;
                         container.appendChild(videoElement);
 
-                        // Add event listener to the thumbnail container
-                        videoElement.querySelector('.thumbnail-container').addEventListener('click', () => {
+                        // Thumbnail Click Handlers
+                        const thumbContainer = videoElement.querySelector('.thumbnail-container');
+                        thumbContainer.addEventListener('click', () => {
                             window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
                         });
 
-                        // Add event listeners for right-click and mouse wheel click
+                        // Video Title Click Handlers
                         const videoLink = videoElement.querySelector('.video-title');
+                        
                         videoLink.addEventListener('contextmenu', (event) => {
                             event.preventDefault();
                             window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
@@ -121,6 +173,23 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (event.button === 1) {
                                 event.preventDefault();
                                 window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                            }
+                        });
+
+                        // Channel Name Click Handlers (Added Middle Click Support)
+                        const channelLink = videoElement.querySelector('.channel-name');
+                        
+                        // Right Click -> New Tab
+                        channelLink.addEventListener('contextmenu', (event) => {
+                            event.preventDefault();
+                            window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
+                        });
+
+                        // Middle Click (Wheel) -> New Tab
+                        channelLink.addEventListener('mouseup', (event) => {
+                            if (event.button === 1) {
+                                event.preventDefault();
+                                window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
                             }
                         });
 
@@ -137,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             });
                     });
 
-                    // Use Intersection Observer to lazy load video thumbnails
+                    // Lazy load observer
                     const observer = new IntersectionObserver((entries, observer) => {
                         entries.forEach(entry => {
                             if (entry.isIntersecting) {
@@ -150,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     document.querySelectorAll('.video-thumbnail').forEach(img => {
                         img.dataset.src = img.src;
-                        img.src = ''; // Remove the src to prevent loading
+                        img.src = '';
                         observer.observe(img);
                     });
                 })
@@ -184,7 +253,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             };
                             suggestionsContainer.appendChild(suggestionElement);
 
-                            // Add event listeners for right-click and mouse wheel click
                             suggestionElement.addEventListener('contextmenu', (event) => {
                                 event.preventDefault();
                                 window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
@@ -206,7 +274,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // --- Search icon click ---
             document.getElementById('searchIcon').addEventListener('click', () => {
                 const query = searchInput.value.trim();
                 if (query) {

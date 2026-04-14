@@ -298,6 +298,38 @@ padding-left: 0 !important;
         .search-container:focus-within .search-suggestions {
             display: block;
         }
+
+        /* --- FIX: Prevent Middle-Click Autoscroll (Pan Mode) --- */
+        
+        .video-item,
+        .video-title,
+        .video-thumbnail,
+        .channel-name-link,
+        .channel-pic,
+        .sort-toggle,
+        .tab,
+        .share-button,
+        .suggestion-item,
+        #mainLogo {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .video-item * {
+            cursor: default;
+        }
+        
+        .video-title,
+        .video-thumbnail,
+        .channel-name-link,
+        .channel-pic,
+        .sort-toggle,
+        .tab,
+        .share-button,
+        .suggestion-item,
+        #mainLogo {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -354,16 +386,47 @@ padding-left: 0 !important;
     </div>
 
     <script>
+// ======================================================================
+// FIX: Prevent Middle-Click Autoscroll (Pan Mode)
+// Must be defined early to catch events on dynamically loaded content
+// ======================================================================
+document.addEventListener('mousedown', function(e) {
+    if (e.button === 1) { // Middle Mouse Button
+        const target = e.target.closest(
+            'a, ' + 
+            '.video-item, ' + 
+            '.video-title, ' + 
+            '.video-thumbnail, ' + 
+            '.channel-name-link, ' + 
+            '.channel-pic, ' + 
+            '.sort-toggle, ' + 
+            '.tab, ' + 
+            '.share-button, ' + 
+            '.suggestion-item, ' +
+            '#mainLogo'
+        );
+        
+        if (target) {
+            e.preventDefault();
+            
+            // If it's a real anchor tag with an href, manually open it
+            if (target.tagName === 'A' && target.href) {
+                window.open(target.href, '_blank');
+            }
+            // For custom elements (divs/spans), their existing 'mouseup' or 'auxclick' 
+            // listeners will handle opening the new tab.
+        }
+    }
+}, true); // Use Capture phase
+
 // Configuration
 const VIDEOS_PER_PAGE = 20;
-const FETCH_BATCH_SIZE = 100; // How many raw videos to pull from server per scroll batch
+const FETCH_BATCH_SIZE = 100;
 
-// --- Language Helper ---
 function getLang(en, de) {
     return localStorage.getItem('language') === 'de' ? de : en;
 }
 
-// --- Helper: Parse "H:MM:SS" or "M:SS" or "SS" into total seconds ---
 function parseDurationToSeconds(durationStr) {
     if (!durationStr || typeof durationStr !== 'string') return 0;
     const trimmed = durationStr.trim();
@@ -383,7 +446,6 @@ function parseDurationToSeconds(durationStr) {
     }
 }
 
-// --- Genre Configuration ---
 const GENRE_CONFIG = {
     gaming: {
         name: 'Gaming',
@@ -546,17 +608,14 @@ const GENRE_CONFIG = {
     }
 };
 
-// Parse genre from URL
 const urlParams = new URLSearchParams(window.location.search);
 const genre = urlParams.get('genre') || 'gaming';
 const genreConfig = GENRE_CONFIG[genre];
 
-// Redirect if invalid genre
 if (!genreConfig) {
     window.location.href = 'index.html';
 }
 
-// Handle logo clicks
 document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
 
@@ -616,7 +675,6 @@ document.addEventListener('DOMContentLoaded', () => {
         genreConfig.aboutDe || genreConfig.about
     );
 
-    // --- UI Translation ---
     function updateUITranslations() {
         document.querySelector('.tab[data-tab="videos"]').textContent = getLang('VIDEOS', 'VIDEOS');
         document.querySelector('.tab[data-tab="about"]').textContent = getLang('ABOUT', 'ÜBER');
@@ -636,7 +694,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     updateUITranslations();
 
-    // --- Tab switching ---
     function switchTab(tabName) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -766,7 +823,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchAndRenderBatch() {
-        // Fetch dates only for the small batch we're about to render
         const videosToRender = pendingFilteredVideos.splice(0, VIDEOS_PER_PAGE);
         
         const videosWithDates = await Promise.all(videosToRender.map(video => {
@@ -792,7 +848,6 @@ document.addEventListener('DOMContentLoaded', () => {
         videosContainer.appendChild(fragment);
         totalVideoCount += videosWithDates.length;
         
-        // If this is the very first render, wipe the initial scanning spinner
         if (!isFirstLoadComplete) {
             isFirstLoadComplete = true;
             const initialSpinner = videosContainer.querySelector('.loading-spinner');
@@ -801,7 +856,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        // Update video count in stats
         let statsVideoCount = totalVideoCount.toLocaleString();
         if (localStorage.getItem('language') === 'de') {
             statsVideoCount = statsVideoCount.replace(/,/g, '.');
@@ -809,11 +863,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('statsVideos').textContent = `${statsVideoCount} ${getLang('videos', 'Videos')}`;
     }
 
-    // Main infinite scroll trigger
     function loadMoreVideos() {
         if (isLoadingMore || !hasMoreVideos) return;
 
-        // If we have buffered videos ready, fetch their dates and render them
         if (pendingFilteredVideos.length > 0) {
             isLoadingMore = true;
             fetchAndRenderBatch().then(() => {
@@ -822,7 +874,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Buffer is empty: fetch next chunk from server
         isLoadingMore = true;
         loadingSpinner.classList.add('visible');
         noMoreVideos.style.display = 'none';
@@ -855,7 +906,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // Step 1: Filter by tags (fast, in-memory)
                 const genreTags = genreConfig.tags;
                 const genreTagSet = new Set(genreTags.map(t => t.toLowerCase()));
                 const negativeTagSet = new Set((genreConfig.negativeTags || []).map(t => t.toLowerCase()));
@@ -864,7 +914,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return filterByTags(video, genreTagSet, negativeTagSet, genreConfig, genreTags);
                 });
 
-                // Step 2: Handle duration filtering if needed
                 const minDuration = genreConfig.minDurationSeconds || 0;
                 
                 if (minDuration > 0 && tagMatches.length > 0) {
@@ -941,7 +990,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadMoreVideos();
     });
 
-    // Share button
     document.getElementById('shareChannelBtn').addEventListener('click', () => {
         const genreUrl = `${window.location.origin}/genre_channel.html?genre=${genre}`;
 
@@ -959,10 +1007,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ==========================================
-    // INITIALIZATION
-    // ==========================================
-
     function initializeVideoList() {
         loadedTabs.add('videos');
         videosContainer.innerHTML = '<div class="loading-spinner visible">' + getLang('Scanning library...', 'Durchsuche Bibliothek...') + '</div>';
@@ -973,7 +1017,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadMoreVideos();
     }
 
-    // Fetch video durations only for a pre-filtered list, then filter by min duration
     function filterByDuration(videos, minSeconds) {
         const promises = videos.map(video => {
             const videoPathWithoutExt = stripExtension(video.path);
@@ -990,7 +1033,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Tag filtering logic ---
     function filterByTags(video, genreTagSet, negativeTagSet, genreConfig, genreTags) {
         function extractVideoTags(video) {
             if (Array.isArray(video.tags)) return video.tags;
@@ -1046,7 +1088,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initializeVideoList();
 
-    // --- Search Navigation Logic ---
     const searchInput = document.getElementById('searchInput');
 
     searchInput.addEventListener('keydown', (e) => {

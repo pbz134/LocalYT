@@ -121,6 +121,37 @@
         .search-container:focus-within .search-suggestions {
             display: block;
         }
+
+        /* --- FIX: Prevent Middle-Click Autoscroll (Pan Mode) --- */
+        
+        .channel-result,
+        .video-item,
+        .video-title,
+        .thumbnail-container,
+        .clickable-channel-name,
+        .video-thumbnail,
+        .load-more,
+        .suggestion-item,
+        #mainLogo {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* Ensure cursor looks normal, not like a scroll tool */
+        .video-item * {
+            cursor: default;
+        }
+        
+        .video-title,
+        .thumbnail-container,
+        .clickable-channel-name,
+        .video-thumbnail,
+        .channel-result,
+        .load-more,
+        .suggestion-item,
+        #mainLogo {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="search-page">
@@ -137,6 +168,39 @@
     </div>
 
     <script>
+// ======================================================================
+// FIX: Prevent Middle-Click Autoscroll (Pan Mode)
+// Must be defined early to catch events on dynamically loaded content
+// ======================================================================
+document.addEventListener('mousedown', function(e) {
+    // Button 1 = Middle Mouse Button
+    if (e.button === 1) {
+        const target = e.target.closest(
+            'a, ' + 
+            '.channel-result, ' +
+            '.video-item, ' + 
+            '.video-title, ' + 
+            '.thumbnail-container, ' + 
+            '.clickable-channel-name, ' + 
+            '.video-thumbnail, ' + 
+            '.load-more, ' + 
+            '.suggestion-item, ' +
+            '#mainLogo'
+        );
+        
+        if (target) {
+            e.preventDefault();
+            
+            // If it's a real anchor tag with an href, manually open it
+            if (target.tagName === 'A' && target.href) {
+                window.open(target.href, '_blank');
+            }
+            // For custom elements (divs/spans), their existing 'mouseup' or 'auxclick' 
+            // listeners will handle opening the new tab.
+        }
+    }
+}, true); // Use Capture phase
+
 // --- Language Helper ---
 function getLang(en, de) {
     return localStorage.getItem('language') === 'de' ? de : en;

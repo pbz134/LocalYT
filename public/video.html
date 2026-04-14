@@ -767,7 +767,30 @@
         /* Show suggestions only when the search container (input) is focused/active */
         .search-container:focus-within .search-suggestions {
             display: block;
-        }    
+        }  
+
+        /* Prevent autoscroll cursor on all interactive elements */
+        a, 
+        .suggestion-item, 
+        .suggestion-title, 
+        .thumbnail-container,
+        .channel-name,
+        .logo-overlay,
+        .mention-link,
+        [class*="click"],
+        [onclick] {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* Specifically disable middle-click autoscroll on these */
+        .video-suggestions * {
+            cursor: default;
+        }
+        .video-suggestions .suggestion-title,
+        .video-suggestions .thumbnail-container {
+            cursor: pointer;
+        }  
     </style>
 </head>
 <body>
@@ -2537,6 +2560,37 @@ function createSidebarAutoplayToggle(container, playlistName) {
         checkbox.dispatchEvent(new Event('change'));
     });
 }
+
+
+// Prevent middle-click autoscroll (pan mode) on all interactive elements
+document.addEventListener('mousedown', function(e) {
+    // Button 1 = Middle mouse button (wheel click)
+    if (e.button === 1) {
+        // Check if clicking on a link or any of our custom clickable elements
+        const target = e.target.closest('a, .suggestion-item, .suggestion-title, .thumbnail-container, .channel-name, .logo-overlay, .mention-link, [data-video-path]');
+        
+        if (target) {
+            e.preventDefault();
+            
+            // If it's an anchor tag with href, manually open in new tab to ensure it works
+            // (since we prevented default behavior)
+            if (target.tagName === 'A' && target.href) {
+                window.open(target.href, '_blank');
+            }
+            // For other elements, their existing 'mouseup'/'auxclick' handlers will handle the new tab
+        }
+    }
+}, true); // Use capture phase to catch it before the browser's autoscroll kicks in
+
+// Also disable context menu autoscroll for right-click (optional)
+document.addEventListener('mousedown', function(e) {
+    if (e.button === 2) { // Right click
+        const target = e.target.closest('.suggestion-item, .suggestion-title, .thumbnail-container, .channel-name');
+        if (target) {
+            e.preventDefault();
+        }
+    }
+}, true);
 
     </script>
     <script src="profile-pic.js"></script>

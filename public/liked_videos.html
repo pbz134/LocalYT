@@ -62,12 +62,35 @@
 
         /* --- Search Suggestions Visibility --- */
         .search-suggestions {
-            display: none; /* Hidden by default when input is empty */
+            display: none; 
         }
 
-        /* Show suggestions only when the search container (input) is focused/active */
         .search-container:focus-within .search-suggestions {
             display: block;
+        }
+
+        /* --- FIX: Prevent Middle-Click Autoscroll (Pan Mode) --- */
+        
+        .video-item,
+        .video-title,
+        .thumbnail-container,
+        .channel-name,
+        .suggestion-item,
+        #mainLogo {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .video-item * {
+            cursor: default;
+        }
+        
+        .video-title,
+        .thumbnail-container,
+        .channel-name,
+        .suggestion-item,
+        #mainLogo {
+            cursor: pointer;
         }
     </style>
 </head>
@@ -83,7 +106,32 @@
     <div class="container" id="videoContainer">
         <div class="loading-indicator" style="text-align: center; padding: 40px; color: #aaa;"></div>
     </div>
+    
     <script>
+// ======================================================================
+// FIX: Prevent Middle-Click Autoscroll (Pan Mode)
+// ======================================================================
+document.addEventListener('mousedown', function(e) {
+    if (e.button === 1) {
+        const target = e.target.closest(
+            'a, ' + 
+            '.video-item, ' + 
+            '.video-title, ' + 
+            '.thumbnail-container, ' + 
+            '.channel-name, ' + 
+            '.suggestion-item, ' +
+            '#mainLogo'
+        );
+        
+        if (target) {
+            e.preventDefault();
+            if (target.tagName === 'A' && target.href) {
+                window.open(target.href, '_blank');
+            }
+        }
+    }
+}, true);
+
 // --- Language Helper ---
 function getLang(en, de) {
     return localStorage.getItem('language') === 'de' ? de : en;
@@ -235,23 +283,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 ).catch(() => 'Unknown date')
             ])
             .then(([viewCount, fileDate]) => {
-                // Format view count with commas
                 let formattedViewCount = viewCount;
                 if (!isNaN(viewCount) && viewCount !== '0') {
                     formattedViewCount = parseInt(viewCount).toLocaleString();
                 }
                 
-                // Language formatting
                 const lang = localStorage.getItem('language');
                 let viewsText = getLang('views', 'Aufrufe');
                 let uploadedText = getLang('Uploaded on', 'Hochgeladen am');
 
-                // Swap comma to dot for German
                 if (lang === 'de') {
                     formattedViewCount = formattedViewCount.replace(/,/g, '.');
                 }
 
-                // Clean the fileDate
                 const cleanFileDate = fileDate.replace(/\s+/g, ' ').trim();
                 
                 descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${cleanFileDate}`;

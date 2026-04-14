@@ -117,6 +117,37 @@
         .search-container:focus-within .search-suggestions {
             display: block;
         }
+
+        /* --- FIX: Prevent Middle-Click Autoscroll (Pan Mode) --- */
+        
+        .video-item,
+        .video-title,
+        .thumbnail-container,
+        .channel-name,
+        .channel-pic-link,
+        .category-button,
+        .suggestion-item,
+        #mainLogo,
+        .openbtn {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* Ensure cursor looks normal, not like a scroll tool */
+        .video-item * {
+            cursor: default;
+        }
+        
+        .video-title,
+        .thumbnail-container,
+        .channel-name,
+        .channel-pic-link,
+        .category-button,
+        .suggestion-item,
+        #mainLogo,
+        .openbtn {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="index-page">
@@ -153,13 +184,42 @@
         </a>
     </div>
     <div class="container" id="videoContainer"></div>
+    
     <script>
-// --- Language Helper ---
+// ======================================================================
+// FIX: Prevent Middle-Click Autoscroll (Pan Mode)
+// ======================================================================
+document.addEventListener('mousedown', function(e) {
+    if (e.button === 1) { // Middle Mouse Button
+        const target = e.target.closest(
+            'a, ' + 
+            '.video-item, ' + 
+            '.video-title, ' + 
+            '.thumbnail-container, ' + 
+            '.channel-name, ' + 
+            '.channel-pic-link, ' + 
+            '.category-button, ' + 
+            '.suggestion-item, ' +
+            '#mainLogo'
+        );
+        
+        if (target) {
+            e.preventDefault();
+            
+            // If it's a real anchor tag with an href, manually open it
+            if (target.tagName === 'A' && target.href) {
+                window.open(target.href, '_blank');
+            }
+            // For custom elements (divs/spans), their existing 'mouseup' or 'auxclick' 
+            // listeners will handle opening the new tab.
+        }
+    }
+}, true); // Use Capture phase
+
 function getLang(en, de) {
     return localStorage.getItem('language') === 'de' ? de : en;
 }
 
-// Handle logo clicks
 document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
     
@@ -186,7 +246,6 @@ document.addEventListener('DOMContentLoaded', () => {
         mainLogo.style.cursor = 'pointer';
     }
 
-    // --- UI Translation ---
     document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
     document.getElementById('sidebarWatchHistory').textContent = getLang('Watch History', 'Wiedergabeverlauf');
     document.getElementById('sidebarLikedVideos').textContent = getLang('Liked Videos', 'Videos, die ich mag');
@@ -195,344 +254,329 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('sidebarAbout').textContent = getLang('About', 'Über');
     document.getElementById('sidebarGenreLabel').textContent = getLang('Topics', 'Themen');
     
-    // For genre links, we only replace the text node (not the icon img)
     document.getElementById('sidebarGaming').lastChild.textContent = getLang('Gaming', 'Gaming');
     document.getElementById('sidebarMusic').lastChild.textContent = getLang('Music', 'Musik');
     document.getElementById('sidebarSports').lastChild.textContent = getLang('Sports', 'Sport');
     document.getElementById('sidebarMovies').lastChild.textContent = getLang('Movies', 'Filme');
 });
 
-        // Helper function to strip file extension for thumbnail and metadata paths
-        function stripExtension(filename) {
-            return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
-        }
+function stripExtension(filename) {
+    return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+}
 
-        // Helper function to get video file extension
-        function getVideoExtension(path) {
-            const match = path.match(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i);
-            return match ? match[1] : 'mp4';
-        }
+function getVideoExtension(path) {
+    const match = path.match(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i);
+    return match ? match[1] : 'mp4';
+}
 
-        function toggleNav() {
-            const sidebar = document.getElementById("mySidebar");
-            const main = document.getElementById("main");
-            
-            if (sidebar.style.width === "250px") {
-                sidebar.style.width = "0";
-                main.style.marginLeft = "0";
-            } else {
-                sidebar.style.width = "250px";
-                main.style.marginLeft = "250px";
+function toggleNav() {
+    const sidebar = document.getElementById("mySidebar");
+    const main = document.getElementById("main");
+    
+    if (sidebar.style.width === "250px") {
+        sidebar.style.width = "0";
+        main.style.marginLeft = "0";
+    } else {
+        sidebar.style.width = "250px";
+        main.style.marginLeft = "250px";
+    }
+}
+        
+function closeNav() {
+    document.getElementById("mySidebar").style.width = "0";
+    document.getElementById("main").style.marginLeft = "0";
+}
+
+let currentPage = 1;
+let recommendationsPage = 1;
+const limit = 20;
+let isLoading = false;
+let hasMore = true;
+let isUserLoggedIn = false;
+let hasLoadedRecommendations = false;
+
+function checkLoginStatus() {
+    return fetch('/session-user')
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            throw new Error('Not logged in');
+        })
+        .then(data => {
+            if (data.username) {
+                const loginButton = document.getElementById('loginButton');
+                loginButton.textContent = data.username;
+                isUserLoggedIn = true;
+                return true;
+            }
+            return false;
+        })
+        .catch(error => {
+            console.log('User not logged in');
+            return false;
+        });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    checkLoginStatus().then(loggedIn => {
+        fetch('/top-categories')
+            .then(response => response.json())
+            .then(categories => {
+                const categoryContainer = document.getElementById('categoryContainer');
+                const limitedCategories = categories.slice(0, 3);
+                
+                limitedCategories.forEach(category => {
+                    const button = document.createElement('button');
+                    button.className = 'category-button';
+                    button.textContent = category;
+                    button.onclick = () => {
+                        window.location.href = `search.html?q=${encodeURIComponent(category)}`;
+                    };
+                    categoryContainer.appendChild(button);
+                });
+            })
+            .catch(error => {
+                console.log('No categories found');
+            });
+
+        if (loggedIn) {
+            console.log('User logged in, loading recommendations');
+            loadRecommendations();
+        } else {
+            console.log('Guest user, loading random videos');
+            loadMoreVideos();
+        }
+    });
+
+    window.addEventListener('scroll', () => {
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
+            if (!isLoading && hasMore) {
+                if (isUserLoggedIn && !hasLoadedRecommendations) {
+                    loadMoreRecommendations();
+                } else {
+                    loadMoreVideos();
+                }
             }
         }
-        
-        function closeNav() {
-            document.getElementById("mySidebar").style.width = "0";
-            document.getElementById("main").style.marginLeft = "0";
+    });
+    
+    const searchInput = document.getElementById('searchInput');
+    
+    searchInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
         }
+    });
 
-        // --- INFINITE SCROLL LOGIC ---
-        let currentPage = 1;
-        let recommendationsPage = 1;
-        const limit = 20; // Videos per load
-        let isLoading = false;
-        let hasMore = true;
-        let isUserLoggedIn = false;
-        let hasLoadedRecommendations = false;
-
-        // Check login status and update button
-        function checkLoginStatus() {
-            return fetch('/session-user')
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    }
-                    throw new Error('Not logged in');
-                })
-                .then(data => {
-                    if (data.username) {
-                        const loginButton = document.getElementById('loginButton');
-                        loginButton.textContent = data.username;
-                        isUserLoggedIn = true;
-                        return true;
-                    }
-                    return false;
-                })
-                .catch(error => {
-                    console.log('User not logged in');
-                    return false;
-                });
+    document.getElementById('searchIcon').addEventListener('click', () => {
+        const query = searchInput.value.trim();
+        if (query) {
+            window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+        } else {
+            searchInput.focus();
         }
+    });
+});
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // First check login status
-            checkLoginStatus().then(loggedIn => {
-                // Load Top Categories
-                fetch('/top-categories')
-                    .then(response => response.json())
-                    .then(categories => {
-                        const categoryContainer = document.getElementById('categoryContainer');
-                        const limitedCategories = categories.slice(0, 3);
-                        
-                        limitedCategories.forEach(category => {
-                            const button = document.createElement('button');
-                            button.className = 'category-button';
-                            button.textContent = category;
-                            button.onclick = () => {
-                                window.location.href = `search.html?q=${encodeURIComponent(category)}`;
-                            };
-                            categoryContainer.appendChild(button);
-                        });
-                    })
-                    .catch(error => {
-                        console.log('No categories found');
-                    });
-
-                // Load appropriate videos based on login status
-                if (loggedIn) {
-                    console.log('User logged in, loading recommendations');
-                    loadRecommendations();
+function loadRecommendations() {
+    if (isLoading) return;
+    
+    isLoading = true;
+    
+    fetch('/recommendations?page=1&limit=' + limit)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load recommendations');
+            }
+            return response.json();
+        })
+        .then(data => {
+            let videos = [];
+            if (Array.isArray(data)) {
+                videos = data;
+                hasMore = false;
+                hasLoadedRecommendations = true;
+            } else if (data.videos) {
+                videos = data.videos;
+                hasMore = data.hasMore || false;
+                if (hasMore) {
+                    recommendationsPage = 2;
                 } else {
-                    console.log('Guest user, loading random videos');
-                    loadMoreVideos();
+                    hasLoadedRecommendations = true;
                 }
-            });
-
-            // Infinite Scroll Listener
-            window.addEventListener('scroll', () => {
-                if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
-                    if (!isLoading && hasMore) {
-                        if (isUserLoggedIn && !hasLoadedRecommendations) {
-                            loadMoreRecommendations();
-                        } else {
-                            loadMoreVideos();
-                        }
-                    }
-                }
-            });
+            }
             
-            // --- Search Icon and Enter Key Logic (Kept in main thread for navigation) ---
-            const searchInput = document.getElementById('searchInput');
+            if (videos.length > 0) {
+                renderVideos(videos);
+            } else {
+                hasLoadedRecommendations = true;
+                loadMoreVideos();
+            }
             
-            searchInput.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
-                    window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
-                }
-            });
+            isLoading = false;
+        })
+        .catch(error => {
+            console.error('Error loading recommendations:', error);
+            isLoading = false;
+            hasLoadedRecommendations = true;
+            loadMoreVideos();
+        });
+}
 
-            document.getElementById('searchIcon').addEventListener('click', () => {
-                const query = searchInput.value.trim();
-                if (query) {
-                    window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+function loadMoreRecommendations() {
+    if (isLoading || !hasMore) return;
+    
+    isLoading = true;
+    
+    fetch('/recommendations?page=' + recommendationsPage + '&limit=' + limit)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load more recommendations');
+            }
+            return response.json();
+        })
+        .then(data => {
+            let newVideos = [];
+            if (Array.isArray(data)) {
+                newVideos = data;
+                hasMore = false;
+                hasLoadedRecommendations = true;
+            } else if (data.videos) {
+                newVideos = data.videos;
+                hasMore = data.hasMore;
+                if (hasMore) {
+                    recommendationsPage++;
                 } else {
-                    searchInput.focus();
+                    hasLoadedRecommendations = true;
                 }
-            });
+            }
+            
+            if (newVideos.length > 0) {
+                renderVideos(newVideos);
+            } else {
+                hasLoadedRecommendations = true;
+            }
+            
+            isLoading = false;
+        })
+        .catch(error => {
+            console.error('Error loading more recommendations:', error);
+            isLoading = false;
+            hasLoadedRecommendations = true;
+        });
+}
+
+function loadMoreVideos() {
+    if (isLoading || !hasMore) return;
+    
+    isLoading = true;
+    
+    fetch(`/videos?page=${currentPage}&limit=${limit}`)
+        .then(response => response.json())
+        .then(data => {
+            const videos = data.videos || [];
+            
+            if (videos.length > 0) {
+                renderVideos(videos);
+            }
+
+            isLoading = false;
+            
+            if (videos.length < limit) {
+                hasMore = false;
+            } else {
+                currentPage++;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching videos:', error);
+            isLoading = false;
+        });
+}
+
+function renderVideos(videos) {
+    const container = document.getElementById('videoContainer');
+    
+    videos.forEach(video => {
+        const videoElement = document.createElement('div');
+        videoElement.className = 'video-item';
+        const videoTitle = video.displayName;
+        const videoPathWithoutExt = stripExtension(video.path);
+        const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
+        const channel = video.path.split('/')[0];
+        const channelPicSrc = `/channelpic/${encodeURIComponent(channel)}.jpg`;
+
+        videoElement.innerHTML = `
+            <div class="thumbnail-container">
+                <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
+                <div class="video-length"></div>
+            </div>
+            <div class="video-info">
+                <div class="channel-pic-link" style="cursor: pointer;">
+                    <img src="${channelPicSrc}" alt="${channel}" class="channel-pic" loading="lazy">
+                </div>
+                <div class="video-details">
+                    <div class="video-title" onclick="window.location.href='video.html?src=${encodeURIComponent(video.path)}'">${videoTitle}</div>
+                    <div class="channel-name" onclick="window.location.href='channel.html?channel=${encodeURIComponent(channel)}'">${channel}</div>
+                    <div class="video-description">${video.viewCount} ${getLang('views', 'Aufrufe')} • ${video.fileDate}</div>
+                </div>
+            </div>
+        `;
+        container.appendChild(videoElement);
+
+        videoElement.querySelector('.thumbnail-container').addEventListener('click', () => {
+            window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
         });
 
-        function loadRecommendations() {
-            if (isLoading) return;
-            
-            isLoading = true;
-            
-            fetch('/recommendations?page=1&limit=' + limit)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Failed to load recommendations');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    let videos = [];
-                    if (Array.isArray(data)) {
-                        videos = data;
-                        hasMore = false;
-                        hasLoadedRecommendations = true;
-                    } else if (data.videos) {
-                        videos = data.videos;
-                        hasMore = data.hasMore || false;
-                        if (hasMore) {
-                            recommendationsPage = 2;
-                        } else {
-                            hasLoadedRecommendations = true;
-                        }
-                    }
-                    
-                    if (videos.length > 0) {
-                        renderVideos(videos);
-                    } else {
-                        hasLoadedRecommendations = true;
-                        loadMoreVideos();
-                    }
-                    
-                    isLoading = false;
-                })
-                .catch(error => {
-                    console.error('Error loading recommendations:', error);
-                    isLoading = false;
-                    hasLoadedRecommendations = true;
-                    loadMoreVideos();
-                });
-        }
+        setupVideoLinkEvents(videoElement.querySelector('.video-title'), video.path);
+        setupChannelLinkEvents(videoElement.querySelector('.channel-pic-link'), channel);
+        setupChannelLinkEvents(videoElement.querySelector('.channel-name'), channel);
 
-        function loadMoreRecommendations() {
-            if (isLoading || !hasMore) return;
-            
-            isLoading = true;
-            
-            fetch('/recommendations?page=' + recommendationsPage + '&limit=' + limit)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Failed to load more recommendations');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    let newVideos = [];
-                    if (Array.isArray(data)) {
-                        newVideos = data;
-                        hasMore = false;
-                        hasLoadedRecommendations = true;
-                    } else if (data.videos) {
-                        newVideos = data.videos;
-                        hasMore = data.hasMore;
-                        if (hasMore) {
-                            recommendationsPage++;
-                        } else {
-                            hasLoadedRecommendations = true;
-                        }
-                    }
-                    
-                    if (newVideos.length > 0) {
-                        renderVideos(newVideos);
-                    } else {
-                        hasLoadedRecommendations = true;
-                    }
-                    
-                    isLoading = false;
-                })
-                .catch(error => {
-                    console.error('Error loading more recommendations:', error);
-                    isLoading = false;
-                    hasLoadedRecommendations = true;
-                });
-        }
-
-        function loadMoreVideos() {
-            if (isLoading || !hasMore) return;
-            
-            isLoading = true;
-            
-            fetch(`/videos?page=${currentPage}&limit=${limit}`)
-                .then(response => response.json())
-                .then(data => {
-                    const videos = data.videos || [];
-                    
-                    if (videos.length > 0) {
-                        renderVideos(videos);
-                    }
-
-                    isLoading = false;
-                    
-                    if (videos.length < limit) {
-                        hasMore = false;
-                    } else {
-                        currentPage++;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching videos:', error);
-                    isLoading = false;
-                });
-        }
-
-        function renderVideos(videos) {
-            const container = document.getElementById('videoContainer');
-            
-            videos.forEach(video => {
-                const videoElement = document.createElement('div');
-                videoElement.className = 'video-item';
-                const videoTitle = video.displayName;
-                const videoPathWithoutExt = stripExtension(video.path);
-                const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
-                const channel = video.path.split('/')[0];
-                const channelPicSrc = `/channelpic/${encodeURIComponent(channel)}.jpg`;
-
-                videoElement.innerHTML = `
-                    <div class="thumbnail-container">
-                        <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
-                        <div class="video-length"></div>
-                    </div>
-                    <div class="video-info">
-                        <div class="channel-pic-link" style="cursor: pointer;">
-                            <img src="${channelPicSrc}" alt="${channel}" class="channel-pic" loading="lazy">
-                        </div>
-                        <div class="video-details">
-                            <div class="video-title" onclick="window.location.href='video.html?src=${encodeURIComponent(video.path)}'">${videoTitle}</div>
-                            <div class="channel-name" onclick="window.location.href='channel.html?channel=${encodeURIComponent(channel)}'">${channel}</div>
-                            <div class="video-description">${video.viewCount} ${getLang('views', 'Aufrufe')} • ${video.fileDate}</div>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(videoElement);
-
-                videoElement.querySelector('.thumbnail-container').addEventListener('click', () => {
-                    window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
-                });
-
-                setupVideoLinkEvents(videoElement.querySelector('.video-title'), video.path);
-                
-                // --- MODIFICATION: Setup events for channel pic links ---
-                setupChannelLinkEvents(videoElement.querySelector('.channel-pic-link'), channel);
-                setupChannelLinkEvents(videoElement.querySelector('.channel-name'), channel);
-
-                const videoFilename = video.path.split('/').pop();
-                const videoNameWithoutExt = stripExtension(videoFilename);
-                fetch(`/videolengths/${channel}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
-                    .then(response => response.text())
-                    .then(length => {
-                        videoElement.querySelector('.video-length').textContent = length;
-                    })
-                    .catch(error => {
-                        console.error('Error fetching video length:', error);
-                    });
+        const videoFilename = video.path.split('/').pop();
+        const videoNameWithoutExt = stripExtension(videoFilename);
+        fetch(`/videolengths/${channel}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
+            .then(response => response.text())
+            .then(length => {
+                videoElement.querySelector('.video-length').textContent = length;
+            })
+            .catch(error => {
+                console.error('Error fetching video length:', error);
             });
+    });
+}
+
+function setupVideoLinkEvents(element, path) {
+    element.addEventListener('contextmenu', (event) => {
+        event.preventDefault();
+        window.open(`video.html?src=${encodeURIComponent(path)}`, '_blank');
+    });
+
+    element.addEventListener('mouseup', (event) => {
+        if (event.button === 1) {
+            event.preventDefault();
+            window.open(`video.html?src=${encodeURIComponent(path)}`, '_blank');
         }
+    });
+}
 
-        function setupVideoLinkEvents(element, path) {
-            element.addEventListener('contextmenu', (event) => {
-                event.preventDefault();
-                window.open(`video.html?src=${encodeURIComponent(path)}`, '_blank');
-            });
+function setupChannelLinkEvents(element, channel) {
+    element.addEventListener('click', () => {
+        window.location.href = `channel.html?channel=${encodeURIComponent(channel)}`;
+    });
 
-            element.addEventListener('mouseup', (event) => {
-                if (event.button === 1) {
-                    event.preventDefault();
-                    window.open(`video.html?src=${encodeURIComponent(path)}`, '_blank');
-                }
-            });
+    element.addEventListener('contextmenu', (event) => {
+        event.preventDefault();
+        window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
+    });
+
+    element.addEventListener('mouseup', (event) => {
+        if (event.button === 1) {
+            event.preventDefault();
+            window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
         }
-
-        function setupChannelLinkEvents(element, channel) {
-            // Handle left click
-            element.addEventListener('click', () => {
-                window.location.href = `channel.html?channel=${encodeURIComponent(channel)}`;
-            });
-
-            // Handle right-click
-            element.addEventListener('contextmenu', (event) => {
-                event.preventDefault();
-                window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
-            });
-
-            // Handle middle-click
-            element.addEventListener('mouseup', (event) => {
-                if (event.button === 1) {
-                    event.preventDefault();
-                    window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
-                }
-            });
-        }
+    });
+}
     </script>
     <!-- External Search Suggestion Script -->
     <script src="search-suggestions.js"></script>

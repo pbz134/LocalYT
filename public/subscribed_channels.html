@@ -292,12 +292,39 @@
 
         /* --- Search Suggestions Visibility --- */
         .search-suggestions {
-            display: none; /* Hidden by default when input is empty */
+            display: none; 
         }
 
-        /* Show suggestions only when the search container (input) is focused/active */
         .search-container:focus-within .search-suggestions {
             display: block;
+        }
+
+        /* --- FIX: Prevent Middle-Click Autoscroll (Pan Mode) --- */
+        
+        .channel-item,
+        .video-item,
+        .video-title,
+        .thumbnail-container,
+        .channel-name,
+        .suggestion-item,
+        #mainLogo,
+        .openbtn {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .video-item * {
+            cursor: default;
+        }
+        
+        .video-title,
+        .thumbnail-container,
+        .channel-name,
+        .channel-item,
+        .suggestion-item,
+        #mainLogo,
+        .openbtn {
+            cursor: pointer;
         }
     </style>
 </head>
@@ -337,13 +364,35 @@
     <script>
         let selectedChannel = null;
 
+        // ======================================================================
+        // FIX: Prevent Middle-Click Autoscroll (Pan Mode)
+        // ======================================================================
+        document.addEventListener('mousedown', function(e) {
+            if (e.button === 1) {
+                const target = e.target.closest(
+                    'a, ' + 
+                    '.channel-item, ' +
+                    '.video-item, ' + 
+                    '.video-title, ' + 
+                    '.thumbnail-container, ' + 
+                    '.channel-name, ' + 
+                    '.suggestion-item, ' +
+                    '#mainLogo'
+                );
+                
+                if (target) {
+                    e.preventDefault();
+                    if (target.tagName === 'A' && target.href) {
+                        window.open(target.href, '_blank');
+                    }
+                }
+            }
+        }, true);
 
-        // --- Language Helper ---
         function getLang(en, de) {
             return localStorage.getItem('language') === 'de' ? de : en;
         }
 
-        // --- Sidebar ---
         function toggleNav() {
             const sidebar = document.getElementById("mySidebar");
             if (sidebar.style.width === "250px") {
@@ -357,7 +406,6 @@
             document.getElementById("mySidebar").style.width = "0";
         }
 
-        // --- Helpers ---
         function stripExtension(filename) {
             return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
         }
@@ -389,7 +437,6 @@
             element.style.cursor = 'pointer';
         }
 
-        // --- Logo ---
         document.addEventListener('DOMContentLoaded', () => {
             const mainLogo = document.getElementById('mainLogo');
             if (mainLogo) {
@@ -406,16 +453,14 @@
                 mainLogo.style.cursor = 'pointer';
             }
 
-        // --- UI Translation ---
-        document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
-document.getElementById('sidebarWatchHistory').textContent = getLang('Watch History', 'Wiedergabeverlauf');
-document.getElementById('sidebarLikedVideos').textContent = getLang('Liked Videos', 'Videos, die ich mag');
-document.getElementById('sidebarSubscriptions').textContent = getLang('Subscriptions', 'Abonnements');
-document.getElementById('sidebarPlaylists').textContent = getLang('Playlists', 'Playlisten');
-document.getElementById('sidebarAbout').textContent = getLang('About', 'Über');
-    });
+            document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
+            document.getElementById('sidebarWatchHistory').textContent = getLang('Watch History', 'Wiedergabeverlauf');
+            document.getElementById('sidebarLikedVideos').textContent = getLang('Liked Videos', 'Videos, die ich mag');
+            document.getElementById('sidebarSubscriptions').textContent = getLang('Subscriptions', 'Abonnements');
+            document.getElementById('sidebarPlaylists').textContent = getLang('Playlists', 'Playlisten');
+            document.getElementById('sidebarAbout').textContent = getLang('About', 'Über');
+        });
 
-        // --- Search ---
         document.addEventListener('DOMContentLoaded', () => {
             const searchInput = document.getElementById('searchInput');
             searchInput.addEventListener('input', () => {
@@ -437,15 +482,24 @@ document.getElementById('sidebarAbout').textContent = getLang('About', 'Über');
                             el.className = 'suggestion-item';
                             el.textContent = s.displayName;
                             el.onclick = () => window.location.href = `video.html?src=${encodeURIComponent(s.path)}`;
+                            
+                            // Add wheel click support for search suggestions too
+                            el.addEventListener('mouseup', (e) => {
+                                if (e.button === 1) {
+                                    e.preventDefault();
+                                    window.open(`video.html?src=${encodeURIComponent(s.path)}`, '_blank');
+                                }
+                            });
+                            
                             container.appendChild(el);
                         });
                     });
             });
+            
             searchInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
             });
 
-            // --- Search icon click ---
             document.getElementById('searchIcon').addEventListener('click', () => {
                 const query = searchInput.value.trim();
                 if (query) {
@@ -456,7 +510,6 @@ document.getElementById('sidebarAbout').textContent = getLang('About', 'Über');
             });
         });
 
-        // --- Main Logic ---
         document.addEventListener('DOMContentLoaded', () => {
             checkLoginStatus().then(loggedIn => {
                 if (!loggedIn) {
@@ -480,10 +533,7 @@ document.getElementById('sidebarAbout').textContent = getLang('About', 'Über');
                     throw new Error('Not logged in');
                 })
                 .then(data => {
-                    if (data.username) {
-
-                        return true;
-                    }
+                    if (data.username) return true;
                     return false;
                 })
                 .catch(() => false);
@@ -511,8 +561,6 @@ document.getElementById('sidebarAbout').textContent = getLang('About', 'Über');
                     }
 
                     renderChannelRow(channels);
-
-                    // Auto-select the first channel
                     selectChannel(channels[0]);
                 })
                 .catch(err => {
@@ -560,12 +608,10 @@ document.getElementById('sidebarAbout').textContent = getLang('About', 'Über');
         function selectChannel(channel) {
             selectedChannel = channel;
 
-            // Update selected visual state
             document.querySelectorAll('.channel-item').forEach(item => {
                 item.classList.toggle('selected', item.dataset.channel === channel);
             });
 
-            // Show loading
             const contentArea = document.getElementById('contentArea');
             contentArea.innerHTML = `
                 <div class="section-label">${channel}</div>
@@ -644,7 +690,6 @@ document.getElementById('sidebarAbout').textContent = getLang('About', 'Über');
 
                 grid.appendChild(el);
 
-                // Fetch video length
                 const videoFilename = video.path.split('/').pop();
                 const videoNameWithoutExt = stripExtension(videoFilename);
                 fetch(`/videolengths/${channel}/${encodeURIComponent(videoNameWithoutExt)}.txt`)

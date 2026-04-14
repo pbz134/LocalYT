@@ -113,9 +113,7 @@
             align-items: center;
             gap: 8px;
             transition: background-color 0.2s;
-            margin-bottom: -50px; /* This pulls it down over the content */
-            
-            /* ADD THESE TWO LINES: */
+            margin-bottom: -50px; 
             position: relative; 
             z-index: 10; 
         }
@@ -527,6 +525,44 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        /* --- FIX: Prevent Middle-Click Autoscroll (Pan Mode) --- */
+        
+        .video-item,
+        .playlist-item,
+        .video-title,
+        .video-thumbnail,
+        .playlist-thumbnail,
+        .home-video-title,
+        .tab,
+        .sort-toggle,
+        .subscribe-button,
+        .share-button,
+        .channel-name,
+        .suggestion-item,
+        #mainLogo {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .video-item * {
+            cursor: default;
+        }
+        
+        .video-title,
+        .video-thumbnail,
+        .playlist-item,
+        .playlist-thumbnail,
+        .home-video-title,
+        .tab,
+        .sort-toggle,
+        .subscribe-button,
+        .share-button,
+        .channel-name,
+        .suggestion-item,
+        #mainLogo {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -547,7 +583,6 @@
         </div>
     </div>
 
-    <!-- Tabs -->
     <!-- Tabs -->
     <div class="tabs">
         <div class="tab active" data-tab="home">HOME</div>
@@ -635,15 +670,48 @@
     </div>
 
     <script>
-// Configuration
+// ======================================================================
+// FIX: Prevent Middle-Click Autoscroll (Pan Mode)
+// Must be defined early to catch events on dynamically loaded content
+// ======================================================================
+document.addEventListener('mousedown', function(e) {
+    if (e.button === 1) { // Middle Mouse Button
+        const target = e.target.closest(
+            'a, ' + 
+            '.video-item, ' + 
+            '.playlist-item, ' + 
+            '.video-title, ' + 
+            '.video-thumbnail, ' + 
+            '.playlist-thumbnail, ' + 
+            '.home-video-title, ' + 
+            '.tab, ' + 
+            '.sort-toggle, ' + 
+            '.subscribe-button, ' + 
+            '.share-button, ' + 
+            '.channel-name, ' + 
+            '.suggestion-item, ' +
+            '#mainLogo'
+        );
+        
+        if (target) {
+            e.preventDefault();
+            
+            // If it's a real anchor tag with an href, manually open it
+            if (target.tagName === 'A' && target.href) {
+                window.open(target.href, '_blank');
+            }
+            // For custom elements (divs/spans), their existing 'mouseup' or 'auxclick' 
+            // listeners will handle opening the new tab.
+        }
+    }
+}, true); // Use Capture phase
+
 const VIDEOS_PER_PAGE = 20;
 
-// --- Language Helper ---
 function getLang(en, de) {
     return localStorage.getItem('language') === 'de' ? de : en;
 }
 
-// Parse the channel and tab from the URL
 function parseChannelUrl() {
     const raw = new URLSearchParams(window.location.search).get('channel') || '';
     const decoded = decodeURIComponent(raw);
@@ -660,7 +728,6 @@ function parseChannelUrl() {
     return { channel: decoded, tab: 'home' };
 }
 
-// Build the URL for a given channel + tab
 function buildChannelUrl(channel, tab) {
     if (tab === 'home') {
         return `channel.html?channel=${encodeURIComponent(channel)}`;
@@ -670,7 +737,6 @@ function buildChannelUrl(channel, tab) {
 
 const { channel, tab: initialTab } = parseChannelUrl();
 
-// Handle logo clicks
 document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
 
@@ -718,13 +784,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let intersectionObserver = null;
     let isSubscribed = false;
 
-    // Home tab state
     let homeFluidPlayerInstance = null;
 
-    // Track which tabs have already been loaded
     const loadedTabs = new Set();
 
-    // Test if banner image exists, otherwise use placeholder
     fetch(`/channelbanner/${encodeURIComponent(channel)}.jpg`, { method: 'HEAD' })
         .then(response => {
             if (response.ok) {
@@ -741,7 +804,6 @@ document.addEventListener('DOMContentLoaded', () => {
     channelName.textContent = channel;
     document.title = `${channel} - LocalYT`;
 
-    // --- Subscribe Button Logic ---
     function updateSubscribeButton() {
         if (isSubscribed) {
             subscribeButton.textContent = getLang('Subscribed', 'Abonniert');
@@ -763,7 +825,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Fetch initial subscription status
     fetch(`/user-subscriptions/${encodeURIComponent(channel)}`)
         .then(response => response.ok ? response.json() : {})
         .then(userSubscriptions => {
@@ -775,7 +836,6 @@ document.addEventListener('DOMContentLoaded', () => {
             updateSubscribeButton();
         });
 
-    // --- UI Translation ---
     function updateUITranslations() {
         document.querySelector('.tab[data-tab="home"]').textContent = getLang('HOME', 'STARTSEITE');
         document.querySelector('.tab[data-tab="videos"]').textContent = getLang('VIDEOS', 'VIDEOS');
@@ -800,7 +860,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('homeLoadingText').textContent = getLang('Loading videos...', 'Lade Videos...');
     document.getElementById('homeOthersLabel').textContent = getLang('Other videos', 'Weitere Videos');
 
-    // --- Tab switching (pushes to address bar) ---
     function switchTab(tabName) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -818,7 +877,6 @@ document.addEventListener('DOMContentLoaded', () => {
             loadTabContent(tabName);
         }
 
-        // Pause the home miniplayer when switching away from HOME tab
         if (tabName !== 'home') {
             const homeVideo = document.getElementById('homeVideoPlayer');
             if (homeVideo) {
@@ -833,7 +891,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Handle browser back/forward
     window.addEventListener('popstate', (event) => {
         const tabName = event.state?.tab || 'home';
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -849,7 +906,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Lazy-load content for a specific tab ---
     function loadTabContent(tabName) {
         switch (tabName) {
             case 'home':
@@ -867,7 +923,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadedTabs.add(tabName);
     }
 
-    // ===== HOME TAB LOGIC =====
     function loadHomeTab() {
         fetch(`/channel-home-previews/${encodeURIComponent(channel)}.json`)
             .then(response => {
@@ -906,7 +961,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const mimeType = getMimeType(extension);
         const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
 
-        // Destroy previous Fluid Player instance if it exists
         if (homeFluidPlayerInstance) {
             try {
                 const oldVideo = document.getElementById('homeVideoPlayer');
@@ -914,13 +968,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     homeFluidPlayerInstance.destroy();
                     oldVideo.remove();
                 }
-            } catch (e) {
-                // Ignore destroy errors
-            }
+            } catch (e) {}
             homeFluidPlayerInstance = null;
         }
 
-        // Set title and make it link to the full video page
         titleEl.textContent = video.displayName;
         titleEl.onclick = () => { openVideo(encodeURIComponent(video.path)); };
         titleEl.oncontextmenu = (e) => {
@@ -934,7 +985,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        // Fetch metadata (views, date, length, description) in parallel
         Promise.all([
             fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(r => r.ok ? r.text() : '0'),
             fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoPathWithoutExt.split('/').pop())}.txt`).then(r => r.ok ? r.text() : ''),
@@ -972,21 +1022,18 @@ document.addEventListener('DOMContentLoaded', () => {
             descEl.classList.add('no-desc');
         });
 
-        // Create video element
         const videoElement = document.createElement('video');
         videoElement.id = 'homeVideoPlayer';
-        videoElement.preload = 'metadata'; // Prevents timeout by not forcing full load
+        videoElement.preload = 'metadata';
 
         const sourceElement = document.createElement('source');
         sourceElement.src = `/videos/${encodeURIComponent(video.path)}`;
         sourceElement.type = mimeType;
         videoElement.appendChild(sourceElement);
 
-        // Replace placeholder with video
         placeholder.remove();
         wrapper.appendChild(videoElement);
 
-        // Wait for Fluid Player to be available, then initialize
         function initPlayer() {
             if (typeof fluidPlayer === 'function') {
                 homeFluidPlayerInstance = fluidPlayer('homeVideoPlayer', {
@@ -1016,7 +1063,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
             } else {
-                // Fluid Player not loaded yet, retry
                 setTimeout(initPlayer, 200);
             }
         }
@@ -1035,7 +1081,6 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .then(description => {
                 if (!description) return null;
-                // Style links and timestamps in description
                 let processed = description;
                 const urlRegex = /(https?:\/\/[^\s<]+)/g;
                 processed = processed.replace(urlRegex, function(url) {
@@ -1144,7 +1189,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         grid.appendChild(fragment);
     }
-    // ===== END HOME TAB LOGIC =====
 
     function parseEuropeanDate(dateString) {
         if (!dateString || dateString === 'Unknown date') return new Date(0);
@@ -1363,6 +1407,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const playlistElement = document.createElement('div');
             playlistElement.className = 'playlist-item';
 
+            // Construct URL once for reuse in all handlers
+            const playlistUrl = `playlist.html?channel=${encodeURIComponent(channel)}&playlist=${encodeURIComponent(playlist.path)}`;
+
             playlistElement.innerHTML = `
                 <div class="playlist-thumbnail" style="background-color: #333;">
                     <div class="playlist-overlay">${playlist.videoCount || 0} ${videosText}</div>
@@ -1371,8 +1418,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="playlist-video-count">${playlist.videoCount || 0} ${videosText}</div>
             `;
 
+            // Left Click -> Navigate in same tab (Default behavior)
             playlistElement.addEventListener('click', () => {
-                window.location.href = `playlist.html?channel=${encodeURIComponent(channel)}&playlist=${encodeURIComponent(playlist.path)}`;
+                window.location.href = playlistUrl;
+            });
+
+            // Right Click -> Open in new tab
+            playlistElement.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                window.open(playlistUrl, '_blank');
+            });
+
+            // Middle Click (Mouse Wheel) -> Open in new tab
+            playlistElement.addEventListener('mouseup', (e) => {
+                if (e.button === 1) {
+                    e.preventDefault();
+                    window.open(playlistUrl, '_blank');
+                }
+            });
+            
+            // Auxclick fallback for some browsers
+            playlistElement.addEventListener('auxclick', (e) => {
+                if (e.button === 1) {
+                    e.preventDefault();
+                    window.open(playlistUrl, '_blank');
+                }
             });
 
             playlistsContainer.appendChild(playlistElement);
@@ -1497,10 +1567,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ==========================================
-    // OPTIMIZED INITIALIZATION LOGIC
-    // ==========================================
-
     function loadHeaderStats() {
         fetch(`/subcount/${encodeURIComponent(channel)}`)
             .then(response => response.ok ? response.text() : '0')
@@ -1586,7 +1652,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadHeaderStats();
 
-    // --- Activate the initial tab from the URL ---
     if (initialTab !== 'home') {
         document.querySelector('.tab[data-tab="home"]').classList.remove('active');
         document.getElementById('homeTab').classList.remove('active');
@@ -1596,21 +1661,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (targetContent) targetContent.classList.add('active');
         loadTabContent(initialTab);
     } else {
-        // HOME is the default active tab, load its content
         loadedTabs.add('home');
         loadHomeTab();
     }
 
     history.replaceState({ tab: initialTab }, '', buildChannelUrl(channel, initialTab));
 
-    // --- Channel Search Tab Logic ---
     const channelSearchInput = document.getElementById('channelSearchInput');
     const channelSearchResults = document.getElementById('channelSearchResults');
     let channelSearchTimeout = null;
 
-    // Handle clicking the search tab to open the input
     document.querySelector('.tab[data-tab="search"]').addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent switchTab from firing immediately on input click
+        e.stopPropagation();
         const searchBar = document.querySelector('.tab-search-bar');
         
         if (!searchBar.classList.contains('active')) {
@@ -1621,7 +1683,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Close search bar if clicking outside of it
     document.addEventListener('click', (e) => {
         const searchBar = document.querySelector('.tab-search-bar');
         if (searchBar.classList.contains('active') && 
@@ -1632,12 +1693,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Prevent input clicks from bubbling up and closing the bar
     channelSearchInput.addEventListener('click', (e) => {
         e.stopPropagation();
     });
 
-    // Trigger search on Enter
     channelSearchInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -1649,17 +1708,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Manually set the active states so it doesn't conflict with the async fetch
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             
-            // Explicitly activate search tab and content
             document.querySelector('.tab[data-tab="search"]').classList.add('active');
             document.getElementById('searchTab').classList.add('active');
-            document.querySelector('.tab-search-bar').classList.add('active'); // Keep bar open!
+            document.querySelector('.tab-search-bar').classList.add('active');
             
             history.pushState({ tab: 'search' }, '', buildChannelUrl(channel, 'search'));
-            loadedTabs.add('search'); // Mark as loaded so switchTab doesn't wipe it later
+            loadedTabs.add('search');
 
             channelSearchResults.innerHTML = '<div class="tab-loading-placeholder">' + getLang('Searching...', 'Suche...') + '</div>';
 
@@ -1668,7 +1725,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 .then(data => {
                     const allVideos = data.videos || [];
                     
-                    // Filter by channel AND search query
                     const results = allVideos.filter(v => 
                         v.path.startsWith(channel + '/') && 
                         v.displayName.toLowerCase().includes(query)
@@ -1759,7 +1815,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Search Navigation Logic ---
     const searchInput = document.getElementById('searchInput');
 
     searchInput.addEventListener('keydown', (e) => {
