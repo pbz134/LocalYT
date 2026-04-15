@@ -1,7 +1,6 @@
 /**
  * fluidplayer-custom-stats.js
  * Adds "Stats for Nerds", "Copy URL", and "Copy URL with Timestamp" to Fluid Player.
- * Fixes: FPS Calculation (now uses requestAnimationFrame), Codec Detection (H.264 priority).
  */
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -186,18 +185,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Update display every ~500ms to match UI update rate
                 if (now >= fpsLastTime + 500) {
-                    // Calculate FPS based on how many animation frames rendered
-                    // Note: This measures Browser Refresh Rate (e.g., 60Hz), not Video Frame Rate.
-                    // To get Video FPS, we rely on getExpectedFps or specific browser APIs.
-                    // However, this confirms the player isn't dropping render frames.
-                    
-                    // We will use a heuristic for "Current FPS" that combines both:
-                    // If rAF runs at 60fps, we show 60fps (Display Rate).
-                    // Ideally, we want the decode rate.
-                    
-                    // Let's stick to showing the Display Refresh Rate here as "Current"
-                    // because JS cannot easily count decoded video frames without WebCodecs API.
-                    
                     fpsCurrentValue = Math.round((fpsFrames * 1000) / (now - fpsLastTime));
                     fpsFrames = 0;
                     fpsLastTime = now;
@@ -205,11 +192,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 wrapper._fpsFrameId = requestAnimationFrame(fpsLoop);
             };
             wrapper._fpsFrameId = requestAnimationFrame(fpsLoop);
-
-
-            // Variables for Bitrate calculation
-            let lastBufferedByteDelta = 0;
-            let lastBufferedTimeCheck = Date.now();
 
             const updateStats = () => {
                 if (!video || !document.body.contains(overlay)) {
@@ -223,24 +205,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 1. RESOLUTION
                 html += createStatRow('Resolution', `${video.videoWidth} x ${video.videoHeight}`);
 
-                // 2. FPS (Fixed Logic)
-                // Current: The refresh rate of the loop (usually 60).
-                // Expected: The file's native framerate.
+                // 2. FPS (Current Display Refresh Rate)
                 html += createStatRow('FPS (Current)', `${fpsCurrentValue}`);
 
-                // 3. CODEC (Fixed Priority)
+                // 3. CODEC
                 html += createStatRow('Codecs', getCodecInfo(video, wrapper));
 
                 // 4. BITRATE
                 html += createStatRow('Bitrate', calculateBitrate(video));
 
-                // 5. BUFFER HEALTH
+                // 5. VOLUME (New)
+                // Shows percentage, and (Muted) status if applicable
+                let volStr = Math.round(video.volume * 100) + '%';
+                if (video.muted || video.volume === 0) volStr += ' (Muted)';
+                html += createStatRow('Volume', volStr);
+
+                // 6. SPEED / PLAYBACK RATE (New)
+                // Shows current playback rate (e.g., 1.0x, 1.5x)
+                let speedVal = video.playbackRate.toFixed(2);
+                if (speedVal === '1.00') speedVal = '1'; // Clean up display for normal speed
+                html += createStatRow('Speed', speedVal + 'x');
+
+                // 7. BUFFER HEALTH
                 if (video.buffered.length > 0) {
                     const buffered = video.buffered.end(video.buffered.length - 1) - video.currentTime;
                     html += createStatRow('Buffer', formatTime(buffered));
                 }
 
-                // 6. DROPPED FRAMES (Firefox)
+                // 8. DROPPED FRAMES (Firefox)
                 if (video.mozDecodedFrames !== undefined) {
                     const dropped = video.mozParsedFrames - video.mozDecodedFrames;
                     html += createStatRow('Dropped Frames', dropped);
@@ -313,11 +305,7 @@ document.addEventListener('DOMContentLoaded', function() {
                  const level = video.hlsPlayer.levels[video.hlsPlayer.currentLevel];
                  if(level && level.frameRate) return level.frameRate;
             }
-            
-            // Heuristic based on standard framerates
-            // Most content is 23.976, 25, 29.97, or 30.
-            // Without explicit metadata, we can't know for sure, but 23.976/24 is very common.
-            return "~24"; // Changed default guess from 30 to 24 as it's more common for movies
+            return "~24"; 
         }
 
         function getCodecInfo(video, wrapper) {
@@ -344,8 +332,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const src = video.currentSrc || video.src;
             if (src) {
                 const ext = src.split('?')[0].split('#')[0].split('.').pop().toLowerCase();
-                if (['mp4', 'm4v', 'mov'].includes(ext)) return 'H.264 (Guessed)';
-                if (['webm'].includes(ext)) return 'VP9/AV1 (Guessed)';
+                if (['mp4', 'm4v', 'mov'].includes(ext)) return 'H.264 (Likely)';
+                if (['webm'].includes(ext)) return 'VP9/AV1 (Likely)';
                 if (['ogg', 'ogv'].includes(ext)) return 'Theora/Vorbis';
             }
 
