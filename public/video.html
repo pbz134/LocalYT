@@ -709,6 +709,10 @@
             margin-left: -8px;
         }
 
+        .comment-like-btn.liked img {
+            filter: invert(49%) sepia(94%) saturate(1748%) hue-rotate(194deg) brightness(97%) contrast(101%);
+        }
+
         .comment-like-btn svg {
             width: 14px;
             height: 14px;
@@ -1047,11 +1051,14 @@ function processCommentText(text) {
     return escaped;
 }
 
-function renderSingleComment(comment, isReply, channelPicUrl) {
+function renderSingleComment(comment, isReply, channelPicUrl, isCommentLiked = false) {
     const initial = comment.author.replace('@', '').charAt(0).toUpperCase();
     const bg = getAvatarColor(comment.author);
     const isLong = comment.text && comment.text.length > 180;
     const replyCls = isReply ? ' reply' : '';
+    
+    // Generate unique ID for each comment
+    const commentId = `${comment.author}-${comment.published_at}-${comment.text.substring(0, 20)}`;
 
     // Check user preference for commenter avatar style
     const commenterSettings = JSON.parse(localStorage.getItem('commenterProfileStyle') || '{}');
@@ -1059,41 +1066,89 @@ function renderSingleComment(comment, isReply, channelPicUrl) {
 
     let avatarHtml;
     if (comment.is_uploader && channelPicUrl) {
-        // Uploader always uses their channel picture
         avatarHtml = `<img class="comment-avatar" src="${channelPicUrl}" alt="" style="object-fit: cover;">`;
     } else if (commenterStyle === 'classic') {
-        // Classic mode: use placeholder image for all commenters
         avatarHtml = `<img class="comment-avatar" src="/LocalYT-Rev-Files/commenter-profile-placeholder.png" alt="" style="object-fit: cover;">`;
     } else {
-        // Modern mode (default): letters and colored backgrounds
         avatarHtml = `<div class="comment-avatar" style="background:${bg}">${initial}</div>`;
     }
 
     let badges = '';
-    if (comment.is_pinned) {
-        badges += '<span class="comment-pinned-label">📌 Pinned</span>';
-    }
-    if (comment.is_uploader) {
-        badges += '<span class="comment-badge uploader-badge">Uploader</span>';
-    }
-    if (comment.is_verified) {
-        badges += '<span class="comment-badge verified-badge">✓</span>';
-    }
+    if (comment.is_pinned) badges += '<span class="comment-pinned-label">📌 Pinned</span>';
+    if (comment.is_uploader) badges += '<span class="comment-badge uploader-badge">Uploader</span>';
+    if (comment.is_verified) badges += '<span class="comment-badge verified-badge">✓</span>';
 
-    return `<div class="comment-item${replyCls}">
+    // Determine styles
+    const likedClass = isCommentLiked ? ' liked' : '';
+    
+    // FIX: Use <img> tag just like your reference code.
+    // If liked, apply blue filter. Otherwise, apply standard grey filter.
+    // This ensures the icon is VISIBLE and matches your reference style.
+    const imgFilter = isCommentLiked 
+        ? 'invert(49%) sepia(94%) saturate(1748%) hue-rotate(194deg) brightness(97%) contrast(101%)' 
+        : 'invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%)';
+
+    return `<div class="comment-item${replyCls}" data-comment-id="${encodeURIComponent(commentId)}">
         ${avatarHtml}
         <div class="comment-body">
             <div class="comment-meta">
                 <span class="comment-author">${escapeHtml(comment.author.replace('@', ''))}</span>${badges}
                 <span class="comment-timestamp">${formatRelativeTime(comment.published_at)}</span>
             </div>
-                        <div class="comment-text${isLong ? ' collapsed' : ''}">${processCommentText(comment.text)}</div>
+            <div class="comment-text${isLong ? ' collapsed' : ''}">${processCommentText(comment.text)}</div>
             ${isLong ? `<div class="comment-toggle-text" data-action="expand">${getLang('Show more', 'Mehr anzeigen')}</div>` : ''}
             <div class="comment-actions">
-                <div class="comment-like-btn"><img src="LocalYT-Rev-Files/like.svg" alt="" style="width:14px;height:14px;filter:invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%);"><span>${comment.likes || 0}</span></div>
+                <div class="comment-like-btn${likedClass}" onclick="handleCommentLike(this, '${encodeURIComponent(commentId)}')">
+                    <!-- USING IMG TAG (Matches Reference Code) -->
+                    <img src="LocalYT-Rev-Files/like.svg" alt="" style="width:14px;height:14px;filter:${imgFilter};flex-shrink:0;cursor:pointer;">
+                    <span>${comment.likes || 0}</span>
+                </div>
             </div>
         </div>
     </div>`;
+}
+
+// Handle comment like button clicks
+async function handleCommentLike(buttonElement, commentId) {
+    try {
+        const response = await fetch('/like-comment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ commentId: decodeURIComponent(commentId) })
+        });
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                alert('Please log in to like comments.');
+                return;
+            }
+            throw new Error('Failed to update like');
+        }
+        
+        const data = await response.json();
+        
+        // Get the IMG element (not SVG)
+        const img = buttonElement.querySelector('img');
+        
+        // Update UI immediately
+        if (data.isLiked) {
+            buttonElement.classList.add('liked');
+            // Apply Blue Filter
+            img.style.filter = 'invert(49%) sepia(94%) saturate(1748%) hue-rotate(194deg) brightness(97%) contrast(101%)';
+            
+            const span = buttonElement.querySelector('span');
+            span.textContent = parseInt(span.textContent || 0) + 1;
+        } else {
+            buttonElement.classList.remove('liked');
+            // Apply Grey Filter (Default)
+            img.style.filter = 'invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%)';
+            
+            const span = buttonElement.querySelector('span');
+            span.textContent = Math.max(0, parseInt(span.textContent || 0) - 1);
+        }
+    } catch (error) {
+        console.error('Error liking comment:', error);
+    }
 }
 
 // ===== COMMENT LAZY-LOADING STATE =====
@@ -1119,7 +1174,10 @@ function renderCommentsBatch() {
 
     let html = '';
     for (let i = start; i < end; i++) {
-        html += renderSingleComment(state.allTopLevel[i], false, state.channelPicUrl);
+        const comment = state.allTopLevel[i];
+        const commentId = `${comment.author}-${comment.published_at}-${comment.text.substring(0, 20)}`;
+        const isLiked = state.userCommentLikes[commentId] === true;
+        html += renderSingleComment(comment, false, state.channelPicUrl, isLiked);
     }
 
     const sentinel = document.getElementById('commentsSentinel');
@@ -1174,7 +1232,11 @@ function showRepliesSection() {
 
         let html = `<button class="replies-toggle" id="repliesToggle">${CHEVRON_SVG} View ${state.allReplies.length} ${state.allReplies.length === 1 ? 'reply' : 'replies'}</button>`;
         html += `<div class="replies-container collapsed" id="repliesContainer">`;
-        state.allReplies.forEach(r => { html += renderSingleComment(r, true, state.channelPicUrl); });
+        state.allReplies.forEach(r => {
+            const replyId = `${r.author}-${r.published_at}-${r.text.substring(0, 20)}`;
+            const isLiked = state.userCommentLikes[replyId] === true;
+            html += renderSingleComment(r, true, state.channelPicUrl, isLiked);
+        });
         html += '</div>';
 
         repliesSection.innerHTML = html;
@@ -1221,7 +1283,7 @@ function bindCommentTextToggles(container) {
     });
 }
 
-function renderComments(comments, channelPicUrl) {
+function renderComments(comments, channelPicUrl, userCommentLikes = {}) {
     const container = document.getElementById('commentsContainer');
     const countEl = document.getElementById('commentsCount');
 
@@ -1254,6 +1316,8 @@ function renderComments(comments, channelPicUrl) {
     });
     replies.sort((a, b) => (b.likes || 0) - (a.likes || 0));
 
+    // Store likes in state so batch renderer can access them
+    _lazyCommentsState.userCommentLikes = userCommentLikes;
     _lazyCommentsState.allTopLevel = topLevel;
     _lazyCommentsState.allReplies = replies;
     _lazyCommentsState.channelPicUrl = channelPicUrl;
@@ -1265,10 +1329,22 @@ function renderComments(comments, channelPicUrl) {
 
 async function loadComments(videoSrc, channelPicUrl) {
     try {
-        const res = await fetch('/api/comments?video=' + encodeURIComponent(videoSrc));
-        if (!res.ok) return renderComments([], channelPicUrl);
-        const data = await res.json();
-        renderComments(data, channelPicUrl);
+        // Fetch comments and user's liked comments in parallel
+        const [commentsRes, likesRes] = await Promise.all([
+            fetch('/api/comments?video=' + encodeURIComponent(videoSrc)),
+            fetch('/user-comment-likes')
+        ]);
+        
+        if (!commentsRes.ok) return renderComments([], channelPicUrl);
+        const comments = await commentsRes.json();
+        
+        // Parse user likes (returns {} if not logged in or error)
+        let userCommentLikes = {};
+        if (likesRes.ok) {
+            userCommentLikes = await likesRes.json();
+        }
+        
+        renderComments(comments, channelPicUrl, userCommentLikes);
     } catch (e) {
         console.error('Error loading comments:', e);
         renderComments([], channelPicUrl);

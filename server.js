@@ -1455,6 +1455,57 @@ app.get('/api/comments', (req, res) => {
     });
 });
 
+// --- COMMENT LIKES SYSTEM ---
+
+// Like a comment
+app.post('/like-comment', (req, res) => {
+    const { commentId } = req.body;
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('User not authenticated');
+    if (!commentId) return res.status(400).send('Comment ID is required');
+
+    const commentLikesFilePath = path.join(__dirname, 'userCommentLikes.json');
+    
+    fs.readFile(commentLikesFilePath, 'utf8', (err, data) => {
+        let likesData = {};
+        if (!err && data) {
+            try {
+                likesData = JSON.parse(data);
+            } catch (e) {
+                likesData = {};
+            }
+        }
+        
+        if (!likesData[userId]) likesData[userId] = {};
+        
+        // Toggle: if already liked, unlike; otherwise like
+        const isCurrentlyLiked = likesData[userId][commentId] === true;
+        likesData[userId][commentId] = !isCurrentlyLiked;
+        
+        fs.writeFile(commentLikesFilePath, JSON.stringify(likesData, null, 2), err => {
+            if (err) return res.status(500).send('Error saving comment like');
+            res.json({ isLiked: !isCurrentlyLiked });
+        });
+    });
+});
+
+// Get current user's comment likes
+app.get('/user-comment-likes', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('User not authenticated');
+    
+    const commentLikesFilePath = path.join(__dirname, 'userCommentLikes.json');
+    fs.readFile(commentLikesFilePath, 'utf8', (err, data) => {
+        if (err) return res.json({});
+        try {
+            const likesData = JSON.parse(data);
+            res.json(likesData[userId] || {});
+        } catch (e) {
+            res.json({});
+        }
+    });
+});
+
 // ========== PLAYLIST ROUTES ==========
 
 app.get('/user-playlists', (req, res) => {

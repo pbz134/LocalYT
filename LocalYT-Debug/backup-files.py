@@ -2,6 +2,7 @@ import os
 import shutil
 import zipfile
 import json
+import argparse
 from datetime import datetime
 
 # Define the files to back up
@@ -12,6 +13,7 @@ FILES_TO_BACKUP = [
     "subscriptions.json",
     "user-playlists.json",
     "userPreferences.json",
+    "userCommentLikes.json,
     "userSettings.json",
     "users.json",
     "watchHistory.json",
@@ -99,21 +101,46 @@ def prompt_for_new_path():
                 print(f"Error: '{dest_path}' exists but is a file, not a directory. Please try again.")
 
 
-def get_output_directory():
-    """Determine output path. Use config if available, otherwise ask manually."""
+def get_output_directory(auto_path=None):
+    """
+    Determine output path.
+    If auto_path is provided (via CMD), use it directly.
+    Otherwise, use config or ask manually.
+    """
+    
+    # --- AUTOMATION MODE ---
+    # If a path was provided via command line argument
+    if auto_path:
+        auto_path = auto_path.rstrip(os.sep)
+        
+        # Validate existence
+        if not os.path.exists(auto_path):
+            print(f"[AUTO] Directory '{auto_path}' does not exist. Creating it...")
+            try:
+                os.makedirs(auto_path)
+                print(f"[AUTO] Directory created.")
+            except OSError as e:
+                print(f"[ERROR] Failed to create directory '{auto_path}': {e}")
+                return None, False
+        
+        if os.path.isdir(auto_path):
+            return auto_path, False 
+        else:
+            print(f"[ERROR] Path '{auto_path}' exists but is not a directory.")
+            return None, False
+
+    # --- INTERACTIVE MODE ---
     config = load_config()
     
     # If config doesn't exist, fallback to the original manual prompt
     if not config:
-        return prompt_for_new_path(), False # False indicates it's a new, unsaved path
+        return prompt_for_new_path(), False
     
     saved_paths = config.get("saved_paths", [])
     
-    # Fallback just in case config exists but is empty/corrupted
     if not saved_paths:
         return prompt_for_new_path(), False
 
-    # We have saved paths! Let the user pick one quickly.
     while True:
         print("\n--- Select Output Directory ---")
         print("Saved paths (or press 'N' to enter a new path manually):")
@@ -129,15 +156,27 @@ def get_output_directory():
         if choice.isdigit():
             index = int(choice) - 1
             if 0 <= index < len(saved_paths):
-                return saved_paths[index], True # True indicates it came from config
+                return saved_paths[index], True
             else:
                 print("Invalid selection. Please try again.")
         else:
             print("Invalid input. Please enter a number or 'N'.")
 
 
-def get_input_file():
-    """Ask user for an input zip file path."""
+def get_input_file(auto_path=None):
+    """Ask user for an input zip file path OR use automated path."""
+    
+    # --- AUTOMATION MODE ---
+    if auto_path:
+        if not os.path.exists(auto_path):
+            print(f"[ERROR] File '{auto_path}' does not exist.")
+            return None
+        if not os.path.isfile(auto_path):
+            print(f"[ERROR] '{auto_path}' is not a file.")
+            return None
+        return auto_path
+
+    # --- INTERACTIVE MODE ---
     while True:
         file_path = input("\nEnter the full path to the backup ZIP file: ").strip()
         
@@ -258,7 +297,7 @@ def backup_metadata_files(server_root, dest_path):
         print(f"\n[FAIL] Error creating ZIP archive: {e}")
 
 
-def reapply_backup_zip(server_root, zip_filepath):
+def reapply_backup_zip(server_root, zip_filepath, auto_mode=False):
     """Extract a backup ZIP file to the server root, preserving structure."""
     server_root_norm = os.path.normpath(server_root)
     
@@ -268,19 +307,23 @@ def reapply_backup_zip(server_root, zip_filepath):
     try:
         with zipfile.ZipFile(zip_filepath, 'r') as zipf:
             file_list = zipf.namelist()
-            print(f"\nZIP contains {len(file_list)} item(s):")
+            print(f"\nZIP contains {len(file_list)} item(s).")
             
-            preview_count = min(10, len(file_list))
-            for i in range(preview_count):
-                print(f"  - {file_list[i]}")
-            if len(file_list) > preview_count:
-                print(f"  ... and {len(file_list) - preview_count} more item(s)")
-            
-            confirm = input(f"\nExtract {len(file_list)} item(s) to {server_root_norm}? (y/n): ").strip().lower()
-            
-            if confirm != 'y':
-                print("Operation cancelled by user.")
-                return
+            # In auto mode, we skip confirmation and just list preview then run
+            if not auto_mode:
+                preview_count = min(10, len(file_list))
+                for i in range(preview_count):
+                    print(f"  - {file_list[i]}")
+                if len(file_list) > preview_count:
+                    print(f"  ... and {len(file_list) - preview_count} more item(s)")
+                
+                confirm = input(f"\nExtract {len(file_list)} item(s) to {server_root_norm}? (y/n): ").strip().lower()
+                
+                if confirm != 'y':
+                    print("Operation cancelled by user.")
+                    return
+            else:
+                print("[AUTO] Auto-confirming restore...")
             
             print("\nExtracting...")
             success_count = 0
@@ -306,6 +349,24 @@ def reapply_backup_zip(server_root, zip_filepath):
 
 
 def main():
+    # Setup Argument Parser using subparsers for specific commands
+    parser = argparse.ArgumentParser(description="LocalYT Backup & Restore Tool")
+    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+
+    # Command: backup-user
+    parser_user = subparsers.add_parser('backup-user', help='Backup User Data (JSON + Folders)')
+    parser_user.add_argument('path', help='Destination directory path')
+
+    # Command: backup-meta
+    parser_meta = subparsers.add_parser('backup-meta', help='Backup Metadata (Images/Text -> ZIP)')
+    parser_meta.add_argument('path', help='Destination directory path')
+
+    # Command: restore
+    parser_restore = subparsers.add_parser('restore', help='Restore from backup ZIP')
+    parser_restore.add_argument('path', help='Path to the backup ZIP file')
+
+    args = parser.parse_args()
+
     script_dir, server_root = get_script_and_root_paths()
     
     print("=" * 50)
@@ -313,7 +374,34 @@ def main():
     print("=" * 50)
     print(f"\nScript location : {script_dir}")
     print(f"Server root     : {server_root}")
+
+    # --- AUTOMATION HANDLING ---
     
+    if args.command == 'backup-user':
+        print("\n[AUTO MODE] Running User Data Backup...")
+        dest_path, _ = get_output_directory(auto_path=args.path)
+        if dest_path:
+            backup_user_files(server_root, dest_path)
+            print("\n[AUTO MODE] Finished.")
+        return
+
+    elif args.command == 'backup-meta':
+        print("\n[AUTO MODE] Running Metadata Backup...")
+        dest_path, _ = get_output_directory(auto_path=args.path)
+        if dest_path:
+            backup_metadata_files(server_root, dest_path)
+            print("\n[AUTO MODE] Finished.")
+        return
+
+    elif args.command == 'restore':
+        print("\n[AUTO MODE] Running Restore...")
+        zip_filepath = get_input_file(auto_path=args.path)
+        if zip_filepath:
+            reapply_backup_zip(server_root, zip_filepath, auto_mode=True)
+            print("\n[AUTO MODE] Finished.")
+        return
+
+    # --- INTERACTIVE MODE (Default) ---
     print("\n" + "-" * 50)
     print("Select an option:")
     print("  1. Back up User Files (JSON data + folders)")
@@ -333,6 +421,9 @@ def main():
             # Get path and a flag indicating if it was fetched from an existing config
             dest_path, was_from_config = get_output_directory()
             
+            if not dest_path:
+                continue 
+
             if choice == '1':
                 backup_user_files(server_root, dest_path)
             else:
@@ -350,7 +441,8 @@ def main():
             
         elif choice == '3':
             zip_filepath = get_input_file()
-            reapply_backup_zip(server_root, zip_filepath)
+            if zip_filepath:
+                reapply_backup_zip(server_root, zip_filepath)
             break
             
         else:

@@ -9,7 +9,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHANNEL_FOLDERS = ['videos', 'subtitles', 'thumbnails', 'videolengths', 'videostats', 'viewcounts', 'descriptions', 'filedates', 'filenames', 'comments', 'channeldesc', 'channelstats']
 CHANNEL_FILES = ['channelbanner', 'channelpic', 'subcount']
 MEDIA_EXTENSIONS = ('.mp4', '.mp3', '.mkv')
-JSON_FILES = ['users.json', 'userPreferences.json', 'userSettings.json', 'subscriptions.json', 'watchHistory.json', 'likes.json', 'dislikes.json', 'recommendation_index.json', 'video_cache.json', 'login_attempts.json']
+JSON_FILES = ['users.json', 'userPreferences.json', 'userCommentLikes.json', 'userSettings.json', 'subscriptions.json', 'watchHistory.json', 'likes.json', 'dislikes.json', 'recommendation_index.json', 'video_cache.json', 'login_attempts.json']
 SESSIONS_DIR = os.path.join(BASE_DIR, 'sessions')
 SERVER_SCRIPT = os.path.join(BASE_DIR, 'server.js')
 USER_PROFILES_DIR = os.path.join(BASE_DIR, 'user-profiles')
@@ -698,7 +698,7 @@ def clear_database():
         try:
             j_path = os.path.join(BASE_DIR, j_file)
             with open(j_path, 'w', encoding='utf-8') as f:
-                if j_file in ['users.json', 'userPreferences.json', 'userSettings.json', 'subscriptions.json', 'recommendation_index.json']:
+                if j_file in ['users.json', 'userPreferences.json', 'userCommentLikes.json', 'userSettings.json', 'subscriptions.json', 'recommendation_index.json']:
                     json.dump({}, f)
                 elif j_file in ['shortlinks.json', 'playlist_shortlinks.json']:
                     json.dump({}, f)
@@ -755,6 +755,7 @@ def manage_accounts():
         
         clean_files = {
             'userPreferences.json': False,
+            'userCommentLikes.json': False,
             'userSettings.json': False,
             'watchHistory.json': False,
             'likes.json': False,

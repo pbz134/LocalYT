@@ -1,5 +1,9 @@
 +++LocalYT Revamped - Changelog+++
 
+v4.05
+- Comments can now be liked
+  - This will be saved in a new userCommentLikes.json file
+
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
 - Reduced the bottom margin of .sort-toggle on channel.html
