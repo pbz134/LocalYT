@@ -3,6 +3,9 @@
 v4.05
 - Comments can now be liked
   - This will be saved in a new userCommentLikes.json file
+- Implemented a search history
+  - A user's most recent 5 searches will be shown below the search bar when it's focused and nothing has been entered yet
+  - Search history with the most recent 5 searches will be saved to userSearchHistory.json
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist

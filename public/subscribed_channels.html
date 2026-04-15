@@ -459,55 +459,9 @@
             document.getElementById('sidebarSubscriptions').textContent = getLang('Subscriptions', 'Abonnements');
             document.getElementById('sidebarPlaylists').textContent = getLang('Playlists', 'Playlisten');
             document.getElementById('sidebarAbout').textContent = getLang('About', 'Über');
-        });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const searchInput = document.getElementById('searchInput');
-            searchInput.addEventListener('input', () => {
-                const query = searchInput.value.toLowerCase();
-                if (query.length < 2) {
-                    document.getElementById('searchSuggestions').innerHTML = '';
-                    return;
-                }
-                fetch('/search-index')
-                    .then(r => r.json())
-                    .then(data => {
-                        const suggestions = data.videos
-                            .filter(v => v.displayName.toLowerCase().includes(query))
-                            .slice(0, 5);
-                        const container = document.getElementById('searchSuggestions');
-                        container.innerHTML = '';
-                        suggestions.forEach(s => {
-                            const el = document.createElement('div');
-                            el.className = 'suggestion-item';
-                            el.textContent = s.displayName;
-                            el.onclick = () => window.location.href = `video.html?src=${encodeURIComponent(s.path)}`;
-                            
-                            // Add wheel click support for search suggestions too
-                            el.addEventListener('mouseup', (e) => {
-                                if (e.button === 1) {
-                                    e.preventDefault();
-                                    window.open(`video.html?src=${encodeURIComponent(s.path)}`, '_blank');
-                                }
-                            });
-                            
-                            container.appendChild(el);
-                        });
-                    });
-            });
-            
-            searchInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
-            });
-
-            document.getElementById('searchIcon').addEventListener('click', () => {
-                const query = searchInput.value.trim();
-                if (query) {
-                    window.location.href = `search.html?q=${encodeURIComponent(query)}`;
-                } else {
-                    searchInput.focus();
-                }
-            });
+            // NOTE: Search functionality is now handled by search-suggestions.js included below.
+            // The previous local search listeners have been removed to prevent conflicts.
         });
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -702,6 +656,9 @@
             });
         }
     </script>
+    
+    <!-- ADDED: This script provides the search history and autocomplete features -->
+    <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>
 </body>
 </html>

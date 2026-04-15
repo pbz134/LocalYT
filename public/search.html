@@ -257,7 +257,21 @@ const searchState = {
 
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
-    const initialQuery = decodeURIComponent(urlParams.get('q') || '').toLowerCase();
+    const initialQuery = decodeURIComponent(urlParams.get('q') || '').trim();
+    
+    // ============================================================
+    // NEW: SAVE SEARCH HISTORY TO SERVER ON PAGE LOAD
+    // This ensures that whatever query brought the user here is saved.
+    // ============================================================
+    if (initialQuery) {
+        fetch('/user-search-history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: initialQuery })
+        }).catch(err => console.error("Could not save search history:", err));
+    }
+    // ============================================================
+
     const searchInput = document.getElementById('searchInput');
     searchInput.value = initialQuery;
 

@@ -229,61 +229,12 @@ document.addEventListener('mousedown', function(e) {
                     container.innerHTML = '<div style="color: white; padding: 20px; text-align: center;">Error loading watch history. Make sure that you are logged in.</div>';
                 });
 
-            const searchInput = document.getElementById('searchInput');
-            searchInput.addEventListener('input', () => {
-                const query = searchInput.value.toLowerCase();
-                fetch('/videos')
-                    .then(response => response.json())
-                    .then(videos => {
-                        const suggestions = videos
-                            .filter(video => video.displayName.toLowerCase().includes(query))
-                            .map(video => ({
-                                title: video.displayName,
-                                fullPath: video.path
-                            }));
-
-                        const suggestionsContainer = document.getElementById('searchSuggestions');
-                        suggestionsContainer.innerHTML = '';
-                        suggestions.forEach(suggestion => {
-                            const suggestionElement = document.createElement('div');
-                            suggestionElement.className = 'suggestion-item';
-                            suggestionElement.textContent = suggestion.title;
-                            suggestionElement.onclick = () => {
-                                window.location.href = `video.html?src=${encodeURIComponent(suggestion.fullPath)}`;
-                            };
-                            suggestionsContainer.appendChild(suggestionElement);
-
-                            suggestionElement.addEventListener('contextmenu', (event) => {
-                                event.preventDefault();
-                                window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
-                            });
-
-                            suggestionElement.addEventListener('mouseup', (event) => {
-                                if (event.button === 1) {
-                                    event.preventDefault();
-                                    window.open(`video.html?src=${encodeURIComponent(suggestion.fullPath)}`, '_blank');
-                                }
-                            });
-                        });
-                    });
-            });
-
-            searchInput.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
-                    window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
-                }
-            });
-
-            document.getElementById('searchIcon').addEventListener('click', () => {
-                const query = searchInput.value.trim();
-                if (query) {
-                    window.location.href = `search.html?q=${encodeURIComponent(query)}`;
-                } else {
-                    searchInput.focus();
-                }
-            });
+            // NOTE: Search functionality is now handled by search-suggestions.js included below.
+            // The previous local search listeners have been removed to prevent conflicts.
         });
     </script>
+    
+    <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>
 </body>
 </html>

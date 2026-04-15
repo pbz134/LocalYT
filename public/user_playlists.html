@@ -406,6 +406,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('deleteModalTitle').textContent = getLang('Delete Playlist', 'Playlist löschen');
     document.getElementById('confirmDeleteBtn').textContent = getLang('Delete', 'Löschen');
     document.getElementById('cancelDeleteBtn').textContent = getLang('Cancel', 'Abbrechen');
+
+    // NOTE: Search functionality is now handled by search-suggestions.js included below.
 });
 
         function stripExtension(filename) {
@@ -721,46 +723,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Search functionality
+        // Load playlists on start
         document.addEventListener('DOMContentLoaded', () => {
             loadPlaylists();
-
-            const searchInput = document.getElementById('searchInput');
-            searchInput.addEventListener('input', () => {
-                const query = searchInput.value.toLowerCase();
-                if (query.length < 2) {
-                    document.getElementById('searchSuggestions').innerHTML = '';
-                    return;
-                }
-                fetch('/search-index')
-                    .then(response => response.json())
-                    .then(data => {
-                        const suggestions = (data.videos || [])
-                            .filter(video => video.displayName.toLowerCase().includes(query))
-                            .slice(0, 5);
-                        const suggestionsContainer = document.getElementById('searchSuggestions');
-                        suggestionsContainer.innerHTML = '';
-                        suggestions.forEach(suggestion => {
-                            const el = document.createElement('div');
-                            el.className = 'suggestion-item';
-                            el.textContent = suggestion.displayName;
-                            el.onclick = () => { window.location.href = 'video.html?src=' + encodeURIComponent(suggestion.path); };
-                            suggestionsContainer.appendChild(el);
-                        });
-                    });
-            });
-
-            searchInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') window.location.href = 'search.html?q=' + encodeURIComponent(searchInput.value);
-            });
-
-            document.getElementById('searchIcon').addEventListener('click', () => {
-                const query = searchInput.value.trim();
-                if (query) window.location.href = 'search.html?q=' + encodeURIComponent(query);
-                else searchInput.focus();
-            });
         });
     </script>
+    
+    <!-- ADDED: This script provides the search history and autocomplete features -->
+    <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>
 </body>
 </html>
