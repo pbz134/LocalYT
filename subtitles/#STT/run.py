@@ -35,7 +35,7 @@ AVAILABLE_MODELS = {
 
 # Language code mapping: Whisper code -> filename suffix
 LANGUAGE_SUFFIX_MAP = {
-    'en': 'en-US',
+    'en': 'en',
     'de': 'de',
     'fr': 'fr',
     'es': 'es',
@@ -186,7 +186,7 @@ def get_target_language_suffix(task_mode):
     For translate mode: What language to translate TO (default: en)
     For transcribe mode: What suffix to use for output (e.g., 'de' for German)
     
-    Returns: language suffix string (e.g., 'de', 'en-US', 'fr') or None
+    Returns: language suffix string (e.g., 'de', 'en', 'fr') or None
     """
     print()
     print("=" * 60)
@@ -208,8 +208,7 @@ def get_target_language_suffix(task_mode):
     
     print("Common options:")
     print("  de     German")
-    print("  en-US  English (US)")
-    print("  en     English (generic)")
+    print("  en     English")
     print("  fr     French")
     print("  es     Spanish")
     print("  it     Italian")
@@ -381,19 +380,19 @@ def find_videos_needing_subtitles(target_dir, target_language_suffix=None):
         
         if sub_parent.exists():
             # Find all existing VTT variants for this video
-            # Matches: filename.vtt, filename.en-US.vtt, filename.de.vtt, etc.
+            # Matches: filename.vtt, filename.en.vtt, filename.de.vtt, etc.
             pattern = f"{filename}*.vtt"
             existing_subs = list(sub_parent.glob(pattern))
             
             for sub_file in existing_subs:
-                # Extract language suffix from filename (e.g., "video.en-US.vtt" -> "en-US")
-                sub_stem = sub_file.stem  # "video.en-US"
+                # Extract language suffix from filename (e.g., "video.en.vtt" -> "en")
+                sub_stem = sub_file.stem  # "video.en"
                 
                 if sub_stem == filename:
                     # This is "video.vtt" (no suffix) - treat as generic/unknown
                     existing_langs.append("(none)")
                 elif sub_stem.startswith(filename + "."):
-                    # Has language suffix: "video.en-US" -> "en-US"
+                    # Has language suffix: "video.en" -> "en"
                     lang_suffix = sub_stem[len(filename) + 1:]  # Skip "video."
                     existing_langs.append(lang_suffix)
             
@@ -548,7 +547,7 @@ def detect_language_from_json(json_file):
 def get_language_suffix(language_code):
     """
     Convert Whisper language code to filename suffix.
-    Examples: 'en' -> 'en-US', 'de' -> 'de', 'zh' -> 'zh-CN'
+    Examples: 'en' -> 'en', 'de' -> 'de', 'zh' -> 'zh-CN'
     """
     if not language_code:
         return LANGUAGE_SUFFIX_MAP['default']
@@ -913,7 +912,7 @@ def print_final_summary(stats, start_time):
     
     print()
     print("Output files use language suffixes:")
-    print("  • English:      filename.en-US.vtt")
+    print("  • English:      filename.en.vtt")
     print("  • German:       filename.de.vtt")  
     print("  • French:       filename.fr.vtt")
     print("  • Chinese:      filename.zh-CN.vtt")

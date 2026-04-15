@@ -19,6 +19,9 @@ echo Cleaning up file names (making 4k Video Downloader file names compatible wi
 echo Removing emojis from file names...
 .\venv\python.exe LocalYT-Rev-Files\remove_emojis.py
 
+echo Deduplicating general English and US English subtitles...
+.\venv\python.exe LocalYT-Rev-Files\FixEnglishSubDupes.py
+
 echo Generating thumbnails...
 .\venv\python.exe generateThumbnails.py
 
