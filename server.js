@@ -911,7 +911,6 @@ app.get('/user-settings', (req, res) => {
 });
 
 // Save user settings
-// Save user settings
 app.post('/user-settings', (req, res) => {
     const { settings } = req.body;
     const userId = req.session.userId;
@@ -1158,7 +1157,6 @@ app.get('/get-all-tags', (req, res) => {
 });
 
 // SAVE PREFERENCES (Bulk Overwrite)
-// This fixes the deletion issue by replacing the entire user preference object
 app.post('/save-preferences', (req, res) => {
     const { preferences } = req.body;
     const userId = req.session.userId;
@@ -1262,16 +1260,10 @@ app.get('/sidebar-recommendations', recommendationsLimiter, (req, res) => {
     
     channelToAdd.forEach(v => {
         finalRecommendations.push(v);
-        // Note: we don't add to addedPaths here yet if we want to allow duplicates in logic, 
-        // but for recommendations we usually want unique. 
-        // addedPaths is updated inside addVideos, but we manually added these:
         addedPaths.add(v.path);
     });
 
     // --- 2. SIMILAR POOL (TAGS) ---
-    // Remaining slots: 50% reserved for Channel (filled above), 50% for Similar/Prefs.
-    // Of that remaining 50%, let's prioritize 70% Similar Tags, 30% User Prefs.
-    
     const remainingSlots = limit - finalRecommendations.length;
     const similarTarget = Math.floor(remainingSlots * 0.7);
 
@@ -1309,7 +1301,6 @@ app.get('/sidebar-recommendations', recommendationsLimiter, (req, res) => {
     });
 
     // --- 3. PREFERENCE POOL ---
-    // Fill the last gaps with user preferences
     const prefTarget = limit - finalRecommendations.length;
     
     let preferencePool = [];
@@ -1359,16 +1350,12 @@ app.get('/sidebar-recommendations', recommendationsLimiter, (req, res) => {
     });
 
     // --- 4. BACKFILL ---
-    // If still not full (e.g., new user, no tags), fill with random videos
     if (finalRecommendations.length < limit) {
         const allVideos = [...videoCache.values()];
         const backfill = addVideos(allVideos, limit - finalRecommendations.length);
         finalRecommendations.push(...backfill);
     }
 
-    // IMPORTANT: Do NOT shuffle the final array if you want Channel videos at the top.
-    // The list is now ordered: Channel -> Similar -> Preferences -> Random.
-    
     res.json(getVideoDetails(finalRecommendations));
 });
 
@@ -1774,22 +1761,6 @@ app.post('/register', (req, res) => {
     });
 });
 
-app.post('/register', (req, res) => {
-    const { username, password } = req.body;
-    const usersFilePath = path.join(__dirname, 'users.json');
-    fs.readFile(usersFilePath, 'utf8', (err, data) => {
-        let usersData = {};
-        if (!err) usersData = JSON.parse(data);
-        if (usersData[username]) return res.status(400).send('Username already exists');
-        const hashedPassword = bcrypt.hashSync(password, 10);
-        usersData[username] = { id: uuidv4(), password: hashedPassword };
-        fs.writeFile(usersFilePath, JSON.stringify(usersData, null, 2), err => {
-            if (err) return res.status(500).send('Error saving user');
-            res.sendStatus(200);
-        });
-    });
-});
-
 // --- LOGIN WITH BRUTE-FORCE PROTECTION ---
 app.post('/login', (req, res) => {
     const clientIp = getClientIp(req);
@@ -2031,7 +2002,7 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
             });
             
             const videosByTag = new Map();
-            videoMap.forEach((value, path) => {
+            videoMap.forEach((value, p) => {
                 if (!videosByTag.has(value.sourceTag)) {
                     videosByTag.set(value.sourceTag, []);
                 }
@@ -2132,8 +2103,6 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
             });
 
             // --- BACKFILL / EMPTY CHECK ---
-            // If the preference logic resulted in 0 videos (e.g., tags exist but no videos match)
-            // Fallback to random.
             if (uniqueVideos.length === 0) {
                 const allVideos = [...videoCache.values()];
                 shuffleArray(allVideos);
@@ -2264,6 +2233,78 @@ app.get('/channel-description/:channel', (req, res) => {
     });
 });
 
+// ======================================================================
+// USER SEARCH HISTORY SYSTEM (NEW)
+// ======================================================================
+const userSearchHistoryFilePath = path.join(__dirname, 'userSearchHistory.json');
+
+// Ensure file exists
+function ensureUserSearchHistoryFile() {
+    if (!fs.existsSync(userSearchHistoryFilePath)) {
+        fs.writeFileSync(userSearchHistoryFilePath, JSON.stringify({}));
+    } else {
+        const data = fs.readFileSync(userSearchHistoryFilePath, 'utf8');
+        try { JSON.parse(data); } catch (err) { fs.writeFileSync(userSearchHistoryFilePath, JSON.stringify({})); }
+    }
+}
+ensureUserSearchHistoryFile();
+
+// GET recent search history for logged-in user
+app.get('/user-search-history', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+
+    try {
+        const data = fs.readFileSync(userSearchHistoryFilePath, 'utf8');
+        const allHistory = JSON.parse(data);
+        
+        // Return the list, defaulting to empty array if none exists
+        res.json(allHistory[userId] || []);
+    } catch (err) {
+        console.error('Error reading search history:', err);
+        res.status(500).send('Error reading history');
+    }
+});
+
+// POST (Save/Update) a new search query
+app.post('/user-search-history', (req, res) => {
+    const { query } = req.body;
+    const userId = req.session.userId;
+    
+    if (!userId) return res.status(401).send('Not authenticated');
+    if (!query || typeof query !== 'string') return res.status(400).send('Invalid query');
+
+    try {
+        const data = fs.readFileSync(userSearchHistoryFilePath, 'utf8');
+        const allHistory = JSON.parse(data);
+
+        // Initialize user array if missing
+        if (!allHistory[userId]) allHistory[userId] = [];
+
+        let userList = allHistory[userId];
+
+        // Remove query if it already exists (to move it to top)
+        userList = userList.filter(item => item !== query);
+        
+        // Add new query to the beginning
+        userList.unshift(query);
+        
+        // Keep only the latest 5
+        if (userList.length > 5) {
+            userList = userList.slice(0, 5);
+        }
+
+        allHistory[userId] = userList;
+
+        fs.writeFileSync(userSearchHistoryFilePath, JSON.stringify(allHistory, null, 2));
+        res.sendStatus(200);
+    } catch (err) {
+        console.error('Error saving search history:', err);
+        res.status(500).send('Error saving history');
+    }
+});
+
+
 app.get('/user-history', (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('User not authenticated');
@@ -2312,7 +2353,6 @@ app.get('/api/shortlink', (req, res) => {
     let shortPath = `/v/${videoCode}`;
 
     // 2. Get Playlist Short Code (if provided and valid)
-    // We check specifically for truthy values to avoid creating codes for empty strings
     if (playlist && playlist.trim() !== '') {
         const plCode = getOrCreatePlaylistShortCode(playlist);
         if (plCode) {
@@ -2347,7 +2387,6 @@ app.use((err, req, res, next) => {
     console.error('Server error:', err.message || err);
     
     // Don't try to send a response if headers were already sent
-    // This prevents "ERR_HTTP_HEADERS_SENT" crashes
     if (res.headersSent) {
         return;
     }
