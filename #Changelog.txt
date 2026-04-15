@@ -1,6 +1,6 @@
 +++LocalYT Revamped - Changelog+++
 
-v3.95
+v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
 - Reduced the bottom margin of .sort-toggle on channel.html
 - Added OLED Dark Mode compatibility for the index.html sidebar
