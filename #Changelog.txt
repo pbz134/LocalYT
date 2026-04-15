@@ -8,6 +8,8 @@ v4.05
   - Search history with the most recent 5 searches will be saved to userSearchHistory.json
 - Added a subtitle deduplicator script for general English and US English
 - Removed "en-US" from the subtitle generator script as it's too similar to general "en"
+- Added "Stats for Nerds" to the right-click context menu (
+  - This will display your current FPS, video resolution, buffer and more
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
