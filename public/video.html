@@ -1431,16 +1431,89 @@ document.addEventListener('click', function(e) {
                 sourceElement.type = mimeType;
                 videoPlayer.appendChild(sourceElement);
 
-                // Add subtitle track dynamically (after innerHTML clear)
+                // Add subtitle tracks dynamically (supports multiple languages)
+                // Only displays subtitles that actually exist on the server
+                // Example naming: "video.en-US.vtt", "video.de.vtt", "video.zh-Hans.vtt"
                 const videoNameForSubs = stripExtension(videoSrc.split('/').pop());
-                const trackElement = document.createElement('track');
-                trackElement.kind = 'metadata';
-                trackElement.srclang = 'en';
-                trackElement.label = 'Subtitles';
-                // currentChannel is set below, so we use a placeholder that gets updated after
-                trackElement.setAttribute('data-channel', '');
-                trackElement.setAttribute('data-videofile', videoNameForSubs);
-                videoPlayer.appendChild(trackElement);
+                
+                // Language name mapping for subtitle labels
+                const languageNames = {
+                    'af': 'Afrikaans', 'ar': 'Arabic', 'bg': 'Bulgarian', 'bn': 'Bengali',
+                    'bs': 'Bosnian', 'ca': 'Catalan', 'cs': 'Czech', 'da': 'Danish',
+                    'de': 'German', 'el': 'Greek', 
+                    'en': 'English', 
+                    'en-US': 'English (US)', 
+                    'en-GB': 'English (UK)', 
+                    'es': 'Spanish',
+                    'et': 'Estonian', 'fi': 'Finnish', 'fr': 'French', 'hi': 'Hindi',
+                    'it': 'Italian', 'ja': 'Japanese', 'ko': 'Korean', 'nl': 'Dutch',
+                    'pl': 'Polish', 'pt': 'Portuguese', 'ro': 'Romanian', 'ru': 'Russian',
+                    'sk': 'Slovak', 'sq': 'Albanian', 'sr': 'Serbian', 'sv': 'Swedish',
+                    'th': 'Thai', 'tr': 'Turkish', 'uk': 'Ukrainian', 'vi': 'Vietnamese',
+                    'zh-Hans': 'Chinese (Simplified)', 
+                    'zh-Hant': 'Chinese (Traditional)'
+                };
+
+                // List of supported language codes to check (includes regional variants)
+                const supportedLangCodes = [
+                    'af', 'ar', 'bg', 'bn', 'bs', 'ca', 'cs', 'da', 'de', 'el', 
+                    'en', 'en-US', 'en-GB', 'es', 'et', 'fi', 'fr', 'hi', 'it', 'ja', 
+                    'ko', 'nl', 'pl', 'pt', 'ro', 'ru', 'sk', 'sq', 'sr', 'sv', 'th', 
+                    'tr', 'uk', 'vi', 'zh-Hans', 'zh-Hant'
+                ];
+
+                // Store video file name for later use after currentChannel is known
+                let subTrackData = { channel: '', videoFile: videoNameForSubs };
+
+                // Function to load subtitle tracks (called after currentChannel is set)
+                async function loadSubtitleTracks() {
+                    if (!subTrackData.channel) return;
+                    
+                    const baseSubPath = `/subtitles/${encodeURIComponent(subTrackData.channel)}/${encodeURIComponent(subTrackData.videoFile)}`;
+                    
+                    // Check each language subtitle file and only add if it exists
+                    const checkPromises = supportedLangCodes.map(async langCode => {
+                        const trackUrl = `${baseSubPath}.${langCode}.vtt`;
+                        try {
+                            const response = await fetch(trackUrl, { method: 'HEAD' });
+                            if (response.ok) {
+                                const trackElement = document.createElement('track');
+                                trackElement.kind = 'metadata';  // MUST be 'metadata' for Fluid Player
+                                trackElement.srclang = langCode;
+                                trackElement.label = languageNames[langCode] || langCode;
+                                trackElement.src = trackUrl;
+                                
+                                // Set English as default subtitle track (checks both 'en' and 'en-US')
+                                if (langCode === 'en' || langCode === 'en-US') {
+                                    trackElement.default = true;
+                                }
+                                
+                                videoPlayer.appendChild(trackElement);
+                            }
+                        } catch (error) {
+                            // Subtitle file doesn't exist or error checking, skip it
+                        }
+                    });
+
+                    // Also check for default .vtt file (no language code) for backwards compatibility
+                    const defaultTrackUrl = `${baseSubPath}.vtt`;
+                    checkPromises.push(
+                        fetch(defaultTrackUrl, { method: 'HEAD' })
+                            .then(response => {
+                                if (response.ok) {
+                                    const defaultTrack = document.createElement('track');
+                                    defaultTrack.kind = 'metadata';
+                                    defaultTrack.srclang = 'en';
+                                    defaultTrack.label = 'Subtitles';
+                                    defaultTrack.src = defaultTrackUrl;
+                                    videoPlayer.appendChild(defaultTrack);
+                                }
+                            })
+                            .catch(() => {})
+                    );
+
+                    await Promise.all(checkPromises);
+                }
 
                 const videoPathWithoutExt = stripExtension(videoSrc);
                 fetch(`/filenames/${encodeURIComponent(videoPathWithoutExt)}.txt`)
@@ -1454,12 +1527,9 @@ document.addEventListener('click', function(e) {
                 const pathParts = videoSrc.split('/');
                 currentChannel = pathParts[0];
 
-                // Update subtitle track src now that currentChannel is known
-                const subTrack = videoPlayer.querySelector('track[data-videofile]');
-                if (subTrack && currentChannel) {
-                    const videoFileForSub = subTrack.getAttribute('data-videofile');
-                    subTrack.src = `/subtitles/${encodeURIComponent(currentChannel)}/${encodeURIComponent(videoFileForSub)}.vtt`;
-                }
+                // Load subtitle tracks now that we know the channel
+                subTrackData.channel = currentChannel;
+                loadSubtitleTracks();
 
                 // Check if there's a playlist subfolder
                 let thumbnailPath;
