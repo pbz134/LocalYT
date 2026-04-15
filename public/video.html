@@ -2022,6 +2022,9 @@ document.addEventListener('click', function(e) {
                 
                 if (isSearchInput) return;
                 
+                // FIX: Prevent fullscreen toggle if CTRL key is held down
+                if (event.ctrlKey || event.metaKey) return;
+                
                 const key = event.key.toLowerCase();
                 const controlKeys = [' ', 'arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'k', 'f', ',', '.', ';', ':'];
                 

@@ -11,6 +11,7 @@ v4.05
 - Added "Stats for Nerds" to the right-click context menu
   - This will display your FPS, video resolution, buffer and more
   - Inside the context menu, you can also copy the video URL with or without its current timestamp
+- video.html now allows for pressing CTRL F without triggering fullscreen on the video player
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
