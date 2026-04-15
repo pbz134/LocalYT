@@ -155,6 +155,15 @@
             padding-right: 5px; /* Prevent scrollbar from covering content */
         }
 
+        /* Custom Playback Rate Icon */
+        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_button.fluid_button_playback_rate:before {
+            background: url(LocalYT-Rev-Files/videosettings.svg) no-repeat !important;
+            background-position: 40% center !important;
+            -webkit-filter: brightness(0) invert(1);
+            filter: brightness(0) invert(1);
+            background-size: 65% !important;
+        }
+
         /* Autoplay Toggle in Sidebar */
         .sidebar-autoplay-toggle {
             display: flex;
