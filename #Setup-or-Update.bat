@@ -2,44 +2,44 @@
 setlocal enabledelayedexpansion
 
 echo Generating missing channel pictures...
-.\venv\python.exe createChannelpics.py
+.\venv\python.exe .\LocalYT-Rev-Files\createChannelpics.py
 
 echo Generating missing sub counts...
-.\venv\python.exe createChannelsubs.py
+.\venv\python.exe .\LocalYT-Rev-Files\createChannelsubs.py
 
 echo Fixing comment underscores...
-.\venv\python.exe LocalYT-Rev-Files\FixCommentUnderscores.py
+.\venv\python.exe .\LocalYT-Rev-Files\FixCommentUnderscores.py
 
 echo Fixing umlauts before moving metadata...
-.\venv\python.exe LocalYT-Rev-Files\FixUmlauts.py --apply
+.\venv\python.exe .\LocalYT-Rev-Files\FixUmlauts.py --apply
 
 echo Cleaning up file names (making 4k Video Downloader file names compatible with yt-dlp file names)...
-.\venv\python.exe LocalYT-Rev-Files\remove_special_characters.py
+.\venv\python.exe .\LocalYT-Rev-Files\remove_special_characters.py
 
 echo Removing emojis from file names...
-.\venv\python.exe LocalYT-Rev-Files\remove_emojis.py
+.\venv\python.exe .\LocalYT-Rev-Files\remove_emojis.py
 
 echo Deduplicating general English and US English subtitles...
-.\venv\python.exe LocalYT-Rev-Files\FixEnglishSubDupes.py
+.\venv\python.exe .\LocalYT-Rev-Files\FixEnglishSubDupes.py
 
 echo Generating thumbnails...
-.\venv\python.exe generateThumbnails.py
+.\venv\python.exe .\LocalYT-Rev-Files\createThumbnails.py
 
 echo Generating video stats...
-.\venv\python.exe createVideostats.py
+.\venv\python.exe .\LocalYT-Rev-Files\createVideostats.py
 
 echo Calculating total channel view counts and archived date...
-.\venv\python.exe createChannelstats.py
+.\venv\python.exe .\LocalYT-Rev-Files\createChannelstats.py
 
 echo Cropping all thumbnails to 16:9...
-.\venv\python.exe LocalYT-Rev-Files\CropThumbnails.py
+.\venv\python.exe .\LocalYT-Rev-Files\CropThumbnails.py
 
 echo Generating videolengths...
-.\venv\python.exe createvideolengths.py
+.\venv\python.exe .\LocalYT-Rev-Files\createVideolengths.py
 goto continue
 
 echo Creating missing file dates...
-.\venv\python.exe createFiledates.py
+.\venv\python.exe .\LocalYT-Rev-Files\createFiledates.py
 goto continue
 
 :skipvideolengths
@@ -48,7 +48,7 @@ goto continue
 
 :continue
 echo Generating view counts...
-.\venv\python.exe createviews.py
+.\venv\python.exe .\LocalYT-Rev-Files\createviews.py
 
 echo running Algorithm setup...
 
@@ -127,22 +127,22 @@ taskkill /F /IM koboldcpp-nocuda.exe >nul 2>&1
 echo Continuing with other tasks...
 
 echo Organizing playlist metadata...
-.\venv\python.exe LocalYT-Rev-Files\MovePlaylistMetadata.py
+.\venv\python.exe .\LocalYT-Rev-Files\MovePlaylistMetadata.py
 
 echo Generating filenames...
-.\venv\python.exe createFilenames.py
+.\venv\python.exe .\LocalYT-Rev-Files\createFilenames.py
 
 echo Fixing umlauts after metadata...
-.\venv\python.exe LocalYT-Rev-Files\FixUmlauts.py
+.\venv\python.exe .\LocalYT-Rev-Files\FixUmlauts.py
 
 echo Regenerating filedates...
-.\venv\python.exe createFiledates.py
+.\venv\python.exe .\LocalYT-Rev-Files\createFiledates.py
 
 echo Removing double spaces...
-.\venv\python.exe LocalYT-Rev-Files\FixDoubleSpaces.py
+.\venv\python.exe .\LocalYT-Rev-Files\FixDoubleSpaces.py
 
 echo Generating channel homepage preview lists...
-.\venv\python.exe LocalYT-Rev-Files\generate_home_previews.py
+.\venv\python.exe .\LocalYT-Rev-Files\generate_home_previews.py
 
 echo.
 echo =============================================================================
