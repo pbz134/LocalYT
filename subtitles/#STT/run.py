@@ -25,15 +25,46 @@ SUBTITLES_DIR = ROOT_DIR / "subtitles"
 
 LOCAL_MODEL_BASE_DIR = SCRIPT_DIR / "Whisper"
 
+# Model Definitions
 AVAILABLE_MODELS = {
-    'tiny':   {'speed': '10x', 'vram': '0.5GB', 'desc': 'Fastest, medium accuracy'},
-    'base':   {'speed': '7x', 'vram': '0.7GB', 'desc': 'Fast, good accuracy'},
-    'small':  {'speed': '4x',  'vram': '1GB',   'desc': 'Best speed/accuracy balance'},
-    'medium': {'speed': '2x',  'vram': '2.5GB', 'desc': 'Slower, suitable for non-English'},
-    'large':  {'speed': '1x',  'vram': '5GB',   'desc': 'Slowest, highest accuracy'},
+    'tiny.en': {
+        'speed': '10x', 
+        'vram': '0.5GB', 
+        'desc': 'Fastest, English only', 
+        'folder': 'Tiny'
+    },
+    'base.en': {
+        'speed': '7x', 
+        'vram': '0.7GB', 
+        'desc': 'Fast, English only', 
+        'folder': 'Base'
+    },
+    'distil-small.en': {
+        'speed': '4x', 
+        'vram': '1GB', 
+        'desc': 'Balanced speed/accuracy (EN)', 
+        'folder': 'Small'
+    },
+    'distil-medium.en': {
+        'speed': '3x', 
+        'vram': '1.5GB', 
+        'desc': 'Faster Medium, English only', 
+        'folder': 'DistilMedium'
+    },
+    'medium': {
+        'speed': '2x', 
+        'vram': '2.5GB', 
+        'desc': 'Slower, Multilingual', 
+        'folder': 'Medium'
+    },
+    'large-v3': {
+        'speed': '1x', 
+        'vram': '5GB', 
+        'desc': 'Slowest, Highest accuracy', 
+        'folder': 'Large'
+    },
 }
 
-# Language code mapping: Whisper code -> filename suffix
 LANGUAGE_SUFFIX_MAP = {
     'en': 'en',
     'de': 'de',
@@ -69,9 +100,13 @@ LANGUAGE_SUFFIX_MAP = {
 
 PROGRESS_UPDATE_INTERVAL = 0.5
 
-def find_model_directory(model_name='small'):
-    """Find the Whisper model directory for a specific model size."""
-    target_dir = LOCAL_MODEL_BASE_DIR / model_name.capitalize()
+
+def find_model_directory(model_id='distil-small.en'):
+    if model_id not in AVAILABLE_MODELS:
+        return None
+        
+    folder_name = AVAILABLE_MODELS[model_id]['folder']
+    target_dir = LOCAL_MODEL_BASE_DIR / folder_name
     
     if target_dir.exists() and target_dir.is_dir():
         if (target_dir / "model.bin").exists() or (target_dir / "config.json").exists():
@@ -79,8 +114,8 @@ def find_model_directory(model_name='small'):
             
     return None
 
+
 def format_duration(seconds):
-    """Format seconds into human-readable duration"""
     if seconds < 60:
         return f"{seconds:.1f}s"
     elif seconds < 3600:
@@ -90,16 +125,16 @@ def format_duration(seconds):
         minutes = int((seconds % 3600) // 60)
         return f"{hours}h {minutes:02d}m"
 
+
 def format_file_size(bytes_size):
-    """Format bytes into human-readable size"""
     for unit in ['B', 'KB', 'MB', 'GB']:
         if bytes_size < 1024.0:
             return f"{bytes_size:.1f} {unit}"
         bytes_size /= 1024.0
     return f"{bytes_size:.1f} TB"
 
+
 def print_progress_bar(current, total, prefix='', suffix='', length=40):
-    """Print a progress bar to console"""
     if total == 0:
         percent = 100.0
         filled = length
@@ -115,8 +150,8 @@ def print_progress_bar(current, total, prefix='', suffix='', length=40):
         sys.stdout.write(f'\r{prefix} |{bar}| {suffix}')
     sys.stdout.flush()
 
+
 def get_video_duration(file_path):
-    """Get video/audio duration using ffprobe"""
     try:
         cmd = [
             'ffprobe', '-v', 'error',
@@ -136,22 +171,22 @@ def get_video_duration(file_path):
     except:
         return 0
 
+
 def print_header():
-    """Print the program header"""
     print("=" * 60)
     print("      LOCALYT SUBTITLE PROCESSOR")
     print("=" * 60)
     print()
 
+
 def check_venv():
-    """Verify Python venv exists"""
     if not VENVPYTHON.exists():
         print(f"ERROR: Python venv not found at {VENVPYTHON}")
         input("\nPress Enter to exit...")
         sys.exit(1)
 
+
 def get_user_choice():
-    """Get user's menu selection"""
     print("[A] Process ALL channels")
     print("[S] Process Specific Channel")
     print()
@@ -162,8 +197,8 @@ def get_user_choice():
             return choice
         print("Invalid choice. Please enter A or S.")
 
+
 def get_task_choice():
-    """Ask user whether to transcribe or translate"""
     print()
     print("Select Processing Mode:")
     print("[1] Transcribe (Keep original language)")
@@ -181,69 +216,22 @@ def get_task_choice():
 
 def get_target_language_suffix(task_mode):
     """
-    Ask user for target language suffix.
-    
-    For translate mode: What language to translate TO (default: en)
-    For transcribe mode: What suffix to use for output (e.g., 'de' for German)
-    
-    Returns: language suffix string (e.g., 'de', 'en', 'fr') or None
+    UPDATED: Always returns None to force Auto-Detection.
     """
     print()
     print("=" * 60)
-    
-    if task_mode == "translate":
-        print("TRANSLATION TARGET LANGUAGE")
-        print("=" * 60)
-        print()
-        print("Whisper translates to ENGLISH by default.")
-        print("Enter a suffix for the output filename:")
-        print()
-    else:
-        print("OUTPUT LANGUAGE SUFFIX")
-        print("=" * 60)
-        print()
-        print("Specify the language code for the subtitle filename.")
-        print("This helps organize multi-language subtitles.")
-        print()
-    
-    print("Common options:")
-    print("  de     German")
-    print("  en     English")
-    print("  fr     French")
-    print("  es     Spanish")
-    print("  it     Italian")
-    print("  ja     Japanese")
-    print("  ko     Korean")
-    print("  zh-CN  Chinese (Simplified)")
-    print("  ru     Russian")
-    print("  pt     Portuguese")
-    print("  nl     Dutch")
-    print("  pl     Polish")
-    print("  ar     Arabic")
-    print("  hi     Hindi")
+    print("LANGUAGE DETECTION MODE")
+    print("=" * 60)
     print()
-    print("Or press Enter to auto-detect from audio (transcribe only)")
+    print("The system is configured to ALWAYS detect language automatically.")
+    print("This ensures accurate language tagging but requires 2 processing passes.")
     print()
     
-    while True:
-        user_input = input("Enter language suffix (or Enter for auto-detect): ").strip()
-        
-        if not user_input:
-            if task_mode == "translate":
-                # Translate mode defaults to 'en' if not specified
-                print("   Defaulting to: en (English translation)")
-                return "en"
-            else:
-                # Transcribe mode: None means auto-detect + check if ANY subtitle exists
-                print("   Will auto-detect language from audio content")
-                return None
-        
-        # Validate input (basic sanity check)
-        if len(user_input) <= 10 and re.match(r'^[a-zA-Z0-9-]+$', user_input):
-            print(f"   ✓ Using suffix: {user_input}")
-            return user_input.lower()
-        else:
-            print("   Invalid format. Use letters, numbers, and hyphens only (max 10 chars).")
+    # We simply inform the user and wait, returning None always.
+    input("Press Enter to continue with Auto-Detection...")
+    
+    # Always return None now
+    return None
 
 
 def get_model_choice():
@@ -251,27 +239,34 @@ def get_model_choice():
     print()
     print("Select AI Model:")
     print("-" * 60)
-    keys = ['tiny', 'base', 'small', 'medium', 'large']
+    
+    keys = ['tiny.en', 'base.en', 'distil-small.en', 'distil-medium.en', 'medium', 'large-v3']
     valid_keys = {}
     
     idx = 1
     for key in keys:
         info = AVAILABLE_MODELS[key]
-        print(f"[{idx}] {key.upper()}: {info['desc']}")
-        print(f"    Speed: ~{info['speed']} real-time | VRAM: {info['vram']}")
+        
+        is_en_only = '.en' in key or 'distil' in key
+        lang_tag = "(English Only)" if is_en_only else "(Multilingual)"
+        
+        display_name = key.replace('-', ' ').title()
+        
+        print(f"[{idx}] {display_name:20} | {info['desc']}")
+        print(f"    Speed: ~{info['speed']} real-time | VRAM: {info['vram']} | {lang_tag}")
         valid_keys[str(idx)] = key
         idx += 1
         
     print("-" * 60)
     
     while True:
-        choice = input("Please select a model (1-5): ").strip()
+        choice = input(f"Please select a model (1-{len(keys)}): ").strip()
         if choice in valid_keys:
             return valid_keys[choice]
-        print("Invalid choice. Please enter a number between 1 and 5.")
+        print(f"Invalid choice. Please enter a number between 1 and {len(keys)}.")
+
 
 def list_channels():
-    """List all available channel directories"""
     if not VIDEOS_DIR.exists():
         print(f"ERROR: Videos directory not found: {VIDEOS_DIR}")
         return []
@@ -279,8 +274,8 @@ def list_channels():
     channels = sorted([d.name for d in VIDEOS_DIR.iterdir() if d.is_dir()])
     return channels
 
+
 def get_channel_name(channels):
-    """Prompt user to select a channel by name"""
     print()
     print("Available Channels:")
     print("-" * 50)
@@ -312,8 +307,8 @@ def get_channel_name(channels):
             print(f"\nError: Channel folder not found: {channel_name}")
             print()
 
+
 def should_skip_file(filename, ext):
-    """Determine if a file should be skipped"""
     filename_lower = filename.lower()
     
     if 'no talking' in filename_lower:
@@ -329,19 +324,8 @@ def should_skip_file(filename, ext):
     
     return False, ""
 
+
 def find_videos_needing_subtitles(target_dir, target_language_suffix=None):
-    """
-    Scan for files needing subtitle generation.
-    
-    Args:
-        target_dir: Directory to scan for videos
-        target_language_suffix: If specified, only check if THIS specific 
-                               language subtitle is missing.
-                               If None, check if ANY subtitle exists (original behavior).
-    
-    Returns:
-        List of file paths needing subtitle generation
-    """
     files_to_process = []
     
     video_extensions = {'.mp4', '.mkv'}
@@ -349,11 +333,7 @@ def find_videos_needing_subtitles(target_dir, target_language_suffix=None):
     all_extensions = video_extensions | audio_extensions
     
     print(f"\nScanning: {target_dir}")
-    
-    if target_language_suffix:
-        print(f"Checking for missing [{target_language_suffix}] subtitles...")
-    else:
-        print("Checking for existing subtitles...")
+    print("Checking for existing subtitles... (Auto-Detect Mode)")
     print()
     
     for file_path in target_dir.rglob('*'):
@@ -374,45 +354,21 @@ def find_videos_needing_subtitles(target_dir, target_language_suffix=None):
         rel_path = file_path.relative_to(VIDEOS_DIR)
         sub_parent = SUBTITLES_DIR / rel_path.parent
         
-        # Determine if this specific file needs processing
         needs_processing = False
-        existing_langs = []
         
         if sub_parent.exists():
-            # Find all existing VTT variants for this video
-            # Matches: filename.vtt, filename.en.vtt, filename.de.vtt, etc.
             pattern = f"{filename}*.vtt"
             existing_subs = list(sub_parent.glob(pattern))
             
-            for sub_file in existing_subs:
-                # Extract language suffix from filename (e.g., "video.en.vtt" -> "en")
-                sub_stem = sub_file.stem  # "video.en"
-                
-                if sub_stem == filename:
-                    # This is "video.vtt" (no suffix) - treat as generic/unknown
-                    existing_langs.append("(none)")
-                elif sub_stem.startswith(filename + "."):
-                    # Has language suffix: "video.en" -> "en"
-                    lang_suffix = sub_stem[len(filename) + 1:]  # Skip "video."
-                    existing_langs.append(lang_suffix)
-            
-            # Check if we need to generate subtitles
-            if target_language_suffix:
-                # Specific mode: Only process if THIS language is missing
-                if target_language_suffix not in existing_langs:
-                    needs_processing = True
-                else:
-                    print(f"  [OK]   {file_path.name} (.{target_language_suffix}.vtt exists)")
+            if not existing_subs:
+                needs_processing = True
             else:
-                # Generic mode: Process if NO subtitles exist at all
-                if not existing_subs:
-                    needs_processing = True
-                else:
-                    langs_str = ", ".join(existing_langs) if existing_langs else "(none)"
-                    print(f"  [OK]   {file_path.name} (has [{langs_str}] subtitle)")
-        
+                # In auto-detect mode, if ANY subtitle exists, we might consider it done
+                # or we could check specifically for und/en depending on task. 
+                # For simplicity here: if subs exist, we assume it's processed.
+                langs_str = ", ".join([s.stem.split('.')[-1] if '.' in s.stem else 'und' for s in existing_subs])
+                print(f"  [OK]   {file_path.name} (has [{langs_str}] subtitle)")
         else:
-            # No subtitle directory at all - definitely needs processing
             needs_processing = True
         
         if needs_processing:
@@ -421,17 +377,13 @@ def find_videos_needing_subtitles(target_dir, target_language_suffix=None):
             file_size = file_path.stat().st_size
             duration = get_video_duration(file_path)
             
-            if target_language_suffix:
-                print(f"  [QUEUE] {file_path.name} → needs .{target_language_suffix}.vtt")
-            else:
-                print(f"  [QUEUE] {file_path.name}")
+            print(f"  [QUEUE] {file_path.name}")
             print(f"          Size: {format_file_size(file_size)} | Duration: ~{format_duration(duration)}")
     
     return files_to_process
 
+
 class ProgressTracker:
-    """Track and display processing progress"""
-    
     def __init__(self, file_index, total_files, file_path):
         self.file_index = file_index
         self.total_files = total_files
@@ -444,7 +396,6 @@ class ProgressTracker:
         self.duration = get_video_duration(file_path)
         
     def start_processing(self):
-        """Mark the start of processing"""
         self.process_start = time.time()
         
         print(f"\n{'='*70}")
@@ -454,7 +405,6 @@ class ProgressTracker:
         print()
         
     def update(self, force=False):
-        """Update progress display"""
         current_time = time.time()
         elapsed = current_time - self.process_start
         
@@ -462,7 +412,6 @@ class ProgressTracker:
             return
         
         self.last_update = current_time
-        
         elapsed_str = format_duration(elapsed)
         
         if self.duration > 0:
@@ -487,10 +436,8 @@ class ProgressTracker:
             sys.stdout.flush()
     
     def complete(self, success, output_file=None):
-        """Mark processing as complete"""
         elapsed = time.time() - self.process_start
-        
-        print()  # New line after progress bar
+        print() 
         
         status_icon = "[OK]" if success else "[FAIL]"
         status_text = "SUCCESS" if success else "FAILED"
@@ -510,32 +457,19 @@ class ProgressTracker:
 
 
 def detect_language_from_json(json_file):
-    """
-    Detect language from whisper JSON output.
-    Returns (language_code: str, confidence: float)
-    """
     try:
         with open(json_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
-        # Method 1: Check top-level 'language' field
         if 'language' in data:
             lang = data['language'].lower()
             return lang, 1.0
         
-        # Method 2: Check first segment's language
         if 'segments' in data and len(data['segments']) > 0:
             first_seg = data['segments'][0]
             if 'language' in first_seg:
                 lang = first_seg['language'].lower()
                 return lang, 1.0
-            
-            # Some versions put it in nested structure
-            if 'text' in first_seg:
-                # Try to detect from content heuristics
-                text = first_seg.get('text', '')
-                # This is a fallback - usually language is explicitly provided
-                pass
         
         return None, 0.0
         
@@ -545,56 +479,28 @@ def detect_language_from_json(json_file):
 
 
 def get_language_suffix(language_code):
-    """
-    Convert Whisper language code to filename suffix.
-    Examples: 'en' -> 'en', 'de' -> 'de', 'zh' -> 'zh-CN'
-    """
     if not language_code:
         return LANGUAGE_SUFFIX_MAP['default']
     
-    # Normalize: lowercase, handle variants like 'english' -> 'en'
     lang_lower = language_code.lower().strip()
     
-    # Direct lookup
     if lang_lower in LANGUAGE_SUFFIX_MAP:
         return LANGUAGE_SUFFIX_MAP[lang_lower]
     
-    # Handle full language names that whisper sometimes returns
     lang_name_map = {
-        'english': 'en',
-        'german': 'de',
-        'french': 'fr',
-        'spanish': 'es',
-        'chinese': 'zh',
-        'japanese': 'ja',
-        'korean': 'ko',
-        'russian': 'ru',
-        'portuguese': 'pt',
-        'italian': 'it',
-        'dutch': 'nl',
-        'polish': 'pl',
-        'arabic': 'ar',
-        'hindi': 'hi',
-        'turkish': 'tr',
-        'swedish': 'sv',
-        'danish': 'da',
-        'norwegian': 'no',
-        'finnish': 'fi',
-        'czech': 'cs',
-        'hungarian': 'hu',
-        'romanian': 'ro',
-        'ukrainian': 'uk',
-        'vietnamese': 'vi',
-        'thai': 'th',
-        'indonesian': 'id',
-        'malay': 'ms',
+        'english': 'en', 'german': 'de', 'french': 'fr', 'spanish': 'es',
+        'chinese': 'zh', 'japanese': 'ja', 'korean': 'ko', 'russian': 'ru',
+        'portuguese': 'pt', 'italian': 'it', 'dutch': 'nl', 'polish': 'pl',
+        'arabic': 'ar', 'hindi': 'hi', 'turkish': 'tr', 'swedish': 'sv',
+        'danish': 'da', 'norwegian': 'no', 'finnish': 'fi', 'czech': 'cs',
+        'hungarian': 'hu', 'romanian': 'ro', 'ukrainian': 'uk', 'vietnamese': 'vi',
+        'thai': 'th', 'indonesian': 'id', 'malay': 'ms',
     }
     
     if lang_lower in lang_name_map:
         code = lang_name_map[lang_lower]
-        return LANGUAGE_SUFFIX_MAP.get(code, f"{code}")
+        return LANGUAGE_SUFFIX_MAP.get(code, code)
     
-    # Last resort: return as-is or default
     if len(lang_lower) <= 3:
         return lang_lower
     
@@ -602,160 +508,104 @@ def get_language_suffix(language_code):
 
 
 def run_whisper_process(input_file, output_dir, original_filename, model_dir, tracker, 
-                        task="transcribe", model_size="small"):
+                        task="transcribe", model_id="small"):
     """
-    Run whisper-ctranslate2 with proper error handling.
-    Returns (success: bool, actual_vtt_file: Path or None, json_data: tuple)
-    
-    Strategy: 
-    1. Run whisper with JSON output to detect language
-    2. Run whisper AGAIN with VTT-only output
-    3. Clean up JSON file
+    UPDATED: Removed forced_language parameter.
+    Now ALWAYS runs the Dual Pass (JSON Detect -> VTT Generate).
     """
     
-    # STEP 1: Run with JSON format to detect language
-    cmd_json = [
+    base_args = [
         str(VENVPYTHON),
         str(WHISPER_EXE),
         str(input_file),
-        '--model', model_size,
+        '--model', model_id,
         '--model_directory', str(model_dir),
         '--compute_type', 'int8',
         '--output_dir', str(output_dir),
-        '--output_format', 'json',   # Only JSON for detection
         '--task', task,
         '--vad_filter', 'True',
         '--vad_min_silence_duration_ms', '1000',
     ]
     
-    task_display = "Translate to English" if task == "translate" else "Transcribe (Original Language)"
-    
+    task_display = "Translate to English" if task == "translate" else "Transcribe"
     print(f"Running Whisper...")
     print(f"   Input: {input_file.name}")
     print(f"   Mode:  {task_display}")
-    print(f"   Model: {model_size.upper()} (from local directory)")
-    print(f"   Output format: VTT only")
-    print(f"   VAD Filter: ENABLED (skip silences >1s)")
+    print(f"   Model: {model_id.upper()} (local)")
+    print(f"   Lang:  AUTO-DETECTING (Forced)")
+    print(f"   Plan:  Dual Pass (JSON Detection -> VTT Generation)")
     print()
+    
+    detected_data = None
     
     tracker.update(force=True)
     
-    json_data = None
+    # --- Pass 1: JSON for Detection ---
+    print("   [1/2] Running language detection (JSON)...")
+    cmd_json = base_args + ['--output_format', 'json']
     
-    try:
-        # Step 1: Get JSON for language detection
-        print("   [1/2] Detecting language...")
-        result_json = subprocess.run(
-            cmd_json,
-            capture_output=True,
-            text=True,
-            timeout=None 
-        )
+    result_json = subprocess.run(cmd_json, capture_output=True, text=True, timeout=None)
+    
+    # Parse JSON immediately after run
+    json_files = list(output_dir.glob('*.json'))
+    if json_files:
+        latest_json = max(json_files, key=lambda p: p.stat().st_mtime)
+        detected_data = detect_language_from_json(latest_json)
         
-        # Parse JSON for language detection
-        json_files = list(output_dir.glob('*.json'))
-        if json_files:
-            latest_json = max(json_files, key=lambda p: p.stat().st_mtime)
-            json_data = detect_language_from_json(latest_json)
-            
-            # Delete JSON file immediately after reading
-            try:
-                latest_json.unlink()
-                print("   [1/2] Language detected, JSON cleaned up")
-            except:
-                pass
+        # Clean up JSON to save space
+        try:
+            latest_json.unlink()
+        except:
+            pass
         
-        # Step 2: Generate VTT only
-        print("   [2/2] Generating VTT subtitle...")
-        
-        cmd_vtt = [
-            str(VENVPYTHON),
-            str(WHISPER_EXE),
-            str(input_file),
-            '--model', model_size,
-            '--model_directory', str(model_dir),
-            '--compute_type', 'int8',
-            '--output_dir', str(output_dir),
-            '--output_format', 'vtt',   # ONLY VTT output
-            '--task', task,
-            '--vad_filter', 'True',
-            '--vad_min_silence_duration_ms', '1000',
-        ]
-        
-        result_vtt = subprocess.run(
-            cmd_vtt,
-            capture_output=True,
-            text=True,
-            timeout=None 
-        )
-        
-        if result_vtt.returncode != 0:
-            print(f"\n[FAIL] Whisper failed with error code {result_vtt.returncode}!")
-            if result_vtt.stderr:
-                print(f"   Error Details:\n{result_vtt.stderr[:500]}")
-            elif result_vtt.stdout:
-                 print(f"   Output:\n{result_vtt.stdout[:500]}")
-            return False, None, None
-        
-        # Find generated VTT file
-        vtt_files = list(output_dir.glob('*.vtt'))
-        
-        if not vtt_files:
-            print(f"\n[FAIL] Whisper finished, but NO .vtt file was created in {output_dir}")
-            if result_vtt.stdout:
-                print(f"   Process Output: {result_vtt.stdout[:200]}")
-            return False, None, None
-        
-        latest_vtt = max(vtt_files, key=lambda p: p.stat().st_mtime)
-        print(f"Created VTT: {latest_vtt.name}")
-        
-        return True, latest_vtt, json_data
-        
-    except subprocess.TimeoutExpired:
-        print(f"\n[FAIL] Process timed out!")
+        lang_str = detected_data[0] if detected_data else "Unknown"
+        print(f"   [1/2] Detected Language: {lang_str}")
+    else:
+        print("   [1/2] Warning: Could not detect language from JSON")
+    
+    # --- Pass 2: VTT Generation ---
+    print("   [2/2] Generating subtitle (VTT)...")
+    cmd_vtt = base_args + ['--output_format', 'vtt']
+    
+    result_vtt = subprocess.run(cmd_vtt, capture_output=True, text=True, timeout=None)
+    
+    if result_vtt.returncode != 0:
+        print(f"\n[FAIL] Whisper failed with error code {result_vtt.returncode}!")
+        if result_vtt.stderr:
+            print(f"   Error Details:\n{result_vtt.stderr[:500]}")
         return False, None, None
-    except Exception as e:
-        print(f"\n[FAIL] EXCEPTION: {e}")
-        import traceback
-        traceback.print_exc()
+    
+    vtt_files = list(output_dir.glob('*.vtt'))
+    if not vtt_files:
+        print(f"\n[FAIL] No VTT file created.")
         return False, None, None
+        
+    latest_vtt = max(vtt_files, key=lambda p: p.stat().st_mtime)
+    print(f"Created VTT: {latest_vtt.name}")
+    
+    return True, latest_vtt, detected_data
 
 
 def rename_with_language_suffix(original_filename, actual_vtt_path, output_dir, 
-                                 json_data, task_mode, forced_suffix=None):
+                                 json_data, task_mode):
     """
-    Rename VTT file to include language suffix.
-    
-    Args:
-        forced_suffix: If provided, use this instead of auto-detection
-                     (e.g., 'de' for forced German translation output)
-    
-    Returns final VTT path.
+    UPDATED: Removed forced_suffix logic. Relies entirely on json_data.
     """
     if not actual_vtt_path:
         return None
     
-    # Determine language suffix
-    if forced_suffix:
-        # User explicitly requested this suffix
-        lang_suffix = forced_suffix
-        display_lang = f"{forced_suffix} (user-specified)"
-    elif task_mode == "translate":
-        # Translation defaults to English unless forced otherwise
+    if task_mode == "translate":
         lang_suffix = "en"
         display_lang = "English (translated)"
     else:
-        # Transcription uses detected language from JSON
         if json_data:
             lang_code, _ = json_data
             lang_suffix = get_language_suffix(lang_code)
             display_lang = f"{lang_code} ({lang_suffix})"
         else:
-            # Fallback if no language detected
             lang_suffix = LANGUAGE_SUFFIX_MAP['default']
             display_lang = "Unknown (und)"
     
-    # Construct new filename: original_name.lang_suffix.vtt
     new_vtt_name = f"{original_filename}.{lang_suffix}.vtt"
     final_vtt_path = output_dir / new_vtt_name
     
@@ -765,7 +615,6 @@ def rename_with_language_suffix(original_filename, actual_vtt_path, output_dir,
     print(f"   To:   {final_vtt_path.name}")
     
     try:
-        # Remove existing file if it exists
         if final_vtt_path.exists():
             final_vtt_path.unlink()
         
@@ -781,13 +630,9 @@ def rename_with_language_suffix(original_filename, actual_vtt_path, output_dir,
 
 
 def process_file_with_progress(file_index, total_files, file_path, model_dir, task_mode, 
-                                model_size, forced_lang_suffix=None):
+                                model_id):
     """
-    Process a single file with detailed progress tracking.
-    
-    Args:
-        forced_lang_suffix: If provided, use this suffix instead of auto-detecting
-                           (useful when user explicitly requests a translation language)
+    UPDATED: Removed forced_lang_suffix passing.
     """
     tracker = ProgressTracker(file_index, total_files, file_path)
     
@@ -797,7 +642,6 @@ def process_file_with_progress(file_index, total_files, file_path, model_dir, ta
     tracker.start_processing()
     
     rel_path = file_path.relative_to(VIDEOS_DIR)
-    
     out_dir = SUBTITLES_DIR / rel_path.parent
     out_dir.mkdir(parents=True, exist_ok=True)
     
@@ -820,13 +664,9 @@ def process_file_with_progress(file_index, total_files, file_path, model_dir, ta
                 str(temp_audio)
             ]
             
-            print(f"   Running: ffmpeg -i \"{file_path.name}\" -vn -acodec copy temp_audio.m4a")
+            print(f"   Running: ffmpeg -i \"{file_path.name}\" -vn -accode copy ...")
             
-            ffmpeg_result = subprocess.run(
-                ffmpeg_cmd,
-                capture_output=True,
-                text=True
-            )
+            ffmpeg_result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
             
             if not temp_audio.exists():
                 print(f"[FAIL] Failed to extract audio from {file_path.name}")
@@ -835,13 +675,13 @@ def process_file_with_progress(file_index, total_files, file_path, model_dir, ta
                 tracker.complete(False)
                 return False
             
-            print(f"Audio extracted: {temp_audio.name}")
+            print(f"Audio extracted successfully.")
             print()
-            
             whisper_input = temp_audio
             
-            print(f"Step 2/2: Running Whisper on extracted audio...")
+            print(f"Step 2/2: Running Whisper...")
         
+        # Run Whisper (No forced language passed)
         success, actual_vtt, json_data = run_whisper_process(
             whisper_input, 
             out_dir, 
@@ -849,7 +689,7 @@ def process_file_with_progress(file_index, total_files, file_path, model_dir, ta
             model_dir, 
             tracker,
             task=task_mode,
-            model_size=model_size
+            model_id=model_id
         )
         
         if temp_audio and temp_audio.exists():
@@ -863,14 +703,13 @@ def process_file_with_progress(file_index, total_files, file_path, model_dir, ta
             tracker.complete(False)
             return False
         
-        # Use forced suffix if provided, otherwise auto-detect
+        # Rename file (No forced suffix passed)
         final_output = rename_with_language_suffix(
             filename, 
             actual_vtt, 
             out_dir, 
             json_data,
-            task_mode,
-            forced_suffix=forced_lang_suffix  # NEW PARAMETER
+            task_mode
         )
         
         tracker.complete(True, final_output)
@@ -892,7 +731,6 @@ def process_file_with_progress(file_index, total_files, file_path, model_dir, ta
 
 
 def print_final_summary(stats, start_time):
-    """Print final processing summary"""
     total_time = time.time() - start_time
     
     print("\n" + "=" * 70)
@@ -911,7 +749,7 @@ def print_final_summary(stats, start_time):
         print(f"Average Time per File:   {format_duration(avg_time)}")
     
     print()
-    print("Output files use language suffixes:")
+    print("Output files use language suffixes based on detection:")
     print("  • English:      filename.en.vtt")
     print("  • German:       filename.de.vtt")  
     print("  • French:       filename.fr.vtt")
@@ -927,7 +765,6 @@ def print_final_summary(stats, start_time):
 
 
 def main():
-    """Main entry point"""
     overall_start = time.time()
     
     print_header()
@@ -938,21 +775,19 @@ def main():
     print(f"Subtitles Directory:  {SUBTITLES_DIR}")
     print(f"Models Directory:     {LOCAL_MODEL_BASE_DIR}")
     
-    # Get choices first so we can verify model existence
     choice = get_user_choice()
     task_mode = get_task_choice()
-    model_size = get_model_choice()
+    model_id = get_model_choice()
     
-    # NEW: Always ask for target language suffix (both modes!)
+    # Language selection is now forced to Auto-Detect
     target_lang_suffix = get_target_language_suffix(task_mode)
     
-    # Verify model exists based on selection
-    model_dir = find_model_directory(model_size)
+    model_dir = find_model_directory(model_id)
     if model_dir:
-        print(f"Model Found ({model_size.upper()}): {model_dir}")
+        print(f"\nModel Found ({model_id.upper()}): {model_dir}")
     else:
-        print(f"FATAL ERROR: Model '{model_size}' NOT FOUND at {LOCAL_MODEL_BASE_DIR / model_name.capitalize()}")
-        print("Please ensure the folder exists and contains model.bin.")
+        print(f"\nFATAL ERROR: Model '{model_id}' NOT FOUND.")
+        print("Please ensure you ran the downloader script first.")
         input("\nPress Enter to exit...")
         sys.exit(1)
     
@@ -960,38 +795,30 @@ def main():
     
     if choice == 'A':
         target_dir = VIDEOS_DIR
-        print(f"\nScanning ALL channels...")
+        print(f"Scanning ALL channels...")
     else:
         channels = list_channels()
-        
         if not channels:
             print("ERROR: No channels found!")
             input("\nPress Enter to exit...")
             sys.exit(1)
         
         channel_name, target_dir = get_channel_name(channels)
-        print(f"\nSelected channel: {channel_name}")
+        print(f"Selected channel: {channel_name}")
     
-    # Pass target_lang_suffix to the scanner
+    # Scan for files (passing suffix=None effectively ignores it in check or handles generic existence)
     files_to_process = find_videos_needing_subtitles(target_dir, target_lang_suffix)
     
     if not files_to_process:
         print("\n" + "=" * 50)
-        if target_lang_suffix:
-            print(f"No missing [{target_lang_suffix}] subtitles found!")
-            print("All videos already have this language variant.")
-        else:
-            print("No missing subtitles found. Everything is up to date!")
+        print("No missing subtitles found! Everything is up to date.")
         print("=" * 50)
         input("\nPress Enter to exit...")
         return
     
     print("\n" + "=" * 70)
     print(f"Found {len(files_to_process)} files needing subtitle generation")
-    if target_lang_suffix:
-        print(f"Target Language Suffix: .{target_lang_suffix}.vtt")
-    else:
-        print("(Auto-detecting language per file)")
+    print("(Auto-detecting language per file)")
     print("=" * 70)
     
     total_size = sum(f.stat().st_size for f in files_to_process)
@@ -1006,10 +833,7 @@ def main():
     
     print()
     print("Starting processing...")
-    if target_lang_suffix:
-        print(f"(Generating: filename.{target_lang_suffix}.vtt)")
-    else:
-        print("(Auto-detecting language and generating appropriate suffix)")
+    print("(Auto-detecting language)")
     print("=" * 70)
     print()
     
@@ -1020,15 +844,13 @@ def main():
     }
     
     for i, file_path in enumerate(files_to_process, 1):
-        # Pass forced_lang_suffix when user specified one
         if process_file_with_progress(
             i, 
             len(files_to_process), 
             file_path, 
             model_dir, 
             task_mode, 
-            model_size,
-            forced_lang_suffix=target_lang_suffix  # Pass user's choice
+            model_id
         ):
             stats['success'] += 1
         else:

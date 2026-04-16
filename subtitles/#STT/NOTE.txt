@@ -19,12 +19,12 @@ BASE:
 SMALL:
 - Speed: Fast
 - Pretty accurate for English
-- Also good for other languages but not recommended there
 - Requires 1GB of (V)RAM
 
 MEDIUM:
 - Speed: Medium
 - Super accurate even on noisy input, suitable for non-English languages as well
+- If inferencing on English, use the faster DistilMedium version
 - Requires 2.5GB of VRAM
 
 LARGE:

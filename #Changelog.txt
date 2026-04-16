@@ -14,6 +14,8 @@ v4.05
 - video.html now allows for pressing CTRL F without triggering fullscreen on the video player
 - Replaced the Fluid Player playback speed icon with a cog wheel icon (videosettings.svg)
   - This can be used later to change the video resolution and more (not implemented yet)
+- Optimized subtitle generation speed by 300% with distilled Whisper models
+  - Delete your old models and download the new ones with download_whisper_models.bat if needed
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
