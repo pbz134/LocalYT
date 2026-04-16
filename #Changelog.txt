@@ -35,7 +35,7 @@ v4.00
 - user_playlists.html scrolls 3 elements instead of 2
 - Added missing Search translation on video.html
 - Fixed like button positioning for comments
-- Added support for subtitle VTT files at /subtitles/[channelname]/[videoname].txt
+- Added support for subtitle VTT files at /subtitles/[channelname]/[videoname].vtt
   - Example for English subtitles: /subtitles/MVG/beach walk.en-US.vtt
   - Example for German subtitles: /subtitles/pannenkoek2012/SM64 Analysis.de.vtt
 - Added a script for automated video subtitle generation at /subtitles/#STT/run.bat
