@@ -14,27 +14,25 @@ echo.
 echo Available models:
 echo.
 echo 1. Medium (Multilingual) - Systran/faster-whisper-medium
-echo 2. Base   - Systran/faster-whisper-base.en
+echo 2. Base   - Systran/faster-whisper-base-en
 echo 3. Large  - Systran/faster-whisper-large-v3
-echo 4. Tiny   - Systran/faster-whisper-tiny.en
-echo 5. Small  - Systran/faster-distil-whisper-small.en
-echo 6. Distil-Medium (.en) - Systran/faster-distil-whisper-medium.en
-echo 7. Download all models
+echo 4. Tiny   - Systran/faster-whisper-tiny-en
+echo 5. Small  - Systran/faster-whisper-small-en
+echo 6. Download all models
 echo.
 echo ========================================
 echo.
 
 :ask
-set /p choice="Enter your choice (1-7): "
+set /p choice="Enter your choice (1-6): "
 
 if "%choice%"=="1" goto download_medium_standard
 if "%choice%"=="2" goto download_base_en
 if "%choice%"=="3" goto download_large
 if "%choice%"=="4" goto download_tiny_en
-if "%choice%"=="5" goto download_distil_small
-if "%choice%"=="6" goto download_distil_medium
-if "%choice%"=="7" goto download_all
-echo Invalid choice. Please enter a number between 1 and 7.
+if "%choice%"=="5" goto download_small_en
+if "%choice%"=="6" goto download_all
+echo Invalid choice. Please enter a number between 1 and 6.
 goto ask
 
 :: Standard Medium (Multilingual)
@@ -78,22 +76,22 @@ echo.
 echo Download completed!
 goto end
 
-:: Distil-Small .en
-:download_distil_small
+:: Small .en
+:download_small_en
 echo.
-echo Downloading Distil-Small (.en) model from Systran/faster-distil-whisper-small.en
+echo Downloading Small (.en) model from Systran/faster-whisper-small.en
 if not exist "Whisper\Small" mkdir "Whisper\Small"
-"%HF_EXE%" download Systran/faster-distil-whisper-small.en model.bin tokenizer.json vocabulary.txt vocabulary.json config.json --local-dir "Whisper\Small"
+"%HF_EXE%" download Systran/faster-whisper-small.en model.bin tokenizer.json vocabulary.txt vocabulary.json config.json --local-dir "Whisper\Small"
 echo.
 echo Download completed!
 goto end
 
-:: Distil-Medium .en
-:download_distil_medium
+:: Medium
+:download_medium
 echo.
-echo Downloading Distil-Medium (.en) model from Systran/faster-distil-whisper-medium.en
-if not exist "Whisper\DistilMedium" mkdir "Whisper\DistilMedium"
-"%HF_EXE%" download Systran/faster-distil-whisper-medium.en model.bin tokenizer.json vocabulary.txt vocabulary.json config.json --local-dir "Whisper\DistilMedium"
+echo Downloading Medium (.en) model from Systran/faster-whisper-medium
+if not exist "Whisper\Medium" mkdir "Whisper\Medium"
+"%HF_EXE%" download Systran/faster-whisper-medium model.bin tokenizer.json vocabulary.txt vocabulary.json config.json --local-dir "Whisper\Medium"
 echo.
 echo Download completed!
 goto end
@@ -106,8 +104,7 @@ call :download_medium_standard
 call :download_base_en
 call :download_large
 call :download_tiny_en
-call :download_distil_small
-call :download_distil_medium
+call :download_small_en
 echo All downloads completed!
 goto end
 
