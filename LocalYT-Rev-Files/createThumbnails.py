@@ -135,7 +135,6 @@ def main():
 
     start_time = time.time()
     created_count = 0
-    skipped_count = 0
     error_count = 0
     
     for i, (full_path, entry, ext) in enumerate(all_files, 1):
@@ -152,9 +151,8 @@ def main():
         
         thumb_path = output_dir / thumb_filename
 
-        # Skip if exists
+        # Skip if exists (Silent skip - do not increment counter)
         if os.path.exists(thumb_path):
-            skipped_count += 1
             continue
 
         os.makedirs(output_dir, exist_ok=True)
@@ -182,15 +180,13 @@ def main():
     sys.stdout.write(" " * 70 + "\r")
     sys.stdout.flush()
     
+    # Output formatted like the 2nd script
     print(f"Thumbnail Generation Complete:")
     print(f"  Total Files Scanned:   {total_files}")
     print(f"  New Thumbnails Created:{created_count}")
-    print(f"  Skipped (Exist):       {skipped_count}")
     
     if error_count > 0:
         print(f"  Errors:                {error_count}")
-        
-    print(f"  Time Taken:            {end_time - start_time:.2f}s")
 
 if __name__ == "__main__":
     main()
