@@ -12,12 +12,10 @@ v4.05
   - This will display your FPS, video resolution, buffer and more
   - Inside the context menu, you can also copy the video URL with or without its current timestamp
 - video.html now allows for pressing CTRL F without triggering fullscreen on the video player
-- Replaced the Fluid Player playback speed icon with a cog wheel icon (videosettings.svg)
-  - This can be used later to change the video resolution and more (not implemented yet)
 - Moved all metadata generation scripts into /LocalYT-Rev-Files
 - Minimized cmd output for all metadata generation scripts
   - This also speeds up file processing by a huge amount
-
+- Channel stats (total video/view count, Joined date) will now be pre-calculated with createChannelstats.py
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
 - Reduced the bottom margin of .sort-toggle on channel.html
