@@ -16,6 +16,10 @@ v4.05
 - Minimized cmd output for all metadata generation scripts
   - This also speeds up file processing by a huge amount
 - Channel stats (total video/view count, Joined date) will now be pre-calculated with createChannelstats.py
+- Implemented Live Chat Replay support
+  - If you have .json files of livestream chat replays, they can now be played back on video.html
+  - File structure: /livechats/channel name/video name.json
+
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
 - Reduced the bottom margin of .sort-toggle on channel.html

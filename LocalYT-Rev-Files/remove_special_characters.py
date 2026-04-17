@@ -64,6 +64,7 @@ def clean_all_files():
     # Define directories to process
     dirs_to_process = [
         'comments',
+        'livechats',
         'videos',
         'videolengths', 
         'thumbnails',

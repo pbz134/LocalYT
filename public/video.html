@@ -125,6 +125,103 @@
             white-space: nowrap;
         }
 
+        /* ===== LIVE CHAT STYLES ===== */
+        .live-chat-container {
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            height: 460px; /* Match playlist manager height */
+            max-height: 460px;
+            background-color: #181818;
+            border-radius: 12px;
+            overflow: hidden;
+            width: 100%; /* Fill the fixed parent width exactly */
+            box-sizing: border-box; /* Include padding/border in width calculation */
+        }
+        
+        .live-chat-header {
+            padding: 10px 15px;
+            background-color: #272727;
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 2;
+        }
+
+        .chat-toggle-btn {
+            background-color: transparent;
+            color: #ccc;
+            border: 1px solid transparent;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+        }
+
+        .live-chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden; /* Prevent horizontal scroll */
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            scrollbar-width: thin;
+            scrollbar-color: #555 #181818;
+            width: 100%; /* Ensure it doesn't expand */
+            box-sizing: border-box;
+        }
+        .live-chat-messages::-webkit-scrollbar { width: 6px; }
+        .live-chat-messages::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+
+        .chat-message {
+            display: flex;
+            flex-direction: column;
+            width: 100%; /* Full width of container */
+            max-width: 100%; /* Don't exceed container */
+            animation: fadeIn 0.3s ease-out forwards;
+            opacity: 0;
+            word-wrap: break-word; /* Break long words */
+            overflow-wrap: break-word; /* Modern property */
+            white-space: pre-wrap; /* Allow line breaks */
+            box-sizing: border-box;
+        }
+
+        .chat-message-meta {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 2px;
+        }
+        .chat-author {
+            font-size: 13px;
+            font-weight: bold;
+            color: #3ea6ff;
+            cursor: default;
+        }
+        .chat-timestamp {
+            font-size: 11px;
+            color: #aaa;
+        }
+        .chat-text {
+            font-size: 14px;
+            color: #eee;
+            line-height: 1.4;
+            word-wrap: break-word;
+            white-space: pre-wrap; /* Enable line breaks for long messages */
+            width: 100%; /* Constrain to parent width */
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; transform: translateY(0); }
+            from { transform: translateY(5px); }
+        }
+
         /* Playlist Sidebar Styles */
         .playlist-section {
             margin-bottom: 20px;
@@ -858,6 +955,22 @@
                 </div>
             </div>
             <div class="suggestions-wrapper">
+                <!-- Toggle Button (Only visible if chat is available) -->
+                <div id="chatToggleContainer" style="display:none; text-align:right; margin-bottom: 5px;">
+                    <button id="chatToggleBtn" class="chat-toggle-btn" onclick="toggleLiveChat()">
+                        Show Live Chat
+                    </button>
+                </div>
+
+                <!-- Live Chat Container -->
+                <div id="liveChatContainer" class="live-chat-container">
+                    <div class="live-chat-header">
+                        <span>Live Chat</span>
+                        <div style="font-size:11px;font-weight:normal;color:#aaa;">Replay</div>
+                    </div>
+                    <div id="liveChatMessages" class="live-chat-messages"></div>
+                </div>
+
                 <div id="videoSuggestions" class="video-suggestions"></div>
             </div>
         </div>
@@ -1738,6 +1851,10 @@ document.addEventListener('click', function(e) {
             // Load comments for this video
             const channelPicUrl = `/channelpic/${encodeURIComponent(currentChannel)}.jpg`;
             loadComments(videoSrc, channelPicUrl);
+
+            // --- Initialize Live Chat ---
+            // Pass videoSrc so it can find the corresponding JSON
+            initLiveChat(videoSrc, playlistName);
 
             // --- Sidebar Logic ---
             
@@ -2740,6 +2857,257 @@ document.addEventListener('mousedown', function(e) {
         }
     }
 }, true);
+
+// ===== LIVE CHAT INTEGRATION LOGIC =====
+
+let liveChatData = []; // Stores parsed chat messages
+let processedIndices = new Set(); // Tracks displayed messages
+let chatTimer = null;
+
+async function initLiveChat(videoSrc, playlistName) {
+    if (!videoSrc) return;
+
+    try {
+        const parts = videoSrc.split('/');
+        const channel = parts[0];
+        
+        const rawVideoName = parts[parts.length - 1]; 
+        let videoName = stripExtension(rawVideoName);
+
+        let encodedName = encodeURIComponent(videoName);
+        
+        // 2. Double-check specific problematic chars often missed or mishandled
+        // (This creates a "safe" string that definitely looks like a URI component)
+        encodedName = encodedName.replace(/'/g, "%27")
+                                 .replace(/\(/g, "%28")
+                                 .replace(/\)/g, "%29")
+                                 .replace(/!/g, "%21")
+                                 .replace(/,/g, "%2C");
+        
+        const chatUrl = `/livechats/${encodeURIComponent(channel)}/${encodedName}.json`;
+        
+        console.log(`[LiveChat] Attempting to fetch: ${chatUrl}`);
+
+        const response = await fetch(chatUrl);
+        
+        if (!response.ok) return; 
+        
+        liveChatData = await response.json();
+        
+        if (liveChatData && liveChatData.length > 0) {
+            console.log(`[LiveChat] Loaded ${liveChatData.length} messages.`);
+            
+            document.getElementById('chatToggleContainer').style.display = 'block';
+            setupChatSync();
+        }
+    } catch (err) {
+        console.log("[LiveChat] No chat file available.", err);
+    }
+}
+
+function setupChatSync() {
+    const videoPlayer = document.getElementById('videoPlayer');
+    
+    // Clear chat on seek to allow re-displaying context around new time
+    videoPlayer.addEventListener('seeking', () => {
+        clearChatMessages();
+        // Small delay to ensure currentTime is updated
+        setTimeout(syncChat, 100);
+    });
+
+    videoPlayer.addEventListener('timeupdate', () => {
+        syncChat();
+    });
+    
+    videoPlayer.addEventListener('pause', () => {
+        if(chatTimer) cancelAnimationFrame(chatTimer);
+    });
+}
+
+let isChatSyncing = false; // Prevent overlapping syncs
+let lastSyncedIndex = -1; // Track the last processed message index to avoid duplicates
+let isSeeking = false; // Flag to detect when user has jumped in timeline
+
+function syncChat() {
+    // Prevent flicker: if already syncing, skip this frame
+    if (isChatSyncing) return;
+    
+    // Check if chat container is visible before syncing
+    const chatContainer = document.getElementById('liveChatContainer');
+    if (!chatContainer.style.display || chatContainer.style.display === 'none') return;
+
+    const videoPlayer = document.getElementById('videoPlayer');
+    const currentMs = videoPlayer.currentTime * 1000;
+    const container = document.getElementById('liveChatMessages');
+    
+    let addedCount = 0;
+    const maxPerFrame = 50; // Allow bulk load for seeking, but limit total display
+    
+    // DETECT SEEK: If current time is before the timestamp of the last displayed message,
+    // user has jumped backwards. If gap is > 2sec forward, likely a jump too.
+    if (lastSyncedIndex >= 0 && lastSyncedIndex < liveChatData.length) {
+        const lastMsgTime = liveChatData[lastSyncedIndex].offsetMs;
+        const timeDiff = currentMs - lastMsgTime;
+        
+        // If we went back more than 2 seconds, or jumped ahead more than 5 seconds, treat as seek
+        if (currentMs < lastMsgTime - 2000) {
+            console.log(`[Chat] Seek detected! Clearing and reloading from ${formatTime(currentMs)}`);
+            clearChatMessages();
+            isSeeking = true;
+        }
+    }
+    
+    // Determine starting index
+    let startIndex;
+    if (isSeeking || lastSyncedIndex === -1) {
+        // For seeks: Binary search or linear scan to find starting point
+        // Find the first message that falls within our 50-message window before current time
+        startIndex = findStartIndexForTime(currentMs);
+        isSeeking = false; // Reset flag after handling seek
+    } else {
+        // Normal playback: continue from where we left off
+        startIndex = Math.max(0, lastSyncedIndex + 1);
+    }
+    
+    for (let i = startIndex; i < liveChatData.length; i++) {
+        const msg = liveChatData[i];
+
+        // If message offset is in the future, stop
+        if (msg.offsetMs > currentMs) break;
+
+        // Add this message
+        addChatMessageToDOM(msg.author, msg.message);
+        processedIndices.add(i);
+        lastSyncedIndex = i; // Update our position
+        addedCount++;
+        
+        if (addedCount >= maxPerFrame) break;
+    }
+    
+    // Enforce 50-message limit by removing oldest (only needed during initial bulk load)
+    while (container.children.length > 50) {
+        container.removeChild(container.firstChild);
+        // Remove oldest tracked index to keep in sync
+        if (processedIndices.size > 0) {
+            const oldestIndex = Math.min(...processedIndices);
+            processedIndices.delete(oldestIndex);
+            // Update lastSyncedIndex if we removed something after it (shouldn't happen but safety)
+            if (oldestIndex <= lastSyncedIndex && processedIndices.size > 0) {
+                // Keep lastSyncedIndex pointing to newest
+            }
+        }
+    }
+    
+    // Auto-scroll to bottom
+    if (addedCount > 0 || (container.scrollHeight - container.scrollTop - container.clientHeight < 100)) {
+        container.scrollTop = container.scrollHeight;
+    }
+}
+
+// Helper: Find the best starting index to show ~50 messages leading up to currentTime
+function findStartIndexForTime(currentMs) {
+    // First, find how many messages exist up to this point
+    let countUpToNow = 0;
+    for (let i = 0; i < liveChatData.length; i++) {
+        if (liveChatData[i].offsetMs <= currentMs) {
+            countUpToNow++;
+        } else {
+            break;
+        }
+    }
+    
+    // We want the latest 50 messages (or fewer if not enough history)
+    // So start from (countUpToNow - 50), minimum 0
+    return Math.max(0, countUpToNow - 50);
+}
+
+function formatTime(ms) {
+    const seconds = Math.floor(ms / 1000);
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+}
+
+function clearChatMessages() {
+    const container = document.getElementById('liveChatMessages');
+    container.innerHTML = '';
+    processedIndices.clear();
+    lastSyncedIndex = -1; // Reset position when clearing (seeking)
+}
+
+// Override the video player's seeking event to ensure we catch all seeks
+document.addEventListener('DOMContentLoaded', () => {
+    const videoPlayer = document.getElementById('videoPlayer');
+    if (videoPlayer) {
+        videoPlayer.addEventListener('seeking', () => {
+            // Mark as seeking so next syncChat() will handle it
+            isSeeking = true;
+            // Small delay to ensure currentTime is updated before we process
+            setTimeout(() => {
+                if (isChatSyncing) return; // Don't interrupt ongoing sync
+                syncChat();
+            }, 50);
+        });
+    }
+});
+
+function appendChatMessage(author, message) {
+    // This function is called externally for real-time simulation
+    const container = document.getElementById('liveChatMessages');
+    
+    // Limit to latest 50 messages (remove oldest)
+    while (container.children.length >= 50) {
+        container.removeChild(container.firstChild);
+        if (processedIndices.size > 0) {
+            const oldestIndex = Math.min(...processedIndices);
+            processedIndices.delete(oldestIndex);
+        }
+    }
+    
+    addChatMessageToDOM(author, message);
+    container.scrollTop = container.scrollHeight;
+}
+
+function addChatMessageToDOM(author, message) {
+    const container = document.getElementById('liveChatMessages');
+    const div = document.createElement('div');
+    div.className = 'chat-message';
+    
+    const safeAuthor = author.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const safeMessage = message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    div.innerHTML = `
+        <div class="chat-message-meta">
+            <span class="chat-author">${safeAuthor}</span>
+        </div>
+        <div class="chat-text">${safeMessage}</div>
+    `;
+    container.appendChild(div);
+}
+
+function toggleLiveChat() {
+    const chatContainer = document.getElementById('liveChatContainer');
+    const suggestionsContainer = document.getElementById('videoSuggestions');
+    const btn = document.getElementById('chatToggleBtn');
+
+    if (chatContainer.style.display === 'flex') {
+        // Switch back to Playlist/Suggestions
+        chatContainer.style.display = 'none';
+        suggestionsContainer.style.display = 'block';
+        btn.classList.remove('active');
+        btn.innerHTML = 'Show Live Chat';
+    } else {
+        // Switch to Chat
+        chatContainer.style.display = 'flex';
+        suggestionsContainer.style.display = 'none';
+        btn.classList.add('active');
+        btn.innerHTML = 'Show Playlist';
+        
+        // Force a sync immediately to fill visible messages
+        clearChatMessages();
+        syncChat();
+    }
+}
 
     </script>
     <script src="profile-pic.js"></script>

@@ -202,8 +202,11 @@ body {
 
 .suggestions-wrapper {
     background-color: var(--main-bg-color);
-    padding: 0px; /* Fixed typo from z0px */
+    padding: 0px;
     border-radius: 8px;
+    width: 380px;
+    flex-shrink: 0; /* Prevent flexbox from resizing this container */
+    min-width: 0;
 }
 
 .video-suggestions {

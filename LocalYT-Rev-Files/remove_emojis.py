@@ -258,6 +258,7 @@ def main():
     # List of directories to process
     directories = [
         "comments",
+        "livechats",
         "descriptions",
         "filedates",
         "ratings",
