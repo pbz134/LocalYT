@@ -91,14 +91,12 @@ def add_border_to_16_9(image):
     
     # Ensure image is square
     if width != height:
-        print(f"  Warning: Image is not square ({width}x{height}), skipping border addition")
         return image
     
     # Calculate target width for 16:9 aspect ratio
     target_width = int(height * 16 / 9)
     
     if target_width <= width:
-        print(f"  Warning: Target width ({target_width}) <= original width ({width}), skipping border addition")
         return image
     
     # Get most common color for borders
@@ -132,14 +130,12 @@ def add_black_bars_to_4_3(image):
     
     # Verify aspect ratio is roughly 4:3
     if abs(width/height - 4/3) > 0.01:
-        print(f"  Warning: Image is not 4:3 aspect ratio ({width}x{height}), skipping black bar addition")
         return image
     
     # Calculate target width for 16:9 aspect ratio (keeping height the same)
     target_width = int(height * 16 / 9)
     
     if target_width <= width:
-        print(f"  Warning: Target width ({target_width}) <= original width ({width}), skipping border addition")
         return image
     
     # Calculate border width to add (black bars)
@@ -173,7 +169,6 @@ def add_black_bars_to_portrait(image):
     target_width = int(height * 16 / 9)
     
     if target_width <= width:
-        print(f"  Warning: Target width ({target_width}) <= original width ({width}), skipping border addition")
         return image
     
     # Calculate border width to add (black bars on sides)
@@ -230,7 +225,7 @@ def detect_black_bars(image, threshold=30, sample_ratio=0.1):
     
     for y in range(height - bottom_check_height, height):
         for x in sample_indices:
-            if 0 <= y < height and x < width:
+            if 0 <= y < height:
                 r, g, b = img_array[y, x]
                 if r < threshold and g < threshold and b < threshold:
                     bottom_black_count += 1
@@ -296,7 +291,6 @@ def crop_to_16_9(image):
     target_height = int(width * 9 / 16)
     
     if target_height >= height:
-        print(f"  Warning: Target height ({target_height}) >= original height ({height}), skipping crop")
         return image
     
     # Calculate pixels to remove from top and bottom
@@ -360,11 +354,8 @@ def process_image(filepath, dry_run=False, backup=False, force=False):
                 if dry_run:
                     target_width = int(dimensions[0] * 16 / 9)
                     result['status'] = 'would_add_border'
-                    result['message'] = f"Square {dimensions[0]}x{dimensions[1]} - Would add borders to make {target_width}x{dimensions[0]} (16:9)"
+                    result['message'] = f"Square {dimensions[0]}x{dimensions[1]} -> Would add borders to make {target_width}x{dimensions[0]}"
                     return result
-                
-                # Get most common color for preview
-                border_color = get_most_common_color(img)
                 
                 # Add borders to make 16:9
                 bordered_image = add_border_to_16_9(img)
@@ -380,7 +371,7 @@ def process_image(filepath, dry_run=False, backup=False, force=False):
                     
                     new_dimensions = bordered_image.size
                     result['status'] = 'bordered_square'
-                    result['message'] = f"Added borders to square image: {dimensions} -> {new_dimensions} (16:9) using color {border_color}"
+                    result['message'] = f"Square {dimensions} -> {new_dimensions}"
                 else:
                     result['message'] = f"Square image but couldn't add borders"
                 
@@ -392,7 +383,7 @@ def process_image(filepath, dry_run=False, backup=False, force=False):
                 
                 if dry_run:
                     result['status'] = 'would_add_border_640'
-                    result['message'] = f"{dimensions[0]}x{dimensions[1]} - Would add black borders to make {target_width}x{dimensions[1]} (16:9)"
+                    result['message'] = f"{dimensions[0]}x{dimensions[1]} -> Would add black borders to make {target_width}x{dimensions[1]}"
                     return result
                 
                 # Create backup if requested
@@ -408,9 +399,9 @@ def process_image(filepath, dry_run=False, backup=False, force=False):
                     bordered_image.save(filepath)
                     new_dimensions = bordered_image.size
                     result['status'] = 'bordered_640'
-                    result['message'] = f"{dimensions[0]}x{dimensions[1]} - Added black borders -> {new_dimensions[0]}x{new_dimensions[1]} (16:9)"
+                    result['message'] = f"{dimensions} -> {new_dimensions}"
                 else:
-                    result['message'] = f"{dimensions[0]}x{dimensions[1]} - Could not add borders"
+                    result['message'] = f"{dimensions} - Could not add borders"
                 
                 return result
             
@@ -432,7 +423,7 @@ def process_image(filepath, dry_run=False, backup=False, force=False):
                     
                     if dry_run:
                         result['status'] = 'would_crop_480'
-                        result['message'] = f"480x360 - Would crop from {height} to {target_height} (remove {height - target_height}px) -> {width}x{target_height} (16:9)"
+                        result['message'] = f"480x360 -> Would crop to {width}x{target_height}"
                         return result
                     
                     # Create backup if requested
@@ -447,7 +438,7 @@ def process_image(filepath, dry_run=False, backup=False, force=False):
                     cropped.save(filepath)
                     
                     result['status'] = 'cropped_480'
-                    result['message'] = f"480x360 - Cropped from {height} to {target_height}px -> {width}x{target_height} (16:9)"
+                    result['message'] = f"480x360 -> Cropped to {cropped.size}"
                     
                 else:
                     # No black bars - add side borders to make 16:9
@@ -455,7 +446,7 @@ def process_image(filepath, dry_run=False, backup=False, force=False):
                     
                     if dry_run:
                         result['status'] = 'would_add_border_480'
-                        result['message'] = f"480x360 - No black bars, would add black borders to make {target_width}x360 (16:9)"
+                        result['message'] = f"480x360 -> Would add black borders to make {target_width}x360"
                         return result
                     
                     # Create backup if requested
@@ -480,7 +471,7 @@ def process_image(filepath, dry_run=False, backup=False, force=False):
                     
                     new_dimensions = bordered_image.size
                     result['status'] = 'bordered_480'
-                    result['message'] = f"480x360 - Added black borders -> {new_dimensions[0]}x{new_dimensions[1]} (16:9)"
+                    result['message'] = f"480x360 -> Added borders -> {new_dimensions}"
                 
                 return result
             
@@ -494,7 +485,7 @@ def process_image(filepath, dry_run=False, backup=False, force=False):
                     
                     if dry_run:
                         result['status'] = 'would_crop_320'
-                        result['message'] = f"320x240 - Would crop from 240 to 180px -> 320x180 (16:9)"
+                        result['message'] = f"320x240 -> Would crop to 320x180"
                         return result
                     
                     # Create backup if requested
@@ -509,9 +500,9 @@ def process_image(filepath, dry_run=False, backup=False, force=False):
                     cropped.save(filepath)
                     
                     result['status'] = 'cropped_320'
-                    result['message'] = f"320x240 - Cropped from 240 to 180px -> 320x180 (16:9)"
+                    result['message'] = f"320x240 -> Cropped to 320x180"
                 else:
-                    result['message'] = f"320x240 - No black bars detected, skipping"
+                    result['message'] = f"320x240 - No black bars detected"
                 
                 return result
             
@@ -522,7 +513,7 @@ def process_image(filepath, dry_run=False, backup=False, force=False):
                 
                 if dry_run:
                     result['status'] = 'would_add_border_portrait'
-                    result['message'] = f"Portrait {width}x{height} (aspect: {width/height:.3f}) - Would add black borders to make {target_width}x{height} (16:9 landscape)"
+                    result['message'] = f"Portrait {width}x{height} -> Would add black borders to make {target_width}x{height}"
                     return result
                 
                 # Create backup if requested
@@ -538,14 +529,14 @@ def process_image(filepath, dry_run=False, backup=False, force=False):
                     bordered_image.save(filepath)
                     new_dimensions = bordered_image.size
                     result['status'] = 'bordered_portrait'
-                    result['message'] = f"Portrait {width}x{height} -> Added black borders -> {new_dimensions[0]}x{new_dimensions[1]} (16:9 landscape)"
+                    result['message'] = f"Portrait {width}x{height} -> {new_dimensions}"
                 else:
                     result['message'] = f"Portrait {width}x{height} - Could not add borders"
                 
                 return result
             
             # If we get here, dimensions are not handled
-            result['message'] = f"Dimensions {dimensions} not processed (only 640x480, 960x720, 480x360, 320x240, square, or portrait ~0.56 aspect ratio)"
+            result['message'] = f"Dimensions {dimensions} not processed"
             
     except Exception as e:
         result['status'] = 'error'
@@ -594,114 +585,54 @@ def main():
     else:
         files = [f for f in root_dir.glob('*') if f.is_file() and f.suffix.lower() in image_extensions]
     
-    print(f"Found {len(files)} image files to check")
-    print("Processing rules:")
-    print("  - 640x480 and 960x720 (4:3): ALWAYS add black borders to make 16:9")
-    print("  - 480x360 (4:3): Crop to 16:9 if top/bottom black bars detected, otherwise add side borders")
-    print("  - 320x240 (4:3): Crop to 320x180 (16:9) ONLY if top/bottom black bars detected, otherwise skip")
-    print("  - Square images: Add borders to make 16:9 using most common color")
-    print(f"  - Portrait images (aspect ratio ~{PORTRAIT_ASPECT_RATIO_TARGET} ±{PORTRAIT_ASPECT_TOLERANCE}): Add black borders to make 16:9 landscape")
-    print("  - Other dimensions: Skip")
+    total_files = len(files)
     
-    if args.dry_run:
-        print("DRY RUN MODE - No files will be modified")
+    if total_files == 0:
+        print("No image files found to process.")
+        return
+
+    print("Scanning for thumbnails...", end="\r")
     
-    if args.force:
-        print("FORCE MODE - Will crop 480x360 images even without black bars")
+    # Initialize counters
+    created_count = 0
+    error_count = 0
     
     # Process files in parallel
-    results = {
-        'bordered_640': [],
-        'bordered_480': [],
-        'cropped_480': [],
-        'cropped_320': [],  # New category for 320x240 crops
-        'bordered_square': [],
-        'bordered_portrait': [],  # New category for portrait images
-        'skipped': [],
-        'errors': [],
-        'would_border_640': [],
-        'would_border_480': [],
-        'would_crop_480': [],
-        'would_crop_320': [],  # New category for 320x240 dry runs
-        'would_border_square': [],
-        'would_border_portrait': []  # New category for portrait dry runs
-    }
+    results_list = []
     
     with ThreadPoolExecutor(max_workers=args.threads) as executor:
         futures = {executor.submit(process_image, f, args.dry_run, args.backup, args.force): f for f in files}
         
-        for i, future in enumerate(as_completed(futures), 1):
+        completed_count = 0
+        
+        for future in as_completed(futures):
             result = future.result()
+            completed_count += 1
+            results_list.append(result)
             
-            if result['status'] == 'cropped_480':
-                results['cropped_480'].append(result)
-                status = f"[{i}/{len(files)}] ✓ Cropped (480x360): {result['path']} - {result['message']}"
-            elif result['status'] == 'cropped_320':
-                results['cropped_320'].append(result)
-                status = f"[{i}/{len(files)}] ✓ Cropped (320x240): {result['path']} - {result['message']}"
-            elif result['status'] == 'bordered_640':
-                results['bordered_640'].append(result)
-                status = f"[{i}/{len(files)}] ▢ Bordered (640x480/960x720): {result['path']} - {result['message']}"
-            elif result['status'] == 'bordered_480':
-                results['bordered_480'].append(result)
-                status = f"[{i}/{len(files)}] ▢ Bordered (480x360): {result['path']} - {result['message']}"
-            elif result['status'] == 'bordered_square':
-                results['bordered_square'].append(result)
-                status = f"[{i}/{len(files)}] ▢ Bordered (square): {result['path']} - {result['message']}"
-            elif result['status'] == 'bordered_portrait':
-                results['bordered_portrait'].append(result)
-                status = f"[{i}/{len(files)}] ▢ Bordered (portrait): {result['path']} - {result['message']}"
-            elif result['status'] == 'would_crop_480':
-                results['would_crop_480'].append(result)
-                status = f"[{i}/{len(files)}] 🔄 Would crop (480x360): {result['path']} - {result['message']}"
-            elif result['status'] == 'would_crop_320':
-                results['would_crop_320'].append(result)
-                status = f"[{i}/{len(files)}] 🔄 Would crop (320x240): {result['path']} - {result['message']}"
-            elif result['status'] == 'would_add_border_640':
-                results['would_border_640'].append(result)
-                status = f"[{i}/{len(files)}] 🔲 Would add borders (640x480/960x720): {result['path']} - {result['message']}"
-            elif result['status'] == 'would_add_border_480':
-                results['would_border_480'].append(result)
-                status = f"[{i}/{len(files)}] 🔲 Would add borders (480x360): {result['path']} - {result['message']}"
-            elif result['status'] == 'would_add_border_portrait':
-                results['would_border_portrait'].append(result)
-                status = f"[{i}/{len(files)}] 🔲 Would add borders (portrait): {result['path']} - {result['message']}"
+            # Update status line (overwrite in place)
+            status_msg = f"Processing file #{completed_count}/{total_files}... (Processed: {created_count})"
+            sys.stdout.write(status_msg.ljust(70) + "\r")
+            sys.stdout.flush()
+            
+            # Count successes and errors silently
+            if result['status'] in ['bordered_640', 'bordered_480', 'cropped_480', 'cropped_320', 
+                                     'bordered_square', 'bordered_portrait']:
+                created_count += 1
             elif result['status'] == 'error':
-                results['errors'].append(result)
-                status = f"[{i}/{len(files)}] ✗ Error: {result['path']} - {result['message']}"
-            else:
-                results['skipped'].append(result)
-                status = f"[{i}/{len(files)}] - Skipped: {result['path']} - {result['message']}"
-            
-            print(status)
+                error_count += 1
     
-    # Print summary
-    print("\n" + "="*50)
-    print("SUMMARY")
-    print("="*50)
+    # Clear line and print summary
+    sys.stdout.write(" " * 70 + "\r")
+    sys.stdout.flush()
     
-    if args.dry_run:
-        print(f"Would add black borders to 640x480/960x720: {len(results['would_border_640'])} files")
-        print(f"Would add black borders to 480x360: {len(results['would_border_480'])} files")
-        print(f"Would crop 480x360: {len(results['would_crop_480'])} files")
-        print(f"Would crop 320x240: {len(results['would_crop_320'])} files")
-        print(f"Would add borders to square: {len(results['would_border_square'])} files")
-        print(f"Would add black borders to portrait: {len(results['would_border_portrait'])} files")
-    else:
-        print(f"Added black borders to 640x480/960x720: {len(results['bordered_640'])} files")
-        print(f"Added black borders to 480x360: {len(results['bordered_480'])} files")
-        print(f"Cropped 480x360: {len(results['cropped_480'])} files")
-        print(f"Cropped 320x240: {len(results['cropped_320'])} files")
-        print(f"Added borders to square: {len(results['bordered_square'])} files")
-        print(f"Added black borders to portrait: {len(results['bordered_portrait'])} files")
+    # Print final summary (matching style of 2nd script)
+    print(f"Thumbnail Processing Complete:")
+    print(f"  Total Files Scanned:   {total_files}")
+    print(f"  Thumbnails Processed:  {created_count}")
     
-    print(f"Skipped: {len(results['skipped'])} files")
-    print(f"Errors: {len(results['errors'])} files")
-    
-    if results['errors']:
-        print("\nErrors:")
-        for error in results['errors']:
-            print(f"  - {error['path']}: {error['message']}")
+    if error_count > 0:
+        print(f"  Errors:                {error_count}")
 
 if __name__ == "__main__":
     main()
