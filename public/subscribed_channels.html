@@ -437,21 +437,39 @@
             element.style.cursor = 'pointer';
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const mainLogo = document.getElementById('mainLogo');
-            if (mainLogo) {
-                mainLogo.addEventListener('click', (e) => {
-                    if (e.button === 0) window.location.href = 'index.html';
-                });
-                mainLogo.addEventListener('mouseup', (e) => {
-                    if (e.button === 1) { e.preventDefault(); window.open('index.html', '_blank'); }
-                });
-                mainLogo.addEventListener('contextmenu', (e) => {
-                    e.preventDefault(); window.open('index.html', '_blank');
-                });
-                mainLogo.title = "Go to homepage";
-                mainLogo.style.cursor = 'pointer';
-            }
+document.addEventListener('DOMContentLoaded', () => {
+    const mainLogo = document.getElementById('mainLogo');
+    if (mainLogo) {
+        mainLogo.addEventListener('click', (e) => {
+            if (e.button === 0) window.location.href = 'index.html';
+        });
+        mainLogo.addEventListener('mouseup', (e) => {
+            if (e.button === 1) { e.preventDefault(); window.open('index.html', '_blank'); }
+        });
+        mainLogo.addEventListener('contextmenu', (e) => {
+            e.preventDefault(); window.open('index.html', '_blank');
+        });
+        mainLogo.title = "Go to homepage";
+        mainLogo.style.cursor = 'pointer';
+    }
+
+    // --- Search Navigation Logic ---
+    const searchInput = document.getElementById('searchInput');
+    
+    searchInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
+        }
+    });
+
+    document.getElementById('searchIcon').addEventListener('click', () => {
+        const query = searchInput.value.trim();
+        if (query) {
+            window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+        } else {
+            searchInput.focus();
+        }
+    });
 
             document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
             document.getElementById('sidebarWatchHistory').textContent = getLang('Watch History', 'Wiedergabeverlauf');
@@ -460,8 +478,6 @@
             document.getElementById('sidebarPlaylists').textContent = getLang('Playlists', 'Playlisten');
             document.getElementById('sidebarAbout').textContent = getLang('About', 'Über');
 
-            // NOTE: Search functionality is now handled by search-suggestions.js included below.
-            // The previous local search listeners have been removed to prevent conflicts.
         });
 
         document.addEventListener('DOMContentLoaded', () => {

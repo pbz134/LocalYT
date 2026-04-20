@@ -22,6 +22,7 @@ v4.05
 - User playlists can now be shared
   - Click on the new "Share" button on user_playlists.html to share your own playlists with others who have the link
   - Shared playlists will open on the new "shared_playlists.html" page
+- Fixed the search initiation on all pages
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
