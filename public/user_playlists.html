@@ -37,12 +37,14 @@
             align-items: center;
             justify-content: space-between;
             margin-bottom: 14px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         .playlist-title-group {
             display: flex;
             align-items: baseline;
             gap: 8px;
-            flex-wrap: wrap; /* Allow wrapping if text is long */
+            flex-wrap: wrap;
         }
         .playlist-title {
             font-size: 18px;
@@ -53,13 +55,19 @@
             font-size: 13px;
             color: #888;
         }
-
+        
         .playlist-total-duration {
             font-size: 13px;
             color: #888;
-
         }
-        .playlist-delete-btn {
+        
+        /* Action Buttons Container */
+        .playlist-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .playlist-btn {
             background: none;
             border: 1px solid #555;
             color: #aaa;
@@ -68,12 +76,26 @@
             cursor: pointer;
             font-size: 13px;
             font-family: 'RobotoRegular', Arial, sans-serif;
-            transition: border-color 0.2s, color 0.2s;
+            transition: border-color 0.2s, color 0.2s, background 0.2s;
         }
+        .playlist-btn:hover {
+            border-color: #fff;
+            color: #fff;
+            background: rgba(255,255,255,0.05);
+        }
+        
+        /* Specific Hover States */
         .playlist-delete-btn:hover {
             border-color: #ff4444;
             color: #ff4444;
+            background: rgba(255, 68, 68, 0.05);
         }
+        .playlist-share-btn:hover {
+            border-color: #3ea6ff;
+            color: #3ea6ff;
+            background: rgba(62, 166, 255, 0.05);
+        }
+
         .playlist-scroll-wrapper {
             position: relative;
         }
@@ -86,20 +108,15 @@
             -ms-overflow-style: none;
             padding: 4px 0;
         }
-        .playlist-videos-grid::-webkit-scrollbar {
-            display: none;
-        }
+        .playlist-videos-grid::-webkit-scrollbar { display: none; }
         .playlist-video-item {
             flex: 0 0 280px;
             position: relative;
         }
-        .playlist-video-item .video-thumbnail {
-            width: 100%;
-            height: auto;
-        }
-        .playlist-video-item .video-description {
-            padding-left: 0;
-        }
+        .playlist-video-item .video-thumbnail { width: 100%; height: auto; }
+        .playlist-video-item .video-description { padding-left: 0; }
+        
+        /* Scroll Arrows */
         .scroll-arrow {
             position: absolute;
             top: 30%;
@@ -115,34 +132,16 @@
             align-items: center;
             justify-content: center;
             z-index: 10;
-            transition: background 0.2s, border-color 0.2s, opacity 0.2s;
+            transition: opacity 0.2s;
             opacity: 0;
             pointer-events: none;
         }
-        .scroll-arrow.visible {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        .scroll-arrow:hover {
-            background: rgba(30, 30, 30, 0.95);
-            border-color: #777;
-        }
-        .scroll-arrow-left {
-            left: 0;
-            border-radius: 0 6px 6px 0;
-            border-left: none;
-        }
-        .scroll-arrow-right {
-            right: 0;
-            border-radius: 6px 0 0 6px;
-            border-right: none;
-        }
-        .scroll-arrow svg {
-            width: 20px;
-            height: 20px;
-            fill: #fff;
-            pointer-events: none;
-        }
+        .scroll-arrow.visible { opacity: 1; pointer-events: auto; }
+        .scroll-arrow:hover { background: rgba(30, 30, 30, 0.95); border-color: #777; }
+        .scroll-arrow-left { left: 0; border-radius: 0 6px 6px 0; border-left: none; }
+        .scroll-arrow-right { right: 0; border-radius: 6px 0 0 6px; border-right: none; }
+        .scroll-arrow svg { width: 20px; height: 20px; fill: #fff; pointer-events: none; }
+        
         .playlist-video-item .remove-video-btn {
             position: absolute;
             top: 5px;
@@ -162,11 +161,91 @@
             transition: opacity 0.2s;
             z-index: 5;
         }
-        .playlist-video-item:hover .remove-video-btn {
-            opacity: 1;
+        .playlist-video-item:hover .remove-video-btn { opacity: 1; }
+        .remove-video-btn:hover { background: #ff4444; }
+
+        /* --- SHARE MODAL STYLES (Matches video.html) --- */
+        .share-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
         }
-        .remove-video-btn:hover {
-            background: #ff4444;
+        .share-modal-content {
+            background-color: #1a1a1a;
+            padding: 25px;
+            border-radius: 8px;
+            text-align: center;
+            width: 350px;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        .share-modal-content h2 {
+            font-family: 'Kaleko205Round', Arial, sans-serif;
+            color: #fff;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        .share-modal-close {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            font-size: 22px;
+            font-weight: bold;
+            color: #aaa;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        .share-modal-close:hover { color: #fff; }
+        
+        .share-modal-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .share-modal-btn {
+            background-color: #cc0000;
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .share-modal-btn:hover { background-color: #c40000; }
+        .share-modal-btn.secondary {
+            background-color: #333;
+            color: #eee;
+        }
+        .share-modal-btn.secondary:hover { background-color: #444; }
+
+        /* Copy Message Toast */
+        .copy-message {
+            display: none;
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1a1a1a;
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 4px;
+            z-index: 2000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            font-size: 14px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
         }
 
         /* Delete confirmation modal */
@@ -190,139 +269,40 @@
             max-width: 400px;
             position: relative;
         }
-        .delete-confirm-content h2 {
-            color: #fff;
-            font-family: 'Kaleko205Round', Arial, sans-serif;
-            margin-bottom: 10px;
-            font-size: 18px;
-        }
-        .delete-confirm-content p {
-            color: #aaa;
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-        .delete-confirm-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-        .delete-confirm-buttons button {
-            padding: 8px 22px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            font-family: 'RobotoRegular', Arial, sans-serif;
-        }
-        .btn-cancel-delete {
-            background: #3f3f3f;
-            color: #fff;
-        }
-        .btn-cancel-delete:hover {
-            background: #555;
-        }
-        .btn-confirm-delete {
-            background: #ff4444;
-            color: #fff;
-        }
-        .btn-confirm-delete:hover {
-            background: #cc0000;
-        }
+        .delete-confirm-content h2 { color: #fff; font-family: 'Kaleko205Round', Arial, sans-serif; margin-bottom: 10px; font-size: 18px; }
+        .delete-confirm-content p { color: #aaa; font-size: 14px; margin-bottom: 20px; }
+        .delete-confirm-buttons { display: flex; gap: 10px; justify-content: center; }
+        .delete-confirm-buttons button { padding: 8px 22px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: 'RobotoRegular', Arial, sans-serif; }
+        .btn-cancel-delete { background: #3f3f3f; color: #fff; }
+        .btn-cancel-delete:hover { background: #555; }
+        .btn-confirm-delete { background: #ff4444; color: #fff; }
+        .btn-confirm-delete:hover { background: #cc0000; }
 
         @media (max-width: 1024px) {
-            .playlists-page {
-                padding: 15px 20px;
-            }
-            .playlist-video-item {
-                flex: 0 0 240px;
-            }
+            .playlists-page { padding: 15px 20px; }
+            .playlist-video-item { flex: 0 0 240px; }
         }
-
         @media (max-width: 768px) {
-            .playlists-page {
-                padding: 15px 15px;
-                margin-top: 55px;
-            }
-            .playlists-header {
-                font-size: 20px;
-                margin-bottom: 18px;
-            }
-            .playlist-section {
-                margin-bottom: 25px;
-                padding-bottom: 15px;
-            }
-            .playlist-title {
-                font-size: 16px;
-            }
-            .playlist-video-item {
-                flex: 0 0 220px;
-            }
-            .playlist-video-item .video-thumbnail {
-                height: 130px;
-            }
-            .playlist-delete-btn {
-                padding: 4px 10px;
-                font-size: 12px;
-            }
-            .scroll-arrow {
-                display: none;
-            }
+            .playlists-page { padding: 15px 15px; margin-top: 55px; }
+            .playlists-header { font-size: 20px; margin-bottom: 18px; }
+            .playlist-section { margin-bottom: 25px; padding-bottom: 15px; }
+            .playlist-title { font-size: 16px; }
+            .playlist-video-item { flex: 0 0 220px; }
+            .playlist-video-item .video-thumbnail { height: 130px; }
+            .playlist-btn { padding: 4px 10px; font-size: 12px; }
+            .scroll-arrow { display: none; }
         }
-
         @media (max-width: 480px) {
-            .playlists-page {
-                padding: 12px 10px;
-            }
-            .playlists-header {
-                font-size: 18px;
-                margin-bottom: 14px;
-            }
-            .playlist-title {
-                font-size: 15px;
-            }
-            .playlist-video-count {
-                font-size: 12px;
-            }
-            .playlist-total-duration {
-                font-size: 12px;
-                width: 100%; /* Stack on very small screens */
-                margin-left: 0;
-                margin-top: 2px;
-            }
-            .playlist-video-item {
-                flex: 0 0 175px;
-            }
-            .playlist-video-item .video-thumbnail {
-                height: 100px;
-            }
-            .playlist-video-item .channel-pic {
-                width: 24px;
-                height: 24px;
-            }
-            .playlist-video-item .video-title {
-                font-size: 12px;
-            }
-            .playlist-video-item .channel-name,
-            .playlist-video-item .video-description {
-                font-size: 11px;
-            }
-            .playlist-video-item .video-info {
-                padding: 8px;
-            }
-            .playlist-video-item .video-details {
-                margin-left: 8px;
-            }
+            .playlists-page { padding: 12px 10px; }
+            .playlists-header { font-size: 18px; margin-bottom: 14px; }
+            .playlist-title { font-size: 15px; }
+            .playlist-video-item { flex: 0 0 175px; }
+            .playlist-video-item .video-thumbnail { height: 100px; }
+            .playlist-header-row { flex-direction: column; align-items: flex-start; }
+            .playlist-actions { width: 100%; justify-content: flex-end; }
         }
-
-        /* --- Search Suggestions Visibility --- */
-        .search-suggestions {
-            display: none; /* Hidden by default when input is empty */
-        }
-
-        /* Show suggestions only when the search container (input) is focused/active */
-        .search-container:focus-within .search-suggestions {
-            display: block;
-        }
+        .search-suggestions { display: none; }
+        .search-container:focus-within .search-suggestions { display: block; }
     </style>
 </head>
 <body>
@@ -334,10 +314,28 @@
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
     </header>
+    
     <div class="playlists-page" id="playlistsPage">
         <h1 class="playlists-header" id="playlistsHeader">Playlists</h1>
         <div id="playlistsContainer"></div>
     </div>
+
+    <!-- Toast for copy feedback -->
+    <div id="copyMessage" class="copy-message">Link copied to clipboard!</div>
+
+    <!-- SHARE MODAL -->
+    <div id="sharePlaylistModal" class="share-modal">
+        <div class="share-modal-content">
+            <button class="share-modal-close" onclick="document.getElementById('sharePlaylistModal').style.display='none'">&times;</button>
+            <h2 id="shareModalTitle">Share Playlist</h2>
+            <div class="share-modal-buttons">
+                <button id="copyLinkBtn" class="share-modal-btn">Copy Link</button>
+                <button id="openLinkBtn" class="share-modal-btn secondary">Copy & Open in New Tab</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELETE MODAL -->
     <div id="deleteModal" class="delete-confirm-modal">
         <div class="delete-confirm-content">
             <h2 id="deleteModalTitle">Delete Playlist</h2>
@@ -348,388 +346,342 @@
             </div>
         </div>
     </div>
+
     <script>
 // --- Language Helper ---
 function getLang(en, de) {
     return localStorage.getItem('language') === 'de' ? de : en;
 }
 
-// Helper to parse "HH:MM:SS" or "MM:SS" string into total seconds
+function stripExtension(filename) {
+    return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+}
+
+function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+
+// Helper to parse duration
 function parseDurationString(durationStr) {
     if (!durationStr) return 0;
     const parts = durationStr.split(':').map(Number);
     let seconds = 0;
-    // Handle HH:MM:SS
-    if (parts.length === 3) {
-        seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
-    } 
-    // Handle MM:SS
-    else if (parts.length === 2) {
-        seconds = parts[0] * 60 + parts[1];
-    }
+    if (parts.length === 3) seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+    else if (parts.length === 2) seconds = parts[0] * 60 + parts[1];
     return seconds;
 }
 
-// Helper to format total seconds back into "HH:MM:SS"
 function formatTotalDuration(totalSeconds) {
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
-    const h = hours.toString().padStart(2, '0');
-    const m = minutes.toString().padStart(2, '0');
-    const s = seconds.toString().padStart(2, '0');
-
+    const h = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+    const s = (totalSeconds % 60).toString().padStart(2, '0');
     return `${h}:${m}:${s}`;
 }
 
-// Handle logo clicks
+// --- TOAST NOTIFICATION (Matches video.html behavior) ---
+const copyMessageEl = document.getElementById('copyMessage');
+
+function showCopyMessage() {
+    copyMessageEl.style.display = 'block';
+    setTimeout(() => { copyMessageEl.style.display = 'none'; }, 2500);
+}
+
+function copyToClipboard(text) {
+    // Create temporary input to ensure compatibility like video.html
+    const tempInput = document.createElement('input');
+    tempInput.value = text;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempInput);
+    showCopyMessage();
+}
+
+// --- SHARE LOGIC ---
+let currentShareUrl = '';
+
+async function openShareModal(playlistName) {
+    try {
+        // 1. Get User ID from session
+        const sessionRes = await fetch('/session-user');
+        
+        // Check if request failed (e.g., not logged in or server error)
+        if (!sessionRes.ok) {
+            console.error("Session fetch failed:", sessionRes.status);
+            alert(getLang("Error: Could not verify user session. Are you logged in?", "Fehler: Benutzersitzung konnte nicht überprüft werden."));
+            return;
+        }
+
+        const userData = await sessionRes.json();
+        
+        // CRITICAL FIX: Check if ID actually exists
+        if (!userData || !userData.id) {
+            console.error("User data missing ID:", userData);
+            alert(getLang("Error: User ID not found. Please refresh the page and try again.", "Fehler: Benutzer-ID nicht gefunden. Bitte Seite neu laden."));
+            return;
+        }
+        
+        // 2. Create Token: Base64(userId:playlistName)
+        const payload = `${userData.id}:${playlistName}`;
+        const token = btoa(payload); 
+        
+        // 3. Construct URL
+        currentShareUrl = `${window.location.origin}/shared_playlist.html?id=${encodeURIComponent(token)}`;
+        
+        // 4. Show Modal
+        document.getElementById('sharePlaylistModal').style.display = 'flex';
+        document.getElementById('shareModalTitle').textContent = getLang(`Share "${playlistName}"`, `"${playlistName}" teilen`);
+
+    } catch (err) {
+        console.error(err);
+        alert(getLang("Error generating link", "Fehler beim Erstellen des Links"));
+    }
+}
+
+// Button Listeners for Modal
+document.getElementById('copyLinkBtn').addEventListener('click', () => {
+    copyToClipboard(currentShareUrl);
+    document.getElementById('sharePlaylistModal').style.display = 'none';
+});
+
+document.getElementById('openLinkBtn').addEventListener('click', () => {
+    copyToClipboard(currentShareUrl);
+    window.open(currentShareUrl, '_blank');
+    document.getElementById('sharePlaylistModal').style.display = 'none';
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
     if (mainLogo) {
-        mainLogo.addEventListener('click', (e) => {
-            if (e.button === 0) window.location.href = 'index.html';
-        });
-        mainLogo.addEventListener('mouseup', (e) => {
-            if (e.button === 1) { e.preventDefault(); window.open('index.html', '_blank'); }
-        });
-        mainLogo.addEventListener('contextmenu', (e) => {
-            e.preventDefault(); window.open('index.html', '_blank');
-        });
-        mainLogotitle = "Go to homepage";
+        mainLogo.addEventListener('click', () => window.location.href = 'index.html');
         mainLogo.style.cursor = 'pointer';
     }
 
-    // --- UI Translation ---
     document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
     document.getElementById('playlistsHeader').textContent = getLang('Playlists', 'Playlisten');
     document.getElementById('deleteModalTitle').textContent = getLang('Delete Playlist', 'Playlist löschen');
     document.getElementById('confirmDeleteBtn').textContent = getLang('Delete', 'Löschen');
     document.getElementById('cancelDeleteBtn').textContent = getLang('Cancel', 'Abbrechen');
 
-    // NOTE: Search functionality is now handled by search-suggestions.js included below.
+    loadPlaylists();
 });
 
-        function stripExtension(filename) {
-            return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
-        }
+let playlistToDelete = null;
 
-        function escapeHtml(text) {
-            const d = document.createElement('div');
-            d.textContent = text;
-            return d.innerHTML;
-        }
+const deleteModal = document.getElementById('deleteModal');
+const deleteModalText = document.getElementById('deleteModalText');
+const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
 
-        let playlistToDelete = null;
-
-        const deleteModal = document.getElementById('deleteModal');
-        const deleteModalText = document.getElementById('deleteModalText');
-        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
-        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-
-        cancelDeleteBtn.addEventListener('click', () => {
+cancelDeleteBtn.addEventListener('click', () => {
+    deleteModal.style.display = 'none';
+    playlistToDelete = null;
+});
+deleteModal.addEventListener('click', (e) => {
+    if (e.target === deleteModal) {
+        deleteModal.style.display = 'none';
+        playlistToDelete = null;
+    }
+});
+confirmDeleteBtn.addEventListener('click', async () => {
+    if (!playlistToDelete) return;
+    try {
+        const response = await fetch('/delete-playlist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: playlistToDelete })
+        });
+        if (response.ok) {
             deleteModal.style.display = 'none';
             playlistToDelete = null;
-        });
+            loadPlaylists();
+        } else {
+            alert(getLang('Error deleting playlist.', 'Fehler beim Löschen der Playlist.'));
+        }
+    } catch (e) { console.error(e); }
+});
 
-        deleteModal.addEventListener('click', (e) => {
-            if (e.target === deleteModal) {
-                deleteModal.style.display = 'none';
-                playlistToDelete = null;
-            }
-        });
+function updateArrowVisibility(wrapper) {
+    const grid = wrapper.querySelector('.playlist-videos-grid');
+    const arrowLeft = wrapper.querySelector('.scroll-arrow-left');
+    const arrowRight = wrapper.querySelector('.scroll-arrow-right');
+    if (!grid || !arrowLeft || !arrowRight) return;
+    const scrollLeft = grid.scrollLeft;
+    const maxScroll = grid.scrollWidth - grid.clientWidth;
+    if (maxScroll <= 0) { arrowLeft.classList.remove('visible'); arrowRight.classList.remove('visible'); return; }
+    arrowLeft.classList.toggle('visible', scrollLeft > 2);
+    arrowRight.classList.toggle('visible', scrollLeft < maxScroll - 2);
+}
 
-        confirmDeleteBtn.addEventListener('click', async () => {
-            if (!playlistToDelete) return;
-            try {
-                const response = await fetch('/delete-playlist', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: playlistToDelete })
-                });
-                if (response.ok) {
-                    deleteModal.style.display = 'none';
-                    playlistToDelete = null;
-                    loadPlaylists();
-                } else {
-                    alert(getLang('Error deleting playlist.', 'Fehler beim Löschen der Playlist.'));
-                }
-            } catch (e) {
-                console.error('Error deleting playlist:', e);
-            }
-            deleteModal.style.display = 'none';
-            playlistToDelete = null;
-        });
+function setupScrollArrows(wrapper) {
+    const grid = wrapper.querySelector('.playlist-videos-grid');
+    const arrowLeft = wrapper.querySelector('.scroll-arrow-left');
+    const arrowRight = wrapper.querySelector('.scroll-arrow-right');
+    if (!grid || !arrowLeft || !arrowRight) return;
+    const itemWidth = (grid.querySelector('.playlist-video-item')?.offsetWidth || 280) + 15;
+    arrowLeft.addEventListener('click', () => grid.scrollBy({ left: -(itemWidth * 3), behavior: 'smooth' }));
+    arrowRight.addEventListener('click', () => grid.scrollBy({ left: itemWidth * 3, behavior: 'smooth' }));
+    grid.addEventListener('scroll', () => updateArrowVisibility(wrapper));
+    wrapper.addEventListener('mouseenter', () => updateArrowVisibility(wrapper));
+    requestAnimationFrame(() => updateArrowVisibility(wrapper));
+    new ResizeObserver(() => updateArrowVisibility(wrapper)).observe(grid);
+}
 
-        function updateArrowVisibility(wrapper) {
-            const grid = wrapper.querySelector('.playlist-videos-grid');
-            const arrowLeft = wrapper.querySelector('.scroll-arrow-left');
-            const arrowRight = wrapper.querySelector('.scroll-arrow-right');
+function setupChannelLinkEvents(element, channel) {
+    const url = `channel.html?channel=${encodeURIComponent(channel)}`;
+    element.addEventListener('click', () => window.location.href = url);
+    element.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(url, '_blank'); });
+    element.addEventListener('mouseup', (e) => { if (e.button === 1) { e.preventDefault(); window.open(url, '_blank'); } });
+}
 
-            if (!grid || !arrowLeft || !arrowRight) return;
+async function loadPlaylists() {
+    const container = document.getElementById('playlistsContainer');
+    container.innerHTML = '';
+    try {
+        const response = await fetch('/user-playlist-details');
+        if (response.status === 401) return container.innerHTML = '<div class="no-playlists">' + getLang('Please log in.', 'Bitte melden Sie sich an.') + '</div>';
+        if (!response.ok) throw new Error('Failed to load');
 
-            const scrollLeft = grid.scrollLeft;
-            const maxScroll = grid.scrollWidth - grid.clientWidth;
+        const playlists = await response.json();
+        const names = Object.keys(playlists);
 
-            if (maxScroll <= 0) {
-                arrowLeft.classList.remove('visible');
-                arrowRight.classList.remove('visible');
-                return;
-            }
-
-            if (scrollLeft <= 2) {
-                arrowLeft.classList.remove('visible');
-            } else {
-                arrowLeft.classList.add('visible');
-            }
-
-            if (scrollLeft >= maxScroll - 2) {
-                arrowRight.classList.remove('visible');
-            } else {
-                arrowRight.classList.add('visible');
-            }
+        if (names.length === 0) {
+            container.innerHTML = '<div class="no-playlists">' + getLang('No playlists yet.', 'Noch keine Playlisten.') + '</div>';
+            return;
         }
 
-        function setupScrollArrows(wrapper) {
-            const grid = wrapper.querySelector('.playlist-videos-grid');
-            const arrowLeft = wrapper.querySelector('.scroll-arrow-left');
-            const arrowRight = wrapper.querySelector('.scroll-arrow-right');
+        names.forEach(name => {
+            const videos = playlists[name];
+            const section = document.createElement('div');
+            section.className = 'playlist-section';
 
-            if (!grid || !arrowLeft || !arrowRight) return;
+            const headerRow = document.createElement('div');
+            headerRow.className = 'playlist-header-row';
 
-            const firstItem = grid.querySelector('.playlist-video-item');
-            const itemWidth = firstItem ? firstItem.offsetWidth + 15 : 295;
-            arrowLeft.addEventListener('click', () => {
-                grid.scrollBy({ left: -(itemWidth * 3), behavior: 'smooth' });
+            const titleGroup = document.createElement('div');
+            titleGroup.className = 'playlist-title-group';
+            
+            const countText = videos.length === 1 ? ('1 ' + getLang('video', 'Video')) : (videos.length + ' ' + getLang('videos', 'Videos'));
+            titleGroup.innerHTML = `<span class="playlist-title">${escapeHtml(name)}</span><span class="playlist-video-count">${countText}</span>`;
+            
+            const durationSpan = document.createElement('span');
+            durationSpan.className = 'playlist-total-duration';
+            titleGroup.appendChild(durationSpan);
+
+            // Action Buttons Wrapper
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'playlist-actions';
+
+            // Share Button
+            const shareBtn = document.createElement('button');
+            shareBtn.className = 'playlist-btn playlist-share-btn';
+            shareBtn.textContent = getLang('Share', 'Teilen');
+            shareBtn.onclick = () => openShareModal(name);
+
+            // Delete Button
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'playlist-btn playlist-delete-btn';
+            deleteBtn.textContent = getLang('Delete', 'Löschen');
+            deleteBtn.addEventListener('click', () => {
+                playlistToDelete = name;
+                deleteModalText.textContent = getLang('Are you sure you want to delete "', 'Bist du sicher, dass du "') + escapeHtml(name) + getLang('"?', '" löschen möchtest?');
+                deleteModal.style.display = 'flex';
             });
-            arrowRight.addEventListener('click', () => {
-                grid.scrollBy({ left: itemWidth * 3, behavior: 'smooth' });
-            });
 
-            grid.addEventListener('scroll', () => updateArrowVisibility(wrapper));
+            actionsDiv.appendChild(shareBtn);
+            actionsDiv.appendChild(deleteBtn);
+            
+            headerRow.appendChild(titleGroup);
+            headerRow.appendChild(actionsDiv);
+            section.appendChild(headerRow);
 
-            // Also show arrows on hover when content overflows
-            wrapper.addEventListener('mouseenter', () => updateArrowVisibility(wrapper));
+            if (videos.length > 0) {
+                const scrollWrapper = document.createElement('div');
+                scrollWrapper.className = 'playlist-scroll-wrapper';
+                
+                const arrowLeft = document.createElement('button');
+                arrowLeft.className = 'scroll-arrow scroll-arrow-left';
+                arrowLeft.innerHTML = '<svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>';
+                const arrowRight = document.createElement('button');
+                arrowRight.className = 'scroll-arrow scroll-arrow-right';
+                arrowRight.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>';
 
-            // Initial check after layout
-            requestAnimationFrame(() => updateArrowVisibility(wrapper));
+                const grid = document.createElement('div');
+                grid.className = 'playlist-videos-grid';
+                let currentTotalSecs = 0;
 
-            // Re-check on resize
-            const ro = new ResizeObserver(() => updateArrowVisibility(wrapper));
-            ro.observe(grid);
-        }
-
-        async function loadPlaylists() {
-            const container = document.getElementById('playlistsContainer');
-            container.innerHTML = '';
-
-            try {
-                const response = await fetch('/user-playlist-details');
-                if (response.status === 401) {
-                    container.innerHTML = '<div class="no-playlists">' + getLang('Please log in to view your playlists.', 'Bitte melden Sie sich an, um Ihre Playlisten anzuzeigen.') + '</div>';
-                    return;
-                }
-                if (!response.ok) {
-                    container.innerHTML = '<div class="no-playlists">' + getLang('Error loading playlists.', 'Fehler beim Laden der Playlisten.') + '</div>';
-                    return;
-                }
-
-                const playlists = await response.json();
-                const playlistNames = Object.keys(playlists);
-
-                if (playlistNames.length === 0) {
-                    container.innerHTML = '<div class="no-playlists">' + getLang('No playlists yet. Save videos from any video page to create your first playlist.', 'Noch keine Playlisten. Speichern Sie Videos von einer beliebigen Videoseite, um Ihre erste Playlist zu erstellen.') + '</div>';
-                    return;
-                }
-
-                playlistNames.forEach(name => {
-                    const videos = playlists[name];
-                    const section = document.createElement('div');
-                    section.className = 'playlist-section';
-
-                    const headerRow = document.createElement('div');
-                    headerRow.className = 'playlist-header-row';
-
-                    const titleGroup = document.createElement('div');
-                    titleGroup.className = 'playlist-title-group';
+                videos.forEach(video => {
+                    const item = document.createElement('div');
+                    item.className = 'playlist-video-item';
                     
-                    const videoCountText = videos.length === 1 
-                        ? ('1 ' + getLang('video', 'Video')) 
-                        : (videos.length + ' ' + getLang('videos', 'Videos'));
-                        
-                    titleGroup.innerHTML = '<span class="playlist-title">' + escapeHtml(name) + '</span><span class="playlist-video-count">' + videoCountText + '</span>';
-                    
-                    // Create element for Total Duration
-                    const durationSpan = document.createElement('span');
-                    durationSpan.className = 'playlist-total-duration';
-                    titleGroup.appendChild(durationSpan);
+                    const vTitle = video.displayName || video.path;
+                    const vBase = stripExtension(video.path);
+                    const thumbSrc = '/thumbnails/' + encodeURIComponent(vBase) + '.jpg';
+                    const channel = video.path.split('/')[0];
+                    const chPicSrc = '/channelpic/' + encodeURIComponent(channel) + '.jpg';
+                    const vUrl = 'video.html?src=' + encodeURIComponent(video.path);
 
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.className = 'playlist-delete-btn';
-                    deleteBtn.textContent = getLang('Delete', 'Löschen');
-                    deleteBtn.addEventListener('click', () => {
-                        playlistToDelete = name;
-                        deleteModalText.textContent = getLang('Are you sure you want to delete "', 'Bist du sicher, dass du "') + escapeHtml(name) + getLang('"? This cannot be undone.', '" löschen möchtest? Dies kann nicht rückgängig gemacht werden.');
-                        deleteModal.style.display = 'flex';
+                    item.innerHTML = `
+                        <button class="remove-video-btn" title="${getLang('Remove', 'Entfernen')}">&times;</button>
+                        <div class="thumbnail-container">
+                            <img src="${thumbSrc}" alt="${escapeHtml(vTitle)}" class="video-thumbnail" loading="lazy">
+                            <div class="video-length"></div>
+                        </div>
+                        <div class="video-info">
+                            <div class="channel-pic-link" style="cursor:pointer;">
+                                <img src="${chPicSrc}" class="channel-pic" loading="lazy">
+                            </div>
+                            <div class="video-details">
+                                <div class="video-title" style="cursor:pointer;">${escapeHtml(vTitle)}</div>
+                                <div class="channel-name" style="cursor:pointer;">${escapeHtml(channel)}</div>
+                                <div class="video-description">${video.viewCount} ${getLang('views', 'Aufrufe')}${video.fileDate ? ' &bull; ' + video.fileDate : ''}</div>
+                            </div>
+                        </div>`;
+
+                    grid.appendChild(item);
+
+                    item.querySelector('.thumbnail-container').addEventListener('click', () => location.href = vUrl);
+                    item.querySelector('.video-title').addEventListener('click', () => location.href = vUrl);
+                    setupChannelLinkEvents(item.querySelector('.channel-pic-link'), channel);
+                    setupChannelLinkEvents(item.querySelector('.channel-name'), channel);
+
+                    item.querySelector('.remove-video-btn').addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        const res = await fetch('/remove-from-playlist', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({playlist: name, video: video.path})
+                        });
+                        if(res.ok) { item.style.opacity='0'; setTimeout(loadPlaylists, 300); }
                     });
 
-                    headerRow.appendChild(titleGroup);
-                    headerRow.appendChild(deleteBtn);
-                    section.appendChild(headerRow);
-
-                    if (videos.length > 0) {
-                        const scrollWrapper = document.createElement('div');
-                        scrollWrapper.className = 'playlist-scroll-wrapper';
-
-                        const arrowLeft = document.createElement('button');
-                        arrowLeft.className = 'scroll-arrow scroll-arrow-left';
-                        arrowLeft.setAttribute('aria-label', 'Scroll left');
-                        arrowLeft.innerHTML = '<svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>';
-
-                        const arrowRight = document.createElement('button');
-                        arrowRight.className = 'scroll-arrow scroll-arrow-right';
-                        arrowRight.setAttribute('aria-label', 'Scroll right');
-                        arrowRight.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>';
-
-                        const grid = document.createElement('div');
-                        grid.className = 'playlist-videos-grid';
-
-                        // Variable to track total duration for this specific playlist
-                        let currentPlaylistTotalSeconds = 0;
-
-                        videos.forEach(video => {
-                            const item = document.createElement('div');
-                            item.className = 'playlist-video-item';
-
-                            const videoTitle = video.displayName || video.path;
-                            const videoPathWithoutExt = stripExtension(video.path);
-                            const thumbnailSrc = '/thumbnails/' + encodeURIComponent(videoPathWithoutExt) + '.jpg';
-                            const channel = video.path.split('/')[0];
-                            const channelPicSrc = '/channelpic/' + encodeURIComponent(channel) + '.jpg';
-
-                            item.innerHTML = '<button class="remove-video-btn" title="' + getLang('Remove from playlist', 'Von Playlist entfernen') + '">&times;</button>' +
-                                '<div class="thumbnail-container">' +
-                                    '<img src="' + thumbnailSrc + '" alt="' + escapeHtml(videoTitle) + '" class="video-thumbnail" loading="lazy">' +
-                                    '<div class="video-length"></div>' +
-                                '</div>' +
-                                '<div class="video-info">' +
-                                    '<div class="channel-pic-link" style="cursor: pointer;">' +
-                                        '<img src="' + channelPicSrc + '" alt="' + escapeHtml(channel) + '" class="channel-pic" loading="lazy">' +
-                                    '</div>' +
-                                    '<div class="video-details">' +
-                                        '<div class="video-title">' + escapeHtml(videoTitle) + '</div>' +
-                                        '<div class="channel-name">' + escapeHtml(channel) + '</div>' +
-                                        '<div class="video-description">' + video.viewCount + ' ' + getLang('views', 'Aufrufe') + (video.fileDate ? ' &bull; ' + video.fileDate : '') + '</div>' +
-                                    '</div>' +
-                                '</div>';
-
-                            grid.appendChild(item);
-
-                            // Click handlers for video navigation
-                            const thumbContainer = item.querySelector('.thumbnail-container');
-                            const titleEl = item.querySelector('.video-title');
-                            const videoUrl = 'video.html?src=' + encodeURIComponent(video.path);
-
-                            thumbContainer.addEventListener('click', () => { window.location.href = videoUrl; });
-                            titleEl.addEventListener('click', () => { window.location.href = videoUrl; });
-                            titleEl.style.cursor = 'pointer';
-
-                            thumbContainer.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(videoUrl, '_blank'); });
-                            titleEl.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(videoUrl, '_blank'); });
-                            thumbContainer.addEventListener('mouseup', (e) => { if (e.button === 1) { e.preventDefault(); window.open(videoUrl, '_blank'); } });
-                            titleEl.addEventListener('mouseup', (e) => { if (e.button === 1) { e.preventDefault(); window.open(videoUrl, '_blank'); } });
-
-                            // --- MODIFICATION: Setup events for channel pic links ---
-                            setupChannelLinkEvents(item.querySelector('.channel-pic-link'), channel);
-                            setupChannelLinkEvents(item.querySelector('.channel-name'), channel);
-
-                            // Remove button
-                            const removeBtn = item.querySelector('.remove-video-btn');
-                            removeBtn.addEventListener('click', async (e) => {
-                                e.stopPropagation();
-                                try {
-                                    const res = await fetch('/remove-from-playlist', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ playlist: name, video: video.path })
-                                    });
-                                    if (res.ok) {
-                                        item.style.transition = 'opacity 0.3s';
-                                        item.style.opacity = '0';
-                                        setTimeout(() => {
-                                            loadPlaylists();
-                                        }, 300);
-                                    }
-                                } catch (err) {
-                                    console.error('Error removing video:', err);
-                                }
-                            });
-
-                            // Fetch video length
-                            const videoFilename = video.path.split('/').pop();
-                            const videoNameWithoutExt = stripExtension(videoFilename);
-                            fetch('/videolengths/' + encodeURIComponent(channel) + '/' + encodeURIComponent(videoNameWithoutExt) + '.txt')
-                                .then(r => r.text())
-                                .then(length => {
-                                    const lengthEl = item.querySelector('.video-length');
-                                    if (lengthEl) lengthEl.textContent = length;
-
-                                    // Calculate and Update Total Duration
-                                    const secs = parseDurationString(length.trim());
-                                    currentPlaylistTotalSeconds += secs;
-                                    
-                                    const formattedTotal = formatTotalDuration(currentPlaylistTotalSeconds);
-                                    durationSpan.textContent = `• ${getLang('Total duration', 'Gesamtdauer')}: ${formattedTotal}`;
-                                })
-                                .catch(() => {});
-                        });
-
-                        scrollWrapper.appendChild(arrowLeft);
-                        scrollWrapper.appendChild(grid);
-                        scrollWrapper.appendChild(arrowRight);
-                        section.appendChild(scrollWrapper);
-
-                        // Setup arrow visibility after DOM insertion
-                        requestAnimationFrame(() => setupScrollArrows(scrollWrapper));
-                    }
-
-                    container.appendChild(section);
+                    const vFile = video.path.split('/').pop();
+                    const vName = stripExtension(vFile);
+                    fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(vName)}.txt`)
+                        .then(r=>r.text())
+                        .then(len => {
+                            item.querySelector('.video-length').textContent = len;
+                            currentTotalSecs += parseDurationString(len.trim());
+                            durationSpan.textContent = `• ${getLang('Total duration', 'Gesamtdauer')}: ${formatTotalDuration(currentTotalSecs)}`;
+                        })
+                        .catch(()=>{});
                 });
-            } catch (e) {
-                console.error('Error loading playlists:', e);
-                container.innerHTML = '<div class="no-playlists">' + getLang('Error loading playlists.', 'Fehler beim Laden der Playlisten.') + '</div>';
+
+                scrollWrapper.append(arrowLeft, grid, arrowRight);
+                section.appendChild(scrollWrapper);
+                requestAnimationFrame(() => setupScrollArrows(scrollWrapper));
             }
-        }
-
-        // --- NEW FUNCTION: Setup events for channel links (matches index.html behavior) ---
-        function setupChannelLinkEvents(element, channel) {
-            // Handle left click
-            element.addEventListener('click', () => {
-                window.location.href = `channel.html?channel=${encodeURIComponent(channel)}`;
-            });
-
-            // Handle right-click
-            element.addEventListener('contextmenu', (event) => {
-                event.preventDefault();
-                window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
-            });
-
-            // Handle middle-click
-            element.addEventListener('mouseup', (event) => {
-                if (event.button === 1) {
-                    event.preventDefault();
-                    window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
-                }
-            });
-        }
-
-        // Load playlists on start
-        document.addEventListener('DOMContentLoaded', () => {
-            loadPlaylists();
+            container.appendChild(section);
         });
+
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = '<div class="no-playlists">Error</div>';
+    }
+}
     </script>
-    
-    <!-- ADDED: This script provides the search history and autocomplete features -->
     <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>
 </body>

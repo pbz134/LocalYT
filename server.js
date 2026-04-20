@@ -190,6 +190,7 @@ app.use('/videostats', express.static(path.join(__dirname, 'videostats')));
 app.use('/descriptions', express.static(path.join(__dirname, 'descriptions')));
 app.use('/comments', express.static(path.join(__dirname, 'comments')));
 app.use('/subtitles', express.static(path.join(__dirname, 'subtitles')));
+app.use('/livechats', express.static(path.join(__dirname, 'livechats')));
 app.use('/user-profiles', express.static(path.join(__dirname, 'user-profiles')));
 app.use('/favicon.png', express.static(path.join(__dirname, 'favicon.png')));
 
@@ -1876,13 +1877,26 @@ app.get('/logout', (req, res) => {
 app.get('/session-user', (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).json({ error: 'Not logged in' });
+    
     const usersFilePath = path.join(__dirname, 'users.json');
     fs.readFile(usersFilePath, 'utf8', (err, data) => {
         if (err) return res.status(500).json({ error: 'Error reading users' });
-        const usersData = JSON.parse(data);
-        const username = Object.keys(usersData).find(key => usersData[key].id === userId);
-        if (username) res.json({ username: username });
-        else res.status(404).json({ error: 'User not found' });
+        
+        try {
+            const usersData = JSON.parse(data);
+            const username = Object.keys(usersData).find(key => usersData[key].id === userId);
+            
+            if (username) {
+                res.json({ 
+                    username: username, 
+                    id: userId 
+                });
+            } else {
+                res.status(404).json({ error: 'User not found' });
+            }
+        } catch (e) {
+             res.status(500).json({ error: 'Server error' });
+        }
     });
 });
 
@@ -2403,6 +2417,51 @@ app.use((err, req, res, next) => {
     
     // Default error
     res.status(500).send('Internal server error');
+});
+
+// --- SHARED PLAYLIST ROUTE ---
+app.get('/shared-playlist', (req, res) => {
+    const { id } = req.query; // id = base64 encoded "userId:playlistName"
+
+    if (!id) return res.status(400).send('Missing playlist ID');
+
+    try {
+        const decoded = Buffer.from(id, 'base64').toString('utf8');
+        const [userId, playlistName] = decoded.split(':');
+
+        if (!userId || !playlistName) return res.status(400).send('Invalid playlist ID');
+
+        // Read playlists file
+        const playlistsFilePath = path.join(__dirname, 'user-playlists.json');
+        if (!fs.existsSync(playlistsFilePath)) return res.status(404).send('Playlist not found');
+
+        const data = fs.readFileSync(playlistsFilePath, 'utf8');
+        const allPlaylists = JSON.parse(data);
+        
+        // Access specific user's playlist
+        const userPlaylists = allPlaylists[userId];
+        if (!userPlaylists || !userPlaylists[playlistName]) {
+            return res.status(404).send('Playlist not found');
+        }
+
+        const videoPaths = userPlaylists[playlistName];
+
+        // Enrich with video details (similar to /user-playlist-details)
+        const validVideos = videoPaths.filter(vPath => videoCache.has(vPath));
+        const result = validVideos.map(vPath => {
+            const video = videoCache.get(vPath);
+            return getVideoDetails([video])[0];
+        });
+
+        res.json({
+            name: playlistName,
+            videos: result
+        });
+
+    } catch (err) {
+        console.error('Error loading shared playlist:', err);
+        res.status(500).send('Error loading playlist');
+    }
 });
 
 app.listen(PORT, () => {

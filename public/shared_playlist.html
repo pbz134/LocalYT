@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Playlist - LocalYT</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
+    <style>
+        body { 
+            background: #0f0f0f; 
+            color: #fff; 
+            font-family: 'RobotoRegular', Arial, sans-serif; 
+            margin: 0;
+            padding-top: 60px; /* Space for fixed header */
+        }
+        
+        /* --- Header & Nav (Matches user_playlists.html) --- */
+        .container {
+            max-width: 1200px;
+            margin: 20px auto 40px;
+            padding: 0 20px;
+        }
+        
+        .back-link {
+            color: #3ea6ff;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 15px;
+            display:inline-block;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+        }
+        .back-link:hover { text-decoration: underline; }
+
+        .header-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 20px;
+        }
+        .header-info h1 {
+            margin: 0;
+            font-size: 24px;
+            font-family: 'Kaleko205Round', sans-serif;
+            color: #fff;
+        }
+        .header-info p {
+            margin: 5px 0 0;
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        /* Video Grid */
+        .video-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); 
+            gap: 20px 16px; 
+        }
+        
+        .video-card { 
+            cursor: pointer; 
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .thumbnail-container { 
+            position: relative; 
+            margin-bottom: 10px; 
+            border-radius: 8px; 
+            overflow: hidden; 
+            aspect-ratio: 16/9;
+            background: #222;
+        }
+        
+        .video-thumb { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            display: block; 
+            transition: transform 0.2s;
+        }
+        
+        .duration-badge { 
+            position: absolute; 
+            bottom: 5px; 
+            right: 5px; 
+            background: rgba(0,0,0,0.8); 
+            color: #fff; 
+            padding: 2px 4px; 
+            border-radius: 4px; 
+            font-size: 12px; 
+            font-weight: bold; 
+        }
+        
+        .video-meta .title { 
+            font-size: 14px; 
+            font-weight: bold; 
+            margin-bottom: 4px; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            line-height: 1.3;
+            color: #fff;
+        }
+        .video-meta .meta { 
+            font-size: 12px; 
+            color: #aaa; 
+        }
+
+        /* Error State */
+        .error-msg { 
+            text-align: center; 
+            margin-top: 80px; 
+            color: #888; 
+            font-size: 16px;
+        }
+
+        /* Loading Spinner */
+        .loader {
+            border: 3px solid #333;
+            border-top: 3px solid #fff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 100px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .video-grid { grid-template-columns: 1fr; }
+            .header-info { flex-direction: column; align-items: flex-start; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- STANDARD HEADER -->
+    <header class="top-bar">
+        <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo" style="cursor:pointer;">
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="">
+            <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
+            <div id="searchSuggestions" class="search-suggestions"></div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- TRANSLATED BACK LINK -->
+        <a href="/" class="back-link" id="homeLink">&larr; Go to LocalYT Home</a>
+        <div id="content">
+            <div class="loader"></div> <!-- Loading State -->
+        </div>
+    </div>
+
+    <!-- Scripts: Profile Pic & Search Logic (Standard includes) -->
+    <script src="profile-pic.js"></script> <!-- Handles Account Icon & Modal -->
+    <script src="search-suggestions.js"></script> <!-- Handles Search Bar -->
+
+    <script>
+        // --- Language Helper ---
+        function getLang(en, de) {
+            return localStorage.getItem('language') === 'de' ? de : en;
+        }
+
+        // Helper to escape HTML entities
+        function escapeHtml(text) {
+            const d = document.createElement('div');
+            d.textContent = text;
+            return d.innerHTML;
+        }
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // Setup Logo
+            const mainLogo = document.getElementById('mainLogo');
+            if (mainLogo) {
+                mainLogo.onclick = () => window.location.href = 'index.html';
+            }
+
+            // Translate Static Elements
+            const searchInput = document.getElementById('searchInput');
+            if(searchInput) searchInput.placeholder = getLang('Search', 'Suchen');
+
+            const homeLink = document.getElementById('homeLink');
+            if(homeLink) homeLink.innerHTML = `&larr; ${getLang('Go to LocalYT Home', 'Zurück zur LocalYT Startseite')}`;
+
+            // Load Data
+            loadSharedPlaylist();
+        });
+
+        async function loadSharedPlaylist() {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
+            const contentDiv = document.getElementById('content');
+
+            if (!id) {
+                return contentDiv.innerHTML = '<div class="error-msg">' + getLang('Invalid link.', 'Ungültiger Link.') + '</div>';
+            }
+
+            try {
+                const res = await fetch(`/shared-playlist?id=${id}`);
+                
+                if (!res.ok) {
+                    if (res.status === 404) throw new Error(getLang('Playlist not found or removed.', 'Playlist nicht gefunden oder entfernt.'));
+                    throw new Error(getLang('Error loading playlist', 'Fehler beim Laden der Playlist'));
+                }
+
+                const data = await res.json();
+
+                // Render Header
+                const header = document.createElement('div');
+                header.className = 'header-info';
+                header.innerHTML = `
+                    <div style="flex:1;">
+                        <h1>${escapeHtml(data.name)}</h1>
+                        <p>${getLang('Shared Playlist', 'Geteilte Playlist')} &bull; ${data.videos.length} ${getLang('videos', 'Videos')}</p>
+                    </div>
+                `;
+                contentDiv.innerHTML = '';
+                contentDiv.appendChild(header);
+
+                // Render Grid
+                const grid = document.createElement('div');
+                grid.className = 'video-grid';
+
+                data.videos.forEach(video => {
+                    const card = document.createElement('div');
+                    card.className = 'video-card';
+                    
+                    // Construct paths
+                    const path = encodeURIComponent(video.path);
+                    const thumbPath = '/thumbnails/' + encodeURIComponent(video.path.replace(/\.(mp4|mp3|mkv)$/, '')) + '.jpg';
+                    const channel = video.path.split('/')[0];
+
+                    card.innerHTML = `
+                        <div class="thumbnail-container">
+                            <img src="${thumbPath}" alt="" class="video-thumb" onerror="this.style.display='none'">
+                            <div class="duration-badge"></div>
+                        </div>
+                        <div class="video-meta">
+                            <div class="title">${escapeHtml(video.displayName || video.path)}</div>
+                            <div class="meta">${escapeHtml(channel)} &bull; ${video.viewCount} ${getLang('views', 'Aufrufe')}</div>
+                        </div>
+                    `;
+                    
+                    // Click navigation
+                    card.onclick = () => window.location.href = `video.html?src=${path}`;
+                    
+                    grid.appendChild(card);
+
+                    // Fetch Length
+                    const vFile = video.path.split('/').pop();
+                    const vName = vFile.replace(/\.(mp4|mp3|mkv)$/, '');
+                    fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(vName)}.txt`)
+                        .then(r => r.text())
+                        .then(t => card.querySelector('.duration-badge').textContent = t.trim())
+                        .catch(() => {});
+                });
+
+                contentDiv.appendChild(grid);
+
+            } catch (err) {
+                console.error(err);
+                contentDiv.innerHTML = `<div class="error-msg">${err.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

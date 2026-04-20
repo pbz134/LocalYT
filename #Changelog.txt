@@ -19,6 +19,9 @@ v4.05
 - Implemented Live Chat Replay support
   - If you have .json files of livestream chat replays, they can now be played back on video.html
   - File structure: /livechats/channel name/video name.json
+- User playlists can now be shared
+  - Click on the new "Share" button on user_playlists.html to share your own playlists with others who have the link
+  - Shared playlists will open on the new "shared_playlists.html" page
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
