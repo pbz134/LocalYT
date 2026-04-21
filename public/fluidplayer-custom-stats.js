@@ -146,12 +146,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const timestampUrl = `${url}${separator}t=${t}`;
             
             copyToClipboard(timestampUrl, wrapper);
-            menu.style.display = 'none';
+            menu.style.display = 'none'; // Close menu after click
         });
 
         // --- Logic: Stats Toggle ---
         statsItem.addEventListener('click', function(e) {
             e.stopPropagation();
+            
             let overlay = wrapper.querySelector('.fp_stats_overlay');
 
             if (overlay) {
@@ -159,6 +160,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (wrapper._statsInterval) clearInterval(wrapper._statsInterval);
                 // Stop FPS counter
                 if (wrapper._fpsFrameId) cancelAnimationFrame(wrapper._fpsFrameId);
+                
+                // --- FIX ADDED HERE: Close menu when toggling stats off ---
+                menu.style.display = 'none'; 
                 return;
             }
 
@@ -243,6 +247,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             updateStats();
             wrapper._statsInterval = setInterval(updateStats, 1000); // Update every 1s
+
+            // --- FIX ADDED HERE: Close menu when toggling stats on ---
+            menu.style.display = 'none';
         });
 
 
