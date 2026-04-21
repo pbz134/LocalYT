@@ -24,6 +24,7 @@ v4.05
   - Shared playlists will open on the new "shared_playlists.html" page
 - Fixed the search initiation on all pages
 - #Launch-Server.bat now displays a LocalYT GitHub link
+- Fixed right clicks and mouse wheel clicks on user_playlists.html
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist

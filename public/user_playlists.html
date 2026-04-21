@@ -547,11 +547,64 @@ function setupScrollArrows(wrapper) {
     new ResizeObserver(() => updateArrowVisibility(wrapper)).observe(grid);
 }
 
+// Updated helper for Channel Links
 function setupChannelLinkEvents(element, channel) {
     const url = `channel.html?channel=${encodeURIComponent(channel)}`;
-    element.addEventListener('click', () => window.location.href = url);
-    element.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(url, '_blank'); });
-    element.addEventListener('mouseup', (e) => { if (e.button === 1) { e.preventDefault(); window.open(url, '_blank'); } });
+    
+    element.addEventListener('mousedown', (e) => {
+        // Prevent middle-click autoscroll / text selection
+        if (e.button === 1) { 
+            e.preventDefault(); 
+        }
+    });
+
+    element.addEventListener('click', (e) => {
+        // Only navigate on Left Click (Button 0)
+        if (e.button === 0) {
+            window.location.href = url;
+        }
+    });
+
+    element.addEventListener('contextmenu', (e) => {
+        e.preventDefault(); 
+        window.open(url, '_blank'); 
+    });
+    
+    element.addEventListener('mouseup', (e) => {
+        if (e.button === 1) { 
+            e.preventDefault(); 
+            window.open(url, '_blank'); 
+        }
+    });
+}
+
+// Helper for Video Links (Thumbnails/Titles)
+function setupVideoLinkEvents(element, url) {
+    element.addEventListener('mousedown', (e) => {
+        // Prevent middle-click autoscroll / text selection
+        if (e.button === 1) { 
+            e.preventDefault(); 
+        }
+    });
+
+    element.addEventListener('click', (e) => {
+        // Only navigate on Left Click (Button 0)
+        if (e.button === 0) {
+            location.href = url;
+        }
+    });
+
+    element.addEventListener('contextmenu', (e) => {
+        e.preventDefault(); 
+        window.open(url, '_blank'); 
+    });
+
+    element.addEventListener('mouseup', (e) => {
+        if (e.button === 1) { 
+            e.preventDefault(); 
+            window.open(url, '_blank'); 
+        }
+    });
 }
 
 async function loadPlaylists() {
@@ -628,6 +681,10 @@ async function loadPlaylists() {
 
                 const grid = document.createElement('div');
                 grid.className = 'playlist-videos-grid';
+                
+                // Prevent mouse wheel scrolling on the grid
+                grid.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
+
                 let currentTotalSecs = 0;
 
                 videos.forEach(video => {
@@ -660,8 +717,11 @@ async function loadPlaylists() {
 
                     grid.appendChild(item);
 
-                    item.querySelector('.thumbnail-container').addEventListener('click', () => location.href = vUrl);
-                    item.querySelector('.video-title').addEventListener('click', () => location.href = vUrl);
+                    // Apply event handlers for Video Links
+                    setupVideoLinkEvents(item.querySelector('.thumbnail-container'), vUrl);
+                    setupVideoLinkEvents(item.querySelector('.video-title'), vUrl);
+                    
+                    // Channel Links
                     setupChannelLinkEvents(item.querySelector('.channel-pic-link'), channel);
                     setupChannelLinkEvents(item.querySelector('.channel-name'), channel);
 
