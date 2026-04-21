@@ -23,6 +23,7 @@ v4.05
   - Click on the new "Share" button on user_playlists.html to share your own playlists with others who have the link
   - Shared playlists will open on the new "shared_playlists.html" page
 - Fixed the search initiation on all pages
+- #Launch-Server.bat now displays a LocalYT GitHub link
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
