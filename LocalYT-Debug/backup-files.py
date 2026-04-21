@@ -30,7 +30,7 @@ DIRS_TO_BACKUP = [
 ]
 
 # Define metadata file extensions to scan for
-METADATA_EXTENSIONS = {'.png', '.txt', '.jpg', '.json'}
+METADATA_EXTENSIONS = {'.png', '.txt', '.jpg', '.json', '.webp'}
 
 # Directory names to exclude from scanning (at any level)
 EXCLUDED_DIRS = {'node_modules', 'venv'}

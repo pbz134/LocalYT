@@ -526,7 +526,132 @@
             to { transform: rotate(360deg); }
         }
 
-        /* --- FIX: Prevent Middle-Click Autoscroll (Pan Mode) --- */
+        /* --- Posts Tab Styles --- */
+        .posts-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin-left: 230px;
+            max-width: 600px;
+            gap: 20px;
+        }
+        .post-item {
+            width: 100%;
+            background-color: var(--main-bg-color);
+            border-radius: 8px;
+            overflow: hidden;
+            box-sizing: border-box;
+            border: 1px solid #3f3f3f;
+        }
+        .post-header {
+            display: flex;
+            align-items: flex-start;
+            padding: 30px 16px 0 0px;
+            gap: 12px;
+        }
+        .post-channel-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .post-header-info {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .post-author-name {
+            font-weight: bold;
+            color: #fff;
+            font-size: 14px;
+            line-height: 1.2;
+        }
+        .post-content-text {
+            color: #e3e3e3;
+            font-size: 14px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            margin-top: 8px;
+        }
+        .post-images-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 1 / 1;
+            background-color: #000;
+            overflow: hidden;
+            margin-top: 12px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .post-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+        .post-image.active {
+            display: block;
+        }
+        .carousel-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.5);
+            border: none;
+            color: white;
+            font-size: 20px;
+            padding: 10px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 10;
+            user-select: none;
+        }
+        .post-images-wrapper:hover .carousel-btn {
+            opacity: 1;
+        }
+        .carousel-prev { left: 8px; }
+        .carousel-next { right: 8px; }
+        .carousel-dots {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 6px;
+            z-index: 10;
+        }
+        .carousel-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .carousel-dot.active {
+            background: #fff;
+        }
+        .post-footer {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            color: #aaa;
+            font-size: 14px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+        }
+        .post-like-icon {
+            width: 18px;
+            height: 18px;
+            margin-right: 6px;
+            filter: invert(73%) sepia(9%) saturate(297%) hue-rotate(153deg) brightness(90%) contrast(85%);
+        }
         
         .video-item,
         .playlist-item,
@@ -540,7 +665,8 @@
         .share-button,
         .channel-name,
         .suggestion-item,
-        #mainLogo {
+        #mainLogo,
+        .post-item {
             -webkit-user-select: none;
             user-select: none;
         }
@@ -560,7 +686,8 @@
         .share-button,
         .channel-name,
         .suggestion-item,
-        #mainLogo {
+        #mainLogo,
+        .post-item {
             cursor: pointer;
         }
     </style>
@@ -588,6 +715,7 @@
         <div class="tab active" data-tab="home">HOME</div>
         <div class="tab" data-tab="videos">VIDEOS</div>
         <div class="tab" data-tab="playlists">PLAYLISTS</div>
+        <div class="tab" data-tab="posts">POSTS</div>
         <div class="tab" data-tab="about">ABOUT</div>
         <div class="tab-search-container">
             <div class="tab" data-tab="search">
@@ -596,6 +724,13 @@
             <div class="tab-search-bar">
                 <input type="text" id="channelSearchInput" placeholder="">
             </div>
+        </div>
+    </div>
+
+    <!-- Posts Tab -->
+    <div id="postsTab" class="tab-content">
+        <div class="posts-container" id="postsContainer">
+            <div class="tab-loading-placeholder" id="postsLoadingText">Loading posts...</div>
         </div>
     </div>
 
@@ -670,10 +805,6 @@
     </div>
 
     <script>
-// ======================================================================
-// FIX: Prevent Middle-Click Autoscroll (Pan Mode)
-// Must be defined early to catch events on dynamically loaded content
-// ======================================================================
 document.addEventListener('mousedown', function(e) {
     if (e.button === 1) { // Middle Mouse Button
         const target = e.target.closest(
@@ -690,7 +821,8 @@ document.addEventListener('mousedown', function(e) {
             '.share-button, ' + 
             '.channel-name, ' + 
             '.suggestion-item, ' +
-            '#mainLogo'
+            '#mainLogo, ' +
+            '.post-item'
         );
         
         if (target) {
@@ -716,7 +848,7 @@ function parseChannelUrl() {
     const raw = new URLSearchParams(window.location.search).get('channel') || '';
     const decoded = decodeURIComponent(raw);
 
-    const validTabs = ['videos', 'playlists', 'about'];
+    const validTabs = ['videos', 'playlists', 'about', 'posts'];
     const tabNames = validTabs.find(t => decoded.endsWith('/' + t));
 
     if (tabNames) {
@@ -767,6 +899,7 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('DOMContentLoaded', () => {
     const videosContainer = document.getElementById('channelVideosContainer');
     const playlistsContainer = document.getElementById('playlistsContainer');
+    const postsContainer = document.getElementById('postsContainer');
     const channelPic = document.getElementById('channelPic');
     const channelName = document.getElementById('channelName');
     const channelBanner = document.getElementById('channelBanner');
@@ -841,6 +974,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('.tab[data-tab="videos"]').textContent = getLang('VIDEOS', 'VIDEOS');
         document.querySelector('.tab[data-tab="playlists"]').textContent = getLang('PLAYLISTS', 'PLAYLISTEN');
         document.querySelector('.tab[data-tab="about"]').textContent = getLang('ABOUT', 'ÜBER');
+        document.querySelector('.tab[data-tab="posts"]').textContent = getLang('POSTS', 'BEITRÄGE');
 
         if (sortNewestFirst) {
             sortToggle.innerHTML = '<span class="sort-icon">↓</span> ' + getLang('Newest First', 'Neueste zuerst');
@@ -859,6 +993,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('playlistsLoadingText').textContent = getLang('Loading playlists', 'Lade Playlisten...');
     document.getElementById('homeLoadingText').textContent = getLang('Loading videos...', 'Lade Videos...');
     document.getElementById('homeOthersLabel').textContent = getLang('Other videos', 'Weitere Videos');
+    document.getElementById('postsLoadingText').textContent = getLang('Loading posts...', 'Lade Beiträge...');
 
     function switchTab(tabName) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -916,6 +1051,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case 'about':
                 loadAbout();
+                break;
+            case 'posts':
+                loadPosts();
                 break;
             default:
                 break;
@@ -1529,6 +1667,159 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('statsJoined').textContent = getLang('Joined', 'Beigetreten') + ' --';
                 document.getElementById('statsViews').textContent = `0 ${getLang('views', 'Aufrufe')}`;
             });
+    }
+
+    // --- Posts Loading Logic ---
+    function loadPosts() {
+        postsContainer.innerHTML = '<div class="tab-loading-placeholder">' + getLang('Loading posts...', 'Lade Beiträge...') + '</div>';
+
+        fetch(`/channelposts/${encodeURIComponent(channel)}/Community_Posts.json`)
+            .then(response => {
+                if (!response.ok) throw new Error('No posts file');
+                return response.json();
+            })
+            .then(postsData => {
+                renderPosts(postsData);
+            })
+            .catch(error => {
+                console.error('Error loading posts:', error);
+                postsContainer.innerHTML = `<p style="color: #888; text-align: center; width: 100%; padding: 40px 0;">${getLang('No posts available.', 'Keine Beiträge verfügbar.')}</p>`;
+            });
+    }
+
+    function renderPosts(posts) {
+        postsContainer.innerHTML = '';
+
+        if (!posts || posts.length === 0) {
+            postsContainer.innerHTML = `<p style="color: #888; text-align: center; width: 100%; padding: 40px 0;">${getLang('No posts available.', 'Keine Beiträge verfügbar.')}</p>`;
+            return;
+        }
+
+        const channelPicSrc = `/channelpic/${encodeURIComponent(channel)}.jpg`;
+        const likeIconSrc = 'LocalYT-Rev-Files/like.svg';
+
+        const fragment = document.createDocumentFragment();
+
+        posts.forEach(post => {
+            const postElement = document.createElement('div');
+            postElement.className = 'post-item';
+
+            // Header with profile pic and content
+            postElement.innerHTML = `
+                <div class="post-header">
+                    <img src="${channelPicSrc}" alt="" class="post-channel-pic" loading="lazy">
+                <div class="post-header-info">
+                    <div class="post-author-name">${channel}</div>
+                    <div class="post-date" style="color: #888; font-size: 13px;">${post.raw_date || ''}</div>
+                    <div class="post-content-text"></div>
+                </div>
+                </div>
+                <div class="post-body"></div>
+                <div class="post-footer">
+                    <img src="${likeIconSrc}" alt="Like" class="post-like-icon">
+                    <span>${post.likes || 0}</span>
+                </div>
+            `;
+
+            const textDiv = postElement.querySelector('.post-content-text');
+            const bodyDiv = postElement.querySelector('.post-body');
+            
+            // Set text content
+            textDiv.textContent = post.content || '';
+            const urlRegex = /(https?:\/\/[^\s<]+)/g;
+            textDiv.innerHTML = textDiv.innerHTML.replace(urlRegex, function(url) {
+                return '<a href="' + url + '" target="_blank" style="color: #3ea6ff; text-decoration: none;">' + url + '</a>';
+            });
+
+            // Handle images
+            if (post.images && post.images.length > 0) {
+                const imagesWrapper = document.createElement('div');
+                imagesWrapper.className = 'post-images-wrapper';
+                imagesWrapper.style.display = 'none';
+
+                let validImageCount = 0;
+                const validImages = [];
+
+                post.images.forEach((img, index) => {
+                    const imgEl = document.createElement('img');
+                    imgEl.className = `post-image${index === 0 ? ' active' : ''}`;
+                    imgEl.src = `/channelposts/${encodeURIComponent(channel)}/${encodeURIComponent(img.file_name)}`;
+                    imgEl.alt = `Post image ${index + 1}`;
+                    
+                    imgEl.onload = () => {
+                        validImageCount++;
+                        if (validImageCount === 1) {
+                            imagesWrapper.style.display = '';
+                        }
+                    };
+                    
+                    imagesWrapper.appendChild(imgEl);
+                });
+
+                // Carousel controls if multiple images
+                if (post.images.length > 1) {
+                    const prevBtn = document.createElement('button');
+                    prevBtn.className = 'carousel-btn carousel-prev';
+                    prevBtn.innerHTML = '&#10094;';
+                    
+                    const nextBtn = document.createElement('button');
+                    nextBtn.className = 'carousel-btn carousel-next';
+                    nextBtn.innerHTML = '&#10095;';
+
+                    const dotsContainer = document.createElement('div');
+                    dotsContainer.className = 'carousel-dots';
+                    
+                    post.images.forEach((_, index) => {
+                        const dot = document.createElement('div');
+                        dot.className = `carousel-dot${index === 0 ? ' active' : ''}`;
+                        dot.dataset.index = index;
+                        dotsContainer.appendChild(dot);
+                    });
+
+                    imagesWrapper.appendChild(prevBtn);
+                    imagesWrapper.appendChild(nextBtn);
+                    imagesWrapper.appendChild(dotsContainer);
+
+                    let currentIndex = 0;
+                    const allImages = imagesWrapper.querySelectorAll('.post-image');
+                    const allDots = dotsContainer.querySelectorAll('.carousel-dot');
+
+                    const showSlide = (idx) => {
+                        currentIndex = idx;
+                        allImages.forEach((img, i) => {
+                            img.classList.toggle('active', i === currentIndex);
+                        });
+                        allDots.forEach((dot, i) => {
+                            dot.classList.toggle('active', i === currentIndex);
+                        });
+                    };
+
+                    prevBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const newIndex = (currentIndex - 1 + post.images.length) % post.images.length;
+                        showSlide(newIndex);
+                    });
+
+                    nextBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const newIndex = (currentIndex + 1) % post.images.length;
+                        showSlide(newIndex);
+                    });
+
+                    dotsContainer.addEventListener('click', (e) => {
+                        if (e.target.classList.contains('carousel-dot')) {
+                            showSlide(parseInt(e.target.dataset.index));
+                        }
+                    });
+                }
+
+                bodyDiv.appendChild(imagesWrapper);
+            }
+
+            fragment.appendChild(postElement);
+        });
+
+        postsContainer.appendChild(fragment);
     }
 
     sortToggle.addEventListener('click', () => {

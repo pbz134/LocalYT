@@ -25,6 +25,10 @@ v4.05
 - Fixed the search initiation on all pages
 - #Launch-Server.bat now displays a LocalYT GitHub link
 - Fixed right clicks and mouse wheel clicks on user_playlists.html
+- Implemented Community Posts to channel.html
+  - Install TamperMonkey in your browser, install the scraping script from "/LocalYT-Rev-Files/Community Post Scraper for LocalYT.user.js" into it
+  - Visit and Community Posts page and start scraping
+  - After you get the .json file and .webp files, put them into /channelposts, run the setup script and let it do the rest
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
