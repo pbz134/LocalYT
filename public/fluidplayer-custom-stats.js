@@ -213,10 +213,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 html += createStatRow('FPS (Current)', `${fpsCurrentValue}`);
 
                 // 3. CODEC
-                html += createStatRow('Codecs', getCodecInfo(video, wrapper));
+                html += createStatRow('Codec', getCodecInfo(video, wrapper));
 
                 // 4. BITRATE
-                html += createStatRow('Bitrate', calculateBitrate(video));
+                html += createStatRow('Buffer Speed', calculateBitrate(video));
 
                 // 5. VOLUME (New)
                 // Shows percentage, and (Muted) status if applicable
