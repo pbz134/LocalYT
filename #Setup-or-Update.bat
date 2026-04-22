@@ -53,6 +53,9 @@ goto continue
 echo Generating view counts...
 .\venv\python.exe .\LocalYT-Rev-Files\createviews.py
 
+echo Generating small thumbnails...
+.\venv\python.exe .\LocalYT-Rev-Files\createSmallThumbnails.py
+
 echo running Algorithm setup...
 
 REM Step 1: Run create-filename-list.py from Algorithm directory

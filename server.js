@@ -179,6 +179,7 @@ function stripExtension(filename) {
 app.use('/videos', express.static(path.join(__dirname, 'videos')));
 app.use('/LocalYT-Rev-Files', express.static(path.join(__dirname, 'LocalYT-Rev-Files')));
 app.use('/thumbnails', express.static(path.join(__dirname, 'thumbnails')));
+app.use('/thumbnails-small', express.static(path.join(__dirname, 'thumbnails-small')));
 app.use('/filedates', express.static(path.join(__dirname, 'filedates')));
 app.use('/filenames', express.static(path.join(__dirname, 'filenames')));
 app.use('/videolengths', express.static(path.join(__dirname, 'videolengths')));

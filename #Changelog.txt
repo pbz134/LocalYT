@@ -30,6 +30,9 @@ v4.05
   - Visit and Community Posts page and start scraping
   - After you get the .json file and .webp files, put them into /channelposts, run the setup script and let it do the rest
 - Your browser's built-in video player won't show up anymore before Fluid Player is fully loaded
+- video.html will now use small thumbnails (limited to 300px width) for the recommendation sidebar
+  - Should speed up loading times of video.html significantly
+  - These have to be generated, so re-run the setup first
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
