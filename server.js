@@ -2389,7 +2389,7 @@ app.post('/add-to-history', (req, res) => {
         if (!watchHistoryData[userId]) watchHistoryData[userId] = [];
         watchHistoryData[userId] = watchHistoryData[userId].filter(item => (typeof item === 'object' ? item.video : item) !== video);
         watchHistoryData[userId].unshift({ video: video, timestamp: new Date().toISOString() });
-        if (watchHistoryData[userId].length > 100) watchHistoryData[userId] = watchHistoryData[userId].slice(0, 100);
+        if (watchHistoryData[userId].length > 10000) watchHistoryData[userId] = watchHistoryData[userId].slice(0, 10000);
         fs.writeFile(watchHistoryFilePath, JSON.stringify(watchHistoryData, null, 2), err => {
             if (err) return res.status(500).send('Error saving watch history');
             res.sendStatus(200);

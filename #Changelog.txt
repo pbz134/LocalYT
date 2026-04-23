@@ -33,6 +33,7 @@ v4.05
 - video.html will now use small thumbnails (limited to 300px width) for the recommendation sidebar
   - Should speed up loading times of video.html significantly
   - These have to be generated, so re-run the setup first
+- Increased the watch history limit from 100 to 10000 items
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
