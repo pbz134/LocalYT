@@ -133,6 +133,16 @@
             .video-grid { grid-template-columns: 1fr; }
             .header-info { flex-direction: column; align-items: flex-start; gap: 10px; }
         }
+
+        /* --- Search Suggestions Visibility --- */
+        .search-suggestions {
+            display: none; /* Hidden by default when input is empty */
+        }
+
+        /* Show suggestions only when the search container (input) is focused/active */
+        .search-container:focus-within .search-suggestions {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -187,6 +197,22 @@
 
             const homeLink = document.getElementById('homeLink');
             if(homeLink) homeLink.innerHTML = `&larr; ${getLang('Go to LocalYT Home', 'Zurück zur LocalYT Startseite')}`;
+
+            // FIX: Add Search Event Listeners
+            searchInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
+                }
+            });
+
+            document.getElementById('searchIcon').addEventListener('click', () => {
+                const query = searchInput.value.trim();
+                if (query) {
+                    window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+                } else {
+                    searchInput.focus();
+                }
+            });
 
             // Load Data
             loadSharedPlaylist();
