@@ -6,11 +6,37 @@
     <title>LocalYT</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
-    <script>
+<script>
+    /**
+     * Safely decode a URI component.
+     * If the string contains malformed sequences like bare '%', 
+     * returns the original string instead of crashing.
+     */
+    function safeDecodeURIComponent(str) {
+        if (!str) return '';
+        try {
+            // Call the REAL built-in decodeURIComponent (note: capital U, capital C)
+            return decodeURIComponent(str);
+        } catch (e) {
+            // Malformed sequence detected (e.g., "100%")
+            console.warn('[safeDecode] Malformed URI sequence, returning raw:', str);
+            return str;
+        }
+    }
+
     // Determine which Fluid Player script to load based on video file extension
     (function() {
         const urlParams = new URLSearchParams(window.location.search);
-        const videoSrc = decodeURIComponent(urlParams.get('src') || '');
+        
+        // Safe URI decoding to handle special characters like % in filenames
+        let videoSrc = '';
+        try {
+            videoSrc = safeDecodeURIComponent(urlParams.get('src') || '');
+        } catch (e) {
+            console.warn("Could not decode video src in head, using raw value:", e);
+            videoSrc = urlParams.get('src') || '';
+        }
+        
         const extension = videoSrc.split('.').pop().toLowerCase();
         
         // Choose script based on file type
@@ -1226,7 +1252,7 @@ async function handleCommentLike(buttonElement, commentId) {
         const response = await fetch('/like-comment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ commentId: decodeURIComponent(commentId) })
+            body: JSON.stringify({ commentId: safeDecodeURIComponent(commentId) })
         });
         
         if (!response.ok) {
@@ -1569,7 +1595,16 @@ document.addEventListener('click', function(e) {
 
         document.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
-            const videoSrc = decodeURIComponent(urlParams.get('src') || '');
+
+            // Safe URI decoding to handle special characters like % in filenames
+            let videoSrc = '';
+            try {
+                videoSrc = safeDecodeURIComponent(urlParams.get('src') || '');  // ← fixed spelling
+            } catch (e) {
+                console.warn("Could not decode video src in body, using raw value:", e);
+                videoSrc = urlParams.get('src') || '';
+            }
+    
             const playlistName = urlParams.get('playlist'); // Get playlist name
             const timestamp = urlParams.get('t');
             const videoPlayer = document.getElementById('videoPlayer');
@@ -1868,7 +1903,7 @@ document.addEventListener('click', function(e) {
                 
                 const playlistHeader = document.createElement('div');
                 playlistHeader.className = 'playlist-section-header';
-                playlistHeader.innerHTML = `${decodeURIComponent(playlistName)} <a href="playlist.html?channel=${encodeURIComponent(currentChannel)}&playlist=${playlistName}">${getLang('View Full Playlist', 'Komplette Playlist ansehen')}</a>`
+                playlistHeader.innerHTML = `${safeDecodeURIComponent(playlistName)} <a href="playlist.html?channel=${encodeURIComponent(currentChannel)}&playlist=${playlistName}">${getLang('View Full Playlist', 'Komplette Playlist ansehen')}</a>`
                 playlistSection.appendChild(playlistHeader);
 
                 // Container for the videos (will be scrollable if > 8 videos)
@@ -1891,7 +1926,7 @@ document.addEventListener('click', function(e) {
                 
                         videos.forEach(video => {
                             // Highlight current video
-                            const isCurrent = decodeURIComponent(videoSrc) === video.path;
+                            const isCurrent = safeDecodeURIComponent(videoSrc) === video.path;
                             renderSuggestionItem(video, playlistContainer, playlistName, isCurrent);
                             playlistVideoCount++;
 
@@ -2200,7 +2235,7 @@ document.addEventListener('click', function(e) {
                     videos.sort(naturalCompare);
                     
                     // Find current video index
-                    const currentIndex = videos.findIndex(v => decodeURIComponent(v.path) === decodeURIComponent(videoSrc));
+                    const currentIndex = videos.findIndex(v => safeDecodeURIComponent(v.path) === safedecodeURIComponent(videoSrc));
                     
                     if (currentIndex !== -1 && currentIndex < videos.length - 1) {
                         // Go to next video in playlist
