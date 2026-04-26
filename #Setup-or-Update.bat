@@ -150,6 +150,9 @@ echo Removing double spaces...
 echo Generating channel homepage preview lists...
 .\venv\python.exe .\LocalYT-Rev-Files\generate_home_previews.py
 
+echo Generating seek bar previews...
+.\LocalYT-Rev-Files\createSpriteImages.py --workers 4
+
 echo.
 echo =============================================================================
 echo All metadata, thumbnails and playlists generated. Server is ready for launch.
