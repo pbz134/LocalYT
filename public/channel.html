@@ -100,28 +100,29 @@
         .tab-content.active {
             display: block;
         }
-        .sort-toggle {
-            background-color: #333;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            margin: 0 0 0 230px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 14px;
+        .sort-options {
             display: flex;
-            align-items: center;
             gap: 8px;
-            transition: background-color 0.2s;
+            margin: 0 0 0 230px;
             margin-bottom: -50px; 
             position: relative; 
             z-index: 10; 
         }
-        .sort-toggle:hover {
+        .sort-btn {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        .sort-btn:hover {
             background-color: #555;
         }
-        .sort-icon {
-            font-size: 16px;
+        .sort-btn.active {
+            background-color: #555;
         }
         .videos-wrapper {
             position: relative;
@@ -755,9 +756,11 @@
 
     <!-- Videos Tab -->
     <div id="videosTab" class="tab-content">
-        <button id="sortToggle" class="sort-toggle">
-            <span class="sort-icon">↓</span> Newest First
-        </button>
+        <div class="sort-options">
+            <button class="sort-btn active" data-sort="newest">Latest</button>
+            <button class="sort-btn" data-sort="popular">Popular</button>
+            <button class="sort-btn" data-sort="oldest">Oldest</button>
+        </div>
         <div class="container videos-wrapper">
             <div class="channel-videos" id="channelVideosContainer"></div>
             <div id="loadingSpinner" class="loading-spinner">Loading more videos</div>
@@ -900,14 +903,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const channelPic = document.getElementById('channelPic');
     const channelName = document.getElementById('channelName');
     const channelBanner = document.getElementById('channelBanner');
-    const sortToggle = document.getElementById('sortToggle');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const loadMoreTrigger = document.getElementById('loadMoreTrigger');
     const noMoreVideos = document.getElementById('noMoreVideos');
     const subscribeButton = document.getElementById('subscribeButton');
 
     let currentVideos = [];
-    let sortNewestFirst = true;
+    let currentSortMode = 'newest'; // 'newest', 'popular', or 'oldest'
     let renderedVideoCount = 0;
     let isLoadingMore = false;
     let hasMoreVideos = true;
@@ -973,11 +975,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('.tab[data-tab="about"]').textContent = getLang('ABOUT', 'ÜBER');
         document.querySelector('.tab[data-tab="posts"]').textContent = getLang('POSTS', 'BEITRÄGE');
 
-        if (sortNewestFirst) {
-            sortToggle.innerHTML = '<span class="sort-icon">↓</span> ' + getLang('Newest First', 'Neueste zuerst');
-        } else {
-            sortToggle.innerHTML = '<span class="sort-icon">↑</span> ' + getLang('Oldest First', 'Älteste zuerst');
-        }
+        // Update sort button labels
+        document.querySelector('.sort-btn[data-sort="newest"]').textContent = getLang('Latest', 'Neueste');
+        document.querySelector('.sort-btn[data-sort="popular"]').textContent = getLang('Popular', 'Beliebteste');
+        document.querySelector('.sort-btn[data-sort="oldest"]').textContent = getLang('Oldest', 'Älteste');
 
         document.getElementById('aboutDescriptionHeader').textContent = getLang('Description', 'Beschreibung');
         document.getElementById('aboutStatsHeader').textContent = getLang('Stats', 'Statistiken');
@@ -1342,24 +1343,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function sortVideosArray() {
-        currentVideos.sort((a, b) => {
-            try {
-                const dateA = parseEuropeanDate(a.fileDate).getTime();
-                const dateB = parseEuropeanDate(b.fileDate).getTime();
-                return sortNewestFirst ? dateB - dateA : dateA - dateB;
-            } catch (e) {
-                return 0;
-            }
-        });
+        switch(currentSortMode) {
+            case 'newest':
+                currentVideos.sort((a, b) => {
+                    try {
+                        const dateA = parseEuropeanDate(a.fileDate).getTime();
+                        const dateB = parseEuropeanDate(b.fileDate).getTime();
+                        return dateB - dateA;
+                    } catch (e) {
+                        return 0;
+                    }
+                });
+                break;
+            case 'oldest':
+                currentVideos.sort((a, b) => {
+                    try {
+                        const dateA = parseEuropeanDate(a.fileDate).getTime();
+                        const dateB = parseEuropeanDate(b.fileDate).getTime();
+                        return dateA - dateB;
+                    } catch (e) {
+                        return 0;
+                    }
+                });
+                break;
+            case 'popular':
+                currentVideos.sort((a, b) => {
+                    const countA = parseInt(a.viewCount) || 0;
+                    const countB = parseInt(b.viewCount) || 0;
+                    return countB - countA;
+                });
+                break;
+        }
     }
 
     function resetAndRender() {
-        if (sortNewestFirst) {
-            sortToggle.innerHTML = '<span class="sort-icon">↓</span> ' + getLang('Newest First', 'Neueste zuerst');
-        } else {
-            sortToggle.innerHTML = '<span class="sort-icon">↑</span> ' + getLang('Oldest First', 'Älteste zuerst');
-        }
-
         renderedVideoCount = 0;
         videosContainer.innerHTML = '';
         hasMoreVideos = currentVideos.length > 0;
@@ -1819,10 +1836,18 @@ document.addEventListener('DOMContentLoaded', () => {
         postsContainer.appendChild(fragment);
     }
 
-    sortToggle.addEventListener('click', () => {
-        sortNewestFirst = !sortNewestFirst;
-        sortVideosArray();
-        resetAndRender();
+    // Sort button event listeners
+    document.querySelectorAll('.sort-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Update active state
+            document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Update sort mode and re-render
+            currentSortMode = btn.dataset.sort;
+            sortVideosArray();
+            resetAndRender();
+        });
     });
 
     function formatJoinDate(date) {
@@ -1909,18 +1934,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const videoPromises = channelVideos.map(video => {
             const videoPathWithoutExt = stripExtension(video.path);
-            return fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
-                .then(response => response.ok ? response.text() : 'Unknown date')
-                .then(fileDate => ({
-                    ...video,
-                    fileDate: fileDate.trim() || 'Unknown date',
-                    viewCount: '0'
-                }))
-                .catch(() => ({
-                    ...video,
-                    fileDate: 'Unknown date',
-                    viewCount: '0'
-                }));
+            return Promise.all([
+                fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
+                    .then(response => response.ok ? response.text() : 'Unknown date'),
+                fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`)
+                    .then(response => response.ok ? response.text() : '0')
+            ])
+            .then(([fileDate, viewCount]) => ({
+                ...video,
+                fileDate: fileDate.trim() || 'Unknown date',
+                viewCount: viewCount.trim() || '0'
+            }))
+            .catch(() => ({
+                ...video,
+                fileDate: 'Unknown date',
+                viewCount: '0'
+            }));
         });
 
         Promise.all(videoPromises).then(videosWithDates => {
