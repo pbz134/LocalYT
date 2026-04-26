@@ -1219,9 +1219,6 @@ function renderSingleComment(comment, isReply, channelPicUrl, isCommentLiked = f
     // Determine styles
     const likedClass = isCommentLiked ? ' liked' : '';
     
-    // FIX: Use <img> tag just like your reference code.
-    // If liked, apply blue filter. Otherwise, apply standard grey filter.
-    // This ensures the icon is VISIBLE and matches your reference style.
     const imgFilter = isCommentLiked 
         ? 'invert(49%) sepia(94%) saturate(1748%) hue-rotate(194deg) brightness(97%) contrast(101%)' 
         : 'invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%)';
@@ -2168,7 +2165,6 @@ document.addEventListener('click', function(e) {
                                     await autoplayRandomDatabase();
                                     break;
                                 default:
-                                    // FIX: Default to first recommended instead of doing nothing/random
                                     console.warn('[Autoplay] Unknown/Default mode, falling back to first recommended');
                                     await autoplayFirstRecommended();
                             }
@@ -2194,7 +2190,6 @@ document.addEventListener('click', function(e) {
                 
                 if (isSearchInput) return;
                 
-                // FIX: Prevent fullscreen toggle if CTRL key is held down
                 if (event.ctrlKey || event.metaKey) return;
                 
                 const key = event.key.toLowerCase();
@@ -2409,7 +2404,6 @@ document.addEventListener('click', function(e) {
                     const response = await fetch(getShortLinkApiUrl()); 
                     if (response.ok) {
                         const data = await response.json();
-                        // FIX: Use '&' if shortPath already has '?'
                         const separator = data.shortPath.includes('?') ? '&' : '?';
                         const finalUrl = new URL(window.location.origin + data.shortPath);
                         finalUrl.searchParams.set('t', currentTime);
