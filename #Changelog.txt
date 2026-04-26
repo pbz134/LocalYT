@@ -36,6 +36,8 @@ v4.05
 - Increased the watch history limit from 100 to 10000 items
 - Removed some hover effects from channel.html and video.html
 - Fixed % character encoding for search.html and video.html
+- Improved search-worker.js:
+  - You can now search for specific channel videos, e.g. entering "xy4Trance flying to" yields results of the channel xy4Trance with videos containing either or both of "flying" and "to"
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
