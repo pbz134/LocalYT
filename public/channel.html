@@ -1368,8 +1368,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case 'popular':
                 currentVideos.sort((a, b) => {
-                    const countA = parseInt(a.viewCount) || 0;
-                    const countB = parseInt(b.viewCount) || 0;
+                    // FIX: Remove commas before parsing to handle numbers like "4,962"
+                    const countA = parseInt(String(a.viewCount).replace(/,/g, '')) || 0;
+                    const countB = parseInt(String(b.viewCount).replace(/,/g, '')) || 0;
                     return countB - countA;
                 });
                 break;
