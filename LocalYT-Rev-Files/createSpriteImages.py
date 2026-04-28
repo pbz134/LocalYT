@@ -58,7 +58,7 @@ def process_single_video(args):
     video_name = os.path.splitext(filename)[0]
     
     # Sanitize name
-    safe_video_name = re.sub(r'[^\w\s-]', '', video_name).strip()
+    safe_video_name = video_name
     
     vtt_filename = f"{safe_video_name}.vtt"
     sprite_filename = f"{safe_video_name}SpriteImg.jpg"
@@ -89,12 +89,12 @@ def process_single_video(args):
         if num_frames <= 0:
             return ("error", filename)
 
-        # Construct select filter string for single-pass extraction
-        select_expr = "+".join([f"between(t,{i*interval},{i*interval+0.01})" for i in range(num_frames)])
+        # FIX: Use fps filter instead of "between(t)". This is 100% reliable for seeking.
+        vf_filter = f"fps=1/{interval},scale={thumb_width}:-1"
         
         cmd = [
-            'ffmpeg', '-ss', '0', '-i', str(video_full_path),
-            '-vf', f"select='{select_expr}',scale={thumb_width}:-1",
+            'ffmpeg', '-i', str(video_full_path),
+            '-vf', vf_filter,
             '-vframes', str(num_frames),
             '-f', 'image2pipe',
             '-vcodec', 'bmp',
@@ -125,8 +125,10 @@ def process_single_video(args):
             try:
                 img = Image.open(io.BytesIO(img_data))
                 images.append(img)
+                
+                # FIX: Added parentheses to fix the negative time math bug
                 frames_data.append({
-                    'start': format_time(len(images)-1 * interval), 
+                    'start': format_time((len(images) - 1) * interval), 
                     'end': format_time(min(len(images) * interval, duration))
                 })
             except Exception:
