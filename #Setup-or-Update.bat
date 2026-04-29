@@ -151,7 +151,7 @@ echo Generating channel homepage preview lists...
 .\venv\python.exe .\LocalYT-Rev-Files\generate_home_previews.py
 
 echo Generating seek bar previews...
-.\venv\python.exe .\LocalYT-Rev-Files\createSpriteImages.py --workers 2
+.\venv\python.exe .\LocalYT-Rev-Files\createSpriteImages.py --workers 1
 
 echo.
 echo =============================================================================

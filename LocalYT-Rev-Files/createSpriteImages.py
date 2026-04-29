@@ -4,8 +4,9 @@ import subprocess
 import shutil
 import re
 import struct
+import threading
 from pathlib import Path
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Optional: Check if Pillow is available
 try:
@@ -17,8 +18,12 @@ except ImportError:
     print("Warning: Pillow not found.")
 
 # --- CONFIGURATION ---
-MAX_WORKERS = os.cpu_count() or 4 
+# Using threads now. A good default is usually 4-8 for I/O bound tasks (Disk/FFmpeg)
+MAX_WORKERS = 8 
 # ---------------------
+
+# Lock for console output so threads don't overwrite each other messily
+console_lock = threading.Lock()
 
 def safe_makedirs(path):
     try:
@@ -48,16 +53,40 @@ def get_video_duration_fast(video_path):
     except Exception:
         return 0.0
 
+def draw_progress_bar(progress, bar_length=20):
+    """Helper to create a visual progress bar string"""
+    if progress >= 100:
+        filled = bar_length
+    else:
+        filled = int(bar_length * progress // 100)
+    empty = bar_length - filled
+    # Bar looks like: [======>     ]
+    bar = '[' + '=' * filled + '>' * min(1, empty) + ' ' * max(0, empty - min(1, empty)) + ']'
+    return f"{bar} {progress:3d}%"
+
+def update_status_line(done_count, total_files, fname, progress):
+    """Thread-safe function to update the single status line"""
+    with console_lock:
+        bar_str = draw_progress_bar(progress)
+        # Truncate long filenames to keep layout stable
+        display_name = (fname[:40] + '..') if len(fname) > 40 else fname
+        
+        line_output = (
+            f"[{done_count}/{total_files}] "
+            f"{display_name:<42s} " 
+            f"{bar_str}"
+        )
+        sys.stdout.write(line_output + "\r")
+        sys.stdout.flush()
+
 def process_single_video(args):
     """
-    Optimized Worker: Uses Single-Pass FFmpeg + Piping to avoid Disk I/O.
-    Returns a tuple: (status_string, filename_for_logging)
+    Worker Function.
+    Now runs in a Thread, allowing it to update the UI in real-time.
     """
-    root, filename, output_subdir, skip_check = args
+    root, filename, output_subdir, skip_check, total_file_count, current_index_ref = args
     
     video_name = os.path.splitext(filename)[0]
-    
-    # Sanitize name
     safe_video_name = video_name
     
     vtt_filename = f"{safe_video_name}.vtt"
@@ -68,9 +97,13 @@ def process_single_video(args):
 
     # 1. Skip Check
     if skip_check and os.path.exists(vtt_file_path) and os.path.exists(sprite_file_path):
+        # We don't print anything for skipped files as requested
         return ("skipped", filename)
 
-    # Ensure dir exists
+    # Update UI: Starting File
+    # We use a list for current_index_ref so we can pass by reference and modify it
+    update_status_line(current_index_ref[0], total_file_count, filename, 0)
+
     safe_makedirs(output_subdir)
     video_full_path = os.path.join(root, filename)
     
@@ -89,7 +122,6 @@ def process_single_video(args):
         if num_frames <= 0:
             return ("error", filename)
 
-        # FIX: Use fps filter instead of "between(t)". This is 100% reliable for seeking.
         vf_filter = f"fps=1/{interval},scale={thumb_width}:-1"
         
         cmd = [
@@ -101,6 +133,7 @@ def process_single_video(args):
             '-'
         ]
         
+        # Use Popen to stream data
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         
         images = []
@@ -126,11 +159,18 @@ def process_single_video(args):
                 img = Image.open(io.BytesIO(img_data))
                 images.append(img)
                 
-                # FIX: Added parentheses to fix the negative time math bug
+                # Calculate Progress
+                current_progress = int((len(images) / num_frames) * 100)
+                
                 frames_data.append({
                     'start': format_time((len(images) - 1) * interval), 
                     'end': format_time(min(len(images) * interval, duration))
                 })
+                
+                # UPDATE PROGRESS BAR IN REAL-TIME
+                # This works because we are using Threads, not Processes
+                update_status_line(current_index_ref[0], total_file_count, filename, current_progress)
+                
             except Exception:
                 continue
 
@@ -167,7 +207,6 @@ def process_single_video(args):
         return ("created", filename)
 
     except Exception as e:
-        # print(f"Error {filename}: {e}")
         return ("error", filename)
 
 def scan_videos_directory(videos_dir, thumbnails_dir, skip_existing=True):
@@ -194,7 +233,7 @@ def scan_videos_directory(videos_dir, thumbnails_dir, skip_existing=True):
                     continue
                 
                 output_subdir = os.path.join(thumbnails_dir, relative_path)
-                tasks.append((root, filename, output_subdir, skip_existing))
+                tasks.append((root, filename, output_subdir))
 
     total_files = len(tasks)
     if total_files == 0:
@@ -205,49 +244,52 @@ def scan_videos_directory(videos_dir, thumbnails_dir, skip_existing=True):
     skipped_count = 0
     error_count = 0
     
-    print(f"Starting Processing with {MAX_WORKERS} workers...")
+    print(f"Processing {total_files} files...")
 
-    # --- MULTI-PROCESS EXECUTION ---
-    with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        futures = {executor.submit(process_single_video, task): task for task in tasks}
+    # Mutable counter to track global progress across threads
+    done_counter = [0]
+
+    # --- THREADING EXECUTION ---
+    # Switched to ThreadPoolExecutor to allow real-time UI updates from workers
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = {}
         
-        done_count = 0
+        for task in tasks:
+            # Prepare args: add total count and mutable reference
+            full_args = task + (skip_existing, total_files, done_counter)
+            future = executor.submit(process_single_video, full_args)
+            futures[future] = task[1] # Store filename for reference
+            
         for future in as_completed(futures):
-            done_count += 1
-            result, fname = future.result() # Unpack tuple
+            result = future.result() # Returns tuple (status, name)
             
-            if result == "created": 
+            done_counter[0] += 1
+            
+            status, fname = result
+            
+            if status == "created": 
                 created_count += 1
-            elif result == "skipped": 
+            elif status == "skipped": 
                 skipped_count += 1
-            else: 
+            elif status == "error":
                 error_count += 1
-            
-            # --- UPDATED STATUS LINE ---
-            # We now include the current filename (fname) in the log output.
-            # Using .ljust(70) ensures we overwrite previous long filenames cleanly on the same line.
-            
-            status_msg = (
-                f"[{done_count}/{total_files}] "
-                f"Current: {fname} "
-                f"(New: {created_count}, Skip: {skipped_count}, Err: {error_count})"
-            )
-            
-            sys.stdout.write(status_msg.ljust(80) + "\r")
-            sys.stdout.flush()
+                # Optionally show error state briefly? 
+                # Request asked to hide skipped/errors, keeping it clean.
 
-    print(f"\nThumbnail Sprite Update Complete:")
-    print(f"  Total Files Scanned:  {total_files}")
-    print(f"  New Sprites Created:  {created_count}")
-    print(f"  Skipped (Exist):      {skipped_count}")
-    if error_count > 0: print(f"  Errors:               {error_count}")
+    # Final Summary
+    print(f"\n{'':80s}") # Clear line
+    print(f"Update Complete:")
+    print(f"  Total Scanned:   {total_files}")
+    print(f"  New Sprites:     {created_count}")
+    print(f"  Skipped:         {skipped_count}")
+    if error_count > 0: print(f"  Errors:          {error_count}")
 
 if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(description='Generate Thumbnail Sprites (Optimized)')
     parser.add_argument('--overwrite', action='store_true', help='Overwrite existing files')
-    parser.add_argument('--workers', type=int, default=None, help='Number of workers (default: CPU Count)')
+    parser.add_argument('--workers', type=int, default=None, help='Number of workers (default: 8)')
     args = parser.parse_args()
     
     if args.workers:
