@@ -87,7 +87,12 @@ def process_single_video(args):
     root, filename, output_subdir, skip_check, total_file_count, current_index_ref = args
     
     video_name = os.path.splitext(filename)[0]
-    safe_video_name = video_name
+    # 1. Remove special chars ()![]#
+    # 2. Replace dots (.) with nothing (or space)
+    # 3. Clean up double spaces resulting from removals
+    safe_video_name = re.sub(r'[^\w\s.-]', '', video_name)
+    safe_video_name = safe_video_name.replace('.', ' ')
+    safe_video_name = re.sub(r'\s+', ' ', safe_video_name).strip()
     
     vtt_filename = f"{safe_video_name}.vtt"
     sprite_filename = f"{safe_video_name}SpriteImg.jpg"

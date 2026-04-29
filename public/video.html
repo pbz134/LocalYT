@@ -2086,10 +2086,13 @@ document.addEventListener('click', function(e) {
             function getCleanVideoName(src) {
                 let name = src.split('/').pop(); 
                 name = stripExtension(name);
-                // Remove characters that might break URLs or were stripped by Python script
-                return name.replace(/[^a-zA-Z0-9_\- .]/g, ""); 
-                // Note: If you want to keep spaces, use the line below instead:
-                // return name.replace(/[!"#$%&'()*+,.:;<=>?@[\]^`{|}~]/g, "");
+                // 1. Remove special characters ()![]#
+                name = name.replace(/[^\w\s.-]/g, '');
+                // 2. Replace dots (.) with spaces (to match Python logic)
+                name = name.replace(/\./g, ' ');
+                // 3. Clean up double spaces
+                name = name.replace(/\s+/g, ' ').trim();
+                return name;
             }
 
             // Helper function to slugify filenames (must match Python logic)
@@ -2120,8 +2123,8 @@ document.addEventListener('click', function(e) {
                         "posterImageSize": "cover",
                         subtitlesOnByDefault: false,
                         "timelinePreview": {
-                            file: `/thumbnails/${encodeURIComponent(currentChannel)}/${encodeURIComponent(stripExtension(videoSrc.split('/').pop()))}.vtt`,
-                            sprite: `/thumbnails/${encodeURIComponent(currentChannel)}/${encodeURIComponent(stripExtension(videoSrc.split('/').pop()))}SpriteImg.jpg`,
+                            file: `/thumbnails/${encodeURIComponent(currentChannel)}/${encodeURIComponent(getCleanVideoName(videoSrc))}.vtt`,
+                            sprite: `/thumbnails/${encodeURIComponent(currentChannel)}/${encodeURIComponent(getCleanVideoName(videoSrc))}SpriteImg.jpg`,
                             type: 'VTT'
                         }
                     },
