@@ -15,11 +15,18 @@ try:
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
-    print("Warning: Pillow not found.")
+    print("Warning: Pillow not found. Please install it (pip install Pillow).")
 
 # --- CONFIGURATION ---
-# Using threads now. A good default is usually 4-8 for I/O bound tasks (Disk/FFmpeg)
 MAX_WORKERS = 8 
+
+# --- GRID / SAFETY SETTINGS ---
+# Maximum width of the generated sprite image in pixels.
+# Keeping this under 30000 ensures compatibility with almost all browsers/viewers.
+MAX_SPRITE_WIDTH_PX = 25000 
+# Hard limit on number of frames to generate per video (~2.7 hours at 5s interval).
+# Increase this if you process movies longer than 3 hours.
+MAX_FRAMES_HARD_LIMIT = 2000 
 # ---------------------
 
 # Lock for console output so threads don't overwrite each other messily
@@ -82,14 +89,13 @@ def update_status_line(done_count, total_files, fname, progress):
 def process_single_video(args):
     """
     Worker Function.
-    Now runs in a Thread, allowing it to update the UI in real-time.
+    Generates a Grid-based Sprite sheet for long videos.
     """
     root, filename, output_subdir, skip_check, total_file_count, current_index_ref = args
     
     video_name = os.path.splitext(filename)[0]
-    # 1. Remove special chars ()![]#
-    # 2. Replace dots (.) with nothing (or space)
-    # 3. Clean up double spaces resulting from removals
+    
+    # 1. Clean filename for output files
     safe_video_name = re.sub(r'[^\w\s.-]', '', video_name)
     safe_video_name = safe_video_name.replace('.', ' ')
     safe_video_name = re.sub(r'\s+', ' ', safe_video_name).strip()
@@ -102,11 +108,9 @@ def process_single_video(args):
 
     # 1. Skip Check
     if skip_check and os.path.exists(vtt_file_path) and os.path.exists(sprite_file_path):
-        # We don't print anything for skipped files as requested
         return ("skipped", filename)
 
     # Update UI: Starting File
-    # We use a list for current_index_ref so we can pass by reference and modify it
     update_status_line(current_index_ref[0], total_file_count, filename, 0)
 
     safe_makedirs(output_subdir)
@@ -122,11 +126,27 @@ def process_single_video(args):
         interval = 5
         
         num_frames = int(duration // interval)
-        if num_frames > 200: 
-            num_frames = 200
+        
+        # Apply Safety Limit
+        if num_frames > MAX_FRAMES_HARD_LIMIT:
+            # We don't print inside the thread to avoid messy logs, 
+            # but logic truncates here to prevent memory crashes.
+            num_frames = MAX_FRAMES_HARD_LIMIT
+            
         if num_frames <= 0:
             return ("error", filename)
 
+        # --- GRID LAYOUT CALCULATION ---
+        # Calculate how many columns fit in our max width limit
+        cols = MAX_SPRITE_WIDTH_PX // thumb_width
+        
+        # If we have few frames, just use a single row (or fewer cols)
+        if num_frames < cols:
+            cols = num_frames
+            
+        # Calculate rows needed
+        rows = (num_frames + cols - 1) // cols
+        
         vf_filter = f"fps=1/{interval},scale={thumb_width}:-1"
         
         cmd = [
@@ -145,6 +165,7 @@ def process_single_video(args):
         frames_data = []
         
         byte_stream = process.stdout
+        default_height = 90 # Fallback height
         
         while True:
             header = byte_stream.read(54)
@@ -163,17 +184,12 @@ def process_single_video(args):
             try:
                 img = Image.open(io.BytesIO(img_data))
                 images.append(img)
+                default_height = img.height # Update actual height from first image
                 
                 # Calculate Progress
                 current_progress = int((len(images) / num_frames) * 100)
                 
-                frames_data.append({
-                    'start': format_time((len(images) - 1) * interval), 
-                    'end': format_time(min(len(images) * interval, duration))
-                })
-                
                 # UPDATE PROGRESS BAR IN REAL-TIME
-                # This works because we are using Threads, not Processes
                 update_status_line(current_index_ref[0], total_file_count, filename, current_progress)
                 
             except Exception:
@@ -184,26 +200,41 @@ def process_single_video(args):
         if not images:
             return ("error", filename)
 
-        # Create Sprite
-        max_height = max(im.height for im in images)
-        total_width = sum(im.width for im in images)
+        # --- CREATE GRID SPRITE ---
+        # Final dimensions based on grid calculation
+        canvas_width = cols * thumb_width
+        canvas_height = rows * default_height
         
-        sprite = Image.new('RGB', (total_width, max_height))
-        x_offset = 0
+        sprite = Image.new('RGB', (canvas_width, canvas_height))
             
         for i, im in enumerate(images):
-            sprite.paste(im, (x_offset, 0))
-            frames_data[i]['x'] = x_offset
-            frames_data[i]['y'] = 0
-            frames_data[i]['w'] = im.width
-            frames_data[i]['h'] = im.height
-            x_offset += im.width
+            # Determine Grid Position
+            row_idx = i // cols
+            col_idx = i % cols
+            
+            x_offset = col_idx * thumb_width
+            y_offset = row_idx * im.height
+            
+            # Paste image into grid slot
+            sprite.paste(im, (x_offset, y_offset))
+            
+            # Store data for VTT with correct X,Y coordinates
+            frames_data.append({
+                'start': format_time(i * interval), 
+                'end': format_time(min((i + 1) * interval, duration)),
+                'x': x_offset,
+                'y': y_offset,
+                'w': im.width,
+                'h': im.height
+            })
         
+        # Save Sprite
         sprite.save(str(sprite_file_path), 'JPEG')
 
-        # Write VTT
+        # Write VTT (WebVTT Format)
         vtt_content = "WEBVTT\n\n"
         for f in frames_data:
+            # Format: TIME --> TIME \n FILENAME#xywh=X,Y,W,H
             vtt_content += f"{f['start']} --> {f['end']}\n{sprite_filename}#xywh={f['x']},{f['y']},{f['w']},{f['h']}\n\n"
         
         with open(str(vtt_file_path), 'w', encoding='utf-8') as f:
@@ -212,6 +243,7 @@ def process_single_video(args):
         return ("created", filename)
 
     except Exception as e:
+        # Optionally log error e somewhere if debugging
         return ("error", filename)
 
 def scan_videos_directory(videos_dir, thumbnails_dir, skip_existing=True):
@@ -234,6 +266,7 @@ def scan_videos_directory(videos_dir, thumbnails_dir, skip_existing=True):
                 relative_path = os.path.relpath(root, videos_dir)
                 path_parts = relative_path.split(os.sep)
                 
+                # Logic to handle root level vs subdirectories
                 if not path_parts or (path_parts[0] == '.' and len(path_parts) < 2):
                     continue
                 
@@ -255,7 +288,6 @@ def scan_videos_directory(videos_dir, thumbnails_dir, skip_existing=True):
     done_counter = [0]
 
     # --- THREADING EXECUTION ---
-    # Switched to ThreadPoolExecutor to allow real-time UI updates from workers
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futures = {}
         
@@ -266,7 +298,7 @@ def scan_videos_directory(videos_dir, thumbnails_dir, skip_existing=True):
             futures[future] = task[1] # Store filename for reference
             
         for future in as_completed(futures):
-            result = future.result() # Returns tuple (status, name)
+            result = future.result() 
             
             done_counter[0] += 1
             
@@ -278,8 +310,6 @@ def scan_videos_directory(videos_dir, thumbnails_dir, skip_existing=True):
                 skipped_count += 1
             elif status == "error":
                 error_count += 1
-                # Optionally show error state briefly? 
-                # Request asked to hide skipped/errors, keeping it clean.
 
     # Final Summary
     print(f"\n{'':80s}") # Clear line
@@ -292,7 +322,7 @@ def scan_videos_directory(videos_dir, thumbnails_dir, skip_existing=True):
 if __name__ == "__main__":
     import argparse
     
-    parser = argparse.ArgumentParser(description='Generate Thumbnail Sprites (Optimized)')
+    parser = argparse.ArgumentParser(description='Generate Thumbnail Sprites (Grid Optimized)')
     parser.add_argument('--overwrite', action='store_true', help='Overwrite existing files')
     parser.add_argument('--workers', type=int, default=None, help='Number of workers (default: 8)')
     args = parser.parse_args()
