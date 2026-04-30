@@ -51,6 +51,7 @@ v4.10
 - Removed some leftover border-radius properties
 - Added the logo overlay to the home mini player
 - Improved livechat positioning on video.html
+- Renamed "Show Playlist" to "Show Sidebar" in case of live chats, since this is more accurate
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
