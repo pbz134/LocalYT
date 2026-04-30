@@ -62,7 +62,6 @@
             color: #fff;
             background-color: red;
             border: none;
-            border-radius: 3px;
             transition: background-color 0.2s;
         }
         .subscribe-button:hover {
@@ -102,27 +101,184 @@
         }
         .sort-options {
             display: flex;
-            gap: 8px;
-            margin: 0 0 0 230px;
+            justify-content: flex-end;
+            margin: 0 20px 0 0;
             margin-bottom: -50px; 
             position: relative; 
             z-index: 10; 
         }
-        .sort-btn {
+        .sort-dropdown {
+            position: relative;
+        }
+        .sort-toggle {
             background-color: #333;
             color: white;
             border: none;
             padding: 8px 16px;
-            border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
             transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .sort-btn:hover {
+        .sort-toggle:hover {
             background-color: #555;
         }
-        .sort-btn.active {
+        .sort-toggle-arrow {
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid white;
+            transition: transform 0.2s;
+        }
+        .sort-toggle.open .sort-toggle-arrow {
+            transform: rotate(180deg);
+        }
+        .sort-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 4px;
+            background-color: #333;
+            border-radius: 6px;
+            overflow: hidden;
+            min-width: 240px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            z-index: 100;
+        }
+        .sort-dropdown-menu.open {
+            display: block;
+        }
+        .sort-dropdown-item {
+            padding: 10px 16px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            transition: background-color 0.15s;
+            white-space: nowrap;
+        }
+        .sort-dropdown-item:hover {
             background-color: #555;
+        }
+        .sort-dropdown-item.active {
+            color: #fff;
+        }
+        .sort-options {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin: 0 20px 0 0;
+            margin-bottom: -50px; 
+            position: relative; 
+            z-index: 10; 
+        }
+        .view-dropdown {
+            position: relative;
+        }
+        .view-toggle {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .view-toggle:hover {
+            background-color: #555;
+        }
+        .view-toggle-arrow {
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid white;
+            transition: transform 0.2s;
+        }
+        .view-toggle.open .view-toggle-arrow {
+            transform: rotate(180deg);
+        }
+        .view-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 4px;
+            background-color: #333;
+            border-radius: 6px;
+            overflow: hidden;
+            min-width: 140px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            z-index: 100;
+        }
+        .view-dropdown-menu.open {
+            display: block;
+        }
+        .view-dropdown-item {
+            padding: 10px 16px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            transition: background-color 0.15s;
+            white-space: nowrap;
+        }
+        .view-dropdown-item:hover {
+            background-color: #555;
+        }
+        .view-dropdown-item.active {
+            color: #fff;
+        }
+        .channel-videos.list-view {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            padding: 0 20px;
+        }
+        .channel-videos.list-view .video-thumbnail {
+            width: 100%;
+            height: 135px;
+        }
+        .channel-videos.list-view .video-item {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            width: 100%;
+            max-width: 800px;
+            margin: 8px auto;
+            gap: 0 16px;
+        }
+        .channel-videos.list-view .thumbnail-container {
+            grid-row: 1 / 3;
+        }
+        .channel-videos.list-view .video-title {
+            padding: 0;
+            margin-left: 0;
+            font-size: 16px;
+            display: flex;
+            align-items: flex-start;
+            padding-top: 2px;
+            grid-column: 2;
+            grid-row: 1;
+        }
+        .channel-videos.list-view .video-description {
+            padding: 0;
+            margin-left: 0;
+            margin-top: -40px;
+            grid-column: 2;
+            grid-row: 2;
+        }
+        .channel-videos.list-view .video-length {
+            bottom: 4px;
+            right: 4px;
         }
         .videos-wrapper {
             position: relative;
@@ -757,9 +913,27 @@
     <!-- Videos Tab -->
     <div id="videosTab" class="tab-content">
         <div class="sort-options">
-            <button class="sort-btn active" data-sort="newest">Latest</button>
-            <button class="sort-btn" data-sort="popular">Popular</button>
-            <button class="sort-btn" data-sort="oldest">Oldest</button>
+            <div class="sort-dropdown">
+                <button class="sort-toggle" id="sortToggle">
+                    <span id="sortToggleLabel">Date added (newest)</span>
+                    <div class="sort-toggle-arrow"></div>
+                </button>
+                <div class="sort-dropdown-menu" id="sortDropdownMenu">
+                    <div class="sort-dropdown-item active" data-sort="newest">Date added (newest)</div>
+                    <div class="sort-dropdown-item" data-sort="popular">Most popular</div>
+                    <div class="sort-dropdown-item" data-sort="oldest">Date added (oldest)</div>
+                </div>
+            </div>
+            <div class="view-dropdown">
+                <button class="view-toggle" id="viewToggle">
+                    <span id="viewToggleLabel">Grid</span>
+                    <div class="view-toggle-arrow"></div>
+                </button>
+                <div class="view-dropdown-menu" id="viewDropdownMenu">
+                    <div class="view-dropdown-item active" data-view="grid">Grid</div>
+                    <div class="view-dropdown-item" data-view="list">List</div>
+                </div>
+            </div>
         </div>
         <div class="container videos-wrapper">
             <div class="channel-videos" id="channelVideosContainer"></div>
@@ -920,6 +1094,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const loadedTabs = new Set();
 
+    // Sort dropdown labels map
+    const sortLabels = {
+        newest: getLang('Date added (newest)', 'Hinzugefügt am... (neueste zuerst)'),
+        popular: getLang('Most popular', 'Am beliebtesten'),
+        oldest: getLang('Date added (oldest)', 'Hinzugefügt am... (älteste zuerst)')
+    };
+
     fetch(`/channelbanner/${encodeURIComponent(channel)}.jpg`, { method: 'HEAD' })
         .then(response => {
             if (response.ok) {
@@ -975,10 +1156,21 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('.tab[data-tab="about"]').textContent = getLang('ABOUT', 'ÜBER');
         document.querySelector('.tab[data-tab="posts"]').textContent = getLang('POSTS', 'BEITRÄGE');
 
-        // Update sort button labels
-        document.querySelector('.sort-btn[data-sort="newest"]').textContent = getLang('Latest', 'Neueste');
-        document.querySelector('.sort-btn[data-sort="popular"]').textContent = getLang('Popular', 'Beliebteste');
-        document.querySelector('.sort-btn[data-sort="oldest"]').textContent = getLang('Oldest', 'Älteste');
+        // Update sort dropdown labels
+        const updatedSortLabels = {
+            newest: getLang('Date added (newest)', 'Hinzugefügt am... (neueste zuerst)'),
+            popular: getLang('Most popular', 'Am beliebtesten'),
+            oldest: getLang('Date added (oldest)', 'Hinzugefügt am... (älteste zuerst)')
+        };
+
+        document.getElementById('sortToggleLabel').textContent = updatedSortLabels[currentSortMode];
+        document.querySelector('.sort-dropdown-item[data-sort="newest"]').textContent = updatedSortLabels.newest;
+        document.querySelector('.sort-dropdown-item[data-sort="popular"]').textContent = updatedSortLabels.popular;
+        document.querySelector('.sort-dropdown-item[data-sort="oldest"]').textContent = updatedSortLabels.oldest;
+
+        document.getElementById('viewToggleLabel').textContent = getLang('Grid', 'Raster');
+        document.querySelector('.view-dropdown-item[data-view="grid"]').textContent = getLang('Grid', 'Raster');
+        document.querySelector('.view-dropdown-item[data-view="list"]').textContent = getLang('List', 'Liste');
 
         document.getElementById('aboutDescriptionHeader').textContent = getLang('Description', 'Beschreibung');
         document.getElementById('aboutStatsHeader').textContent = getLang('Stats', 'Statistiken');
@@ -992,6 +1184,99 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('homeLoadingText').textContent = getLang('Loading videos...', 'Lade Videos...');
     document.getElementById('homeOthersLabel').textContent = getLang('Other videos', 'Weitere Videos');
     document.getElementById('postsLoadingText').textContent = getLang('Loading posts...', 'Lade Beiträge...');
+
+    // Sort dropdown logic
+    const sortToggle = document.getElementById('sortToggle');
+    const sortDropdownMenu = document.getElementById('sortDropdownMenu');
+    const sortToggleLabel = document.getElementById('sortToggleLabel');
+
+    sortToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = sortDropdownMenu.classList.contains('open');
+        sortDropdownMenu.classList.toggle('open');
+        sortToggle.classList.toggle('open');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.sort-dropdown')) {
+            sortDropdownMenu.classList.remove('open');
+            sortToggle.classList.remove('open');
+        }
+    });
+
+    document.querySelectorAll('.sort-dropdown-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const sortValue = item.dataset.sort;
+            currentSortMode = sortValue;
+
+            // Update active state in dropdown
+            document.querySelectorAll('.sort-dropdown-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+
+            // Update toggle label
+            const updatedSortLabels = {
+                newest: getLang('Date added (newest)', 'Hinzugefügt am... (neueste zuerst)'),
+                popular: getLang('Most popular', 'Am beliebtesten'),
+                oldest: getLang('Date added (oldest)', 'Hinzugefügt am... (älteste zuerst)')
+            };
+            sortToggleLabel.textContent = updatedSortLabels[sortValue];
+
+            // Close dropdown
+            sortDropdownMenu.classList.remove('open');
+            sortToggle.classList.remove('open');
+
+            // Re-sort and re-render
+            sortVideosArray();
+            resetAndRender();
+        });
+    });
+
+    // View dropdown logic
+    const viewToggle = document.getElementById('viewToggle');
+    const viewDropdownMenu = document.getElementById('viewDropdownMenu');
+    const viewToggleLabel = document.getElementById('viewToggleLabel');
+    let currentViewMode = 'grid';
+
+    viewToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        viewDropdownMenu.classList.toggle('open');
+        viewToggle.classList.toggle('open');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.view-dropdown')) {
+            viewDropdownMenu.classList.remove('open');
+            viewToggle.classList.remove('open');
+        }
+    });
+
+    document.querySelectorAll('.view-dropdown-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const viewValue = item.dataset.view;
+            currentViewMode = viewValue;
+
+            // Update active state in dropdown
+            document.querySelectorAll('.view-dropdown-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+
+            // Update toggle label
+            viewToggleLabel.textContent = getLang(
+                viewValue === 'grid' ? 'Grid' : 'List',
+                viewValue === 'grid' ? 'Raster' : 'Liste'
+            );
+
+            // Close dropdown
+            viewDropdownMenu.classList.remove('open');
+            viewToggle.classList.remove('open');
+
+            // Toggle view class on container
+            if (viewValue === 'list') {
+                videosContainer.classList.add('list-view');
+            } else {
+                videosContainer.classList.remove('list-view');
+            }
+        });
+    });
 
     function switchTab(tabName) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1836,20 +2121,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         postsContainer.appendChild(fragment);
     }
-
-    // Sort button event listeners
-    document.querySelectorAll('.sort-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            // Update active state
-            document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            // Update sort mode and re-render
-            currentSortMode = btn.dataset.sort;
-            sortVideosArray();
-            resetAndRender();
-        });
-    });
 
     function formatJoinDate(date) {
         const monthsEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

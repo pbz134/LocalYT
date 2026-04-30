@@ -41,6 +41,8 @@ v4.05
 - Implemented seek bar previews
   - Hovering over the seek bar now shows small thumbnail previews of the current point in the video
 - Redesigned the video sort buttons on channel.html, added a "Popular" button to sort by most viewed
+- You can now toggle channel.html videos between the standard grid and a list view (similar to search results)
+- Removed border-radius of subscribe buttons
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
