@@ -503,7 +503,8 @@
     <!-- Left Sidebar -->
     <div class="settings-sidebar">
         <a data-tab="profile" class="active" id="sidebarProfile">Profile Picture</a>
-        <a data-tab="settings" id="sidebarSettings">Settings</a>
+        <a data-tab="settings" id="sidebarSettings">Account</a>
+        <a data-tab="preferences" id="sidebarPreferences">Preferences</a>
     </div>
 
     <!-- Content Area -->
@@ -524,7 +525,89 @@
 
         <!-- Settings Tab -->
         <div class="tab-panel" id="tab-settings">
-            <h1 id="settingsHeading">Settings</h1>
+            <h1 id="settingsHeading">Account</h1>
+
+            <!-- Algorithm Section -->
+            <div class="settings-section">
+                <h2 id="algoPrefsHeading">Algorithm Preferences</h2>
+                <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;" id="algoPrefsDesc">Adjust scores to influence your recommendations. Higher = matching videos are more likely to appear.</p>
+
+                <div id="preferencesContainer" class="pref-list-container">
+                </div>
+
+                <div class="inline-form" style="margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 15px;">
+                    <input type="text" id="newTagInput" list="allTagsList" placeholder="" style="flex-grow: 1;">
+                    <datalist id="allTagsList"></datalist>
+                    <button class="btn" id="addTagBtn">Add Tag</button>
+                </div>
+
+                <div class="inline-form">
+                    <button class="btn btn-save" id="savePrefsBtn">Save Preferences</button>
+                    <button class="btn btn-danger" id="resetPrefsBtn">Reset All</button>
+                </div>
+                <div id="prefStatus" class="status-msg"></div>
+            </div>
+
+            <!-- Account Management -->
+            <div class="settings-section">
+                <h2 id="accountMgmtHeading">Account Management</h2>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 5px; font-size: 16px;" id="renameHeading">Rename Account</h3>
+                    <div class="inline-form">
+                        <input type="text" id="newUsername" placeholder="">
+                        <button class="btn" id="renameBtn">Rename</button>
+                    </div>
+                    <div id="renameStatus" class="status-msg"></div>
+                </div>
+
+                <div>
+                    <h3 style="margin-bottom: 5px; font-size: 16px;" id="changePassHeading">Change Password</h3>
+                    <div class="inline-form" style="flex-wrap: wrap;">
+                        <input type="password" id="currentPassword" placeholder="">
+                        <input type="password" id="newPassword" placeholder="">
+                        <button class="btn" id="changePassBtn">Update</button>
+                    </div>
+                    <div id="passStatus" class="status-msg"></div>
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="settings-section">
+                <h2 id="dangerZoneHeading">Danger Zone</h2>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 5px; font-size: 16px;" id="logoutHeading">Logout</h3>
+                    <p style="font-size: 13px; color: #aaa;" id="logoutDesc">End your current session.</p>
+                    <div class="inline-form" style="justify-content: flex-start;">
+                        <button class="btn btn-logout" id="logoutBtn">Logout</button>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="margin-bottom: 5px; font-size: 16px; color: #ff4444;" id="deleteAccHeading">Delete Account</h3>
+                    <p style="font-size: 13px; color: #aaa;" id="deleteAccDesc">WARNING: Once deleted, you won't be able to recover it.</p>
+                    <div class="inline-form" style="justify-content: flex-start;">
+                        <button class="btn btn-danger" id="toggleDeleteBtn">Delete Account</button>
+                    </div>
+
+                    <div id="deleteAccountForm" class="delete-account-form">
+                        <p id="deleteWarningText">Enter your current password and type <strong style="color:#ff4444;">DELETE</strong> to permanently delete your account.</p>
+                        <div class="delete-form-row">
+                            <input type="password" id="deletePassword" placeholder="">
+                            <input type="text" id="deleteConfirmInput" placeholder="">
+                            <button class="btn btn-danger" id="deleteAccountBtn">Confirm Delete</button>
+                        </div>
+                    </div>
+
+                    <div id="deleteStatus" class="status-msg"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preferences Tab -->
+        <div class="tab-panel" id="tab-preferences">
+            <h1 id="preferencesHeading">Preferences</h1>
 
             <!-- Autoplay Section -->
             <div class="settings-section">
@@ -578,55 +661,10 @@
                 <div id="autoplayStatus" class="status-msg"></div>
             </div>
 
-            <!-- Algorithm Section -->
-            <div class="settings-section">
-                <h2 id="algoPrefsHeading">Algorithm Preferences</h2>
-                <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;" id="algoPrefsDesc">Adjust scores to influence your recommendations. Higher = matching videos are more likely to appear.</p>
-
-                <div id="preferencesContainer" class="pref-list-container">
-                </div>
-
-                <div class="inline-form" style="margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 15px;">
-                    <input type="text" id="newTagInput" list="allTagsList" placeholder="" style="flex-grow: 1;">
-                    <datalist id="allTagsList"></datalist>
-                    <button class="btn" id="addTagBtn">Add Tag</button>
-                </div>
-
-                <div class="inline-form">
-                    <button class="btn btn-save" id="savePrefsBtn">Save Preferences</button>
-                    <button class="btn btn-danger" id="resetPrefsBtn">Reset All</button>
-                </div>
-                <div id="prefStatus" class="status-msg"></div>
-            </div>
-
-            <!-- Account Management -->
-            <div class="settings-section">
-                <h2 id="accountMgmtHeading">Account Management</h2>
-
-                <div style="margin-bottom: 20px;">
-                    <h3 style="margin-bottom: 5px; font-size: 16px;" id="renameHeading">Rename Account</h3>
-                    <div class="inline-form">
-                        <input type="text" id="newUsername" placeholder="">
-                        <button class="btn" id="renameBtn">Rename</button>
-                    </div>
-                    <div id="renameStatus" class="status-msg"></div>
-                </div>
-
-                <div>
-                    <h3 style="margin-bottom: 5px; font-size: 16px;" id="changePassHeading">Change Password</h3>
-                    <div class="inline-form" style="flex-wrap: wrap;">
-                        <input type="password" id="currentPassword" placeholder="">
-                        <input type="password" id="newPassword" placeholder="">
-                        <button class="btn" id="changePassBtn">Update</button>
-                    </div>
-                    <div id="passStatus" class="status-msg"></div>
-                </div>
-            </div>
-
             <!-- Commenter Profile Images Section -->
             <div class="settings-section">
                 <h2 id="commenterProfileHeading">Commenter Profile Images</h2>
-    
+
                 <div class="setting-row">
                     <div class="setting-label">
                         <div id="commenterProfileLabel">Commenter Avatar Style</div>
@@ -646,39 +684,32 @@
                 <div id="commenterStyleStatus" class="status-msg"></div>
             </div>
 
-            <!-- Danger Zone -->
+            <!-- Channel Default View Section -->
             <div class="settings-section">
-                <h2 id="dangerZoneHeading">Danger Zone</h2>
+                <h2 id="channelDefaultViewHeading">Channel Default View</h2>
 
-                <div style="margin-bottom: 20px;">
-                    <h3 style="margin-bottom: 5px; font-size: 16px;" id="logoutHeading">Logout</h3>
-                    <p style="font-size: 13px; color: #aaa;" id="logoutDesc">End your current session.</p>
-                    <div class="inline-form" style="justify-content: flex-start;">
-                        <button class="btn btn-logout" id="logoutBtn">Logout</button>
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div id="channelDefaultViewLabel">Default channel video layout</div>
+                        <div class="setting-description" id="channelDefaultViewDesc">Choose how the Videos tab on channel pages loads by default</div>
+                    </div>
+                    <div class="setting-control">
+                        <select class="setting-select" id="channelDefaultView">
+                            <option value="grid">Grid</option>
+                            <option value="list">List</option>
+                        </select>
                     </div>
                 </div>
 
-                <div>
-                    <h3 style="margin-bottom: 5px; font-size: 16px; color: #ff4444;" id="deleteAccHeading">Delete Account</h3>
-                    <p style="font-size: 13px; color: #aaa;" id="deleteAccDesc">WARNING: Once deleted, you won't be able to recover it.</p>
-                    <div class="inline-form" style="justify-content: flex-start;">
-                        <button class="btn btn-danger" id="toggleDeleteBtn">Delete Account</button>
-                    </div>
-
-                    <div id="deleteAccountForm" class="delete-account-form">
-                        <p id="deleteWarningText">Enter your current password and type <strong style="color:#ff4444;">DELETE</strong> to permanently delete your account.</p>
-                        <div class="delete-form-row">
-                            <input type="password" id="deletePassword" placeholder="">
-                            <input type="text" id="deleteConfirmInput" placeholder="">
-                            <button class="btn btn-danger" id="deleteAccountBtn">Confirm Delete</button>
-                        </div>
-                    </div>
-
-                    <div id="deleteStatus" class="status-msg"></div>
+                <div class="inline-form" style="margin-top: 15px;">
+                    <button class="btn btn-save" id="saveChannelDefaultViewBtn">Save Preference</button>
                 </div>
+                <div id="channelDefaultViewStatus" class="status-msg"></div>
             </div>
         </div>
     </div>
+
+
 
     <!-- Cropper Modal -->
     <div class="crop-modal-overlay" id="cropperModal">
@@ -711,6 +742,7 @@ function applyTranslations() {
     // Sidebar
     document.getElementById('sidebarProfile').textContent = getLang('Profile Picture', 'Profilbild');
     document.getElementById('sidebarSettings').textContent = getLang('Account', 'Konto');
+    document.getElementById('sidebarPreferences').textContent = getLang('Preferences', 'Einstellungen');
     
     // Profile tab
     document.getElementById('profileHeading').textContent = getLang('Profile Picture', 'Profilbild');
@@ -719,6 +751,9 @@ function applyTranslations() {
     
     // Settings tab
     document.getElementById('settingsHeading').textContent = getLang('Account', 'Konto');
+    
+    // Preferences tab
+    document.getElementById('preferencesHeading').textContent = getLang('Preferences', 'Einstellungen');
     
     // Autoplay Section
     document.getElementById('autoplayHeading').textContent = getLang('Autoplay Settings', 'Automatische Wiedergabe-Einstellungen');
@@ -735,6 +770,12 @@ function applyTranslations() {
     document.getElementById('commenterProfileDesc').textContent = getLang('Choose how commenter profile pictures appear in comments', 'Wähle, wie Kommentar-Profilbilder angezeigt werden');
     document.getElementById('saveCommenterStyleBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
 
+    // Channel Default View Section
+    document.getElementById('channelDefaultViewHeading').textContent = getLang('Channel Default View', 'Standard-Kanalansicht');
+    document.getElementById('channelDefaultViewLabel').textContent = getLang('Default channel video layout', 'Standard-Video-Layout für Kanäle');
+    document.getElementById('channelDefaultViewDesc').textContent = getLang('Choose how the Videos tab on channel pages loads by default', 'Wähle, wie der Video-Tab auf Kanalseiten standardmäßig geladen wird');
+    document.getElementById('saveChannelDefaultViewBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
+
     // Update dropdown options text if needed (optional, since values are English)
     const commenterSelect = document.getElementById('commenterProfileStyle');
     if (commenterSelect) {
@@ -743,6 +784,14 @@ function applyTranslations() {
         options[0].text = getLang('Modern (Letters & Colors)', 'Modern (Buchstaben & Farben)');
         // Option 1: Classic  
         options[1].text = getLang('Classic (Placeholder Image)', 'Klassisch (Platzhalter-Bild)');
+    }
+
+    // Channel default view dropdown
+    const channelViewSelect = document.getElementById('channelDefaultView');
+    if (channelViewSelect) {
+        const options = channelViewSelect.options;
+        options[0].text = getLang('Grid', 'Raster');
+        options[1].text = getLang('List', 'Liste');
     }
 
     // Update dropdown options
@@ -857,6 +906,70 @@ function saveCommenterProfileStyle() {
 }
 
 // ==============================
+// Channel Default View Logic
+// ==============================
+function loadChannelDefaultView() {
+    // Load from localStorage initially for immediate UI rendering
+    const savedLocal = JSON.parse(localStorage.getItem('channelDefaultView') || '{}');
+    const defaultView = 'grid';
+    const currentView = savedView.view || defaultView;
+    
+    document.getElementById('channelDefaultView').value = currentView;
+
+    // Fetch server state
+    fetch('/user-settings')
+        .then(res => {
+            if (!res.ok) throw new Error('Not authenticated');
+            return res.json();
+        })
+        .then(serverSettings => {
+            if (serverSettings && serverSettings.channelDefaultView) {
+                const serverView = serverSettings.channelDefaultView;
+                document.getElementById('channelDefaultView').value = serverView;
+                
+                // Sync back to localStorage for channel.html to read instantly
+                localStorage.setItem('channelDefaultView', JSON.stringify({ view: serverView }));
+            }
+        })
+        .catch(err => console.error('Could not load channel default view from server:', err));
+}
+
+function saveChannelDefaultView() {
+    const view = document.getElementById('channelDefaultView').value;
+
+    // 1. Save to localStorage immediately for channel.html to read
+    localStorage.setItem('channelDefaultView', JSON.stringify({ view: view }));
+
+    // 2. Fetch current server settings first so we don't overwrite language/appearance
+    fetch('/user-settings')
+        .then(res => res.json())
+        .then(currentSettings => {
+            // Merge the new view into existing settings
+            const updatedSettings = {
+                ...currentSettings,
+                channelDefaultView: view
+            };
+
+            // Send the complete updated object back to server
+            return fetch('/user-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings: updatedSettings })
+            });
+        })
+        .then(res => {
+            if (res.ok) {
+                showStatus('channelDefaultViewStatus', getLang('Channel default view saved!', 'Standard-Kanalansicht gespeichert!'), true);
+            } else {
+                showStatus('channelDefaultViewStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
+            }
+        })
+        .catch(() => {
+            showStatus('channelDefaultViewStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
+        });
+}
+
+// ==============================
 // Tab Switching
 // ==============================
 const sidebarLinks = document.querySelectorAll('.settings-sidebar a');
@@ -876,8 +989,12 @@ sidebarLinks.forEach(link => {
         if (targetTab === 'settings') {
             loadPreferences();
             loadAllTags();
+        }
+
+        if (targetTab === 'preferences') {
             loadAutoplaySettings();
-            loadCommenterProfileStyle()
+            loadCommenterProfileStyle();
+            loadChannelDefaultView();
         }
     });
 });
@@ -919,23 +1036,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize autoplay UI event listeners
     initAutoplayUI();
 
-    // Initialize commenter profile style save button  <--- ADD THIS HERE
+    // Initialize save buttons for preferences tab
     document.getElementById('saveCommenterStyleBtn')?.addEventListener('click', saveCommenterProfileStyle);
+    document.getElementById('saveChannelDefaultViewBtn')?.addEventListener('click', saveChannelDefaultView);
 
     // Wait for profile-pic.js to finish its session check before loading settings
-    // This prevents race conditions where settings fetches fail because the session 
-    // check in this file fires before the cookie is fully validated.
     function waitForSessionCheck() {
         const headerPic = document.getElementById('headerProfilePic');
         if (headerPic && headerPic.src && !headerPic.src.includes('user-profile-placeholder.jpg')) {
-            // Profile-pic.js successfully verified the session and loaded the custom pic
             loadProfilePic();
             loadPreferences();
             loadAllTags();
-            loadAutoplaySettings();
-            loadCommenterProfileStyle();
         } else {
-            // Fallback timeout: Wait a brief moment for profile-pic.js to finish
             setTimeout(() => {
                 fetch('/session-user')
                     .then(res => {
@@ -949,8 +1061,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             loadProfilePic();
                             loadPreferences();
                             loadAllTags();
-                            loadAutoplaySettings();
-                            loadCommenterProfileStyle();
                         }
                     })
                     .catch(() => window.location.href = 'login.html');

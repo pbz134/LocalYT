@@ -42,6 +42,7 @@ v4.05
   - Hovering over the seek bar now shows small thumbnail previews of the current point in the video
 - Redesigned the video sort buttons on channel.html, added a "Popular" button to sort by most viewed
 - You can now toggle channel.html videos between the standard grid and a list view (similar to search results)
+  - Additionally, you can define the default channel video layout (grid or list) in the Settings
 - Removed border-radius of subscribe buttons
 
 v4.00

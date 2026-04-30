@@ -1237,6 +1237,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewToggleLabel = document.getElementById('viewToggleLabel');
     let currentViewMode = 'grid';
 
+    // Apply user's default channel view preference
+    const channelDefaultViewPref = JSON.parse(localStorage.getItem('channelDefaultView') || '{}');
+    if (channelDefaultViewPref.view) {
+        currentViewMode = channelDefaultViewPref.view;
+    }
+
+    // Update the view toggle label and active state to match the preference
+    viewToggleLabel.textContent = getLang(
+        currentViewMode === 'grid' ? 'Grid' : 'List',
+        currentViewMode === 'grid' ? 'Raster' : 'Liste'
+    );
+
+    document.querySelectorAll('.view-dropdown-item').forEach(item => {
+        if (item.dataset.view === currentViewMode) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+    });
+
+    // Apply the view class immediately if the preference is list
+    if (currentViewMode === 'list') {
+        videosContainer.classList.add('list-view');
+    }
+
     viewToggle.addEventListener('click', (e) => {
         e.stopPropagation();
         viewDropdownMenu.classList.toggle('open');
