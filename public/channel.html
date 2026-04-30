@@ -36,6 +36,30 @@
             border-radius: 50%;
             margin-right: 30px;
         }
+
+        /* Legacy channel page style */
+        body.legacy-channel .channel-banner {
+            position: relative;
+            margin-bottom: 0;
+        }
+        body.legacy-channel .channel-pic {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 100px;
+            height: 100px;
+            border-radius: 0 !important;
+            margin: 0;
+            z-index: 5;
+            border: 3px solid rgba(0, 0, 0, 0.5);
+        }
+        body.legacy-channel .channel-header {
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        body.legacy-channel .video-count {
+            display: none !important;
+        }
         .channel-name {
             font-size: 20px;
             font-weight: bold;
@@ -1089,6 +1113,18 @@ function buildChannelUrl(channel, tab) {
 const { channel, tab: initialTab } = parseChannelUrl();
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Apply legacy channel page style if preferred
+    const channelPageStylePref = JSON.parse(localStorage.getItem('channelPageStyle') || '{}');
+    if (channelPageStylePref.style === 'legacy') {
+        document.body.classList.add('legacy-channel');
+        // Move the profile pic into the banner so absolute positioning works cleanly
+        const channelPic = document.getElementById('channelPic');
+        const channelBanner = document.getElementById('channelBanner');
+        if (channelPic && channelBanner) {
+            channelBanner.appendChild(channelPic);
+        }
+    }
+
     const mainLogo = document.getElementById('mainLogo');
 
     if (mainLogo) {
