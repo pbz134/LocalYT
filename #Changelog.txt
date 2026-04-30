@@ -47,6 +47,7 @@ v4.10
 - Removed caps on channel.html tabs
 - Added a subscriber count next to the Subscribe button
 - Removed border-radius for the channel Home video description box
+- Removed the channel home description box
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist

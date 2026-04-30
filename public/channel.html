@@ -638,12 +638,12 @@
             margin-bottom: 16px;
         }
         .home-video-description-box {
-            background-color: #282828;
-            padding: 15px;
+            background-color: transparent;
             flex: 1;
             min-height: 100px;
-            overflow-y: auto;
-            max-height: 220px;
+            overflow-y: hidden;
+
+            position: relative;
         }
         .home-video-description-text {
             color: #ccc;
@@ -651,6 +651,23 @@
             line-height: 1.5;
             white-space: pre-line;
             word-wrap: break-word;
+            display: -webkit-box;
+            -webkit-line-clamp: 10;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .home-video-description-read-more {
+            display: none;
+            margin-top: 8px;
+            color: #3ea6ff;
+            font-size: 14px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            cursor: pointer;
+            text-decoration: none;
+            user-select: none;
+        }
+        .home-video-description-read-more:hover {
+            text-decoration: underline;
         }
         .home-video-description-text.no-desc {
             color: #666;
@@ -911,6 +928,7 @@
                     <div class="home-video-meta" id="homeVideoMeta"></div>
                     <div class="home-video-description-box">
                         <div class="home-video-description-text" id="homeVideoDescription"></div>
+                        <a class="home-video-description-read-more" id="homeVideoDescriptionReadMore" href="#">Mehr anzeigen</a>
                     </div>
                 </div>
             </div>
@@ -1472,11 +1490,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 descEl.textContent = getLang('No description available for this video.', 'Diesem Video wurde keine Beschreibung hinzugefügt.');
                 descEl.classList.add('no-desc');
             }
+            const readMoreBtn = document.getElementById('homeVideoDescriptionReadMore');
+            const descBox = document.querySelector('.home-video-description-box');
+            const descText = document.getElementById('homeVideoDescription');
+
+            // Temporarily remove line-clamp to get true scrollHeight
+            descText.style.webkitLineClamp = 'unset';
+            const isOverflowing = descText.scrollHeight > descBox.clientHeight;
+            descText.style.webkitLineClamp = '';
+
+            if (isOverflowing) {
+                readMoreBtn.style.display = 'inline-block';
+                readMoreBtn.href = `video.html?src=${encodeURIComponent(video.path)}`;
+            } else {
+                readMoreBtn.style.display = 'none';
+            }
         })
         .catch(() => {
             metaEl.textContent = video.fileDate;
             descEl.textContent = getLang('No description available.', 'Keine Beschreibung verfügbar.');
             descEl.classList.add('no-desc');
+            document.getElementById('homeVideoDescriptionReadMore').style.display = 'none';
         });
 
         const videoElement = document.createElement('video');
