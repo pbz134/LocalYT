@@ -601,6 +601,20 @@
             position: relative;
             line-height: 0;
         }
+        .home-logo-overlay {
+            position: absolute;
+            top: 55%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 75px;
+            height: 150px;
+            background-image: url('LocalYT-Rev-Files/Play-Light.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            pointer-events: none;
+            transition: opacity 0.1s ease;
+            z-index: 10;
+        }
         .home-player-wrapper video {
             width: 100%;
             aspect-ratio: 16 / 9;
@@ -1447,6 +1461,15 @@ document.addEventListener('DOMContentLoaded', () => {
             homeFluidPlayerInstance = null;
         }
 
+        // Remove old overlay if reinitializing
+        const oldOverlay = wrapper.querySelector('.home-logo-overlay');
+        if (oldOverlay) oldOverlay.remove();
+
+        // Add the logo overlay
+        const logoOverlay = document.createElement('div');
+        logoOverlay.className = 'home-logo-overlay';
+        wrapper.appendChild(logoOverlay);
+
         titleEl.textContent = video.displayName;
         titleEl.onclick = () => { openVideo(encodeURIComponent(video.path)); };
         titleEl.oncontextmenu = (e) => {
@@ -1521,6 +1544,15 @@ document.addEventListener('DOMContentLoaded', () => {
         sourceElement.src = `/videos/${encodeURIComponent(video.path)}`;
         sourceElement.type = mimeType;
         videoElement.appendChild(sourceElement);
+
+        // Hide the overlay permanently once the video starts playing
+        videoElement.addEventListener('play', () => {
+            logoOverlay.style.opacity = '0';
+            // Remove the event listener and the element itself after fading out
+            setTimeout(() => {
+                logoOverlay.remove();
+            }, 150);
+        }, { once: true });
 
         placeholder.remove();
         wrapper.appendChild(videoElement);

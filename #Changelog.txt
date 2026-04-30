@@ -48,6 +48,7 @@ v4.10
 - Added a subscriber count next to the Subscribe button
 - Removed border-radius for the channel Home video description box
 - Removed the channel home description box
+- Added the logo overlay to the home mini player
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
