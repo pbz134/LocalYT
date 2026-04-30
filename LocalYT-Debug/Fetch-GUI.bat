@@ -1,2 +1,2 @@
 @echo off
-python Fetch-GUI.py
+..\venv\python.exe Fetch-GUI.py
