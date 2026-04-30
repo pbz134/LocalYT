@@ -48,7 +48,9 @@ v4.10
 - Added a subscriber count next to the Subscribe button
 - Removed border-radius for the channel Home video description box
 - Removed the channel home description box
+- Removed some leftover border-radius properties
 - Added the logo overlay to the home mini player
+- Improved livechat positioning on video.html
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist

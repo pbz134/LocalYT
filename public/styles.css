@@ -260,7 +260,6 @@ body {
     width: 280px;
     height: 160px;
     display: block;
-    border-radius: 0px;
     margin-right: 20px;
 }
 
@@ -339,7 +338,6 @@ body {
     color: #fff;
     padding: 2px 5px;
     font-size: 10px;
-    border-radius: 3px;
 }
 
 .like-dislike-container {
