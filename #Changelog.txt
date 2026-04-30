@@ -1,6 +1,6 @@
 +++LocalYT Revamped - Changelog+++
 
-v4.05
+v4.10
 - Comments can now be liked
   - This will be saved in a new userCommentLikes.json file
 - Implemented a search history
