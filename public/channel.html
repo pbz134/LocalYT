@@ -61,7 +61,9 @@
             font-size: 14px;
             color: #fff;
             background-color: red;
-            border: none;
+            border: 1px solid #666;
+            border-right: none;
+            border-radius: 2px 0 0 2px;
             transition: background-color 0.2s;
         }
         .subscribe-button:hover {
@@ -72,6 +74,16 @@
         }
         .subscribe-button.subscribed:hover {
             background-color: #999;
+        }
+        .subscriber-count {
+            padding: 9px 12px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            font-size: 12px;
+            color: #aaa;
+            background-color: #222;
+            border: 1px solid #666;
+            border-radius: 0 2px 2px 0;
+            white-space: nowrap;
         }
         .tabs {
             display: flex;
@@ -860,7 +872,7 @@
         <img id="channelPic" class="channel-pic" alt="Channel Picture" loading="lazy">
         <div id="channelName" class="channel-name"></div>
         <div class="channel-header-right">
-            <button id="subscribeButton" class="subscribe-button">Subscribe</button>
+            <button id="subscribeButton" class="subscribe-button">Subscribe</button><span id="subscriberCount" class="subscriber-count"></span>
         </div>
     </div>
 
@@ -1150,11 +1162,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
     function updateUITranslations() {
-        document.querySelector('.tab[data-tab="home"]').textContent = getLang('HOME', 'STARTSEITE');
-        document.querySelector('.tab[data-tab="videos"]').textContent = getLang('VIDEOS', 'VIDEOS');
-        document.querySelector('.tab[data-tab="playlists"]').textContent = getLang('PLAYLISTS', 'PLAYLISTEN');
-        document.querySelector('.tab[data-tab="about"]').textContent = getLang('ABOUT', 'ÜBER');
-        document.querySelector('.tab[data-tab="posts"]').textContent = getLang('POSTS', 'BEITRÄGE');
+        document.querySelector('.tab[data-tab="home"]').textContent = getLang('Home', 'Übersicht');
+        document.querySelector('.tab[data-tab="videos"]').textContent = getLang('Videos', 'Videos');
+        document.querySelector('.tab[data-tab="playlists"]').textContent = getLang('Playlists', 'Playlisten');
+        document.querySelector('.tab[data-tab="about"]').textContent = getLang('About', 'Kanalinfo');
+        document.querySelector('.tab[data-tab="posts"]').textContent = getLang('Posts', 'Beiträge');
 
         // Update sort dropdown labels
         const updatedSortLabels = {
@@ -2223,6 +2235,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         channelName.innerHTML = text;
+
+        if (subs !== null) {
+            document.getElementById('subscriberCount').textContent = subs;
+        }
     }
 
     function initializeVideoList(channelVideos) {
