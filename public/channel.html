@@ -1983,29 +1983,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const playlistElement = document.createElement('div');
             playlistElement.className = 'playlist-item';
 
-            // Construct URL once for reuse in all handlers
             const playlistUrl = `playlist.html?channel=${encodeURIComponent(channel)}&playlist=${encodeURIComponent(playlist.path)}`;
 
+            const thumbnailStyle = playlist.thumbnail 
+                ? `background-image: url('${playlist.thumbnail.replace(/'/g, "\\'")}');` 
+                : 'background-color: #333;';
+
             playlistElement.innerHTML = `
-                <div class="playlist-thumbnail" style="background-color: #333;">
+                <div class="playlist-thumbnail" style="${thumbnailStyle}">
                     <div class="playlist-overlay">${playlist.videoCount || 0} ${videosText}</div>
                 </div>
                 <div class="playlist-title">${playlist.name}</div>
                 <div class="playlist-video-count">${playlist.videoCount || 0} ${videosText}</div>
             `;
 
-            // Left Click -> Navigate in same tab (Default behavior)
             playlistElement.addEventListener('click', () => {
                 window.location.href = playlistUrl;
             });
 
-            // Right Click -> Open in new tab
             playlistElement.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 window.open(playlistUrl, '_blank');
             });
 
-            // Middle Click (Mouse Wheel) -> Open in new tab
             playlistElement.addEventListener('mouseup', (e) => {
                 if (e.button === 1) {
                     e.preventDefault();
@@ -2013,7 +2013,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             
-            // Auxclick fallback for some browsers
             playlistElement.addEventListener('auxclick', (e) => {
                 if (e.button === 1) {
                     e.preventDefault();
@@ -2022,52 +2021,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             playlistsContainer.appendChild(playlistElement);
-
-            if (playlist.videoCount > 0) {
-                const thumbDiv = playlistElement.querySelector('.playlist-thumbnail');
-
-                fetch(`/playlist-videos/${encodeURIComponent(channel)}/${encodeURIComponent(playlist.path)}`)
-                    .then(response => response.json())
-                    .then(videos => {
-                        if (videos && videos.length > 0) {
-                            pickPreviewVideo(videos).then(previewVideo => {
-                                if (previewVideo) {
-                                    const videoPathWithoutExt = stripExtension(previewVideo.path);
-                                    const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
-                                    thumbDiv.style.backgroundImage = `url('${thumbnailSrc}')`;
-                                }
-                            });
-                        }
-                    })
-                    .catch(err => {
-                        console.warn("Could not load preview for playlist:", playlist.name);
-                    });
-            }
-        });
-    }
-
-    function pickPreviewVideo(videos) {
-        if (!videos || videos.length === 0) return null;
-
-        const datePromises = videos.slice(0, 10).map(video => {
-            const videoPathWithoutExt = stripExtension(video.path);
-            return fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
-                .then(response => response.ok ? response.text() : 'Unknown date')
-                .then(dateString => ({
-                    video: video,
-                    date: dateString.trim() || 'Unknown date',
-                    dateObj: parseEuropeanDate(dateString.trim())
-                }))
-                .catch(() => ({
-                    video: video,
-                    date: 'Unknown date',
-                    dateObj: new Date(0)
-                }));
-        });
-
-        return Promise.all(datePromises).then(videosWithDates => {
-            videosWithDates.sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
-            return videosWithDates[0].video;
         });
     }
 

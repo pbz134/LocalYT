@@ -53,6 +53,8 @@ v4.10
 - Improved livechat positioning on video.html
 - Renamed "Show Playlist" to "Show Sidebar" in case of live chats, since this is more accurate
 - Channel page styling can now be toggled between a Modern and Legacy styling
+- Fixed playlist preview thumbnail encoding and added playlist_cache.json
+  - All playlist preview thumbnails on channel.html should now load faster and without errors
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist

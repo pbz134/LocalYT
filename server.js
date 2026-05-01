@@ -195,9 +195,9 @@ app.use('/livechats', express.static(path.join(__dirname, 'livechats')));
 app.use('/channelposts', express.static(path.join(__dirname, 'channelposts')));
 app.use('/user-profiles', express.static(path.join(__dirname, 'user-profiles')));
 app.use('/favicon.png', express.static(path.join(__dirname, 'favicon.png')));
+app.use('/playlist_cache.json', express.static(path.join(__dirname, 'playlist_cache.json')));
 
 // --- DISCORD EMBED ROUTE ---
-// This must come BEFORE the generic express.static('public') to intercept video.html
 app.get('/video.html', (req, res) => {
     const videoSrc = req.query.src;
 
@@ -206,7 +206,14 @@ app.get('/video.html', (req, res) => {
         return res.sendFile(path.join(__dirname, 'public', 'video.html'));
     }
 
-    const decodedSrc = decodeURIComponent(videoSrc);
+    // SAFE DECODE: Handle malformed URI sequences (e.g., "100%" in filenames)
+    let decodedSrc;
+    try {
+        decodedSrc = decodeURIComponent(videoSrc);
+    } catch (e) {
+        console.warn('[Discord Embed] Malformed URI in src, using raw:', videoSrc);
+        decodedSrc = videoSrc;
+    }
     
     // --- Get Title ---
     // Try to read the custom filename, fallback to the actual filename
@@ -239,8 +246,6 @@ app.get('/video.html', (req, res) => {
     }
 
     // --- Construct URLs ---
-    // We force https because tunnels (like trycloudflare) terminate SSL there, 
-    // and Discord requires secure URLs for video embeds.
     const host = req.get('host');
     const videoUrl = `https://${host}/videos/${encodeURIComponent(decodedSrc)}`;
     const thumbUrl = `https://${host}/${thumbRelativePath}`;
@@ -250,7 +255,7 @@ app.get('/video.html', (req, res) => {
     const htmlFilePath = path.join(__dirname, 'public', 'video.html');
     let htmlContent = fs.readFileSync(htmlFilePath, 'utf8');
 
-    // Only embed video player for MP4 files (Discord doesn't play MKV/MP3 in embeds)
+    // Only embed video player for MP4 files
     const isMp4 = decodedSrc.toLowerCase().endsWith('.mp4');
 
     const metaTags = `
@@ -430,6 +435,124 @@ function ensureWatchHistoryFile() {
 
 ensurePreferencesFile();
 ensureWatchHistoryFile();
+
+// --- PLAYLIST THUMBNAIL CACHE SYSTEM ---
+const playlistCacheFilePath = path.join(__dirname, 'playlist_cache.json');
+let playlistThumbnailCache = {};
+
+function loadPlaylistThumbnailCache() {
+    if (fs.existsSync(playlistCacheFilePath)) {
+        try {
+            const data = fs.readFileSync(playlistCacheFilePath, 'utf8');
+            playlistThumbnailCache = JSON.parse(data);
+            console.log(`Loaded playlist thumbnail cache (${Object.keys(playlistThumbnailCache).length} entries).`);
+        } catch (err) {
+            console.log('Failed to read playlist cache, regenerating...', err);
+            buildPlaylistThumbnailCache();
+        }
+    } else {
+        console.log('playlist_cache.json not found, generating...');
+        buildPlaylistThumbnailCache();
+    }
+}
+
+function buildPlaylistThumbnailCache() {
+    console.log('Building playlist thumbnail cache (this may take a moment)...');
+    const cache = {};
+    const thumbnailsDir = path.join(__dirname, 'thumbnails');
+    const filedatesDir = path.join(__dirname, 'filedates');
+
+    function parseEuropeanDate(dateString) {
+        if (!dateString || dateString === 'Unknown date') return new Date(0);
+        const parts = String(dateString).trim().split('.');
+        if (parts.length === 3) {
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+            return new Date(year, month, day);
+        }
+        return new Date(dateString);
+    }
+
+    function scanPlaylist(playlistKey, dir) {
+        let earliestVideo = null;
+        let earliestDate = null;
+
+        function readDirRecursive(d) {
+            try {
+                const files = fs.readdirSync(d);
+                files.forEach(file => {
+                    const filePath = path.join(d, file);
+                    if (!fs.existsSync(filePath)) return;
+                    
+                    if (fs.statSync(filePath).isDirectory()) {
+                        readDirRecursive(filePath);
+                    } else if (file.match(/\.(mp4|mp3|mkv)$/i)) {
+                        const basePath = path.relative(path.join(__dirname, 'videos'), filePath).replace(/\\/g, '/').replace(/\.(mp4|mp3|mkv)$/i, '');
+                        
+                        // Check if thumbnail exists
+                        const thumbPath = path.join(thumbnailsDir, `${basePath}.jpg`);
+                        if (!fs.existsSync(thumbPath)) return;
+
+                        // Get upload date
+                        const datePath = path.join(filedatesDir, `${basePath}.txt`);
+                        let dateObj = new Date(0); // Default to epoch if no date
+                        
+                        if (fs.existsSync(datePath)) {
+                            try {
+                                const dateStr = fs.readFileSync(datePath, 'utf8').trim();
+                                dateObj = parseEuropeanDate(dateStr);
+                            } catch (e) {}
+                        }
+
+                        if (!earliestDate || dateObj < earliestDate) {
+                            earliestDate = dateObj;
+                            earliestVideo = `/thumbnails/${basePath}.jpg`;
+                        }
+                    }
+                });
+            } catch (err) {
+                // Silently skip inaccessible directories
+            }
+        }
+
+        readDirRecursive(dir);
+
+        if (earliestVideo) {
+            cache[playlistKey] = encodeURI(earliestVideo);
+        }
+    }
+
+    // Find all playlists from video cache (paths with more than 1 segment)
+    const playlistsFound = new Set();
+    videoArray.forEach(video => {
+        const parts = video.path.split('/');
+        if (parts.length > 2) {
+            const playlistName = parts.slice(1, -1).join('/');
+            if (playlistName) {
+                playlistsFound.add(`${parts[0]}/${playlistName}`);
+            }
+        }
+    });
+
+    // Scan each playlist for its earliest thumbnail
+    const videosDir = path.join(__dirname, 'videos');
+    playlistsFound.forEach(playlistKey => {
+        const playlistDir = path.join(videosDir, playlistKey);
+        if (fs.existsSync(playlistDir)) {
+            scanPlaylist(playlistKey, playlistDir);
+        }
+    });
+
+    // Save cache to disk
+    try {
+        fs.writeFileSync(playlistCacheFilePath, JSON.stringify(cache, null, 2));
+        playlistThumbnailCache = cache;
+        console.log(`Built playlist thumbnail cache with ${Object.keys(cache).length} entries.`);
+    } catch (err) {
+        console.error('Error writing playlist cache:', err);
+    }
+}
 
 // --- OPTIMIZED VIDEO CACHING SYSTEM ---
 let videoCache = new Map(); // Map for O(1) lookups
@@ -658,6 +781,7 @@ function initializeShortLinks() {
 initializeVideoCache();
 initializeShortLinks();
 initializeRecommendationIndex();
+loadPlaylistThumbnailCache();
 
 // --- PLAYLIST SHORT LINK SYSTEM (INITIALIZATION) ---
 function initializePlaylistShortLinks() {
@@ -2177,7 +2301,9 @@ app.get('/channel-playlists/:channel', (req, res) => {
     const channel = req.params.channel;
     const videosDir = path.join(__dirname, 'videos', channel);
     if (!fs.existsSync(videosDir)) return res.json([]);
+    
     const playlists = [];
+    
     function scanForPlaylists(dir, basePath = '') {
         const items = fs.readdirSync(dir);
         items.forEach(item => {
@@ -2197,7 +2323,22 @@ app.get('/channel-playlists/:channel', (req, res) => {
                     });
                 }
                 countVideosInPlaylist(itemPath);
-                if (playlistVideos.length > 0) playlists.push({ name: item, path: relativePath, videoCount: playlistVideos.length, fullPath: itemPath });
+                if (playlistVideos.length > 0) {
+                    // Look up thumbnail from cache instead of doing it on the frontend
+                    let thumbnail = null;
+                    const cacheKey = `${channel}/${relativePath}`;
+                    if (playlistThumbnailCache[cacheKey]) {
+                        thumbnail = playlistThumbnailCache[cacheKey];
+                    }
+                    
+                    playlists.push({ 
+                        name: item, 
+                        path: relativePath, 
+                        videoCount: playlistVideos.length, 
+                        fullPath: itemPath,
+                        thumbnail: thumbnail
+                    });
+                }
                 scanForPlaylists(itemPath, relativePath);
             }
         });
