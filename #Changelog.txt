@@ -1,5 +1,9 @@
 +++LocalYT Revamped - Changelog+++
 
+v4.20
+- More informative channel.html Home tab, 5 of the most recent uploads, 6 playlists and some random videos
+- channel.html now uses a video_date_cache.json file to load channel metadata instantly
+
 v4.10
 - Comments can now be liked
   - This will be saved in a new userCommentLikes.json file
@@ -59,8 +63,6 @@ v4.10
 - Implemented fuzzy sub counts
   - You can now change rounded channel sub counts (e.g. 230,000) to be more random (e.g. 233,892) in settings.html
 - Slightly decreased the video wrapper size, increased the channel pic size on video.html
-- More informative channel.html Home tab, 5 of the most recent uploads, 6 playlists and some random videos
-- channel.html now uses a video_date_cache.json file to load channel metadata instantly
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
