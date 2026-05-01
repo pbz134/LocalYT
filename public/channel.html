@@ -58,6 +58,9 @@
         body.legacy-channel .video-count {
             display: none !important;
         }
+        body.classic-channel .playlist-item .playlist-video-count {
+            display: none !important;
+        }
         .channel-name {
             font-size: 20px;
             font-weight: bold;
@@ -371,6 +374,39 @@
             justify-content: center;
             font-size: 24px;
             color: white;
+        }
+        body.classic-channel .playlist-overlay {
+            background: transparent;
+            justify-content: flex-end;
+            align-items: stretch;
+        }
+        body.classic-channel .playlist-overlay .classic-overlay-box {
+            width: calc(100% * 3 / 7);
+            background-color: #222;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            color: #999999;
+            padding: 10px 0;
+        }
+        body.classic-channel .playlist-overlay .classic-overlay-count {
+            font-size: 24px;
+            font-weight: bold;
+            line-height: 1;
+            color: #999999;
+            margin-top: 5px;
+        }
+        body.classic-channel .playlist-overlay .classic-overlay-label {
+            font-size: 13px;
+            color: #999999;
+        }
+        body.classic-channel .playlist-overlay .classic-overlay-icon {
+            width: 45px;
+            height: 45px;
+            margin-top: -2px;
+            filter: invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(60%) contrast(90%);
         }
         .video-title {
             padding: 10px;
@@ -1115,12 +1151,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const channelPageStylePref = JSON.parse(localStorage.getItem('channelPageStyle') || '{}');
     if (channelPageStylePref.style === 'legacy') {
         document.body.classList.add('legacy-channel');
+        document.body.classList.add('classic-channel');
         // Move the profile pic into the banner so absolute positioning works cleanly
         const channelPic = document.getElementById('channelPic');
         const channelBanner = document.getElementById('channelBanner');
         if (channelPic && channelBanner) {
             channelBanner.appendChild(channelPic);
         }
+    }
+    if (channelPageStylePref.style === 'classic') {
+        document.body.classList.add('classic-channel');
     }
 
     const mainLogo = document.getElementById('mainLogo');
@@ -1978,6 +2018,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const videosText = getLang('videos', 'Videos');
+        const isClassic = document.body.classList.contains('classic-channel');
 
         playlists.forEach(playlist => {
             const playlistElement = document.createElement('div');
@@ -1989,12 +2030,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? `background-image: url('${playlist.thumbnail.replace(/'/g, "\\'")}');` 
                 : 'background-color: #333;';
 
+            let overlayHtml;
+            if (isClassic) {
+                overlayHtml = `
+                    <div class="classic-overlay-box">
+                        <span class="classic-overlay-count">${playlist.videoCount || 0}</span>
+                        <span class="classic-overlay-label">VIDEOS</span>
+                        <img src="LocalYT-Rev-Files/classic_playlist_icon.svg" class="classic-overlay-icon" alt="">
+                    </div>
+                `;
+            } else {
+                overlayHtml = `${playlist.videoCount || 0} ${videosText}`;
+            }
+
             playlistElement.innerHTML = `
                 <div class="playlist-thumbnail" style="${thumbnailStyle}">
-                    <div class="playlist-overlay">${playlist.videoCount || 0} ${videosText}</div>
+                    <div class="playlist-overlay">${overlayHtml}</div>
                 </div>
                 <div class="playlist-title">${playlist.name}</div>
-                <div class="playlist-video-count">${playlist.videoCount || 0} ${videosText}</div>
+                <div class="playlist-video-count" style="display: none;"></div>
             `;
 
             playlistElement.addEventListener('click', () => {
