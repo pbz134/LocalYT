@@ -783,6 +783,18 @@ initializeShortLinks();
 initializeRecommendationIndex();
 loadPlaylistThumbnailCache();
 
+// --- LOAD CHANNEL HOME META CACHE ---
+const channelHomeMetaCacheDir = path.join(__dirname, 'channel-home-meta-cache');
+if (fs.existsSync(channelHomeMetaCacheDir)) {
+    try {
+        const metaFiles = fs.readdirSync(channelHomeMetaCacheDir).filter(f => f.endsWith('.json'));
+        console.log(`Loaded ${metaFiles.length} channel home meta caches.`);
+    } catch (err) {
+        console.error('Error reading channel home meta caches:', err);
+    }
+}
+app.use('/channel-home-meta-cache', express.static(channelHomeMetaCacheDir));
+
 // --- PLAYLIST SHORT LINK SYSTEM (INITIALIZATION) ---
 function initializePlaylistShortLinks() {
     // 1. Load existing links from file
@@ -1753,6 +1765,15 @@ app.post('/remove-from-playlist', (req, res) => {
 app.get('/subcount/:channel', (req, res) => {
     const channel = req.params.channel;
     const filePath = path.join(__dirname, 'subcount', `${channel}.txt`);
+    fs.readFile(filePath, 'utf8', (err, data) => {
+        if (err) return res.status(404).send('File not found');
+        res.send(data);
+    });
+});
+
+app.get('/subcount/fuzzy/:channel', (req, res) => {
+    const channel = req.params.channel;
+    const filePath = path.join(__dirname, 'subcount', 'fuzzy', `${channel}.txt`);
     fs.readFile(filePath, 'utf8', (err, data) => {
         if (err) return res.status(404).send('File not found');
         res.send(data);

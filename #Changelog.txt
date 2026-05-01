@@ -59,6 +59,7 @@ v4.10
 - Implemented fuzzy sub counts
   - You can now change rounded channel sub counts (e.g. 230,000) to be more random (e.g. 233,892) in settings.html
 - Slightly decreased the video wrapper size, increased the channel pic size on video.html
+- More informative channel.html Home tab, 5 of the most recent uploads, 6 playlists and some random videos
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist
