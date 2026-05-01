@@ -10,6 +10,7 @@ FILES_TO_BACKUP = [
     "login_attempts.json",
     "shortlinks.json",
     "playlist_shortlinks.json",
+    "playlist_cache.json",
     "subscriptions.json",
     "user-playlists.json",
     "userPreferences.json",
