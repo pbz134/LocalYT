@@ -158,7 +158,7 @@ def generate_preview_rows(channel, playlists, standalone_videos, all_channel_vid
     remaining_videos = [v for v in all_channel_videos if v["path"] not in recent_paths]
     if remaining_videos:
         random.shuffle(remaining_videos)
-        for v in remaining_videos[:20]:
+        for v in remaining_videos[:21]:
             rows.append({
                 "type": "video",
                 "path": v["path"],
