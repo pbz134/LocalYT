@@ -716,12 +716,12 @@
                 <div class="setting-row">
                     <div class="setting-label">
                         <div id="channelPageStyleLabel">Channel layout style</div>
-                        <div class="setting-description" id="channelPageStyleDesc">Choose between the modern rounded channel header or the legacy square-in-banner style</div>
+                        <div class="setting-description" id="channelPageStyleDesc">Choose between the modern rounded channel header or the classic square-in-banner style</div>
                     </div>
                     <div class="setting-control">
                         <select class="setting-select" id="channelPageStyle">
                             <option value="modern">Modern</option>
-                            <option value="legacy">Legacy</option>
+                            <option value="legacy">Classic</option>
                         </select>
                     </div>
                 </div>
@@ -803,7 +803,7 @@ function applyTranslations() {
     // Channel Page Style Section
     document.getElementById('channelPageStyleHeading').textContent = getLang('Channel Page Style', 'Kanalseiten-Stil');
     document.getElementById('channelPageStyleLabel').textContent = getLang('Channel layout style', 'Kanalseiten-Layout-Stil');
-    document.getElementById('channelPageStyleDesc').textContent = getLang('Choose between the modern rounded channel header or the legacy square-in-banner style', 'Wähle zwischen der modernen abgerundeten Kanalübersicht oder dem Legacy-Stil mit quadratischem Bild im Banner');
+    document.getElementById('channelPageStyleDesc').textContent = getLang('Choose between the modern rounded channel header or the classic square-in-banner style', 'Wähle zwischen der modernen abgerundeten Kanalübersicht oder dem klassischen Stil mit quadratischem Bild im Banner');
     document.getElementById('saveChannelPageStyleBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
 
     // Update dropdown options text
@@ -822,7 +822,7 @@ function applyTranslations() {
     const channelPageStyleSelect = document.getElementById('channelPageStyle');
     if (channelPageStyleSelect) {
         channelPageStyleSelect.options[0].text = 'Modern';
-        channelPageStyleSelect.options[1].text = 'Legacy';
+        channelPageStyleSelect.options[1].text = getLang('Classic', 'Klassisch');
     }
 
     // Update dropdown options
