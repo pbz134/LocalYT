@@ -285,16 +285,16 @@
             width: 100%;
             height: 135px;
         }
-.channel-videos.list-view .video-item {
-    display: grid;
-    grid-template-columns: 240px 1fr;
-    width: 100%;
-    max-width: 800px;
-    margin: 8px auto;
-    gap: 0 16px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid #3f3f3f;
-}
+        .channel-videos.list-view .video-item {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            width: 100%;
+            max-width: 800px;
+            margin: 8px auto;
+            gap: 0 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #3f3f3f;
+        }
         .channel-videos.list-view .thumbnail-container {
             grid-row: 1 / 3;
         }
@@ -643,6 +643,71 @@
         }
 
         /* ===== HOME TAB STYLES ===== */
+        .home-others-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0;
+            margin-left: 230px;
+            max-width: 1400px;
+        }
+        .home-row-wrapper {
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: center;
+            width: 100%;
+            margin-bottom: 10px;
+            align-items: center;
+            overflow: visible;
+        }
+        .home-row-wrapper .video-item {
+            width: 260px;
+            flex-shrink: 0;
+        }
+        .home-row-wrapper .video-item .video-thumbnail {
+            height: 146px;
+        }
+        .home-row-wrapper .playlist-item {
+            width: auto;
+            margin: 10px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            /* Each playlist takes up exactly 50% of the row (-20px for margins), forcing 2 per row */
+            flex: 0 0 calc(50% - 20px); 
+            max-width: calc(50% - 20px);
+        }
+        .home-row-wrapper .video-item {
+            width: auto;
+            flex: 1 1 260px;
+            max-width: 260px;
+            box-sizing: content-box;
+        }
+
+        .home-row-wrapper .video-item .video-thumbnail {
+            width: 100%;
+        }
+        .home-row-wrapper .playlist-item .playlist-thumbnail {
+            width: 50%;
+            min-width: 50%;
+            height: auto;
+            aspect-ratio: 16 / 9;
+            flex-shrink: 0;
+        }
+        .home-row-wrapper .playlist-item .playlist-info-side {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            min-width: 0;
+            padding-left: 12px;
+            overflow: hidden;
+        }
+        .home-row-wrapper .playlist-item .playlist-info-side .playlist-title {
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
         .home-preview-section {
             margin-left: 230px;
             max-width: 860px;
@@ -770,7 +835,7 @@
             flex-wrap: wrap;
             gap: 0;
             margin-left: 230px;
-            max-width: 1100px;
+            max-width: 1400px;
         }
         .home-others-grid .video-item {
             width: 280px;
@@ -946,6 +1011,20 @@
         .post-item {
             cursor: pointer;
         }
+
+/* Force perfect 16:9 thumbnails across the whole channel page */
+.channel-videos .video-thumbnail,
+.channel-search-results .video-thumbnail,
+.home-row-wrapper .video-thumbnail,
+.home-row-wrapper .playlist-thumbnail {
+    height: auto !important;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+}
+
+.channel-videos.list-view .video-thumbnail {
+    height: auto;
+}
     </style>
 </head>
 <body>
@@ -1473,6 +1552,9 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'home':
                 loadHomeTab();
                 break;
+            case 'videos':
+                lazyLoadVideosTab();
+                break;
             case 'playlists':
                 loadPlaylists();
                 break;
@@ -1494,19 +1576,74 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!response.ok) throw new Error('No preview file');
                 return response.json();
             })
-            .then(videos => {
-                if (!videos || videos.length === 0) {
+            .then(previews => {
+                if (!previews || previews.length === 0) {
                     document.getElementById('homePlayerPlaceholder').textContent = getLang('No videos found', 'Keine Videos gefunden');
                     document.getElementById('homeOthersGrid').innerHTML = '';
                     return;
                 }
 
-                // Separate playlists from videos
-                const featuredVideo = videos.find(v => v.type === 'video') || videos[0];
-                const otherItems = videos.filter(v => v.path !== featuredVideo.path);
+                const featuredVideo = previews.find(v => v.type === 'video') || previews[0];
+                const featuredPath = featuredVideo.path;
 
-                setupHomeMiniplayer(featuredVideo);
-                renderHomeOtherItems(otherItems);
+                // Fetch the full search index to find the true 5 most recent videos
+                fetch('/search-index')
+                    .then(r => r.ok ? r.json() : { videos: [] })
+                    .then(data => {
+                        const allChannelVideos = (data.videos || []).filter(v => v.path.startsWith(channel + '/'));
+
+                        // Sort by the fileDate from previews, fallback to path order
+                        const previewDateMap = {};
+                        previews.forEach(p => {
+                            if (p.type === 'video') {
+                                previewDateMap[p.path] = p.fileDate;
+                            }
+                        });
+
+                        const sortedAll = [...allChannelVideos].sort((a, b) => {
+                            const dateA = (previewDateMap[a.path] || '').replace(/\r?\n$/, '').trim();
+                            const dateB = (previewDateMap[b.path] || '').replace(/\r?\n$/, '').trim();
+                            const parseDate = (str) => {
+                                if (!str) return 0;
+                                const p = str.split('.');
+                                if (p.length === 3) return new Date(p[2], p[1] - 1, p[0]).getTime();
+                                return 0;
+                            };
+                            return parseDate(dateB) - parseDate(dateA);
+                        });
+
+                        // Build the items list: playlists from previews + top 5 videos (excluding featured)
+                        const top5Videos = sortedAll.filter(v => v.path !== featuredPath).slice(0, 5).map(v => {
+                            const previewMatch = previews.find(p => p.path === v.path);
+                            return {
+                                type: 'video',
+                                path: v.path,
+                                displayName: (previewMatch && previewMatch.displayName) || v.displayName || v.path.split('/').pop(),
+                                fileDate: previewDateMap[v.path] || ''
+                            };
+                        });
+
+                        const playlistItems = previews.filter(p => p.type === 'playlist');
+
+                        // Remaining random videos from previews (excluding featured and the top 5)
+                        const top5Paths = new Set(top5Videos.map(v => v.path));
+                        const remainingRandom = previews.filter(p =>
+                            p.type === 'video' &&
+                            p.path !== featuredPath &&
+                            !top5Paths.has(p.path)
+                        );
+
+                        const allItems = [...top5Videos, ...playlistItems, ...remainingRandom];
+
+                        setupHomeMiniplayer(featuredVideo);
+                        renderHomeOtherItems(allItems);
+                    })
+                    .catch(() => {
+                        // Fallback if search-index fails: use previews as-is minus featured
+                        const otherItems = previews.filter(v => v.path !== featuredPath);
+                        setupHomeMiniplayer(featuredVideo);
+                        renderHomeOtherItems(otherItems);
+                    });
             })
             .catch(error => {
                 console.error('Error loading home tab preview:', error);
@@ -1515,20 +1652,22 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    // Safely define getMimeType right before setupHomeMiniplayer
-    function getMimeType(extension) {
-        const mimeTypes = {
-            'mp4': 'video/mp4',
-            'mkv': 'video/x-matroska',
-            'avi': 'video/x-msvideo',
-            'mov': 'video/quicktime',
-            'wmv': 'video/x-ms-wmv',
-            'flv': 'video/x-flv',
-            'webm': 'video/webm',
-            'mp3': 'audio/mp3'
-        };
-        return mimeTypes[extension.toLowerCase()] || 'video/mp4';
-    }
+function getMimeType(extension) {
+    const mimeMap = {
+        'mp4': 'video/mp4',
+        'webm': 'video/webm',
+        'mkv': 'video/x-matroska',
+        'avi': 'video/x-msvideo',
+        'mov': 'video/quicktime',
+        'wmv': 'video/x-ms-wmv',
+        'flv': 'video/x-flv',
+        'mp3': 'audio/mpeg',
+        'm4a': 'audio/mp4',
+        'ogg': 'audio/ogg',
+        'wav': 'audio/wav'
+    };
+    return mimeMap[extension.toLowerCase()] || 'video/mp4';
+}
 
     function setupHomeMiniplayer(video) {
         const wrapper = document.getElementById('homePlayerWrapper');
@@ -1694,20 +1833,59 @@ document.addEventListener('DOMContentLoaded', () => {
         const fragment = document.createDocumentFragment();
         const isClassic = document.body.classList.contains('classic-channel');
 
-        // Fetch the video meta cache
+        // 1. Separate videos and playlists
+        const videoItems = items.filter(i => i.type === 'video');
+        const playlistItems = items.filter(i => i.type === 'playlist');
+
+        // 2. Sort all available videos by date (newest first)
+        const sortedVideos = [...videoItems].sort((a, b) => {
+            const dateA = a.fileDate.replace(/\r?\n$/, '').trim();
+            const dateB = b.fileDate.replace(/\r?\n$/, '').trim();
+            const parseDate = (str) => {
+                if (!str) return 0;
+                const p = str.split('.');
+                if (p.length === 3) return new Date(p[2], p[1] - 1, p[0]).getTime();
+                return 0;
+            };
+            return parseDate(dateB) - parseDate(dateA);
+        });
+
+        // 3. Take the most recent 5 videos (from the remaining pool after featured removal)
+        const recentFive = sortedVideos.slice(0, 5);
+
+        // 4. Gather the remaining videos and shuffle them
+        const otherVideos = sortedVideos.slice(5);
+        for (let i = otherVideos.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [otherVideos[i], otherVideos[j]] = [otherVideos[j], otherVideos[i]];
+        }
+
+        // 5. Construct rows
+        const rows = [];
+        rows.push(recentFive);
+
+        let plIndex = 0;
+        while (plIndex < playlistItems.length) {
+            const rowPlaylists = playlistItems.slice(plIndex, plIndex + 2);
+            rows.push(rowPlaylists);
+            plIndex += 2;
+        }
+
+        for (let i = 0; i < otherVideos.length; i += 5) {
+            rows.push(otherVideos.slice(i, i + 5));
+        }
+
+        // 6. Fetch meta cache once for all items
         fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`)
             .then(response => response.ok ? response.json() : {})
             .then(metaCache => {
-                // Find playlists that are missing data in our cache
-                const uncachedPlaylists = items.filter(i => i.type === 'playlist' && (!metaCache[i.path] || !metaCache[i.path].videoCount));
-                
-                // Fetch from the EXACT SAME working endpoint the Playlists tab uses
-                const playlistFetchPromise = uncachedPlaylists.length > 0 
+                const uncachedPlaylists = rows.flat().filter(i => i && i.type === 'playlist' && (!metaCache[i.path] || !metaCache[i.path].videoCount));
+
+                const playlistFetchPromise = uncachedPlaylists.length > 0
                     ? fetch(`/channel-playlists/${encodeURIComponent(channel)}`).then(r => r.ok ? r.json() : []).catch(() => [])
                     : Promise.resolve([]);
 
                 playlistFetchPromise.then(playlistsApiData => {
-                    // Map the working API data to our paths for instant lookup
                     const apiLookup = {};
                     playlistsApiData.forEach(p => {
                         apiLookup[p.path] = {
@@ -1716,143 +1894,158 @@ document.addEventListener('DOMContentLoaded', () => {
                         };
                     });
 
-                    // Final Render loop
-                    items.forEach(item => {
-                        if (item.type === 'playlist') {
-                            const playlistElement = document.createElement('div');
-                            playlistElement.className = 'playlist-item';
+                    rows.forEach(rowItems => {
+                        const rowWrapper = document.createElement('div');
+                        rowWrapper.className = 'home-row-wrapper';
 
-                            const playlistUrl = `playlist.html?channel=${encodeURIComponent(channel)}&playlist=${encodeURIComponent(item.path)}`;
-                            
-                            // Use metaCache first, then seamlessly fallback to the API lookup
-                            const meta = (metaCache[item.path] && metaCache[item.path].videoCount) 
-                                ? metaCache[item.path] 
-                                : (apiLookup[item.path] || {});
-                            
-                            const hasValidThumbnail = meta.thumbnail && meta.thumbnail.trim() !== '';
-                            const thumbnailStyle = hasValidThumbnail 
-                                ? `background-image: url('${meta.thumbnail.replace(/'/g, "\\'")}');` 
-                                : 'background-color: #333;';
+                        rowItems.forEach(item => {
+                            if (item.type === 'playlist') {
+                                const playlistElement = document.createElement('div');
+                                playlistElement.className = 'playlist-item';
 
-                            const videosText = getLang('videos', 'Videos');
-                            let overlayHtml;
-                            if (isClassic) {
-                                overlayHtml = `
-                                    <div class="classic-overlay-box">
-                                        <span class="classic-overlay-count">${meta.videoCount || 0}</span>
-                                        <span class="classic-overlay-label">VIDEOS</span>
-                                        <img src="LocalYT-Rev-Files/classic_playlist_icon.svg" class="classic-overlay-icon" alt="">
+                                const playlistUrl = `playlist.html?channel=${encodeURIComponent(channel)}&playlist=${encodeURIComponent(item.path)}`;
+
+                                const meta = (metaCache[item.path] && metaCache[item.path].videoCount)
+                                    ? metaCache[item.path]
+                                    : (apiLookup[item.path] || {});
+
+                                const hasValidThumbnail = meta.thumbnail && meta.thumbnail.trim() !== '';
+                                const thumbnailStyle = hasValidThumbnail
+                                    ? `background-image: url('${meta.thumbnail.replace(/'/g, "\\'")}');`
+                                    : 'background-color: #333;';
+
+                                const videosText = getLang('videos', 'Videos');
+                                let overlayHtml;
+                                if (isClassic) {
+                                    overlayHtml = `
+                                        <div class="classic-overlay-box">
+                                            <span class="classic-overlay-count">${meta.videoCount || 0}</span>
+                                            <span class="classic-overlay-label">VIDEOS</span>
+                                            <img src="LocalYT-Rev-Files/classic_playlist_icon.svg" class="classic-overlay-icon" alt="">
+                                        </div>
+                                    `;
+                                } else {
+                                    overlayHtml = `${meta.videoCount || 0} ${videosText}`;
+                                }
+
+                                playlistElement.innerHTML = `
+                                    <div class="playlist-thumbnail" style="${thumbnailStyle}">
+                                        <div class="playlist-overlay">${overlayHtml}</div>
                                     </div>
+                                    <div class="playlist-info-side">
+                                        <div class="playlist-title">${item.displayName}</div>
+                                    </div>
+                                    <div class="playlist-video-count" style="display: none;"></div>
                                 `;
+
+                                playlistElement.addEventListener('click', () => { window.location.href = playlistUrl; });
+                                playlistElement.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(playlistUrl, '_blank'); });
+                                playlistElement.addEventListener('mouseup', (e) => { if (e.button === 1) { e.preventDefault(); window.open(playlistUrl, '_blank'); } });
+                                playlistElement.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); window.open(playlistUrl, '_blank'); } });
+
+                                rowWrapper.appendChild(playlistElement);
                             } else {
-                                overlayHtml = `${meta.videoCount || 0} ${videosText}`;
+                                const videoElement = document.createElement('div');
+                                videoElement.className = 'video-item';
+                                const videoPathWithoutExt = stripExtension(item.path);
+                                const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
+
+                                const meta = metaCache[item.path] || {};
+                                let formattedViewCount = meta.viewCount || '0';
+                                if (!isNaN(formattedViewCount) && formattedViewCount !== '0') {
+                                    formattedViewCount = parseInt(formattedViewCount).toLocaleString();
+                                }
+                                if (localStorage.getItem('language') === 'de') {
+                                    formattedViewCount = formattedViewCount.replace(/,/g, '.');
+                                }
+                                const viewsText = getLang('views', 'Aufrufe');
+                                const uploadedText = getLang('Uploaded on', 'Hochgeladen am');
+                                const descText = `${formattedViewCount} ${viewsText} • ${uploadedText} ${item.fileDate}`;
+                                const videoLength = meta.videoLength || '';
+
+                                videoElement.innerHTML = `
+                                    <div class="thumbnail-container">
+                                        <img src="${thumbnailSrc}" alt="${item.displayName}" class="video-thumbnail" loading="lazy">
+                                        <div class="video-length">${videoLength}</div>
+                                    </div>
+                                    <div class="video-title" onclick="openVideo('${encodeURIComponent(item.path)}')">${item.displayName}</div>
+                                    <div class="video-description">${descText}</div>
+                                `;
+
+                                const videoThumb = videoElement.querySelector('.video-thumbnail');
+                                const videoLink = videoElement.querySelector('.video-title');
+
+                                videoThumb.addEventListener('click', () => openVideo(encodeURIComponent(item.path)));
+                                videoThumb.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(`video.html?src=${encodeURIComponent(item.path)}`, '_blank'); });
+                                videoLink.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(`video.html?src=${encodeURIComponent(item.path)}`, '_blank'); });
+
+                                const middleHandler = (e) => { if (e.button === 1) { e.preventDefault(); window.open(`video.html?src=${encodeURIComponent(item.path)}`, '_blank'); } };
+                                videoThumb.addEventListener('mouseup', middleHandler);
+                                videoThumb.addEventListener('auxclick', middleHandler);
+                                videoLink.addEventListener('mouseup', middleHandler);
+                                videoLink.addEventListener('auxclick', middleHandler);
+
+                                rowWrapper.appendChild(videoElement);
                             }
+                        });
 
-                            playlistElement.innerHTML = `
-                                <div class="playlist-thumbnail" style="${thumbnailStyle}">
-                                    <div class="playlist-overlay">${overlayHtml}</div>
-                                </div>
-                                <div class="playlist-title">${item.displayName}</div>
-                                <div class="playlist-video-count" style="display: none;"></div>
-                            `;
-
-                            playlistElement.addEventListener('click', () => { window.location.href = playlistUrl; });
-                            playlistElement.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(playlistUrl, '_blank'); });
-                            playlistElement.addEventListener('mouseup', (e) => { if (e.button === 1) { e.preventDefault(); window.open(playlistUrl, '_blank'); } });
-                            playlistElement.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); window.open(playlistUrl, '_blank'); } });
-
-                            fragment.appendChild(playlistElement);
-                        } else {
-                            const videoElement = document.createElement('div');
-                            videoElement.className = 'video-item';
-                            const videoPathWithoutExt = stripExtension(item.path);
-                            const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
-
-                            const meta = metaCache[item.path] || {};
-                            let formattedViewCount = meta.viewCount || '0';
-                            if (!isNaN(formattedViewCount) && formattedViewCount !== '0') {
-                                formattedViewCount = parseInt(formattedViewCount).toLocaleString();
-                            }
-                            if (localStorage.getItem('language') === 'de') {
-                                formattedViewCount = formattedViewCount.replace(/,/g, '.');
-                            }
-                            const viewsText = getLang('views', 'Aufrufe');
-                            const uploadedText = getLang('Uploaded on', 'Hochgeladen am');
-                            const descText = `${formattedViewCount} ${viewsText} • ${uploadedText} ${item.fileDate}`;
-                            const videoLength = meta.videoLength || '';
-
-                            videoElement.innerHTML = `
-                                <div class="thumbnail-container">
-                                    <img src="${thumbnailSrc}" alt="${item.displayName}" class="video-thumbnail" loading="lazy">
-                                    <div class="video-length">${videoLength}</div>
-                                </div>
-                                <div class="video-title" onclick="openVideo('${encodeURIComponent(item.path)}')">${item.displayName}</div>
-                                <div class="video-description">${descText}</div>
-                            `;
-
-                            const videoThumb = videoElement.querySelector('.video-thumbnail');
-                            const videoLink = videoElement.querySelector('.video-title');
-
-                            videoThumb.addEventListener('click', () => openVideo(encodeURIComponent(item.path)));
-                            videoThumb.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(`video.html?src=${encodeURIComponent(item.path)}`, '_blank'); });
-                            videoLink.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(`video.html?src=${encodeURIComponent(item.path)}`, '_blank'); });
-
-                            const middleHandler = (e) => { if (e.button === 1) { e.preventDefault(); window.open(`video.html?src=${encodeURIComponent(item.path)}`, '_blank'); } };
-                            videoThumb.addEventListener('mouseup', middleHandler);
-                            videoThumb.addEventListener('auxclick', middleHandler);
-                            videoLink.addEventListener('mouseup', middleHandler);
-                            videoLink.addEventListener('auxclick', middleHandler);
-
-                            fragment.appendChild(videoElement);
-                        }
+                        fragment.appendChild(rowWrapper);
                     });
 
                     grid.appendChild(fragment);
                 });
             })
             .catch(() => {
-                // Entire network failure fallback
-                items.forEach(item => {
-                    if (item.type === 'playlist') {
-                        const playlistElement = document.createElement('div');
-                        playlistElement.className = 'playlist-item';
-                        const playlistUrl = `playlist.html?channel=${encodeURIComponent(channel)}&playlist=${encodeURIComponent(item.path)}`;
-                        const videosText = getLang('videos', 'Videos');
-                        let overlayHtml = isClassic 
-                            ? `<div class="classic-overlay-box"><span class="classic-overlay-count">0</span><span class="classic-overlay-label">VIDEOS</span><img src="LocalYT-Rev-Files/classic_playlist_icon.svg" class="classic-overlay-icon" alt=""></div>` 
-                            : `0 ${videosText}`;
+                rows.forEach(rowItems => {
+                    const rowWrapper = document.createElement('div');
+                    rowWrapper.className = 'home-row-wrapper';
 
-                        playlistElement.innerHTML = `
-                            <div class="playlist-thumbnail" style="background-color: #333;"><div class="playlist-overlay">${overlayHtml}</div></div>
-                            <div class="playlist-title">${item.displayName}</div>
-                            <div class="playlist-video-count" style="display: none;"></div>
-                        `;
-                        playlistElement.addEventListener('click', () => { window.location.href = playlistUrl; });
-                        playlistElement.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(playlistUrl, '_blank'); });
-                        playlistElement.addEventListener('mouseup', (e) => { if (e.button === 1) { e.preventDefault(); window.open(playlistUrl, '_blank'); } });
-                        playlistElement.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); window.open(playlistUrl, '_blank'); } });
-                        fragment.appendChild(playlistElement);
-                    } else {
-                        const videoElement = document.createElement('div');
-                        videoElement.className = 'video-item';
-                        const videoPathWithoutExt = stripExtension(item.path);
-                        videoElement.innerHTML = `
-                            <div class="thumbnail-container"><img src="/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg" alt="${item.displayName}" class="video-thumbnail" loading="lazy"><div class="video-length"></div></div>
-                            <div class="video-title" onclick="openVideo('${encodeURIComponent(item.path)}')">${item.displayName}</div>
-                            <div class="video-description">${item.fileDate}</div>
-                        `;
-                        const videoThumb = videoElement.querySelector('.video-thumbnail');
-                        const videoLink = videoElement.querySelector('.video-title');
-                        videoThumb.addEventListener('click', () => openVideo(encodeURIComponent(item.path)));
-                        videoThumb.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(`video.html?src=${encodeURIComponent(item.path)}`, '_blank'); });
-                        videoLink.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(`video.html?src=${encodeURIComponent(item.path)}`, '_blank'); });
-                        const middleHandler = (e) => { if (e.button === 1) { e.preventDefault(); window.open(`video.html?src=${encodeURIComponent(item.path)}`, '_blank'); } };
-                        videoThumb.addEventListener('mouseup', middleHandler);
-                        videoThumb.addEventListener('auxclick', middleHandler);
-                        videoLink.addEventListener('mouseup', middleHandler);
-                        videoLink.addEventListener('auxclick', middleHandler);
-                        fragment.appendChild(videoElement);
-                    }
+                    rowItems.forEach(item => {
+                        if (item.type === 'playlist') {
+                            const playlistElement = document.createElement('div');
+                            playlistElement.className = 'playlist-item';
+                            const playlistUrl = `playlist.html?channel=${encodeURIComponent(channel)}&playlist=${encodeURIComponent(item.path)}`;
+                            const videosText = getLang('videos', 'Videos');
+                            let overlayHtml = isClassic
+                                ? `<div class="classic-overlay-box"><span class="classic-overlay-count">0</span><span class="classic-overlay-label">VIDEOS</span><img src="LocalYT-Rev-Files/classic_playlist_icon.svg" class="classic-overlay-icon" alt=""></div>`
+                                : `0 ${videosText}`;
+
+                            playlistElement.innerHTML = `
+                                <div class="playlist-thumbnail" style="background-color: #333;"><div class="playlist-overlay">${overlayHtml}</div></div>
+                                <div class="playlist-info-side">
+                                    <div class="playlist-title">${item.displayName}</div>
+                                </div>
+                                <div class="playlist-video-count" style="display: none;"></div>
+                            `;
+                            playlistElement.addEventListener('click', () => { window.location.href = playlistUrl; });
+                            playlistElement.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(playlistUrl, '_blank'); });
+                            playlistElement.addEventListener('mouseup', (e) => { if (e.button === 1) { e.preventDefault(); window.open(playlistUrl, '_blank'); } });
+                            playlistElement.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); window.open(playlistUrl, '_blank'); } });
+                            rowWrapper.appendChild(playlistElement);
+                        } else {
+                            const videoElement = document.createElement('div');
+                            videoElement.className = 'video-item';
+                            const videoPathWithoutExt = stripExtension(item.path);
+                            videoElement.innerHTML = `
+                                <div class="thumbnail-container"><img src="/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg" alt="${item.displayName}" class="video-thumbnail" loading="lazy"><div class="video-length"></div></div>
+                                <div class="video-title" onclick="openVideo('${encodeURIComponent(item.path)}')">${item.displayName}</div>
+                                <div class="video-description">${item.fileDate}</div>
+                            `;
+                            const videoThumb = videoElement.querySelector('.video-thumbnail');
+                            const videoLink = videoElement.querySelector('.video-title');
+                            videoThumb.addEventListener('click', () => openVideo(encodeURIComponent(item.path)));
+                            videoThumb.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(`video.html?src=${encodeURIComponent(item.path)}`, '_blank'); });
+                            videoLink.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(`video.html?src=${encodeURIComponent(item.path)}`, '_blank'); });
+                            const middleHandler = (e) => { if (e.button === 1) { e.preventDefault(); window.open(`video.html?src=${encodeURIComponent(item.path)}`, '_blank'); } };
+                            videoThumb.addEventListener('mouseup', middleHandler);
+                            videoThumb.addEventListener('auxclick', middleHandler);
+                            videoLink.addEventListener('mouseup', middleHandler);
+                            videoLink.addEventListener('auxclick', middleHandler);
+                            rowWrapper.appendChild(videoElement);
+                        }
+                    });
+
+                    fragment.appendChild(rowWrapper);
                 });
                 grid.appendChild(fragment);
             });
@@ -1927,47 +2120,62 @@ document.addEventListener('DOMContentLoaded', () => {
         const videoPathWithoutExt = stripExtension(video.path);
         const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
 
+        // 1. Build the description text instantly from the cached view count
+        let descText = '';
+        let formattedViewCount = video.viewCount || '0';
+        if (!isNaN(formattedViewCount) && formattedViewCount !== '0') {
+            formattedViewCount = parseInt(formattedViewCount).toLocaleString();
+        }
+        if (localStorage.getItem('language') === 'de') {
+            formattedViewCount = formattedViewCount.replace(/,/g, '.');
+        }
+        
+        const viewsText = getLang('views', 'Aufrufe');
+        const uploadedText = getLang('Uploaded on', 'Hochgeladen am');
+        
+        // If we already have a valid date from the cache, use it immediately. Otherwise, show a temporary loading state.
+        if (video.fileDate && video.fileDate !== 'Unknown date') {
+            descText = `${formattedViewCount} ${viewsText} • ${uploadedText} ${video.fileDate}`;
+        } else {
+            descText = `${formattedViewCount} ${viewsText} • ${getLang('Loading date...', 'Lade Datum...')}`;
+        }
+
+        const videoLength = video.videoLength || '';
+
         videoElement.innerHTML = `
             <div class="thumbnail-container">
                 <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
-                <div class="video-length"></div>
+                <div class="video-length">${videoLength}</div>
             </div>
             <div class="video-title" onclick="openVideo('${encodeURIComponent(video.path)}')">${videoTitle}</div>
-            <div class="video-description">${getLang('Loading views...', 'Aufrufe werden geladen...')}</div>
+            <div class="video-description">${descText}</div>
         `;
-
-        const descriptionDiv = videoElement.querySelector('.video-description');
-
-        Promise.all([
-            fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(response => response.ok ? response.text() : '0'),
-            fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoPathWithoutExt.split('/').pop())}.txt`).then(response => response.ok ? response.text() : '')
-        ])
-        .then(([viewCount, videoLength]) => {
-            let formattedViewCount = viewCount;
-            if (!isNaN(viewCount) && viewCount !== '0') {
-                formattedViewCount = parseInt(viewCount).toLocaleString();
-            }
-
-            const lang = localStorage.getItem('language');
-            let viewsText = getLang('views', 'Aufrufe');
-            let uploadedText = getLang('Uploaded on', 'Hochgeladen am');
-
-            if (lang === 'de') {
-                formattedViewCount = formattedViewCount.replace(/,/g, '.');
-            }
-
-            descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${video.fileDate}`;
-
-            if (videoLength) {
-                videoElement.querySelector('.video-length').textContent = videoLength;
-            }
-        })
-        .catch(() => {
-            descriptionDiv.textContent = `${video.fileDate}`;
-        });
 
         const videoLink = videoElement.querySelector('.video-title');
         const videoThumb = videoElement.querySelector('.video-thumbnail');
+        const descriptionDiv = videoElement.querySelector('.video-description');
+
+        // 2. If the date was unknown, fetch it from the server dynamically (just like the Search tab does)
+        if (!video.fileDate || video.fileDate === 'Unknown date') {
+            fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
+                .then(r => r.ok ? r.text() : 'Unknown date')
+                .then(fetchedDate => {
+                    const trimmedDate = fetchedDate.trim();
+                    if (trimmedDate && trimmedDate !== 'Unknown date') {
+                        // Update the text with the real date
+                        descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${trimmedDate}`;
+                        // Update the array object so sorting/re-rendering doesn't trigger another fetch
+                        video.fileDate = trimmedDate;
+                    } else {
+                        // If the server also doesn't know the date, hide the date part cleanly
+                        descriptionDiv.textContent = `${formattedViewCount} ${viewsText}`;
+                    }
+                })
+                .catch(() => {
+                    // On network error, fallback to just showing the view count
+                    descriptionDiv.textContent = `${formattedViewCount} ${viewsText}`;
+                });
+        }
 
         videoThumb.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
 
@@ -2384,28 +2592,62 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateHeaderStats('?', null);
             });
 
-        fetch('/search-index')
-            .then(response => response.json())
-            .then(data => {
-                const videos = data.videos || [];
-                const channelVideos = videos.filter(video => video.path.startsWith(`${channel}/`));
-                const videoCount = channelVideos.length;
-
-                fetch(getSubcountEndpoint())
+        // Fast video count fetch using the existing home meta cache
+        fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`)
+            .then(response => response.ok ? response.json() : {})
+            .then(metaCache => {
+                const videoCount = Object.keys(metaCache).length;
+                return fetch(getSubcountEndpoint())
                     .then(response => response.ok ? response.text() : '0')
                     .then(subCount => {
-                         updateHeaderStats(subCount, videoCount);
+                        updateHeaderStats(subCount, videoCount);
                     })
-                    .catch(() => {
-                         updateHeaderStats('?', videoCount);
-                    });
-
-                initializeVideoList(channelVideos);
+                    .catch(() => updateHeaderStats('?', videoCount));
             })
-            .catch(error => {
-                console.error("Error loading search index for counts:", error);
+            .catch(() => {
                 updateHeaderStats('?', '?');
             });
+    }
+
+    function lazyLoadVideosTab() {
+        if (loadedTabs.has('videos')) return;
+        loadedTabs.add('videos');
+        videosContainer.innerHTML = '<div class="loading-spinner visible">' + getLang('Loading videos...', 'Lade Videos...') + '</div>';
+
+        // Fetch BOTH the channel's meta cache AND the global date cache simultaneously
+        Promise.all([
+            fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`).then(r => r.ok ? r.json() : {}),
+            fetch(`/video_date_cache.json`).then(r => r.ok ? r.json() : {})
+        ])
+        .then(([metaCache, globalDateCache]) => {
+            // Build the video list from the caches
+            currentVideos = Object.keys(metaCache).map(path => {
+                const meta = metaCache[path];
+                return {
+                    path: path,
+                    displayName: meta.displayName || path.split('/').pop(),
+                    // Use the global date cache, fallback to meta cache, then 'Unknown date'
+                    fileDate: globalDateCache[path] || meta.fileDate || 'Unknown date',
+                    viewCount: meta.viewCount || '0',
+                    videoLength: meta.videoLength || ''
+                };
+            });
+
+            sortVideosArray();
+            hasMoreVideos = currentVideos.length > 0;
+            videosContainer.innerHTML = '';
+
+            // Render initial batch
+            loadMoreVideos();
+            setupIntersectionObserver();
+
+            window.addEventListener('scroll', () => { if (!intersectionObserver) checkAndLoadMore(); });
+            window.addEventListener('resize', () => { if (!intersectionObserver) checkAndLoadMore(); });
+        })
+        .catch(error => {
+            console.error("Error lazy-loading videos via cache:", error);
+            videosContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">Failed to load videos.</p>';
+        });
     }
 
     function updateHeaderStats(subs, vids) {
@@ -2424,45 +2666,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (subs !== null) {
             document.getElementById('subscriberCount').textContent = subs;
         }
-    }
-
-    function initializeVideoList(channelVideos) {
-        loadedTabs.add('videos');
-        videosContainer.innerHTML = '<div class="loading-spinner visible">' + getLang('Loading videos...', 'Lade Videos...') + '</div>';
-
-        const videoPromises = channelVideos.map(video => {
-            const videoPathWithoutExt = stripExtension(video.path);
-            return Promise.all([
-                fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
-                    .then(response => response.ok ? response.text() : 'Unknown date'),
-                fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`)
-                    .then(response => response.ok ? response.text() : '0')
-            ])
-            .then(([fileDate, viewCount]) => ({
-                ...video,
-                fileDate: fileDate.trim() || 'Unknown date',
-                viewCount: viewCount.trim() || '0'
-            }))
-            .catch(() => ({
-                ...video,
-                fileDate: 'Unknown date',
-                viewCount: '0'
-            }));
-        });
-
-        Promise.all(videoPromises).then(videosWithDates => {
-            currentVideos = videosWithDates;
-            sortVideosArray();
-
-            hasMoreVideos = currentVideos.length > 0;
-            videosContainer.innerHTML = '';
-
-            loadMoreVideos();
-            setupIntersectionObserver();
-
-            window.addEventListener('scroll', () => { if (!intersectionObserver) checkAndLoadMore(); });
-            window.addEventListener('resize', () => { if (!intersectionObserver) checkAndLoadMore(); });
-        });
     }
 
     loadHeaderStats();
@@ -2575,17 +2778,26 @@ document.addEventListener('DOMContentLoaded', () => {
                             fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoPathWithoutExt.split('/').pop())}.txt`).then(r => r.ok ? r.text() : ''),
                             fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(r => r.ok ? r.text() : 'Unknown date')
                         ])
-                        .then(([viewCount, videoLength, fileDate]) => {
-                            let formattedViewCount = viewCount.trim();
-                            if (!isNaN(formattedViewCount) && formattedViewCount !== '0') {
-                                formattedViewCount = parseInt(formattedViewCount).toLocaleString();
-                            }
-                            if (localStorage.getItem('language') === 'de') {
-                                formattedViewCount = formattedViewCount.replace(/,/g, '.');
-                            }
-                            const viewsText = getLang('views', 'Aufrufe');
-                            const uploadedText = getLang('Uploaded on', 'Hochgeladen am');
-                            descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${fileDate.trim()}`;
+        .then(([viewCount, videoLength, fileDate]) => {
+            let formattedViewCount = viewCount;
+            if (!isNaN(viewCount) && viewCount !== '0') {
+                formattedViewCount = parseInt(viewCount).toLocaleString();
+            }
+
+            const lang = localStorage.getItem('language');
+            let viewsText = getLang('views', 'Aufrufe');
+            let uploadedText = getLang('Uploaded on', 'Hochgeladen am');
+
+            if (lang === 'de') {
+                formattedViewCount = formattedViewCount.replace(/,/g, '.');
+            }
+
+            // ONLY append the upload date if it successfully found one from the server
+            let finalText = `${formattedViewCount} ${viewsText}`;
+            if (fileDate && fileDate.trim() !== 'Unknown date') {
+                finalText += ` • ${uploadedText} ${fileDate.trim()}`;
+            }
+            descriptionDiv.textContent = finalText;
                             if (videoLength.trim()) {
                                 videoElement.querySelector('.video-length').textContent = videoLength.trim();
                             }
@@ -2640,7 +2852,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const query = searchInput.value.trim();
         if (query) window.location.href = `search.html?q=${encodeURIComponent(query)}`; else searchInput.focus();
     });
-}); // <-- Correctly closes the DOMContentLoaded block
+});
 
 // Globally accessible functions
 function openVideo(videoSrc) {

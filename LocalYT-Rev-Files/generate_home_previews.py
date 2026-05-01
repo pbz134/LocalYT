@@ -35,84 +35,101 @@ def parse_description_for_html(desc_text):
     processed = re.sub(timestamp_regex, r'<span style="color: #3ea6ff;">\1</span>', processed)
     return processed.replace('\n', '<br>')
 
-def generate_meta_cache(channel, preview_data, existing_meta_cache):
-    """Generates metadata cache. Updates existing items, only scans disk for new items."""
-    meta_cache = existing_meta_cache.copy() if existing_meta_cache else {}
+def generate_meta_cache(channel, all_channel_videos, playlists):
+    """Generates metadata cache for ALL videos and playlists in a channel."""
     os.makedirs(META_CACHE_DIR, exist_ok=True)
     
-    for item in preview_data:
-        # If we already have valid metadata for this video/playlist from a previous run, skip the disk scan!
-        if item["path"] in meta_cache:
-            if item.get("type") == "playlist":
-                existing = meta_cache[item["path"]]
-                if existing.get("videoCount") and existing.get("thumbnail"):
-                    continue
-            else:
-                continue
+    meta_cache_file = os.path.join(META_CACHE_DIR, f"{channel}.json")
+    
+    # Load existing cache to avoid redundant disk reads
+    if os.path.exists(meta_cache_file):
+        try:
+            with open(meta_cache_file, 'r', encoding='utf-8') as f:
+                meta_cache = json.load(f)
+        except Exception:
+            meta_cache = {}
+    else:
+        meta_cache = {}
+    
+    # Process all videos
+    for v in all_channel_videos:
+        path = v["path"]
+        
+        # Skip if we already have complete metadata
+        if path in meta_cache and meta_cache[path].get("viewCount"):
+            continue
 
-        if item.get("type") == "video":
-            path = item["path"]
-            video_path_without_ext = re.sub(r'\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$', '', path, flags=re.IGNORECASE)
-            filename = os.path.basename(video_path_without_ext)
-            meta = {}
+        video_path_without_ext = re.sub(r'\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$', '', path, flags=re.IGNORECASE)
+        filename = os.path.basename(video_path_without_ext)
+        meta = meta_cache.get(path, {})
+        
+        # View count
+        vc_path = os.path.join(SERVER_ROOT, "viewcounts", f"{video_path_without_ext}.txt")
+        if not os.path.exists(vc_path):
+             vc_path = os.path.join(SERVER_ROOT, "viewcounts", f"{video_path_without_ext}.txt".replace('/', os.sep))
+        if os.path.exists(vc_path):
+            with open(vc_path, 'r', encoding='utf-8') as f:
+                meta["viewCount"] = f.read().strip() or "0"
+
+        # Video Length
+        vl_path = os.path.join(SERVER_ROOT, "videolengths", channel, f"{filename}.txt")
+        if os.path.exists(vl_path):
+            with open(vl_path, 'r', encoding='utf-8') as f:
+                meta["videoLength"] = f.read().strip()
+
+        # Original Filename (used as displayName)
+        fn_path = os.path.join(SERVER_ROOT, "filenames", f"{video_path_without_ext}.txt")
+        if not os.path.exists(fn_path):
+             fn_path = os.path.join(SERVER_ROOT, "filenames", f"{video_path_without_ext}.txt".replace('/', os.sep))
+        if os.path.exists(fn_path):
+            with open(fn_path, 'r', encoding='utf-8') as f:
+                meta["displayName"] = f.read().strip()
+
+        # Description
+        desc_path = os.path.join(SERVER_ROOT, "descriptions", channel, f"{filename}.txt")
+        if os.path.exists(desc_path):
+            with open(desc_path, 'r', encoding='utf-8') as f:
+                meta["descriptionHtml"] = parse_description_for_html(f.read())
+
+        meta_cache[path] = meta
+
+    # Process all playlists
+    channel_playlists = [pl_path for (ch, pl_path) in playlists.keys() if ch == channel]
+    for pl_path in channel_playlists:
+        # Skip if we already have complete metadata
+        if pl_path in meta_cache and meta_cache[pl_path].get("videoCount") and meta_cache[pl_path].get("thumbnail") is not None:
+            continue
             
-            # View count
-            vc_path = os.path.join(SERVER_ROOT, "viewcounts", f"{video_path_without_ext}.txt")
-            if not os.path.exists(vc_path):
-                 vc_path = os.path.join(SERVER_ROOT, "viewcounts", f"{video_path_without_ext}.txt".replace('/', os.sep))
-            if os.path.exists(vc_path):
-                with open(vc_path, 'r', encoding='utf-8') as f:
-                    meta["viewCount"] = f.read().strip() or "0"
-
-            # Video Length
-            vl_path = os.path.join(SERVER_ROOT, "videolengths", channel, f"{filename}.txt")
-            if os.path.exists(vl_path):
-                with open(vl_path, 'r', encoding='utf-8') as f:
-                    meta["videoLength"] = f.read().strip()
-
-            # Original Filename
-            fn_path = os.path.join(SERVER_ROOT, "filenames", f"{video_path_without_ext}.txt")
-            if not os.path.exists(fn_path):
-                 fn_path = os.path.join(SERVER_ROOT, "filenames", f"{video_path_without_ext}.txt".replace('/', os.sep))
-            if os.path.exists(fn_path):
-                with open(fn_path, 'r', encoding='utf-8') as f:
-                    meta["displayName"] = f.read().strip()
-
-            # Description
-            desc_path = os.path.join(SERVER_ROOT, "descriptions", channel, f"{filename}.txt")
-            if os.path.exists(desc_path):
-                with open(desc_path, 'r', encoding='utf-8') as f:
-                    meta["descriptionHtml"] = parse_description_for_html(f.read())
-
-            meta_cache[path] = meta
-
-        elif item.get("type") == "playlist":
-            pl_path = item["path"]
-            pl_meta_path = os.path.join(SERVER_ROOT, "playlist-meta", f"{pl_path}.json")
-            meta = meta_cache.get(pl_path, {}) # Preserve if partially existing
-            
-            # Safely extract videoCount
-            meta["videoCount"] = 0
-            if os.path.exists(pl_meta_path):
-                try:
-                    with open(pl_meta_path, 'r', encoding='utf-8') as f:
-                        pl_data = json.load(f)
-                        meta["videoCount"] = pl_data.get("videoCount", 0)
-                        meta["thumbnail"] = pl_data.get("thumbnail")
-                except Exception:
-                    pass
-            else:
-                meta["thumbnail"] = None
+        pl_meta_path = os.path.join(SERVER_ROOT, "playlist-meta", f"{pl_path}.json")
+        meta = meta_cache.get(pl_path, {})
+        
+        meta["videoCount"] = 0
+        meta["thumbnail"] = None
+        
+        if os.path.exists(pl_meta_path):
+            try:
+                with open(pl_meta_path, 'r', encoding='utf-8') as f:
+                    pl_data = json.load(f)
+                    meta["videoCount"] = pl_data.get("videoCount", 0)
+                    meta["thumbnail"] = pl_data.get("thumbnail")
+            except Exception:
+                pass
                 
-            meta_cache[pl_path] = meta
+        meta_cache[pl_path] = meta
 
-    out_file = os.path.join(META_CACHE_DIR, f"{channel}.json")
-    with open(out_file, 'w', encoding='utf-8') as f:
+    # Clean up deleted videos/playlists that no longer exist
+    valid_paths = set(v["path"] for v in all_channel_videos) | set(channel_playlists)
+    keys_to_remove = [k for k in meta_cache.keys() if k not in valid_paths]
+    for k in keys_to_remove:
+        del meta_cache[k]
+
+    with open(meta_cache_file, 'w', encoding='utf-8') as f:
         json.dump(meta_cache, f, indent=2, ensure_ascii=False)
 
 def generate_preview_rows(channel, playlists, standalone_videos, all_channel_videos):
-    """Generate preview rows: 5 recent videos, up to 6 playlists, 20 random videos."""
+    """Generate preview data: 5 recent videos, up to 6 playlists, all other videos shuffled."""
     rows = []
+    recent_paths = set()
     
     # 1. Pick the 5 most recent videos from the entire channel
     all_sorted = sorted(all_channel_videos, key=lambda v: parse_eu_date(v.get("fileDate")), reverse=True)
@@ -123,13 +140,13 @@ def generate_preview_rows(channel, playlists, standalone_videos, all_channel_vid
             "displayName": v.get("displayName", ""),
             "fileDate": v.get("fileDate", "")
         })
+        recent_paths.add(v["path"])
         
     # 2. Pick up to 6 random playlists
     channel_playlists = [pl_path for (ch, pl_path) in playlists.keys() if ch == channel]
     playlists_to_use = random.sample(channel_playlists, min(6, len(channel_playlists)))
     
     for pl_path in playlists_to_use:
-        # Safely get the playlist name by taking everything after the last slash
         playlist_name = pl_path.split('/')[-1]
         rows.append({
             "type": "playlist",
@@ -137,10 +154,11 @@ def generate_preview_rows(channel, playlists, standalone_videos, all_channel_vid
             "displayName": playlist_name
         })
         
-    # 3. Pick 20 entirely random videos from the channel
-    if all_channel_videos:
-        random_videos = random.sample(all_channel_videos, min(20, len(all_channel_videos)))
-        for v in random_videos:
+    # 3. Up to 20 remaining videos (shuffled)
+    remaining_videos = [v for v in all_channel_videos if v["path"] not in recent_paths]
+    if remaining_videos:
+        random.shuffle(remaining_videos)
+        for v in remaining_videos[:20]:
             rows.append({
                 "type": "video",
                 "path": v["path"],
@@ -201,19 +219,9 @@ def main():
         
         with open(out_file, 'w', encoding='utf-8') as f:
             json.dump(preview_data, f, indent=2, ensure_ascii=False)
-            
-        # Load existing meta cache for this channel if it exists (to avoid redundant disk reads)
-        existing_meta_cache = None
-        meta_cache_file = os.path.join(META_CACHE_DIR, f"{channel}.json")
-        if os.path.exists(meta_cache_file):
-            try:
-                with open(meta_cache_file, 'r', encoding='utf-8') as f:
-                    existing_meta_cache = json.load(f)
-            except Exception:
-                pass
         
         # Generate the fast-loading meta cache for the frontend
-        generate_meta_cache(channel, preview_data, existing_meta_cache)
+        generate_meta_cache(channel, all_channel_videos[channel], playlists)
         
         if is_update:
             stats["updated"] += 1

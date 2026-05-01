@@ -196,6 +196,7 @@ app.use('/channelposts', express.static(path.join(__dirname, 'channelposts')));
 app.use('/user-profiles', express.static(path.join(__dirname, 'user-profiles')));
 app.use('/favicon.png', express.static(path.join(__dirname, 'favicon.png')));
 app.use('/playlist_cache.json', express.static(path.join(__dirname, 'playlist_cache.json')));
+app.use('/video_date_cache.json', express.static(path.join(__dirname, 'video_date_cache.json')));
 
 // --- DISCORD EMBED ROUTE ---
 app.get('/video.html', (req, res) => {
