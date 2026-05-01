@@ -1768,7 +1768,15 @@ document.addEventListener('click', function(e) {
                 channelPic.src = `/channelpic/${encodeURIComponent(currentChannel)}.jpg`;
                 channelName.textContent = currentChannel;
 
-                fetch(`/subcount/${encodeURIComponent(currentChannel)}`)
+                function getSubcountEndpoint() {
+                    const fuzzySetting = JSON.parse(localStorage.getItem('fuzzySubCount') || '{}');
+                    if (fuzzySetting.enabled) {
+                        return `/subcount/fuzzy/${encodeURIComponent(currentChannel)}`;
+                    }
+                    return `/subcount/${encodeURIComponent(currentChannel)}`;
+                }
+
+                fetch(getSubcountEndpoint())
                     .then(response => response.text())
                     .then(subCountText => {
                         const subsWord = getLang('subscribers', 'Abonnenten');

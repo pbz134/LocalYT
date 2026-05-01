@@ -2298,7 +2298,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function loadHeaderStats() {
-        fetch(`/subcount/${encodeURIComponent(channel)}`)
+        function getSubcountEndpoint() {
+            const fuzzySetting = JSON.parse(localStorage.getItem('fuzzySubCount') || '{}');
+            if (fuzzySetting.enabled) {
+                return `/subcount/fuzzy/${encodeURIComponent(channel)}`;
+            }
+            return `/subcount/${encodeURIComponent(channel)}`;
+        }
+
+        fetch(getSubcountEndpoint())
             .then(response => response.ok ? response.text() : '0')
             .then(subCount => {
                 updateHeaderStats(subCount, null);
@@ -2314,7 +2322,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const channelVideos = videos.filter(video => video.path.startsWith(`${channel}/`));
                 const videoCount = channelVideos.length;
 
-                fetch(`/subcount/${encodeURIComponent(channel)}`)
+                fetch(getSubcountEndpoint())
                     .then(response => response.ok ? response.text() : '0')
                     .then(subCount => {
                          updateHeaderStats(subCount, videoCount);

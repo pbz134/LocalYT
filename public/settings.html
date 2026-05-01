@@ -731,6 +731,29 @@
                 </div>
                 <div id="channelPageStyleStatus" class="status-msg"></div>
             </div>
+
+            <!-- Fuzzy Subscription Counts Section -->
+            <div class="settings-section">
+                <h2 id="fuzzySubCountHeading">Subscription Counts</h2>
+
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div id="fuzzySubCountLabel">Fuzzy subscription counts</div>
+                        <div class="setting-description" id="fuzzySubCountDesc">Randomize the last digits of rounded channel subscription counts</div>
+                    </div>
+                    <div class="setting-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="fuzzySubCount">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="inline-form" style="margin-top: 15px;">
+                    <button class="btn btn-save" id="saveFuzzySubCountBtn">Save Preference</button>
+                </div>
+                <div id="fuzzySubCountStatus" class="status-msg"></div>
+            </div>
         </div>
 
 
@@ -805,6 +828,12 @@ function applyTranslations() {
     document.getElementById('channelPageStyleLabel').textContent = getLang('Channel layout style', 'Kanalseiten-Layout-Stil');
     document.getElementById('channelPageStyleDesc').textContent = getLang('Choose between the modern rounded channel header or the classic square-in-banner style', 'Wähle zwischen der modernen abgerundeten Kanalübersicht oder dem klassischen Stil mit quadratischem Bild im Banner');
     document.getElementById('saveChannelPageStyleBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
+
+    // Fuzzy Subscription Counts Section
+    document.getElementById('fuzzySubCountHeading').textContent = getLang('Subscription Counts', 'Abonnentenzahlen');
+    document.getElementById('fuzzySubCountLabel').textContent = getLang('Fuzzy subscription counts', 'Ungefähre Abonnentenzahlen');
+    document.getElementById('fuzzySubCountDesc').textContent = getLang('Randomize the last digits of rounded channel subscription counts', 'Letzte Ziffern der abgerundeten Kanal-Abonnentenzahlen zufällig machen');
+    document.getElementById('saveFuzzySubCountBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
 
     // Update dropdown options text
     const commenterSelect = document.getElementById('commenterProfileStyle');
@@ -1025,6 +1054,57 @@ function saveChannelPageStyle() {
 }
 
 // ==============================
+// Fuzzy Subscription Count Logic
+// ==============================
+function loadFuzzySubCount() {
+    const savedLocal = JSON.parse(localStorage.getItem('fuzzySubCount') || '{}');
+    const defaultValue = false;
+    const currentValue = savedLocal.enabled !== undefined ? savedLocal.enabled : defaultValue;
+    
+    document.getElementById('fuzzySubCount').checked = currentValue;
+
+    fetch('/user-settings')
+        .then(res => {
+            if (!res.ok) throw new Error('Not authenticated');
+            return res.json();
+        })
+        .then(serverSettings => {
+            if (serverSettings && serverSettings.fuzzySubCount !== undefined) {
+                const serverValue = serverSettings.fuzzySubCount;
+                document.getElementById('fuzzySubCount').checked = serverValue;
+                localStorage.setItem('fuzzySubCount', JSON.stringify({ enabled: serverValue }));
+            }
+        })
+        .catch(err => console.error('Could not load fuzzy sub count setting from server:', err));
+}
+
+function saveFuzzySubCount() {
+    const enabled = document.getElementById('fuzzySubCount').checked;
+    localStorage.setItem('fuzzySubCount', JSON.stringify({ enabled: enabled }));
+
+    fetch('/user-settings')
+        .then(res => res.json())
+        .then(currentSettings => {
+            const updatedSettings = { ...currentSettings, fuzzySubCount: enabled };
+            return fetch('/user-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings: updatedSettings })
+            });
+        })
+        .then(res => {
+            if (res.ok) {
+                showStatus('fuzzySubCountStatus', getLang('Subscription count preference saved!', 'Einstellung für Abonnentenzahlen gespeichert!'), true);
+            } else {
+                showStatus('fuzzySubCountStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
+            }
+        })
+        .catch(() => {
+            showStatus('fuzzySubCountStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
+        });
+}
+
+// ==============================
 // Tab Switching
 // ==============================
 const sidebarLinks = document.querySelectorAll('.settings-sidebar a');
@@ -1051,6 +1131,7 @@ sidebarLinks.forEach(link => {
             loadCommenterProfileStyle();
             loadChannelDefaultView();
             loadChannelPageStyle();
+            loadFuzzySubCount();
         }
     });
 });
@@ -1096,6 +1177,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('saveCommenterStyleBtn')?.addEventListener('click', saveCommenterProfileStyle);
     document.getElementById('saveChannelDefaultViewBtn')?.addEventListener('click', saveChannelDefaultView);
     document.getElementById('saveChannelPageStyleBtn')?.addEventListener('click', saveChannelPageStyle);
+    document.getElementById('saveFuzzySubCountBtn')?.addEventListener('click', saveFuzzySubCount);
 
     // Wait for profile-pic.js to finish its session check before loading settings
     function waitForSessionCheck() {
