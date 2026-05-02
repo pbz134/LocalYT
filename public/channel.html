@@ -1380,7 +1380,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('playlistsLoadingText').textContent = getLang('Loading playlists', 'Lade Playlisten...');
     document.getElementById('homeLoadingText').textContent = getLang('Loading videos...', 'Lade Videos...');
-    document.getElementById('homeOthersLabel').textContent = getLang('Other videos', 'Weitere Videos');
+    document.getElementById('homeOthersLabel').textContent = getLang('Uploads', 'Neueste Videos');
     document.getElementById('postsLoadingText').textContent = getLang('Loading posts...', 'Lade Beiträge...');
 
     // Sort dropdown logic
@@ -1729,7 +1729,7 @@ function getMimeType(extension) {
 
                 const viewsText = getLang('views', 'Aufrufe');
                 const uploadedText = getLang('Uploaded on', 'Hochgeladen am');
-                metaEl.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${video.fileDate}` + (meta.videoLength ? ` • ${meta.videoLength}` : '');
+                metaEl.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${video.fileDate}`;
 
                 if (meta.displayName && meta.displayName.trim()) {
                     titleEl.textContent = meta.displayName.trim();
