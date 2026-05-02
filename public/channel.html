@@ -2660,7 +2660,7 @@ function getMimeType(extension) {
         let text = channel;
         let parts = [];
 
-        if (subs !== null) parts.push(`${subs} ${getLang('subscribers', 'Abonnenten')}`);
+        if (subs !== null) parts.push(`${localStorage.getItem('language') === 'de' ? subs.replace(/,/g, '.') : subs} ${getLang('subscribers', 'Abonnenten')}`);
         if (vids !== null) parts.push(`${vids} ${getLang('videos', 'Videos')}`);
 
         if (parts.length > 0) {
@@ -2670,7 +2670,7 @@ function getMimeType(extension) {
         channelName.innerHTML = text;
 
         if (subs !== null) {
-            document.getElementById('subscriberCount').textContent = subs;
+            document.getElementById('subscriberCount').textContent = localStorage.getItem('language') === 'de' ? subs.replace(/,/g, '.') : subs;
         }
     }
 

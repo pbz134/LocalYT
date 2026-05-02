@@ -325,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Format view count for current language
                 let rawViews = (video.viewCount || "0").replace(/,/g, '');
-                let formattedViewCount = parseInt(rawViews).toLocaleString();
+                let formattedViewCount = parseInt(rawViews).toLocaleString('en-US');
                 
                 if (localStorage.getItem('language') === 'de') {
                     formattedViewCount = formattedViewCount.replace(/,/g, '.');

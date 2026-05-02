@@ -269,7 +269,7 @@
                         </div>
                         <div class="video-meta">
                             <div class="title">${escapeHtml(video.displayName || video.path)}</div>
-                            <div class="meta">${escapeHtml(channel)} &bull; ${video.viewCount} ${getLang('views', 'Aufrufe')}</div>
+                            <div class="meta">${escapeHtml(channel)} &bull; ${localStorage.getItem('language') === 'de' ? video.viewCount.replace(/,/g, '.') : video.viewCount} ${getLang('views', 'Aufrufe')}</div>
                         </div>
                     `;
                     

@@ -635,7 +635,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="video-details">
                             <div class="video-title">${videoTitle}</div>
                             <div class="channel-name">${channel}</div>
-                            <div class="video-description">${video.viewCount} ${getLang('views', 'Aufrufe')} &bull; ${video.fileDate}</div>
+                            <div class="video-description">${localStorage.getItem('language') === 'de' ? video.viewCount.replace(/,/g, '.') : video.viewCount} ${getLang('views', 'Aufrufe')} &bull; ${video.fileDate}</div>
                         </div>
                     </div>
                 `;

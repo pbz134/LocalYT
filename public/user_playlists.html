@@ -708,7 +708,7 @@ async function loadPlaylists() {
                             <div class="video-details">
                                 <div class="video-title" style="cursor:pointer;">${escapeHtml(vTitle)}</div>
                                 <div class="channel-name" style="cursor:pointer;">${escapeHtml(channel)}</div>
-                                <div class="video-description">${video.viewCount} ${getLang('views', 'Aufrufe')}${video.fileDate ? ' &bull; ' + video.fileDate : ''}</div>
+                                <div class="video-description">${localStorage.getItem('language') === 'de' ? video.viewCount.replace(/,/g, '.') : video.viewCount} ${getLang('views', 'Aufrufe')}${video.fileDate ? ' &bull; ' + video.fileDate : ''}</div>
                             </div>
                         </div>`;
 

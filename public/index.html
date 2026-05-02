@@ -519,7 +519,7 @@ function renderVideos(videos) {
                 <div class="video-details">
                     <div class="video-title" onclick="window.location.href='video.html?src=${encodeURIComponent(video.path)}'">${videoTitle}</div>
                     <div class="channel-name" onclick="window.location.href='channel.html?channel=${encodeURIComponent(channel)}'">${channel}</div>
-                    <div class="video-description">${video.viewCount} ${getLang('views', 'Aufrufe')} • ${video.fileDate}</div>
+                    <div class="video-description">${localStorage.getItem('language') === 'de' ? video.viewCount.replace(/,/g, '.') : video.viewCount} ${getLang('views', 'Aufrufe')} • ${video.fileDate}</div>
                 </div>
             </div>
         `;

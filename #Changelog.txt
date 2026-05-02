@@ -64,6 +64,8 @@ v4.10
 - Implemented fuzzy sub counts
   - You can now change rounded channel sub counts (e.g. 230,000) to be more random (e.g. 233,892) in settings.html
 - Slightly decreased the video wrapper size, increased the channel pic size on video.html
+- Depending on the set language, commas on large numbers now get replaced with a dot (eg. 100,000 to 100.000)
+  - This applies to all pages, including subscriber and view counts
 
 v4.00
 - User settings now get saved in a "userSettings.json" file, allowing for them to persist

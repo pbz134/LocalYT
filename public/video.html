@@ -1780,7 +1780,7 @@ document.addEventListener('click', function(e) {
                     .then(response => response.text())
                     .then(subCountText => {
                         const subsWord = getLang('subscribers', 'Abonnenten');
-                        subCount.textContent = `${subCountText} ${subsWord}`;
+                        subCount.textContent = `${localStorage.getItem('language') === 'de' ? subCountText.replace(/,/g, '.') : subCountText} ${subsWord}`;
                         // Setup wheel click after channel name is definitely set
                         setupChannelNameWheelClick(); 
                     })
@@ -2033,7 +2033,7 @@ document.addEventListener('click', function(e) {
                     <div class="suggestion-info">
                         <div class="suggestion-title">${suggestionTitle}</div>
                         <div class="suggestion-channel">${channel}</div>
-                        <div class="view-count">${video.viewCount} ${getLang('views', 'Aufrufe')}</div>
+                        <div class="view-count">${localStorage.getItem('language') === 'de' ? video.viewCount.replace(/,/g, '.') : video.viewCount} ${getLang('views', 'Aufrufe')}</div>
                     </div>
                 `;
 
