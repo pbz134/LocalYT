@@ -712,17 +712,12 @@
                 min-width: 220px;
                 box-shadow: 0 4px 20px ${shadowColor};
                 z-index: 2000;
-                opacity: 0;
-                visibility: hidden;
-                transform: translateY(-10px);
-                transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+                display: none;
                 padding: 8px 0;
             }
 
             .profile-menu-dropdown.open {
-                opacity: 1;
-                visibility: visible;
-                transform: translateY(0);
+                display: block;
             }
 
             .profile-menu-item {

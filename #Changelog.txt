@@ -13,10 +13,11 @@ v4.20
 - Added an option to settings.html to not load channel post images
   - This saves on bandwidth and makes the page load instantly
 - Fixed position for short community post texts
- - Added a BETA Light More
+ - Added a BETA Light Mode
   - channel.html now fully supports the new light mode
   - Other pages are still WIP and will look messy as of the current state
   - Click the "Appearance" toggle while holding Shift to activate light mode
+- Removed the opening/closing transitions on the profile modal
 
 v4.10
 - Comments can now be liked
