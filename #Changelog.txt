@@ -3,6 +3,7 @@
 v4.20
 - More informative channel.html Home tab, 5 of the most recent uploads, 6 playlists and some random videos
 - channel.html now uses a video_date_cache.json file to load channel metadata instantly
+- Fixed mouse wheel scrolling and zooming on user_playlists.html
 
 v4.10
 - Comments can now be liked

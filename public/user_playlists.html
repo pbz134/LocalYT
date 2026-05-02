@@ -682,9 +682,6 @@ async function loadPlaylists() {
                 const grid = document.createElement('div');
                 grid.className = 'playlist-videos-grid';
                 
-                // Prevent mouse wheel scrolling on the grid
-                grid.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
-
                 let currentTotalSecs = 0;
 
                 videos.forEach(video => {
