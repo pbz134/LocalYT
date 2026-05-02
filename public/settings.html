@@ -605,8 +605,6 @@
             </div>
         </div>
 
-<!-- settings.html — Replace the entire Preferences tab panel (div#tab-preferences) with this updated version: -->
-
         <!-- Preferences Tab -->
         <div class="tab-panel" id="tab-preferences">
             <h1 id="preferencesHeading">Preferences</h1>
@@ -754,6 +752,53 @@
                 </div>
                 <div id="fuzzySubCountStatus" class="status-msg"></div>
             </div>
+
+            <!-- Hide Post Images Section -->
+            <div class="settings-section">
+                <h2 id="hidePostImagesHeading">Channel Posts</h2>
+
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div id="hidePostImagesLabel">Hide images in posts</div>
+                        <div class="setting-description" id="hidePostImagesDesc">Hide image attachments in channel posts to save bandwidth and reduce loading times</div>
+                    </div>
+                    <div class="setting-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="hidePostImages">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="inline-form" style="margin-top: 15px;">
+                    <button class="btn btn-save" id="saveHidePostImagesBtn">Save Preference</button>
+                </div>
+                <div id="hidePostImagesStatus" class="status-msg"></div>
+            </div>
+
+            <!-- Title Color Scheme Section (SEPARATE, not nested) -->
+            <div class="settings-section">
+                <h2 id="titleColorSchemeHeading">Appearance</h2>
+
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div id="titleColorSchemeLabel">Title color scheme</div>
+                        <div class="setting-description" id="titleColorSchemeDesc">Make video titles and channel names appear in blue instead of white</div>
+                    </div>
+                    <div class="setting-control">
+                        <select class="setting-select" id="titleColorScheme">
+                            <option value="white">White (Default)</option>
+                            <option value="blue">Blue</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="inline-form" style="margin-top: 15px;">
+                    <button class="btn btn-save" id="saveTitleColorSchemeBtn">Save Preference</button>
+                </div>
+                <div id="titleColorSchemeStatus" class="status-msg"></div>
+            </div>
+
         </div>
 
 
@@ -834,6 +879,25 @@ function applyTranslations() {
     document.getElementById('fuzzySubCountLabel').textContent = getLang('Fuzzy subscription counts', 'Ungefähre Abonnentenzahlen');
     document.getElementById('fuzzySubCountDesc').textContent = getLang('Randomize the last digits of rounded channel subscription counts', 'Letzte Ziffern der abgerundeten Kanal-Abonnentenzahlen zufällig machen');
     document.getElementById('saveFuzzySubCountBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
+
+    // Hide Post Images Translations
+    document.getElementById('hidePostImagesHeading').textContent = getLang('Channel Posts', 'Kanalbeiträge');
+    document.getElementById('hidePostImagesLabel').textContent = getLang('Hide images in posts', 'Bilder in Beiträgen ausblenden');
+    document.getElementById('hidePostImagesDesc').textContent = getLang('Hide image attachments in channel posts to save bandwidth and reduce loading times', 'Bildanhänge in Kanalbeiträgen ausblenden, um Bandbreite zu sparen und Ladezeiten zu reduzieren');
+    document.getElementById('saveHidePostImagesBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
+
+    // Title Color Scheme Translations
+    document.getElementById('titleColorSchemeHeading').textContent = getLang('Appearance', 'Erscheinungsbild');
+    document.getElementById('titleColorSchemeLabel').textContent = getLang('Title color scheme', 'Titel-Farbschema');
+    document.getElementById('titleColorSchemeDesc').textContent = getLang('Make video titles and channel names appear in blue instead of white', 'Video-Titel und Kanalnamen blau anstatt weiß anzeigen');
+    document.getElementById('saveTitleColorSchemeBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
+
+    // Update dropdown options
+    const titleColorSelect = document.getElementById('titleColorScheme');
+    if (titleColorSelect) {
+        titleColorSelect.options[0].text = getLang('White (Default)', 'Weiß (Standard)');
+        titleColorSelect.options[1].text = getLang('Blue', 'Blau');
+    }
 
     // Update dropdown options text
     const commenterSelect = document.getElementById('commenterProfileStyle');
@@ -1105,6 +1169,108 @@ function saveFuzzySubCount() {
 }
 
 // ==============================
+// Hide Post Images Logic
+// ==============================
+function loadHidePostImages() {
+    const savedLocal = JSON.parse(localStorage.getItem('hidePostImages') || '{}');
+    const defaultValue = false;
+    const currentValue = savedLocal.enabled !== undefined ? savedLocal.enabled : defaultValue;
+    
+    document.getElementById('hidePostImages').checked = currentValue;
+
+    fetch('/user-settings')
+        .then(res => {
+            if (!res.ok) throw new Error('Not authenticated');
+            return res.json();
+        })
+        .then(serverSettings => {
+            if (serverSettings && serverSettings.hidePostImages !== undefined) {
+                const serverValue = serverSettings.hidePostImages;
+                document.getElementById('hidePostImages').checked = serverValue;
+                localStorage.setItem('hidePostImages', JSON.stringify({ enabled: serverValue }));
+            }
+        })
+        .catch(err => console.error('Could not load hide post images setting from server:', err));
+}
+
+function saveHidePostImages() {
+    const enabled = document.getElementById('hidePostImages').checked;
+    localStorage.setItem('hidePostImages', JSON.stringify({ enabled: enabled }));
+
+    fetch('/user-settings')
+        .then(res => res.json())
+        .then(currentSettings => {
+            const updatedSettings = { ...currentSettings, hidePostImages: enabled };
+            return fetch('/user-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings: updatedSettings })
+            });
+        })
+        .then(res => {
+            if (res.ok) {
+                showStatus('hidePostImagesStatus', getLang('Post image preference saved!', 'Einstellung für Kanalbeiträge gespeichert!'), true);
+            } else {
+                showStatus('hidePostImagesStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
+            }
+        })
+        .catch(() => {
+            showStatus('hidePostImagesStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
+        });
+}
+
+// ==============================
+// Title Color Scheme Logic
+// ==============================
+function loadTitleColorScheme() {
+    const savedLocal = JSON.parse(localStorage.getItem('titleColorScheme') || '{}');
+    const defaultValue = 'white';
+    const currentValue = savedLocal.scheme || defaultValue;
+    
+    document.getElementById('titleColorScheme').value = currentValue;
+
+    fetch('/user-settings')
+        .then(res => {
+            if (!res.ok) throw new Error('Not authenticated');
+            return res.json();
+        })
+        .then(serverSettings => {
+            if (serverSettings && serverSettings.titleColorScheme) {
+                const serverValue = serverSettings.titleColorScheme;
+                document.getElementById('titleColorScheme').value = serverValue;
+                localStorage.setItem('titleColorScheme', JSON.stringify({ scheme: serverValue }));
+            }
+        })
+        .catch(err => console.error('Could not load title color scheme setting from server:', err));
+}
+
+function saveTitleColorScheme() {
+    const scheme = document.getElementById('titleColorScheme').value;
+    localStorage.setItem('titleColorScheme', JSON.stringify({ scheme: scheme }));
+
+    fetch('/user-settings')
+        .then(res => res.json())
+        .then(currentSettings => {
+            const updatedSettings = { ...currentSettings, titleColorScheme: scheme };
+            return fetch('/user-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings: updatedSettings })
+            });
+        })
+        .then(res => {
+            if (res.ok) {
+                showStatus('titleColorSchemeStatus', getLang('Title color scheme saved!', 'Titel-Farbschema gespeichert!'), true);
+            } else {
+                showStatus('titleColorSchemeStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
+            }
+        })
+        .catch(() => {
+            showStatus('titleColorSchemeStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
+        });
+}
+
+// ==============================
 // Tab Switching
 // ==============================
 const sidebarLinks = document.querySelectorAll('.settings-sidebar a');
@@ -1132,6 +1298,8 @@ sidebarLinks.forEach(link => {
             loadChannelDefaultView();
             loadChannelPageStyle();
             loadFuzzySubCount();
+            loadHidePostImages();
+            loadTitleColorScheme();
         }
     });
 });
@@ -1178,6 +1346,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('saveChannelDefaultViewBtn')?.addEventListener('click', saveChannelDefaultView);
     document.getElementById('saveChannelPageStyleBtn')?.addEventListener('click', saveChannelPageStyle);
     document.getElementById('saveFuzzySubCountBtn')?.addEventListener('click', saveFuzzySubCount);
+    document.getElementById('saveHidePostImagesBtn')?.addEventListener('click', saveHidePostImages);
+    document.getElementById('saveTitleColorSchemeBtn')?.addEventListener('click', saveTitleColorScheme);
 
     // Wait for profile-pic.js to finish its session check before loading settings
     function waitForSessionCheck() {

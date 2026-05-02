@@ -7,6 +7,16 @@ v4.20
 - Depending on the set language, commas on large numbers now get replaced with a dot (eg. 100,000 to 100.000)
   - This applies to all pages, including subscriber and view counts
 - Made channel.html fully responsive
+- Removed the border-radius on channel posts
+- Added a brighter box around the channel pages
+- Classic channel styling now modifies the /posts channel tab
+- Added an option to settings.html to not load channel post images
+  - This saves on bandwidth and makes the page load instantly
+- Fixed position for short community post texts
+ - Added a BETA Light More
+  - channel.html now fully supports the new light mode
+  - Other pages are still WIP and will look messy as of the current state
+  - Click the "Appearance" toggle while holding Shift to activate light mode
 
 v4.10
 - Comments can now be liked

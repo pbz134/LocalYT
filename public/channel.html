@@ -15,16 +15,46 @@
     })();
     </script>
     <style>
-.channel-banner {
-    width: 100%;
-    max-width: 1170px;
-    height: auto;
-    aspect-ratio: 1400 / 230;
-    background-size: contain;
-    background-position: center;
-    background-repeat: no-repeat;
-    margin: 80px auto 0 auto;
-}
+        /* Channel page background wrapper styling */
+        .channel-top-section {
+            background-color: #1e1e1e; /* Slightly brighter grey for dark mode */
+            width: 100%;
+            max-width: 1170px;
+            margin: 0 auto;
+        }
+
+        .channel-content-section {
+            background-color: #1e1e1e; /* Same slightly brighter grey */
+            width: 100%;
+            max-width: 1170px;
+            margin: 8px auto 0 auto; /* Small gap at top */
+            padding-bottom: 20px;
+            min-height: 400px;
+        }
+
+        /* Adjust existing elements to remove their own backgrounds/margins that might conflict */
+        .channel-banner {
+            width: 100%;
+            max-width: 1170px;
+            height: auto;
+            aspect-ratio: 1400 / 230;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            margin: 80px auto 0 auto;
+            /* Remove any default background if it was set */
+            background-color: transparent;
+        }
+        .channel-banner {
+            width: 100%;
+            max-width: 1170px;
+            height: auto;
+            aspect-ratio: 1400 / 230;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            margin: 80px auto 0 auto;
+        }
         .channel-header {
             display: flex;
             align-items: center;
@@ -131,9 +161,6 @@
         .tab.active {
             color: #fff;
             border-bottom: 2px solid #fff;
-        }
-        .tab:hover {
-            color: #fff;
         }
         .tab-content {
             display: none;
@@ -337,7 +364,7 @@
         }
         .video-item {
             margin: 10px;
-            background: var(--main-bg-color);
+            background: #1e1e1e;
             overflow: hidden;
             width: 300px;
             text-align: center;
@@ -345,7 +372,7 @@
         }
         .playlist-item {
             margin: 10px;
-            background: var(--main-bg-color);
+            background: #1e1e1e;
             overflow: hidden;
             width: 300px;
             text-align: center;
@@ -417,6 +444,23 @@
             margin-left: 4px;
             filter: invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(60%) contrast(90%);
         }
+        body.classic-channel .post-channel-pic {
+            border-radius: 0 !important;
+        }
+        body.classic-channel .posts-container {
+            max-width: 1170px;
+            padding: 20px;
+            align-items: flex-start;
+        }
+        
+        body.classic-channel .post-item {
+            border: none !important;
+            max-width: 100%; /* Full width for longer text lines */
+            width: auto;
+            border: none !important;
+        }
+
+
         .video-title {
             font-weight: bold;
             font-family: 'RobotoRegular', sans-serif;
@@ -897,8 +941,7 @@
         }
         .post-item {
             width: 100%;
-            background-color: var(--main-bg-color);
-            border-radius: 8px;
+            background-color: #1e1e1e;
             overflow: hidden;
             box-sizing: border-box;
             border: 1px solid #3f3f3f;
@@ -915,6 +958,13 @@
             border-radius: 50%;
             flex-shrink: 0;
         }
+        .post-author-name {
+            font-weight: bold;
+            color: #fff;
+            font-size: 14px;
+            line-height: 1.2;
+            margin-top: -4px;
+        }
         .post-header-info {
             display: flex;
             flex-direction: row;
@@ -922,12 +972,7 @@
             gap: 10px;
             flex-wrap: wrap;
         }
-        .post-author-name {
-            font-weight: bold;
-            color: #fff;
-            font-size: 14px;
-            line-height: 1.2;
-        }
+
         .post-content-text {
             color: #e3e3e3;
             font-size: 14px;
@@ -935,7 +980,9 @@
             word-wrap: break-word;
             white-space: pre-wrap;
             font-family: 'RobotoRegular', Arial, sans-serif;
-            margin-top: 8px;
+            margin-top: -4px;
+            width: 100%;
+            flex-basis: 100%;
         }
         .post-images-wrapper {
             position: relative;
@@ -1074,128 +1121,134 @@
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
     </header>
-    <div id="channelBanner" class="channel-banner"></div>
-    <div class="channel-header">
-        <img id="channelPic" class="channel-pic" alt="Channel Picture" loading="lazy">
-        <div id="channelName" class="channel-name"></div>
-        <div class="channel-header-right">
-            <button id="subscribeButton" class="subscribe-button">Subscribe</button><span id="subscriberCount" class="subscriber-count"></span>
-        </div>
-    </div>
-
-    <!-- Tabs -->
-    <div class="tabs">
-        <div class="tab active" data-tab="home">HOME</div>
-        <div class="tab" data-tab="videos">VIDEOS</div>
-        <div class="tab" data-tab="playlists">PLAYLISTS</div>
-        <div class="tab" data-tab="posts">POSTS</div>
-        <div class="tab" data-tab="about">ABOUT</div>
-        <div class="tab-search-container">
-            <div class="tab" data-tab="search">
-                <img src="LocalYT-Rev-Files/search_icon.svg" class="tab-search-icon" alt="Search">
-            </div>
-            <div class="tab-search-bar">
-                <input type="text" id="channelSearchInput" placeholder="">
+    <!-- TOP GREY SECTION: Banner + Header + Tabs -->
+    <div class="channel-top-section">
+        <div id="channelBanner" class="channel-banner"></div>
+        <div class="channel-header">
+            <img id="channelPic" class="channel-pic" alt="Channel Picture" loading="lazy">
+            <div id="channelName" class="channel-name"></div>
+            <div class="channel-header-right">
+                <button id="subscribeButton" class="subscribe-button">Subscribe</button><span id="subscriberCount" class="subscriber-count"></span>
             </div>
         </div>
-    </div>
 
-    <!-- Posts Tab -->
-    <div id="postsTab" class="tab-content">
-        <div class="posts-container" id="postsContainer">
-            <div class="tab-loading-placeholder" id="postsLoadingText">Loading posts...</div>
-        </div>
-    </div>
-
-    <!-- Home Tab -->
-    <div id="homeTab" class="tab-content active">
-        <div class="home-preview-section">
-            <div class="home-preview-row" id="homePreviewRow">
-                <div class="home-player-wrapper" id="homePlayerWrapper">
-                    <div class="home-player-placeholder" id="homePlayerPlaceholder">Loading...</div>
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" data-tab="home">HOME</div>
+            <div class="tab" data-tab="videos">VIDEOS</div>
+            <div class="tab" data-tab="playlists">PLAYLISTS</div>
+            <div class="tab" data-tab="posts">POSTS</div>
+            <div class="tab" data-tab="about">ABOUT</div>
+            <div class="tab-search-container">
+                <div class="tab" data-tab="search">
+                    <img src="LocalYT-Rev-Files/search_icon.svg" class="tab-search-icon" alt="Search">
                 </div>
-                <div class="home-info-panel">
-                    <div class="home-video-title" id="homeVideoTitle"></div>
-                    <div class="home-video-meta" id="homeVideoMeta"></div>
-                    <div class="home-video-description-box">
-                        <div class="home-video-description-text" id="homeVideoDescription"></div>
-                        <a class="home-video-description-read-more" id="homeVideoDescriptionReadMore" href="#">Mehr anzeigen</a>
+                <div class="tab-search-bar">
+                    <input type="text" id="channelSearchInput" placeholder="">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM GREY SECTION: Content starting from Miniplayer -->
+    <div class="channel-content-section">
+        <!-- Posts Tab -->
+        <div id="postsTab" class="tab-content">
+            <div class="posts-container" id="postsContainer">
+                <div class="tab-loading-placeholder" id="postsLoadingText">Loading posts...</div>
+            </div>
+        </div>
+
+        <!-- Home Tab -->
+        <div id="homeTab" class="tab-content active">
+            <div class="home-preview-section">
+                <div class="home-preview-row" id="homePreviewRow">
+                    <div class="home-player-wrapper" id="homePlayerWrapper">
+                        <div class="home-player-placeholder" id="homePlayerPlaceholder">Loading...</div>
+                    </div>
+                    <div class="home-info-panel">
+                        <div class="home-video-title" id="homeVideoTitle"></div>
+                        <div class="home-video-meta" id="homeVideoMeta"></div>
+                        <div class="home-video-description-box">
+                            <div class="home-video-description-text" id="homeVideoDescription"></div>
+                            <a class="home-video-description-read-more" id="homeVideoDescriptionReadMore" href="#">Mehr anzeigen</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="home-others-label" id="homeOthersLabel"></div>
+            <div class="home-others-grid" id="homeOthersGrid">
+                <div class="tab-loading-placeholder" id="homeLoadingText">Loading videos...</div>
+            </div>
+        </div>
+
+        <!-- Videos Tab -->
+        <div id="videosTab" class="tab-content">
+            <div class="sort-options">
+                <div class="sort-dropdown">
+                    <button class="sort-toggle" id="sortToggle">
+                        <span id="sortToggleLabel">Date added (newest)</span>
+                        <div class="sort-toggle-arrow"></div>
+                    </button>
+                    <div class="sort-dropdown-menu" id="sortDropdownMenu">
+                        <div class="sort-dropdown-item active" data-sort="newest">Date added (newest)</div>
+                        <div class="sort-dropdown-item" data-sort="popular">Most popular</div>
+                        <div class="sort-dropdown-item" data-sort="oldest">Date added (oldest)</div>
+                    </div>
+                </div>
+                <div class="view-dropdown">
+                    <button class="view-toggle" id="viewToggle">
+                        <span id="viewToggleLabel">Grid</span>
+                        <div class="view-toggle-arrow"></div>
+                    </button>
+                    <div class="view-dropdown-menu" id="viewDropdownMenu">
+                        <div class="view-dropdown-item active" data-view="grid">Grid</div>
+                        <div class="view-dropdown-item" data-view="list">List</div>
+                    </div>
+                </div>
+            </div>
+            <div class="container videos-wrapper">
+                <div class="channel-videos" id="channelVideosContainer"></div>
+                <div id="loadingSpinner" class="loading-spinner">Loading more videos</div>
+                <div id="noMoreVideos" class="no-more-videos" style="display: none;">No more videos to load</div>
+                <div id="loadMoreTrigger" class="load-more-trigger"></div>
+            </div>
+        </div>
+
+        <!-- Playlists Tab -->
+        <div id="playlistsTab" class="tab-content">
+            <div class="playlists-container" id="playlistsContainer">
+                <div class="tab-loading-placeholder" id="playlistsLoadingText">Loading playlists</div>
+            </div>
+        </div>
+
+        <!-- About Tab -->
+        <div id="aboutTab" class="tab-content">
+            <div class="about-container">
+                <div class="about-description">
+                    <h3 id="aboutDescriptionHeader">Description</h3>
+                    <div id="channelDescription" class="description-text">
+                        <div class="tab-loading-placeholder">Loading</div>
+                    </div>
+                </div>
+                <div class="about-stats">
+                    <h3 id="aboutStatsHeader">Stats</h3>
+                    <div class="stats-list">
+                        <div class="stats-item" id="statsJoined">Joined --</div>
+                        <div class="stats-item total-views" id="statsViews">-- views</div>
+                        <button class="share-button" id="shareChannelBtn">
+                            <img src="LocalYT-Rev-Files/share.svg" alt="Share">
+                            <span id="shareBtnText">Share</span>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="home-others-label" id="homeOthersLabel"></div>
-        <div class="home-others-grid" id="homeOthersGrid">
-            <div class="tab-loading-placeholder" id="homeLoadingText">Loading videos...</div>
-        </div>
-    </div>
 
-    <!-- Videos Tab -->
-    <div id="videosTab" class="tab-content">
-        <div class="sort-options">
-            <div class="sort-dropdown">
-                <button class="sort-toggle" id="sortToggle">
-                    <span id="sortToggleLabel">Date added (newest)</span>
-                    <div class="sort-toggle-arrow"></div>
-                </button>
-                <div class="sort-dropdown-menu" id="sortDropdownMenu">
-                    <div class="sort-dropdown-item active" data-sort="newest">Date added (newest)</div>
-                    <div class="sort-dropdown-item" data-sort="popular">Most popular</div>
-                    <div class="sort-dropdown-item" data-sort="oldest">Date added (oldest)</div>
-                </div>
-            </div>
-            <div class="view-dropdown">
-                <button class="view-toggle" id="viewToggle">
-                    <span id="viewToggleLabel">Grid</span>
-                    <div class="view-toggle-arrow"></div>
-                </button>
-                <div class="view-dropdown-menu" id="viewDropdownMenu">
-                    <div class="view-dropdown-item active" data-view="grid">Grid</div>
-                    <div class="view-dropdown-item" data-view="list">List</div>
-                </div>
-            </div>
+        <!-- Search Tab -->
+        <div id="searchTab" class="tab-content">
+            <div class="channel-search-results" id="channelSearchResults"></div>
         </div>
-        <div class="container videos-wrapper">
-            <div class="channel-videos" id="channelVideosContainer"></div>
-            <div id="loadingSpinner" class="loading-spinner">Loading more videos</div>
-            <div id="noMoreVideos" class="no-more-videos" style="display: none;">No more videos to load</div>
-            <div id="loadMoreTrigger" class="load-more-trigger"></div>
-        </div>
-    </div>
-
-    <!-- Playlists Tab -->
-    <div id="playlistsTab" class="tab-content">
-        <div class="playlists-container" id="playlistsContainer">
-            <div class="tab-loading-placeholder" id="playlistsLoadingText">Loading playlists</div>
-        </div>
-    </div>
-
-    <!-- About Tab -->
-    <div id="aboutTab" class="tab-content">
-        <div class="about-container">
-            <div class="about-description">
-                <h3 id="aboutDescriptionHeader">Description</h3>
-                <div id="channelDescription" class="description-text">
-                    <div class="tab-loading-placeholder">Loading</div>
-                </div>
-            </div>
-            <div class="about-stats">
-                <h3 id="aboutStatsHeader">Stats</h3>
-                <div class="stats-list">
-                    <div class="stats-item" id="statsJoined">Joined --</div>
-                    <div class="stats-item total-views" id="statsViews">-- views</div>
-                    <button class="share-button" id="shareChannelBtn">
-                        <img src="LocalYT-Rev-Files/share.svg" alt="Share">
-                        <span id="shareBtnText">Share</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Search Tab -->
-    <div id="searchTab" class="tab-content">
-        <div class="channel-search-results" id="channelSearchResults"></div>
     </div>
 
     <script>
@@ -2456,129 +2509,137 @@ function getMimeType(extension) {
             return;
         }
 
+        // Check if user wants to hide post images
+        const hidePostImagesSetting = JSON.parse(localStorage.getItem('hidePostImages') || '{}');
+        const shouldHidePostImages = hidePostImagesSetting.enabled === true;
+
         const channelPicSrc = `/channelpic/${encodeURIComponent(channel)}.jpg`;
         const likeIconSrc = 'LocalYT-Rev-Files/like.svg';
 
         const fragment = document.createDocumentFragment();
 
-        posts.forEach(post => {
-            const postElement = document.createElement('div');
-            postElement.className = 'post-item';
+    posts.forEach(post => {
+        const postElement = document.createElement('div');
+        postElement.className = 'post-item';
 
-            // Header with profile pic and content
-            postElement.innerHTML = `
-                <div class="post-header">
-                    <img src="${channelPicSrc}" alt="" class="post-channel-pic" loading="lazy">
-                <div class="post-header-info">
-                    <div class="post-author-name">${channel}</div>
-                    <div class="post-date" style="color: #888; font-size: 13px;">${post.raw_date || ''}</div>
-                    <div class="post-content-text"></div>
-                </div>
-                </div>
-                <div class="post-body"></div>
-                <div class="post-footer">
-                    <img src="${likeIconSrc}" alt="Like" class="post-like-icon">
-                    <span>${post.likes || 0}</span>
-                </div>
-            `;
+        // Check if user wants to hide post images (saves bandwidth)
+        const hidePostImagesSetting = JSON.parse(localStorage.getItem('hidePostImages') || '{}');
+        const shouldHidePostImages = hidePostImagesSetting.enabled === true;
 
-            const textDiv = postElement.querySelector('.post-content-text');
-            const bodyDiv = postElement.querySelector('.post-body');
-            
-            // Set text content
-            textDiv.textContent = post.content || '';
-            const urlRegex = /(https?:\/\/[^\s<]+)/g;
-            textDiv.innerHTML = textDiv.innerHTML.replace(urlRegex, function(url) {
-                return '<a href="' + url + '" target="_blank" style="color: #3ea6ff; text-decoration: none;">' + url + '</a>';
+        // Header with profile pic and content
+        postElement.innerHTML = `
+            <div class="post-header">
+                <img src="${channelPicSrc}" alt="" class="post-channel-pic" loading="lazy">
+            <div class="post-header-info">
+                <div class="post-author-name">${channel}</div>
+                <div class="post-date" style="color: #888; font-size: 13px;">${post.raw_date || ''}</div>
+                <div class="post-content-text"></div>
+            </div>
+            </div>
+            <div class="post-body"></div>
+            <div class="post-footer">
+                <img src="${likeIconSrc}" alt="Like" class="post-like-icon">
+                <span>${post.likes || 0}</span>
+            </div>
+        `;
+
+        const textDiv = postElement.querySelector('.post-content-text');
+        const bodyDiv = postElement.querySelector('.post-body');
+        
+        // Set text content
+        textDiv.textContent = post.content || '';
+        const urlRegex = /(https?:\/\/[^\s<]+)/g;
+        textDiv.innerHTML = textDiv.innerHTML.replace(urlRegex, function(url) {
+            return '<a href="' + url + '" target="_blank" style="color: #3ea6ff; text-decoration: none;">' + url + '</a>';
+        });
+
+        // Handle images - only create img elements if user hasn't enabled "hide images"
+        if (post.images && post.images.length > 0 && !shouldHidePostImages) {
+            const imagesWrapper = document.createElement('div');
+            imagesWrapper.className = 'post-images-wrapper';
+            imagesWrapper.style.display = 'none';
+
+            let validImageCount = 0;
+            const validImages = [];
+
+            post.images.forEach((img, index) => {
+                const imgEl = document.createElement('img');
+                imgEl.className = `post-image${index === 0 ? ' active' : ''}`;
+                imgEl.src = `/channelposts/${encodeURIComponent(channel)}/${encodeURIComponent(img.file_name)}`;
+                imgEl.alt = `Post image ${index + 1}`;
+                
+                imgEl.onload = () => {
+                    validImageCount++;
+                    if (validImageCount === 1) {
+                        imagesWrapper.style.display = '';
+                    }
+                };
+                
+                imagesWrapper.appendChild(imgEl);
             });
 
-            // Handle images
-            if (post.images && post.images.length > 0) {
-                const imagesWrapper = document.createElement('div');
-                imagesWrapper.className = 'post-images-wrapper';
-                imagesWrapper.style.display = 'none';
+            // Carousel controls if multiple images exist
+            if (post.images.length > 1) {
+                const prevBtn = document.createElement('button');
+                prevBtn.className = 'carousel-btn carousel-prev';
+                prevBtn.innerHTML = '&#10094;';
+                
+                const nextBtn = document.createElement('button');
+                nextBtn.className = 'carousel-btn carousel-next';
+                nextBtn.innerHTML = '&#10095;';
 
-                let validImageCount = 0;
-                const validImages = [];
-
-                post.images.forEach((img, index) => {
-                    const imgEl = document.createElement('img');
-                    imgEl.className = `post-image${index === 0 ? ' active' : ''}`;
-                    imgEl.src = `/channelposts/${encodeURIComponent(channel)}/${encodeURIComponent(img.file_name)}`;
-                    imgEl.alt = `Post image ${index + 1}`;
-                    
-                    imgEl.onload = () => {
-                        validImageCount++;
-                        if (validImageCount === 1) {
-                            imagesWrapper.style.display = '';
-                        }
-                    };
-                    
-                    imagesWrapper.appendChild(imgEl);
+                const dotsContainer = document.createElement('div');
+                dotsContainer.className = 'carousel-dots';
+                
+                post.images.forEach((_, index) => {
+                    const dot = document.createElement('div');
+                    dot.className = `carousel-dot${index === 0 ? ' active' : ''}`;
+                    dot.dataset.index = index;
+                    dotsContainer.appendChild(dot);
                 });
 
-                // Carousel controls if multiple images
-                if (post.images.length > 1) {
-                    const prevBtn = document.createElement('button');
-                    prevBtn.className = 'carousel-btn carousel-prev';
-                    prevBtn.innerHTML = '&#10094;';
-                    
-                    const nextBtn = document.createElement('button');
-                    nextBtn.className = 'carousel-btn carousel-next';
-                    nextBtn.innerHTML = '&#10095;';
+                imagesWrapper.appendChild(prevBtn);
+                imagesWrapper.appendChild(nextBtn);
+                imagesWrapper.appendChild(dotsContainer);
 
-                    const dotsContainer = document.createElement('div');
-                    dotsContainer.className = 'carousel-dots';
-                    
-                    post.images.forEach((_, index) => {
-                        const dot = document.createElement('div');
-                        dot.className = `carousel-dot${index === 0 ? ' active' : ''}`;
-                        dot.dataset.index = index;
-                        dotsContainer.appendChild(dot);
+                let currentIndex = 0;
+                const allImages = imagesWrapper.querySelectorAll('.post-image');
+                const allDots = dotsContainer.querySelectorAll('.carousel-dot');
+
+                const showSlide = (idx) => {
+                    currentIndex = idx;
+                    allImages.forEach((img, i) => {
+                        img.classList.toggle('active', i === currentIndex);
                     });
-
-                    imagesWrapper.appendChild(prevBtn);
-                    imagesWrapper.appendChild(nextBtn);
-                    imagesWrapper.appendChild(dotsContainer);
-
-                    let currentIndex = 0;
-                    const allImages = imagesWrapper.querySelectorAll('.post-image');
-                    const allDots = dotsContainer.querySelectorAll('.carousel-dot');
-
-                    const showSlide = (idx) => {
-                        currentIndex = idx;
-                        allImages.forEach((img, i) => {
-                            img.classList.toggle('active', i === currentIndex);
-                        });
-                        allDots.forEach((dot, i) => {
-                            dot.classList.toggle('active', i === currentIndex);
-                        });
-                    };
-
-                    prevBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const newIndex = (currentIndex - 1 + post.images.length) % post.images.length;
-                        showSlide(newIndex);
+                    allDots.forEach((dot, i) => {
+                        dot.classList.toggle('active', i === currentIndex);
                     });
+                };
 
-                    nextBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const newIndex = (currentIndex + 1) % post.images.length;
-                        showSlide(newIndex);
-                    });
+                prevBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const newIndex = (currentIndex - 1 + post.images.length) % post.images.length;
+                    showSlide(newIndex);
+                });
 
-                    dotsContainer.addEventListener('click', (e) => {
-                        if (e.target.classList.contains('carousel-dot')) {
-                            showSlide(parseInt(e.target.dataset.index));
-                        }
-                    });
-                }
+                nextBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const newIndex = (currentIndex + 1) % post.images.length;
+                    showSlide(newIndex);
+                });
 
-                bodyDiv.appendChild(imagesWrapper);
+                dotsContainer.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('carousel-dot')) {
+                        showSlide(parseInt(e.target.dataset.index));
+                    }
+                });
             }
 
-            fragment.appendChild(postElement);
-        });
+            bodyDiv.appendChild(imagesWrapper);
+        }
+
+        fragment.appendChild(postElement);
+    });
 
         postsContainer.appendChild(fragment);
     }
@@ -2897,6 +2958,38 @@ function getMimeType(extension) {
 function openVideo(videoSrc) {
     window.location.href = `video.html?src=${videoSrc}`;
 }
+
+// ==============================
+// Apply Title Color Scheme Preference
+// ==============================
+(function applyTitleColorScheme() {
+    const setting = JSON.parse(localStorage.getItem('titleColorScheme') || '{}');
+    if (setting.scheme === 'blue') {
+        const style = document.createElement('style');
+        style.id = 'title-color-scheme-blue';
+        style.textContent = `
+            .post-author-name,
+            .home-video-title,
+            .video-title,
+            .playlist-title {
+                color: #128ee9 !important;
+            }
+            .post-author-name:hover,
+            .home-video-title:hover,
+            .video-title:hover,
+            .playlist-title:hover {
+                text-decoration: underline !important;
+                cursor: pointer !important;
+            }
+        `;
+        document.head.appendChild(style);
+    } else {
+        // Remove existing style tag if switching back to white
+        const existingStyle = document.getElementById('title-color-scheme-blue');
+        if (existingStyle) existingStyle.remove();
+    }
+})();
+
     </script>
     <!-- External Search Suggestion Script -->
     <script src="search-suggestions.js"></script>
