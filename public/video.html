@@ -941,6 +941,16 @@
         .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container:hover .fluid_controls_progress .fluid_controls_currentprogress {
             height: 5px !important;
         }
+        /* Make the dot always visible (opacity 1) */
+        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container.fluid_slider .fluid_controls_progress .fluid_controls_currentprogress .fluid_controls_currentpos {
+            opacity: 1 !important;
+        }
+
+        /* Remove the fade-in transition so it doesn't animate on page load */
+        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container.fluid_slider .fluid_controls_progress .fluid_controls_currentprogress .fluid_controls_currentpos {
+        -webkit-transition: none !important;
+        transition: none !important;
+        }
     </style>
 </head>
 <body>
