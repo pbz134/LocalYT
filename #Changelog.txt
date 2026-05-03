@@ -8,17 +8,17 @@ v4.20
 - Fixed mouse wheel scrolling and zooming on user_playlists.html
 - Depending on the set language, commas on large numbers now get replaced with a dot (eg. 100,000 to 100.000)
   - This applies to all pages, including subscriber and view counts
-- Made channel.html fully responsive
+- Made some pages fully responsive
 - Removed the border-radius on channel posts
-- Added a brighter box around the channel pages
+- Added a brighter box around some pages
 - Classic channel styling now modifies the /posts channel tab
 - Classic channel styling now changes the active tab line from white to red
-- Classic channel styling nwo renames the "Community" tab to "Discussion"
+- Classic channel styling now renames the "Community" tab to "Discussion"
 - Added an option to settings.html to not load channel post images
   - This saves on bandwidth and makes the page load instantly
 - Fixed position for short community post texts
  - Added a BETA Light Mode
-  - channel.html now fully supports the new light mode
+  - channel.html and playlists.html now fully support the new light mode
   - Other pages are still WIP and will look messy as of the current state
   - Click the "Appearance" toggle while holding Shift to activate light mode
 - Removed the opening/closing transitions on the profile modal

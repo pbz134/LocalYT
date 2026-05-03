@@ -7,26 +7,74 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
     <style>
-        /* Channel Header Styles */
-        .channel-banner {
-            width: 1400px;
-            height: 100%;
-            background-size: cover;
-            background-position: center;
-            margin: 80px auto;
-            margin-bottom: 20px;
+        /* Playlist page background wrapper styling (matching channel.html) */
+        .playlist-top-section {
+            background-color: #1e1e1e;
+            width: 100%;
+            max-width: 1170px;
+            margin: 0 auto;
         }
+
+        .playlist-content-section {
+            background-color: #1e1e1e; /* Same slightly brighter grey */
+            width: 100%;
+            max-width: 1170px;
+            margin: 8px auto 0 auto; /* Small gap at top */
+            padding-bottom: 20px;
+            min-height: 400px;
+        }
+
+        /* Channel Header Styles */
+       .channel-banner {
+            width: 100%;
+            max-width: 1170px;
+            height: auto;
+            aspect-ratio: 1400 / 230;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            margin: 80px auto 0 auto; /* Pushes banner down */
+            background-color: transparent;
+        }
+        
+        /* Classic Channel Styling Overrides */
+        body.classic-channel .channel-banner {
+            position: relative;
+            margin-bottom: 0;
+        }
+        body.classic-channel .channel-pic {
+            position: absolute;
+            left: 20px;
+
+            width: 130px;
+            height: 130px;
+            border-radius: 0 !important; /* Square */
+            margin: 0;
+            z-index: 5;
+            border: none;
+        }
+        body.classic-channel .channel-header {
+            margin-top: 75px; /* Space for the hanging picture */
+            margin-bottom: 15px;
+        }
+        body.classic-channel .video-count {
+            display: none !important;
+        }
+
         .channel-header {
             display: flex;
             align-items: center;
-            margin: 20px 0;
-            margin-left: 230px;
+            margin: 20px auto;
+            max-width: 1170px;
+            padding: 0 20px 20px 20px;
+            box-sizing: border-box;
         }
         .channel-pic {
             width: 100px;
             height: 100px;
             border-radius: 50%;
             margin-right: 30px;
+            flex-shrink: 0;
             cursor: pointer;
         }
         .channel-name {
@@ -41,23 +89,20 @@
             display: block;
             margin-top: 5px;
         }
-        .divider {
-            border-top: 1px solid #3f3f3f;
-            margin: 20px 0;
-        }
 
         /* Playlist Specific Styles */
         .playlist-header {
             padding: 20px;
-            margin-left: 200px;
-            background: var(--main-bg-color);
-            margin-top: 20px;
+            max-width: 1170px;
+            margin: 0 auto;
+            box-sizing: border-box;
         }
         .playlist-title {
             font-size: 24px;
             font-weight: bold;
             color: #fff;
             margin-bottom: 10px;
+            transition: color 0.2s, text-decoration 0.2s;
         }
         .playlist-info {
             color: #888;
@@ -69,25 +114,158 @@
             font-size: 14px;
             margin-top: 4px; /* Slight spacing from info above */
         }
+        
+        /* Sort and View Options (matching channel.html) */
+        .sort-options {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin: 0 20px 0 0;
+            margin-bottom: -50px; 
+            position: relative; 
+            z-index: 10; 
+        }
+        .sort-dropdown, .view-dropdown {
+            position: relative;
+        }
+        .sort-toggle, .view-toggle {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sort-toggle:hover, .view-toggle:hover {
+            background-color: #555;
+        }
+        .sort-toggle-arrow, .view-toggle-arrow {
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid white;
+            transition: transform 0.2s;
+        }
+        .sort-toggle.open .sort-toggle-arrow, .view-toggle.open .view-toggle-arrow {
+            transform: rotate(180deg);
+        }
+        .sort-dropdown-menu, .view-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 4px;
+            background-color: #333;
+            border-radius: 6px;
+            overflow: hidden;
+            min-width: 240px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            z-index: 100;
+        }
+        .view-dropdown-menu {
+            min-width: 140px;
+        }
+        .sort-dropdown-menu.open, .view-dropdown-menu.open {
+            display: block;
+        }
+        .sort-dropdown-item, .view-dropdown-item {
+            padding: 10px 16px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            transition: background-color 0.15s;
+            white-space: nowrap;
+        }
+        .sort-dropdown-item:hover, .view-dropdown-item:hover {
+            background-color: #555;
+        }
+        .sort-dropdown-item.active, .view-dropdown-item.active {
+            color: #fff;
+        }
+
+        /* Video Grid/List Container */
+        .videos-wrapper {
+            position: relative;
+            min-height: 400px;
+        }
         .playlist-videos {
             display: flex;
             flex-wrap: wrap;
             justify-content: space-around;
-            padding: 20px;
-            margin-left: 180px;
+            padding: 10px 20px 20px 20px;
         }
+        
+        /* List View Styles (matching channel.html) */
+        .playlist-videos.list-view {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            padding: 20px;
+        }
+        .playlist-videos.list-view .video-thumbnail {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16 / 9;
+            object-fit: cover;
+        }
+        .playlist-videos.list-view .video-item {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            width: 100%;
+            max-width: 800px;
+            margin: 8px auto;
+            gap: 0 16px;
+            text-align: left;
+        }
+        .playlist-videos.list-view .thumbnail-container {
+            grid-row: 1 / 3;
+        }
+        .playlist-videos.list-view .video-title {
+            padding: 0;
+            margin-left: 0;
+            font-size: 16px;
+            display: flex;
+            align-items: flex-start;
+            padding-top: 2px;
+            grid-column: 2;
+            grid-row: 1;
+        }
+        .playlist-videos.list-view .video-description {
+            padding: 0;
+            margin-left: 0;
+            margin-top: -45px;
+            grid-column: 2;
+            grid-row: 2;
+        }
+        .playlist-videos.list-view .video-length {
+            bottom: 4px;
+            right: 4px;
+        }
+
         .video-item {
             margin: 10px;
-            background: var(--main-bg-color);
+            background: #1e1e1e;
             overflow: hidden;
             width: 300px;
             text-align: center;
+            transition: transform 0.2s ease;
+            box-sizing: border-box;
         }
         .video-thumbnail {
             width: 100%;
             height: auto;
+            aspect-ratio: 16 / 9;
+            object-fit: cover;
             display: block;
             cursor: pointer;
+            background-color: #2a2a2a;
         }
         .video-title {
             padding: 10px 10px 2px 10px;
@@ -97,6 +275,14 @@
             cursor: pointer;
             color: #d2cfcf;
             margin-bottom: -5px;
+            font-size: 14px;
+            line-height: 1.3em;
+            max-height: 2.6em;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            transition: color 0.2s, text-decoration 0.2s;
         }
         .video-description {
             text-align: left;
@@ -128,6 +314,23 @@
         .search-container:focus-within .search-suggestions {
             display: block;
         }
+
+        /* Responsive adjustments (matching channel.html structure) */
+        @media (max-width: 768px) {
+            .playlist-videos.list-view .video-item {
+                grid-template-columns: 150px 1fr;
+                gap: 0 10px;
+            }
+            .playlist-header {
+                padding: 15px;
+            }
+            .playlist-title {
+                font-size: 18px;
+            }
+            .sort-options {
+                margin-right: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -140,30 +343,73 @@
         </div>
     </header>
 
-    <!-- Added Channel Banner -->
-    <div id="channelBanner" class="channel-banner"></div>
-    
-    <!-- Added Channel Header -->
-    <div class="channel-header">
-        <img id="channelPic" class="channel-pic" alt="Channel Picture" loading="lazy">
-        <div id="channelName" class="channel-name"></div>
-    </div>
-    
-    <div class="divider"></div>
-
-    <div class="playlist-header">
-        <div class="playlist-title" id="playlistTitle"></div>
-        <div class="playlist-info" id="playlistInfo"></div>
-        <!-- Added element for Total Duration -->
-        <div class="playlist-duration" id="playlistDuration"></div>
+    <!-- TOP GREY SECTION: Banner + Header -->
+    <div class="playlist-top-section">
+        <!-- Added Channel Banner -->
+        <div id="channelBanner" class="channel-banner"></div>
+        
+        <!-- Added Channel Header -->
+        <div class="channel-header">
+            <img id="channelPic" class="channel-pic" alt="Channel Picture" loading="lazy">
+            <div id="channelName" class="channel-name"></div>
+        </div>
     </div>
 
-    <div class="playlist-videos" id="playlistVideosContainer"></div>
+    <!-- BOTTOM GREY SECTION: Content -->
+    <div class="playlist-content-section">
+        <div class="playlist-header">
+            <div class="playlist-title" id="playlistTitle"></div>
+            <div class="playlist-info" id="playlistInfo"></div>
+            <!-- Added element for Total Duration -->
+            <div class="playlist-duration" id="playlistDuration"></div>
+        </div>
+
+        <!-- Sort and View Toggles -->
+        <div class="sort-options">
+            <div class="sort-dropdown">
+                <button class="sort-toggle" id="sortToggle">
+                    <span id="sortToggleLabel">Default order</span>
+                    <div class="sort-toggle-arrow"></div>
+                </button>
+                <div class="sort-dropdown-menu" id="sortDropdownMenu">
+                    <div class="sort-dropdown-item active" data-sort="newest">Date added (newest)</div>
+                    <div class="sort-dropdown-item" data-sort="popular">Most popular</div>
+                    <div class="sort-dropdown-item" data-sort="oldest">Date added (oldest)</div>
+                </div>
+            </div>
+            <div class="view-dropdown">
+                <button class="view-toggle" id="viewToggle">
+                    <span id="viewToggleLabel">Grid</span>
+                    <div class="view-toggle-arrow"></div>
+                </button>
+                <div class="view-dropdown-menu" id="viewDropdownMenu">
+                    <div class="view-dropdown-item active" data-view="grid">Grid</div>
+                    <div class="view-dropdown-item" data-view="list">List</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container videos-wrapper">
+            <div class="playlist-videos" id="playlistVideosContainer"></div>
+        </div>
+    </div>
 
     <script>
 // --- Language Helper ---
 function getLang(en, de) {
     return localStorage.getItem('language') === 'de' ? de : en;
+}
+
+function parseEuropeanDate(dateString) {
+    if (!dateString || dateString === 'Unknown date') return new Date(0);
+    const parts = dateString.split('.');
+    if (parts.length === 3) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        return new Date(year, month, day);
+    }
+    return new Date(dateString);
 }
 
 // Natural sorting function for videos with numbers in titles
@@ -219,6 +465,18 @@ function formatTotalDuration(totalSeconds) {
 
 // Handle logo clicks and initial translations
 document.addEventListener('DOMContentLoaded', () => {
+    // Apply legacy channel page style if preferred
+    const channelPageStylePref = JSON.parse(localStorage.getItem('channelPageStyle') || '{}');
+    if (channelPageStylePref.style === 'legacy' || channelPageStylePref.style === 'classic') {
+        document.body.classList.add('classic-channel');
+        // Move the profile pic into the banner so absolute positioning works cleanly
+        const channelPic = document.getElementById('channelPic');
+        const channelBanner = document.getElementById('channelBanner');
+        if (channelPic && channelBanner) {
+            channelBanner.appendChild(channelPic);
+        }
+    }
+
     const mainLogo = document.getElementById('mainLogo');
     
     if (mainLogo) {
@@ -262,6 +520,89 @@ document.addEventListener('DOMContentLoaded', () => {
             searchInput.focus();
         }
     });
+
+    // --- Sort Dropdown Logic ---
+    const sortToggle = document.getElementById('sortToggle');
+    const sortDropdownMenu = document.getElementById('sortDropdownMenu');
+    const sortToggleLabel = document.getElementById('sortToggleLabel');
+    
+    // Initialize labels
+    const sortLabels = {
+        'newest': getLang('Date added (newest)', 'Hinzugefügt am... (neueste zuerst)'),
+        'popular': getLang('Most popular', 'Am beliebtesten'),
+        'oldest': getLang('Date added (oldest)', 'Hinzugefügt am... (älteste zuerst)')
+    };
+    sortToggleLabel.textContent = sortLabels['newest'];
+    document.querySelector('.sort-dropdown-item[data-sort="newest"]').textContent = sortLabels['newest'];
+    document.querySelector('.sort-dropdown-item[data-sort="popular"]').textContent = sortLabels['popular'];
+    document.querySelector('.sort-dropdown-item[data-sort="oldest"]').textContent = sortLabels['oldest'];
+
+    sortToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sortDropdownMenu.classList.toggle('open');
+        sortToggle.classList.toggle('open');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.sort-dropdown')) {
+            sortDropdownMenu.classList.remove('open');
+            sortToggle.classList.remove('open');
+        }
+    });
+
+    // --- View Dropdown Logic ---
+    const viewToggle = document.getElementById('viewToggle');
+    const viewDropdownMenu = document.getElementById('viewDropdownMenu');
+    const viewToggleLabel = document.getElementById('viewToggleLabel');
+    const playlistVideosContainer = document.getElementById('playlistVideosContainer');
+    
+    let currentViewMode = 'grid';
+    
+    // Update view labels
+    viewToggleLabel.textContent = getLang('Grid', 'Raster');
+    document.querySelector('.view-dropdown-item[data-view="grid"]').textContent = getLang('Grid', 'Raster');
+    document.querySelector('.view-dropdown-item[data-view="list"]').textContent = getLang('List', 'Liste');
+
+    viewToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        viewDropdownMenu.classList.toggle('open');
+        viewToggle.classList.toggle('open');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.view-dropdown')) {
+            viewDropdownMenu.classList.remove('open');
+            viewToggle.classList.remove('open');
+        }
+    });
+
+    document.querySelectorAll('.view-dropdown-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const viewValue = item.dataset.view;
+            currentViewMode = viewValue;
+
+            // Update active state in dropdown
+            document.querySelectorAll('.view-dropdown-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+
+            // Update toggle label
+            viewToggleLabel.textContent = getLang(
+                viewValue === 'grid' ? 'Grid' : 'List',
+                viewValue === 'grid' ? 'Raster' : 'Liste'
+            );
+
+            // Close dropdown
+            viewDropdownMenu.classList.remove('open');
+            viewToggle.classList.remove('open');
+
+            // Toggle view class on container
+            if (viewValue === 'list') {
+                playlistVideosContainer.classList.add('list-view');
+            } else {
+                playlistVideosContainer.classList.remove('list-view');
+            }
+        });
+    });
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -279,7 +620,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const channelName = document.getElementById('channelName');
 
     // Set Channel Info
-    channelBanner.style.backgroundImage = `url('/channelbanner/${encodeURIComponent(channel)}.jpg')`;
+    fetch(`/channelbanner/${encodeURIComponent(channel)}.jpg`, { method: 'HEAD' })
+        .then(response => {
+            if (response.ok) {
+                channelBanner.style.backgroundImage = `url('/channelbanner/${encodeURIComponent(channel)}.jpg')`;
+            } else {
+                channelBanner.style.backgroundImage = "url('LocalYT-Rev-Files/channel-banner-placeholder.png')";
+            }
+        })
+        .catch(() => {
+            channelBanner.style.backgroundImage = "url('LocalYT-Rev-Files/channel-banner-placeholder.png')";
+        });
+    
     channelPic.src = `/channelpic/${encodeURIComponent(channel)}.jpg`;
     
     // Make channel picture clickable
@@ -288,7 +640,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Fetch Subscriber Count
-    fetch(`/subcount/${encodeURIComponent(channel)}`)
+    function getSubcountEndpoint() {
+        const fuzzySetting = JSON.parse(localStorage.getItem('fuzzySubCount') || '{}');
+        if (fuzzySetting.enabled) {
+            return `/subcount/fuzzy/${encodeURIComponent(channel)}`;
+        }
+        return `/subcount/${encodeURIComponent(channel)}`;
+    }
+
+    fetch(getSubcountEndpoint())
         .then(response => response.ok ? response.text() : '0')
         .then(subCount => {
             // FIX: Remove commas before parsing to integer
@@ -307,10 +667,15 @@ document.addEventListener('DOMContentLoaded', () => {
     playlistTitle.textContent = playlist;
     document.title = `${playlist} - ${channel} - LocalYT`;
 
+    let allVideosData = []; // Store original fetched data
+
     fetch(`/playlist-videos/${encodeURIComponent(channel)}/${encodeURIComponent(playlist)}`)
         .then(response => response.json())
         .then(videos => {
-            videos.sort(naturalCompare);
+            allVideosData = videos; // Store for re-rendering/sorting
+            
+            // Initial render with default sorting (natural compare)
+            renderVideos(videos);
             
             playlistInfo.textContent = `${videos.length} ${getLang('videos', 'Videos')}`;
 
@@ -318,67 +683,12 @@ document.addEventListener('DOMContentLoaded', () => {
             let totalPlaylistSeconds = 0;
             
             videos.forEach(video => {
-                const videoElement = document.createElement('div');
-                videoElement.className = 'video-item';
-                const videoTitle = video.displayName;
-                const thumbnailSrc = `/thumbnails/${encodeURIComponent(video.path.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, ''))}.jpg`;
-
-                // Format view count for current language
-                let rawViews = (video.viewCount || "0").replace(/,/g, '');
-                let formattedViewCount = parseInt(rawViews).toLocaleString('en-US');
-                
-                if (localStorage.getItem('language') === 'de') {
-                    formattedViewCount = formattedViewCount.replace(/,/g, '.');
-                }
-
-                videoElement.innerHTML = `
-                    <div class="thumbnail-container">
-                        <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
-                        <div class="video-length"></div>
-                    </div>
-                    <div class="video-title">${videoTitle}</div>
-                    <div class="video-description">${formattedViewCount} ${getLang('views', 'Aufrufe')} • ${getLang('Uploaded on', 'Hochgeladen am')} ${video.fileDate}</div>
-                `;
-                
-                videosContainer.appendChild(videoElement);
-
-                // --- Click Handlers ---
-                const videoThumb = videoElement.querySelector('.video-thumbnail');
-                const videoLink = videoElement.querySelector('.video-title');
-                
-                const encodedPath = encodeURIComponent(video.path);
-                const videoUrl = `video.html?src=${encodedPath}&playlist=${encodeURIComponent(playlist)}`;
-
-                const openHandler = () => { window.location.href = videoUrl; };
-                
-                videoThumb.addEventListener('click', openHandler);
-                videoLink.addEventListener('click', openHandler);
-
-                const handleMiddleClick = (e) => {
-                    if (e.button === 1) {
-                        e.preventDefault();
-                        window.open(videoUrl, '_blank');
-                    }
-                };
-                
-                videoThumb.addEventListener('mouseup', handleMiddleClick);
-                videoThumb.addEventListener('auxclick', handleMiddleClick);
-                videoLink.addEventListener('mouseup', handleMiddleClick);
-                videoLink.addEventListener('auxclick', handleMiddleClick);
-
-                const handleRightClick = (e) => {
-                    e.preventDefault();
-                    window.open(videoUrl, '_blank');
-                };
-                
-                videoThumb.addEventListener('contextmenu', handleRightClick);
-                videoLink.addEventListener('contextmenu', handleRightClick);
-
                 // Get video length and add to total
                 fetch(`/videolengths/${channel}/${encodeURIComponent(video.path.split('/').pop().replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, ''))}.txt`)
                     .then(response => response.text())
                     .then(length => {
-                        videoElement.querySelector('.video-length').textContent = length;
+                        // Find the specific video element in DOM to update length
+                        const videoElements = videosContainer.querySelectorAll('.video-item');
                         
                         // Add logic for total duration calculation
                         const secs = parseDurationString(length.trim());
@@ -398,10 +708,143 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error fetching playlist videos:', error);
             videosContainer.innerHTML = `<p style="color: #888;">${getLang('Error loading playlist videos', 'Fehler beim Laden der Playlist-Videos')}</p>`;
         });
+
+    // Function to render videos to the container
+    function renderVideos(videos) {
+        videosContainer.innerHTML = ''; // Clear current
+        
+        videos.forEach(video => {
+            const videoElement = document.createElement('div');
+            videoElement.className = 'video-item';
+            const videoTitle = video.displayName;
+            const thumbnailSrc = `/thumbnails/${encodeURIComponent(video.path.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, ''))}.jpg`;
+
+            // Format view count for current language
+            let rawViews = (video.viewCount || "0").replace(/,/g, '');
+            let formattedViewCount = parseInt(rawViews).toLocaleString('en-US');
+            
+            if (localStorage.getItem('language') === 'de') {
+                formattedViewCount = formattedViewCount.replace(/,/g, '.');
+            }
+
+            videoElement.innerHTML = `
+                <div class="thumbnail-container">
+                    <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
+                    <div class="video-length"></div>
+                </div>
+                <div class="video-title">${videoTitle}</div>
+                <div class="video-description">${formattedViewCount} ${getLang('views', 'Aufrufe')} • ${getLang('Uploaded on', 'Hochgeladen am')} ${video.fileDate}</div>
+            `;
+            
+            videosContainer.appendChild(videoElement);
+
+            // --- Click Handlers ---
+            const videoThumb = videoElement.querySelector('.video-thumbnail');
+            const videoLink = videoElement.querySelector('.video-title');
+            
+            const encodedPath = encodeURIComponent(video.path);
+            const videoUrl = `video.html?src=${encodedPath}&playlist=${encodeURIComponent(playlist)}`;
+
+            const openHandler = () => { window.location.href = videoUrl; };
+            
+            videoThumb.addEventListener('click', openHandler);
+            videoLink.addEventListener('click', openHandler);
+
+            const handleMiddleClick = (e) => {
+                if (e.button === 1) {
+                    e.preventDefault();
+                    window.open(videoUrl, '_blank');
+                }
+            };
+            
+            videoThumb.addEventListener('mouseup', handleMiddleClick);
+            videoThumb.addEventListener('auxclick', handleMiddleClick);
+            videoLink.addEventListener('mouseup', handleMiddleClick);
+            videoLink.addEventListener('auxclick', handleMiddleClick);
+
+            const handleRightClick = (e) => {
+                e.preventDefault();
+                window.open(videoUrl, '_blank');
+            };
+            
+            videoThumb.addEventListener('contextmenu', handleRightClick);
+            videoLink.addEventListener('contextmenu', handleRightClick);
+        });
+    }
+
+    // --- Sort Event Listeners (attached once) ---
+    const sortToggleBtn = document.getElementById('sortToggle'); 
+    const sortDropdownMenuEl = document.getElementById('sortDropdownMenu');
+    const sortToggleLabelEl = document.getElementById('sortToggleLabel');
+
+    document.querySelectorAll('.sort-dropdown-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const sortValue = item.dataset.sort;
+            
+            // Update active state
+            document.querySelectorAll('.sort-dropdown-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+
+            // Update label
+            const labels = {
+                'newest': getLang('Date added (newest)', 'Hinzugefügt am... (neueste zuerst)'),
+                'popular': getLang('Most popular', 'Am beliebtesten'),
+                'oldest': getLang('Date added (oldest)', 'Hinzugefügt am... (älteste zuerst)')
+            };
+            sortToggleLabelEl.textContent = labels[sortValue];
+
+            // Close menu
+            sortDropdownMenuEl.classList.remove('open');
+            sortToggleBtn.classList.remove('open');
+
+            // Perform Sort
+            let sortedVideos = [...allVideosData];
+            
+            if (sortValue === 'oldest') {
+                sortedVideos.sort((a, b) => parseEuropeanDate(a.fileDate) - parseEuropeanDate(b.fileDate));
+            } else if (sortValue === 'popular') {
+                sortedVideos.sort((a, b) => parseInt(String(b.viewCount).replace(/,/g, '')) - parseInt(String(a.viewCount).replace(/,/g, '')));
+            } else {
+                // Default/Newest: Sort by date descending
+                sortedVideos.sort((a, b) => parseEuropeanDate(b.fileDate) - parseEuropeanDate(a.fileDate));
+            }
+
+            renderVideos(sortedVideos);
+        });
+    });
+
 });
     </script>
     <!-- External Search Suggestion Script (Handles dropdown logic) -->
     <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>
+<script>
+// ==============================
+// Apply Title Color Scheme Preference
+// ==============================
+(function applyTitleColorScheme() {
+    const setting = JSON.parse(localStorage.getItem('titleColorScheme') || '{}');
+    if (setting.scheme === 'blue') {
+        const style = document.createElement('style');
+        style.id = 'title-color-scheme-blue';
+        style.textContent = `
+            .video-title,
+            .playlist-title {
+                color: #128ee9 !important;
+            }
+            .video-title:hover,
+            .playlist-title:hover {
+                text-decoration: underline !important;
+                cursor: pointer !important;
+            }
+        `;
+        document.head.appendChild(style);
+    } else {
+        // Remove existing style tag if switching back to white
+        const existingStyle = document.getElementById('title-color-scheme-blue');
+        if (existingStyle) existingStyle.remove();
+    }
+})();
+</script>
 </body>
 </html>
