@@ -9,14 +9,14 @@
     <style>
         /* Playlist page background wrapper styling (matching channel.html) */
         .playlist-top-section {
-            background-color: #1e1e1e;
+            background-color: var(--secondary-bg-color, #1e1e1e);
             width: 100%;
             max-width: 1170px;
             margin: 0 auto;
         }
 
         .playlist-content-section {
-            background-color: #1e1e1e; /* Same slightly brighter grey */
+            background-color: var(--secondary-bg-color, #1e1e1e); /* Same slightly brighter grey */
             width: 100%;
             max-width: 1170px;
             margin: 8px auto 0 auto; /* Small gap at top */
@@ -251,7 +251,7 @@
 
         .video-item {
             margin: 10px;
-            background: #1e1e1e;
+            background: var(--secondary-bg-color, #1e1e1e);
             overflow: hidden;
             width: 300px;
             text-align: center;
@@ -265,7 +265,7 @@
             object-fit: cover;
             display: block;
             cursor: pointer;
-            background-color: #2a2a2a;
+            background-color: var(--main-bg-color, #2a2a2a);
         }
         .video-title {
             padding: 10px 10px 2px 10px;
