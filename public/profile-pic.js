@@ -180,14 +180,15 @@
                 filter: invert(0.6) !important; 
             }
 
-               We target the default light-grey title colors (#d2cfcf) and force them to black (#000).
-               The Blue Title script uses !important with #128ee9, so it will naturally override this 
-               when active, but we must ensure we don't use !important here to allow that override. */
             .video-title:not([style*="#128ee9"]),
             .playlist-title:not([style*="#128ee9"]),
             .home-video-title:not([style*="#128ee9"]),
             .post-author-name:not([style*="#128ee9"]) {
                 color: #000000;
+            }
+
+            .openbtn {
+                filter: invert(1);
             }
         `;
         document.head.appendChild(style);
