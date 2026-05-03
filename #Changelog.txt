@@ -21,6 +21,7 @@ v4.20
   - Click the "Appearance" toggle while holding Shift to activate light mode
 - Removed the opening/closing transitions on the profile modal
 - Removed some border-radiuses on search.html
+- Made the Fluid Player video progress bar thicker
 
 v4.10
 - Comments can now be liked
