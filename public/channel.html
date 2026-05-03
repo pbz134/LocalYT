@@ -471,12 +471,19 @@
             margin-left: 4px;
             filter: invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(60%) contrast(90%);
         }
+        body.classic-channel .post-content-text a {
+            color: #167ac6 !important;
+        }
         body.classic-channel .post-channel-pic {
             border-radius: 0 !important;
+            width: 50px;
+            height: 50px;
+            margin-top: -5px;
         }
         body.classic-channel .posts-container {
             max-width: 1170px;
-            padding: 20px;
+            padding: 20px 20px 20px 0;
+            margin-left: -20px;
             align-items: flex-start;
         }
         
@@ -2424,7 +2431,9 @@ function getMimeType(extension) {
         fetch(`/channel-playlists/${encodeURIComponent(channel)}`)
             .then(response => response.json())
             .then(playlists => {
-                renderPlaylistsFast(playlists);
+                // Filter out subfolders (entries containing a '/' after the channel prefix)
+                const filtered = playlists.filter(p => !p.path.includes('/'));
+                renderPlaylistsFast(filtered);
             })
             .catch(error => {
                 console.error('Error fetching playlists:', error);

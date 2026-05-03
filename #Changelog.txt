@@ -25,6 +25,7 @@ v4.20
 - Removed some border-radiuses on search.html
 - Made the Fluid Player video progress bar thicker
 - Made the Fluid Player progress point always visible
+- Subfolders of playlists don't show up on channel pages anymore (e.g. /videos/Domtendo/Mario Maker/Offline/)
 
 v4.10
 - Comments can now be liked
