@@ -811,6 +811,24 @@
             margin-top: 2px;
             margin-left: 5px;
         }
+        .home-row-wrapper .playlist-item .playlist-info-side .playlist-first-video-name {
+            font-size: 12px;
+            color: #aaa;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 4px;
+            margin-left: 5px;
+        }
+        .home-row-wrapper .playlist-item .playlist-info-side .playlist-second-video-name {
+            font-size: 12px;
+            color: #888;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 2px;
+            margin-left: 5px;
+        }
         .home-preview-section {
             max-width: 1170px;
             margin: 0 auto;
@@ -1997,7 +2015,7 @@ function getMimeType(extension) {
         fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`)
             .then(response => response.ok ? response.json() : {})
             .then(metaCache => {
-                const uncachedPlaylists = rows.flat().filter(i => i && i.type === 'playlist' && (!metaCache[i.path] || !metaCache[i.path].videoCount));
+                const uncachedPlaylists = rows.flat().filter(i => i && i.type === 'playlist' && (!metaCache[i.path] || !metaCache[i.path].videoCount || !metaCache[i.path].firstVideoName));
 
                 const playlistFetchPromise = uncachedPlaylists.length > 0
                     ? fetch(`/channel-playlists/${encodeURIComponent(channel)}`).then(r => r.ok ? r.json() : []).catch(() => [])
@@ -2046,6 +2064,13 @@ function getMimeType(extension) {
                                     overlayHtml = `${meta.videoCount || 0} ${videosText}`;
                                 }
 
+                                const firstVideoName = (meta.firstVideoName && meta.firstVideoName.trim()) ? meta.firstVideoName.trim() : '';
+                                const secondVideoName = (meta.secondVideoName && meta.secondVideoName.trim()) ? meta.secondVideoName.trim() : '';
+                                const extraInfoHtml = firstVideoName
+                                    ? `<div class="playlist-first-video-name">${firstVideoName}</div>` +
+                                      (secondVideoName ? `<div class="playlist-second-video-name">${secondVideoName}</div>` : '')
+                                    : '';
+
                                 playlistElement.innerHTML = `
                                     <div class="playlist-thumbnail" style="${thumbnailStyle}">
                                         <div class="playlist-overlay">${overlayHtml}</div>
@@ -2053,6 +2078,7 @@ function getMimeType(extension) {
                                     <div class="playlist-info-side">
                                         <div class="playlist-title">${item.displayName}</div>
                                         <div class="playlist-channel-name">${channel}</div>
+                                        ${extraInfoHtml}
                                     </div>
                                     <div class="playlist-video-count" style="display: none;"></div>
                                 `;
@@ -2133,6 +2159,7 @@ function getMimeType(extension) {
                                 <div class="playlist-thumbnail" style="background-color: #333;"><div class="playlist-overlay">${overlayHtml}</div></div>
                                 <div class="playlist-info-side">
                                     <div class="playlist-title">${item.displayName}</div>
+                                    <div class="playlist-channel-name">${channel}</div>
                                 </div>
                                 <div class="playlist-video-count" style="display: none;"></div>
                             `;

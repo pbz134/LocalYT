@@ -137,6 +137,16 @@
                 color: #555555 !important;
             }
 
+            [style*="color: rgb(204, 204, 204)"],
+            [style*="color: #cccccc"],
+            .about-description .description-text,
+            .stats-item,
+            .stats-item.total-views,
+            .share-button,
+            #shareBtnText {
+                color: #555555 !important;
+            }
+
             /* Replace #aaaaaa with #666666 */
             [style*="color: rgb(170, 170, 170)"],
             [style*="color: #aaaaaa"],
