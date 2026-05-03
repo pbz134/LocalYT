@@ -18,6 +18,7 @@ v4.20
   - Other pages are still WIP and will look messy as of the current state
   - Click the "Appearance" toggle while holding Shift to activate light mode
 - Removed the opening/closing transitions on the profile modal
+- Removed some border-radiuses on search.html
 
 v4.10
 - Comments can now be liked

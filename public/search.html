@@ -80,7 +80,6 @@
             padding: 20px;
             margin: 10px 0;
             background: rgba(62, 166, 255, 0.1);
-            border-radius: 5px;
         }
         .load-more:hover {
             background: rgba(62, 166, 255, 0.2);
@@ -93,7 +92,6 @@
             width: 320px;
             height: 180px;
             object-fit: cover;
-            border-radius: 8px;
             cursor: pointer;
         }
         .video-length {
@@ -257,11 +255,21 @@ const searchState = {
 
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
-    const initialQuery = decodeURIComponent(urlParams.get('q') || '').trim();
     
     // ============================================================
-    // NEW: SAVE SEARCH HISTORY TO SERVER ON PAGE LOAD
-    // This ensures that whatever query brought the user here is saved.
+    // Safe URI Decoding
+    // Handles "malformed URI sequence" errors when users search for symbols like %
+    // ============================================================
+    let initialQuery = '';
+    try {
+        initialQuery = decodeURIComponent(urlParams.get('q') || '').trim();
+    } catch (error) {
+        console.warn("Could not decode URI component, using raw value:", error);
+        initialQuery = (urlParams.get('q') || '').trim();
+    }
+    
+    // ============================================================
+    // Save search history to server on page load
     // ============================================================
     if (initialQuery) {
         fetch('/user-search-history', {
