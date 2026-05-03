@@ -28,6 +28,20 @@
             top: 10px;
         }
 
+        /* ============================================================
+           Constrained container that matches video grid width
+           ============================================================ */
+        .container {
+            background-color: var(--secondary-bg-color);
+            padding-top: 95px;
+            padding-bottom: 20px;
+            /* Replace fit-content with explicit responsive max-width */
+            max-width: 1800px;
+            width: 100%;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+
         .sidebar {
             height: 100%;
             width: 0;
@@ -110,16 +124,14 @@
 
         /* --- Search Suggestions Visibility --- */
         .search-suggestions {
-            display: none; /* Hidden by default when input is empty */
+            display: none;
         }
 
-        /* Show suggestions only when the search container (input) is focused/active */
         .search-container:focus-within .search-suggestions {
             display: block;
         }
 
-        /* --- FIX: Prevent Middle-Click Autoscroll (Pan Mode) --- */
-        
+        /* Prevent Middle-Click Autoscroll (Pan Mode) */
         .video-item,
         .video-title,
         .thumbnail-container,
@@ -133,7 +145,6 @@
             user-select: none;
         }
 
-        /* Ensure cursor looks normal, not like a scroll tool */
         .video-item * {
             cursor: default;
         }
@@ -190,7 +201,7 @@
 // FIX: Prevent Middle-Click Autoscroll (Pan Mode)
 // ======================================================================
 document.addEventListener('mousedown', function(e) {
-    if (e.button === 1) { // Middle Mouse Button
+    if (e.button === 1) {
         const target = e.target.closest(
             'a, ' + 
             '.video-item, ' + 
@@ -206,15 +217,12 @@ document.addEventListener('mousedown', function(e) {
         if (target) {
             e.preventDefault();
             
-            // If it's a real anchor tag with an href, manually open it
             if (target.tagName === 'A' && target.href) {
                 window.open(target.href, '_blank');
             }
-            // For custom elements (divs/spans), their existing 'mouseup' or 'auxclick' 
-            // listeners will handle opening the new tab.
         }
     }
-}, true); // Use Capture phase
+}, true);
 
 function getLang(en, de) {
     return localStorage.getItem('language') === 'de' ? de : en;
@@ -603,8 +611,21 @@ function setupChannelLinkEvents(element, channel) {
     }
 })();
     </script>
-    <!-- External Search Suggestion Script -->
     <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>
+    <script>
+    // ============================================================
+    // Hide category buttons when Channel Page Style is "Classic"
+    // ============================================================
+    (function applyChannelPageStyleToCategories() {
+        const setting = JSON.parse(localStorage.getItem('channelPageStyle') || '{}');
+        if (setting.style === 'legacy') {
+            const container = document.getElementById('categoryContainer');
+            if (container) {
+                container.style.display = 'none';
+            }
+        }
+    })();
+    </script>
 </body>
 </html>

@@ -116,7 +116,7 @@ body {
 
 .video-item {
     margin: 0 10px 5px 10px;
-    background: var(--main-bg-color);
+    background: transparent;
     overflow: hidden;
     width: 320px;
     text-align: center;
