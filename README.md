@@ -86,3 +86,4 @@ What if I only have the video files and no metadata?
 ## TO DO
 - Work on the documentation in the user modal
 - Make hamburger menu available on all related .html pages
+- Finish implementing Light Mode
