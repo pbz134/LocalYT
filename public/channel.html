@@ -95,6 +95,33 @@
         body.classic-channel .playlist-item .playlist-video-count {
             display: none !important;
         }
+        body.classic-channel .tab.active {
+            color: #fff;
+            border-bottom: 3px solid #cc181e;
+            width: fit-content;
+            transition: none;
+        }
+        body.classic-channel .tab {
+            padding: 10px 0;
+            margin: 0 20px;
+            border-bottom: none !important;
+            position: relative;
+            transition: color 0.2s;
+        }
+        body.classic-channel .tab.active::after,
+        body.classic-channel .tab:hover::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: #cc181e;
+        }
+        body.classic-channel .tab:hover {
+            border-bottom: 3px solid #cc181e;
+            width: fit-content;
+        }
         .channel-name {
             font-size: 20px;
             font-weight: bold;
@@ -1443,7 +1470,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('.tab[data-tab="videos"]').textContent = getLang('Videos', 'Videos');
         document.querySelector('.tab[data-tab="playlists"]').textContent = getLang('Playlists', 'Playlisten');
         document.querySelector('.tab[data-tab="about"]').textContent = getLang('About', 'Kanalinfo');
-        document.querySelector('.tab[data-tab="posts"]').textContent = getLang('Posts', 'Beiträge');
+         document.querySelector('.tab[data-tab="posts"]').textContent = document.body.classList.contains('classic-channel') ? getLang('Discussion', 'Diskussion') : getLang('Posts', 'Beiträge');
 
         // Update sort dropdown labels
         const updatedSortLabels = {

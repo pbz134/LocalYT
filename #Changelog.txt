@@ -10,6 +10,8 @@ v4.20
 - Removed the border-radius on channel posts
 - Added a brighter box around the channel pages
 - Classic channel styling now modifies the /posts channel tab
+- Classic channel styling now changes the active tab line from white to red
+- Classic channel styling nwo renames the "Community" tab to "Discussion"
 - Added an option to settings.html to not load channel post images
   - This saves on bandwidth and makes the page load instantly
 - Fixed position for short community post texts
