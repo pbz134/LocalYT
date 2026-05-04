@@ -145,9 +145,20 @@
             user-select: none;
         }
 
-        .video-item * {
-            cursor: default;
-        }
+.video-item .video-info,
+.video-item .video-details,
+.video-item .video-description,
+.video-item .video-length {
+    cursor: default;
+}
+
+.video-item .thumbnail-container,
+.video-item .thumbnail-container img,
+.video-item .video-title,
+.video-item .channel-name,
+.video-item .channel-pic-link {
+    cursor: pointer !important;
+}
         
         .video-title,
         .thumbnail-container,

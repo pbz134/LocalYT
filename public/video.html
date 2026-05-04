@@ -911,14 +911,19 @@
             user-select: none;
         }
 
-        /* Specifically disable middle-click autoscroll on these */
-        .video-suggestions * {
-            cursor: default;
-        }
-        .video-suggestions .suggestion-title,
-        .video-suggestions .thumbnail-container {
-            cursor: pointer;
-        }  
+/* 1. Set default cursor only for text/info elements (not thumbnails) */
+.video-suggestions .suggestion-info,
+.video-suggestions .suggestion-channel,
+.video-suggestions .view-count {
+    cursor: default;
+}
+
+/* 2. Set pointer cursor for clickable elements (thumbnails & titles) */
+.video-suggestions .thumbnail-container,
+.video-suggestions .thumbnail-container img,
+.video-suggestions .suggestion-title {
+    cursor: pointer !important;
+} 
     </style>
     <style>
         .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container .fluid_controls_progress {
