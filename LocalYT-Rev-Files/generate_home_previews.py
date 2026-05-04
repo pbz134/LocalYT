@@ -244,6 +244,11 @@ def main():
     for video in video_cache:
         path_parts = video["path"].split('/')
         channel = path_parts[0]
+        
+        # Ignore hidden macOS resource fork files (e.g., "._video.mp4")
+        if channel.startswith('._'):
+            continue
+            
         all_channel_videos[channel].append(video)
         
         if len(path_parts) > 2:

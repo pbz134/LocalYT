@@ -596,6 +596,9 @@ function scanAndCacheVideos() {
         try {
             const files = fs.readdirSync(dir);
             files.forEach(file => {
+                // Skip MacOS metadata files
+                if (file.startsWith('._')) return;
+
                 const filePath = path.join(dir, file);
                 try {
                     if (!fs.existsSync(filePath)) return;

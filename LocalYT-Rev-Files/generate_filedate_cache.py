@@ -16,8 +16,16 @@ if os.path.exists(filedates_dir):
     count = 0
 
     for entry in os.scandir(filedates_dir):
+        # Ignore hidden macOS resource fork files
+        if entry.name.startswith('._'):
+            continue
+            
         if entry.is_dir(follow_symlinks=False):
             for sub_entry in os.scandir(entry.path):
+                # Ignore hidden macOS resource fork files
+                if sub_entry.name.startswith('._'):
+                    continue
+                    
                 if sub_entry.is_file(follow_symlinks=False) and sub_entry.name.endswith('.txt'):
                     # Split the name and extension, and ONLY take the name.
                     # This safely removes BOTH .txt AND the hidden .mp4, resulting in just "Video Name"
