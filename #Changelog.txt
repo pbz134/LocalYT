@@ -30,6 +30,7 @@ v4.20
 - The channel banner now shows on playlist.html
 - MacOS metadata files (starting with "._") will not show up anymore
 - Hovering over a recommended video thumbnail on video.html turns the cursor into a pointer
+- The progress indicator dot on video.html now has the same color as the progress bar
 
 v4.10
 - Comments can now be liked
