@@ -27,6 +27,7 @@ v4.20
 - Made the Fluid Player progress point always visible
 - Subfolders of playlists don't show up on channel pages anymore (e.g. /videos/Domtendo/Mario Maker/Offline/)
 - Reduced the margin between video elements on the list view
+- The channel banner now shows on playlist.html
 
 v4.10
 - Comments can now be liked

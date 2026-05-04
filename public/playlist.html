@@ -368,11 +368,12 @@
         <div class="sort-options">
             <div class="sort-dropdown">
                 <button class="sort-toggle" id="sortToggle">
-                    <span id="sortToggleLabel">Default order</span>
+                    <span id="sortToggleLabel">Alphabetical</span>
                     <div class="sort-toggle-arrow"></div>
                 </button>
                 <div class="sort-dropdown-menu" id="sortDropdownMenu">
-                    <div class="sort-dropdown-item active" data-sort="newest">Date added (newest)</div>
+                    <div class="sort-dropdown-item active" data-sort="alphabetical">Alphabetical</div>
+                    <div class="sort-dropdown-item" data-sort="newest">Date added (newest)</div>
                     <div class="sort-dropdown-item" data-sort="popular">Most popular</div>
                     <div class="sort-dropdown-item" data-sort="oldest">Date added (oldest)</div>
                 </div>
@@ -528,11 +529,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize labels
     const sortLabels = {
+        'alphabetical': getLang('Alphabetical', 'Alphabetisch'),
         'newest': getLang('Date added (newest)', 'Hinzugefügt am... (neueste zuerst)'),
         'popular': getLang('Most popular', 'Am beliebtesten'),
         'oldest': getLang('Date added (oldest)', 'Hinzugefügt am... (älteste zuerst)')
     };
-    sortToggleLabel.textContent = sortLabels['newest'];
+    sortToggleLabel.textContent = sortLabels['alphabetical'];
+    document.querySelector('.sort-dropdown-item[data-sort="alphabetical"]').textContent = sortLabels['alphabetical'];
     document.querySelector('.sort-dropdown-item[data-sort="newest"]').textContent = sortLabels['newest'];
     document.querySelector('.sort-dropdown-item[data-sort="popular"]').textContent = sortLabels['popular'];
     document.querySelector('.sort-dropdown-item[data-sort="oldest"]').textContent = sortLabels['oldest'];
@@ -674,8 +677,9 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(videos => {
             allVideosData = videos; // Store for re-rendering/sorting
             
-            // Initial render with default sorting (natural compare)
-            renderVideos(videos);
+            // Initial render with alphabetical sorting (now the default)
+            const sortedAlphabetically = [...videos].sort(naturalCompare);
+            renderVideos(sortedAlphabetically);
             
             playlistInfo.textContent = `${videos.length} ${getLang('videos', 'Videos')}`;
 
@@ -787,6 +791,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Update label
             const labels = {
+                'alphabetical': getLang('Alphabetical', 'Alphabetisch'),
                 'newest': getLang('Date added (newest)', 'Hinzugefügt am... (neueste zuerst)'),
                 'popular': getLang('Most popular', 'Am beliebtesten'),
                 'oldest': getLang('Date added (oldest)', 'Hinzugefügt am... (älteste zuerst)')
@@ -800,12 +805,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // Perform Sort
             let sortedVideos = [...allVideosData];
             
-            if (sortValue === 'oldest') {
+            if (sortValue === 'alphabetical') {
+                sortedVideos.sort(naturalCompare);
+            } else if (sortValue === 'oldest') {
                 sortedVideos.sort((a, b) => parseEuropeanDate(a.fileDate) - parseEuropeanDate(b.fileDate));
             } else if (sortValue === 'popular') {
                 sortedVideos.sort((a, b) => parseInt(String(b.viewCount).replace(/,/g, '')) - parseInt(String(a.viewCount).replace(/,/g, '')));
             } else {
-                // Default/Newest: Sort by date descending
+                // Newest: Sort by date descending
                 sortedVideos.sort((a, b) => parseEuropeanDate(b.fileDate) - parseEuropeanDate(a.fileDate));
             }
 
