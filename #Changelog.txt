@@ -28,6 +28,8 @@ v4.20
 - Subfolders of playlists don't show up on channel pages anymore (e.g. /videos/Domtendo/Mario Maker/Offline/)
 - Reduced the margin between video elements on the list view
 - The channel banner now shows on playlist.html
+- MacOS metadata files (starting with "._") will not show up anymore
+- Hovering over a recommended video thumbnail on video.html turns the cursor into a pointer
 
 v4.10
 - Comments can now be liked
