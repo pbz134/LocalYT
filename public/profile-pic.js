@@ -215,6 +215,14 @@
                 border-bottom-color: #333 !important;
             }
 
+            .suggestion-item.current-video-item {
+                background-color: #999 !important;
+            }
+
+            .playlist-section-header, .playlist-section-header a {
+                color: #333 !important;
+            }
+
             /* Replace #e3e3e3 with #000000 (Post text) */
             [style*="color: rgb(227, 227, 227)"],
             [style*="color: #e3e3e3"],

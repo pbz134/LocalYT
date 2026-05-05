@@ -253,12 +253,15 @@
 
         /* Playlist Sidebar Styles */
         .playlist-section {
-            margin-bottom: 20px;
+            margin-bottom: 0px;
             border-bottom: 1px solid #3f3f3f;
-            padding-bottom: 10px;
+            padding-bottom: 0px;
         }
         .playlist-section-header {
-            padding: 0 10px 10px 10px;
+            display: flex;
+            justify-content: space-between; /* Pushes the first item left, last item right */
+            align-items: center; /* Vertically centers the text and link */
+            padding: 0 10px 5px 20px;
             font-size: 14px;
             color: #fff;
             font-weight: bold;
@@ -268,7 +271,6 @@
             color: #aaa;
             font-weight: normal;
             text-decoration: none;
-            margin-left: 8px;
             cursor: pointer;
         }
 
@@ -288,7 +290,7 @@
             padding: 10px 12px;
             margin-bottom: 8px;
             background-color: var(--main-bg-color);
-            border-radius: 6px;
+
             border-bottom: 1px solid #333;
         }
         .sidebar-autoplay-label {
@@ -880,6 +882,56 @@
             .comment-item.reply {
                 margin-left: 36px;
             }
+        }
+
+        /* ===== CLASSIC LAYOUT STYLES ===== */
+        .channel-info.classic-layout {
+            flex-wrap: wrap;
+        }
+
+        .channel-info.classic-layout .channel-right {
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+            padding-right: 20px;
+        }
+
+        .channel-info.classic-layout #likeDislikeContainer {
+            flex-direction: row;
+            align-items: center;
+            margin-left: 0;
+            order: 1; /* First item on right */
+        }
+
+        .channel-info.classic-layout #likeDislikeContainer .like-dislike-bar-container {
+            margin-left: 10px;
+            margin-top: 0;
+            width: 100px;
+        }
+
+        .channel-info.classic-layout #shareContainer,
+        .channel-info.classic-layout #saveContainer {
+            margin-left: 0;
+            order: 3; /* After like bar */
+        }
+
+        /* View count container for classic mode */
+        .view-count-classic {
+            display: none; /* Hidden by default */
+            font-size: 14px;
+            color: #aaa;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            order: 0; /* Before like/dislike */
+            margin-bottom: 4px;
+        }
+
+        .channel-info.classic-layout .view-count-classic {
+            display: block;
+        }
+
+        /* In modern mode, ensure standard spacing */
+        .channel-info:not(.classic-layout) .channel-right {
+            align-items: center;
         }
 
         /* --- Search Suggestions Visibility --- */
@@ -2014,9 +2066,8 @@ document.addEventListener('click', function(e) {
                     if (playlistName && videos.length > 0) {
                         const recHeader = document.createElement('div');
                         recHeader.className = 'playlist-section-header';
-                        recHeader.style.borderTop = '1px solid #3f3f3f';
                         recHeader.style.paddingTop = '10px';
-                        recHeader.style.marginTop = '10px';
+                        recHeader.style.paddingLeft = '20px';
                         recHeader.textContent = getLang('Recommended', 'Empfohlen');
                         suggestionsContainer.appendChild(recHeader);
                     }
@@ -3208,6 +3259,399 @@ function toggleLiveChat() {
         syncChat();
     }
 }
+
+// ==============================
+// Apply Video Page Layout Preference
+// ==============================
+(function applyVideoPageLayout() {
+    const setting = JSON.parse(localStorage.getItem('videoPageLayout') || '{}');
+    const layout = setting.layout || 'modern';
+    const channelInfo = document.getElementById('channelInfo');
+    
+    // Create or get the style element for classic layout rules
+    let classicStyleEl = document.getElementById('classic-layout-styles');
+    if (!classicStyleEl) {
+        classicStyleEl = document.createElement('style');
+        classicStyleEl.id = 'classic-layout-styles';
+        document.head.appendChild(classicStyleEl);
+    }
+    
+    // Helper: Updates Save Icon based on current mode
+    const updateSaveIconSrc = () => {  };
+
+    // Helper to clean up wrapper when switching modes
+    const cleanupWrapper = () => {  };
+
+    if (layout === 'classic' && channelInfo) {
+        channelInfo.classList.add('classic-layout');
+        
+        // --- MOVE SUBSCRIBE BUTTON AND SUB COUNT INTO WRAPPER ---
+        const subscribeBtn = document.getElementById('subscribeButton');
+        const subCount = document.getElementById('subCount');
+        const channelTextGroup = document.querySelector('.channel-text-group');
+        
+        if (subscribeBtn && subCount && channelTextGroup) {
+            let wrapper = document.getElementById('subscribeCountWrapper');
+            if (!wrapper) {
+                wrapper = document.createElement('div');
+                wrapper.id = 'subscribeCountWrapper';
+                wrapper.className = 'subscribe-count-wrapper';
+                channelTextGroup.appendChild(wrapper);
+            }
+            // Append button first, then count to the right
+            wrapper.appendChild(subscribeBtn);
+            wrapper.appendChild(subCount);
+            
+            // Strip "subscribers" text for classic layout (keep just the number)
+            // Use a MutationObserver because the sub count text loads asynchronously
+            const classicSubCountObserver = new MutationObserver(() => {
+                const currentText = subCount.textContent.trim();
+                if (currentText && !subCount.dataset.fullText) {
+                    subCount.dataset.fullText = currentText;
+                }
+                if (currentText.includes(' ')) {
+                    subCount.textContent = currentText.split(' ')[0];
+                }
+            });
+            classicSubCountObserver.observe(subCount, { childList: true, characterData: true, subtree: true });
+            // Also run immediately in case it's already loaded
+            classicSubCountObserver.takeRecords();
+            const currentText = subCount.textContent.trim();
+            if (currentText && !subCount.dataset.fullText) {
+                subCount.dataset.fullText = currentText;
+            }
+            if (currentText.includes(' ')) {
+                subCount.textContent = currentText.split(' ')[0];
+            }
+            }
+
+        // Inject Classic CSS
+        classicStyleEl.textContent = `
+            /* Square Comment Avatars */
+            .classic-layout-active .comment-avatar,
+            body[data-video-layout="classic"] .comment-avatar {
+                border-radius: 0 !important;
+                width: 40px !important;
+                height: 40px !important;
+                margin-top: 6px;
+            }
+            
+            .classic-layout-active .comment-item.reply .comment-avatar,
+            body[data-video-layout="classic"] .comment-item.reply .comment-avatar {
+                border-radius: 0 !important;
+                width: 24px !important;
+                height: 24px !important;
+                margin-top: 4px;
+            }
+
+            /* Square Channel Pic */
+            .channel-info.classic-layout .channel-pic {
+                border-radius: 0 !important;
+                width: 50px !important;
+                height: 50px !important;
+            }
+
+            .channel-info.classic-layout .subscribe-count-wrapper {
+                height: 26px;
+                overflow: visible;
+            }
+
+            /* Channel Info Rearrangement */
+            .channel-info.classic-layout {
+                flex-wrap: wrap;
+            }
+
+            .channel-info.classic-layout .channel-left {
+                flex-wrap: wrap; 
+                align-items: center;
+                width: auto; 
+            }
+
+            #classicActionsWrapper {
+                flex: 1 1 100% !important; 
+                display: flex !important; 
+                gap: 20px !important; 
+                margin-top: 12px !important; 
+                margin-left: 0 !important;
+            }
+
+            .channel-info.classic-layout .channel-right {
+                flex-direction: column;
+                align-items: flex-end;
+                gap: 6px;
+                padding-right: 20px;
+            }
+
+            .channel-info.classic-layout #likeDislikeContainer {
+                flex-direction: row;
+                align-items: center;
+                margin-left: 0;
+                order: 3;
+                margin-right: -15px !important;
+            }
+
+            /* Hide the bar container inside the like container since we moved it */
+            .channel-info.classic-layout #likeDislikeContainer .like-dislike-bar-container {
+                display: none !important;
+            }
+
+            /* --- VIEW COUNT STYLING --- */
+            .view-count-classic {
+                display: inline-block !important;
+                font-size: 22px !important;
+                color: #aaa !important;
+                font-family: 'RobotoRegular', Arial, sans-serif !important;
+                
+                order: 0;
+                width: auto !important;
+                text-align: right !important;
+                margin-bottom: 0px !important;
+                padding: 0 !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                margin-right: 0px !important;
+                margin-top: 10px !important;
+            }
+
+            /* --- LIKE BAR STYLING (Standalone) --- */
+            .like-bar-classic-wrapper {
+                display: block !important;
+                order: 1;
+                width: 180px !important;
+                height: 3px !important;
+                background-color: #235cad !important;
+                border-radius: 2px !important;
+                margin-bottom: 4px !important;
+                overflow: hidden;
+            }
+            
+            .like-bar-classic-wrapper > div {
+                height: 100% !important;
+                background-color: #397ddb !important;
+                border-radius: 2px !important;
+            }
+
+            /* --- Subscribe and Sub-Count Wrapper for Classic Mode --- */
+            .subscribe-count-wrapper {
+                display: flex;
+                align-items: stretch;
+                margin-top: 4px;
+                height: 22px;
+                border-radius: 0;
+                overflow: hidden;
+            }
+
+            .channel-info.classic-layout .subscribe-button {
+                margin: 0 !important;
+                padding: 0 10px;
+                height: 100%;
+                border-radius: 0;
+                border-right: 1px solid rgba(0,0,0,0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 12px;
+                cursor: pointer;
+                background-color: #e62117;
+            }
+
+            .channel-info.classic-layout .sub-count {
+                display: flex !important;
+                align-items: center;
+                background-color: #fafafa !important;
+                padding: 0px 12px;
+                height: 24px;
+                align-self: center;
+                background-color: var(--secondary-bg-color, #333) !important;
+                border: 1px solid #666;
+                border-left: none;
+                color: #fff;
+                font-size: 12px;
+                font-family: 'RobotoRegular', Arial, sans-serif;
+                white-space: nowrap;
+                margin: 0 !important;
+            }
+
+            .channel-info.classic-layout .subscribe-button.subscribed + .sub-count {
+                border-color: darkgray; /* Grey outline when subscribed */
+                color: #888;
+            }
+        `;
+
+        document.body.classList.add('classic-layout-active');
+        document.body.setAttribute('data-video-layout', 'classic');
+
+        // --- SWAP ICONS ---
+        const likeBtn = document.getElementById('likeButton');
+        const dislikeBtn = document.getElementById('dislikeButton');
+        
+        if (likeBtn && likeBtn.src.includes('like.svg')) likeBtn.src = 'LocalYT-Rev-Files/like_classic.svg';
+        if (dislikeBtn && dislikeBtn.src.includes('dislike.svg')) dislikeBtn.src = 'LocalYT-Rev-Files/dislike_classic.svg';
+        updateSaveIconSrc();
+
+        // --- MOVE SHARE & SAVE TO LEFT SIDE ---
+        cleanupWrapper();
+        const actionsWrapper = document.createElement('div');
+        actionsWrapper.id = 'classicActionsWrapper';
+        const shareContainer = document.getElementById('shareContainer');
+        const saveContainer = document.getElementById('saveContainer');
+        const channelLeft = document.querySelector('.channel-left');
+
+        if (saveContainer) actionsWrapper.appendChild(saveContainer);
+        if (shareContainer) actionsWrapper.appendChild(shareContainer);
+
+        if (channelLeft) channelLeft.appendChild(actionsWrapper);
+
+        // --- OBSERVE SAVE ICON CHANGES ---
+        const saveIconTarget = document.getElementById('saveIcon');
+        if (saveIconTarget) {
+            const saveObserver = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
+                        const newSrc = saveIconTarget.src;
+                        if (newSrc.includes('saved.svg') || newSrc.includes('save.svg')) {
+                            saveIconTarget.src = newSrc.includes('saved') 
+                                ? 'LocalYT-Rev-Files/saved_classic.svg' 
+                                : 'LocalYT-Rev-Files/save_classic.svg';
+                        }
+                    }
+                });
+            });
+            saveObserver.observe(saveIconTarget, { attributes: true });
+        }
+        
+        // =============================================
+        // VIEW COUNT LOGIC
+        // =============================================
+        let vcEl = document.getElementById('viewCountClassic');
+        if (!vcEl) {
+            vcEl = document.createElement('div');
+            vcEl.id = 'viewCountClassic';
+            vcEl.className = 'view-count-classic';
+            vcEl.style.cssText = `display:inline-block!important;font-size:20px;color:#aaa;text-align:right;margin-bottom:8px;opacity:1!important;visibility:visible!important;margin-right:-10px;`;
+            
+            const channelRight = document.querySelector('.channel-right');
+            if (channelRight) channelRight.insertBefore(vcEl, channelRight.firstChild);
+            else {
+                const ldc = document.getElementById('likeDislikeContainer');
+                if (ldc) ldc.parentNode.insertBefore(vcEl, ldc);
+            }
+        }
+
+        const processViewCount = () => {
+            const desc = document.getElementById('currentVideoDescription');
+            if (!desc || !vcEl) return;
+            const text = desc.textContent;
+            const match = text.match(/^([\d.,]+)\s*(views|Aufrufe)\s*-\s*/);
+            if (match) {
+                vcEl.textContent = match[0].replace(/\s*-\s*$/, '').trim();
+                desc.textContent = text.replace(match[0], '');
+                if (typeof checkDescriptionCollapse === 'function') checkDescriptionCollapse();
+            }
+        };
+        setTimeout(processViewCount, 50);
+        const descObserver = new MutationObserver(processViewCount);
+        const descEl = document.getElementById('currentVideoDescription');
+        if (descEl) descObserver.observe(descEl, { childList: true, characterData: true, subtree: true });
+
+        // =============================================
+        // MOVE LIKE BAR TO RIGHT SIDE (Between Count & Buttons)
+        // =============================================
+        
+        // 1. Get the bar elements
+        const likeBar = document.getElementById('likeBar'); // The inner blue bar
+        const barContainer = likeBar ? likeBar.parentElement : null; // The grey background container (.like-dislike-bar-container)
+        const channelRight = document.querySelector('.channel-right');
+        const likeDislikeContainer = document.getElementById('likeDislikeContainer');
+
+        // 2. Check if we haven't moved it yet (avoid duplicates on re-runs)
+        if (likeBar && barContainer && channelRight && !document.getElementById('likeBarClassicWrapper')) {
+            
+            // Create a new wrapper for styling purposes
+            const classicBarWrapper = document.createElement('div');
+            classicBarWrapper.id = 'likeBarClassicWrapper';
+            classicBarWrapper.className = 'like-bar-classic-wrapper';
+
+            // Move the INNER bar into our new wrapper
+            // We move the inner bar because that's where the dynamic width (%) is applied by your JS
+            classicBarWrapper.appendChild(likeBar);
+
+            // Insert this new wrapper into .channel-right
+            // We want it specifically AFTER the view count but BEFORE the like/dislike container
+            if (vcEl && vcEl.nextSibling) {
+                // If view count exists and has a next sibling, insert before that sibling
+                channelRight.insertBefore(classicBarWrapper, vcEl.nextSibling);
+            } else if (likeDislikeContainer) {
+                // Fallback: Insert before the button container
+                channelRight.insertBefore(classicBarWrapper, likeDislikeContainer);
+            } else {
+                // Last resort: just append
+                channelRight.appendChild(classicBarWrapper);
+            }
+        }
+
+    } else {
+        // Modern mode: Clean up
+        classicStyleEl.textContent = '';
+        if (channelInfo) channelInfo.classList.remove('classic-layout');
+        document.body.classList.remove('classic-layout-active');
+        document.body.removeAttribute('data-video-layout');
+
+        // Restore Icons
+        const likeBtn = document.getElementById('likeButton');
+        const dislikeBtn = document.getElementById('dislikeButton');
+        if (likeBtn && likeBtn.src.includes('like_classic.svg')) likeBtn.src = 'LocalYT-Rev-Files/like.svg';
+        if (dislikeBtn && dislikeBtn.src.includes('dislike_classic.svg')) dislikeBtn.src = 'LocalYT-Rev-Files/dislike.svg';
+        updateSaveIconSrc();
+
+        cleanupWrapper(); 
+        
+        // --- RESTORE SUBSCRIBE BUTTON AND SUB COUNT TO ORIGINAL POSITIONS ---
+        const wrapper = document.getElementById('subscribeCountWrapper');
+        const subscribeBtn = document.getElementById('subscribeButton');
+        const subCount = document.getElementById('subCount');
+        const channelTextGroup = document.querySelector('.channel-text-group');
+        const channelLeftRestore = document.querySelector('.channel-left');
+        
+        if (wrapper) {
+            // Restore full "subscribers" text
+            if (subCount && subCount.dataset.fullText) {
+                subCount.textContent = subCount.dataset.fullText;
+                delete subCount.dataset.fullText;
+            }
+            // Move subCount back to channel-text-group
+            if (subCount && channelTextGroup) {
+                channelTextGroup.appendChild(subCount);
+            }
+            // Move subscribeBtn back to channel-left
+            if (subscribeBtn && channelLeftRestore) {
+                channelLeftRestore.appendChild(subscribeBtn);
+            }
+            // Remove the temporary wrapper
+            wrapper.remove();
+        }
+
+        // --- RESTORE LIKE BAR TO ORIGINAL POSITION ---
+        const classicWrapper = document.getElementById('likeBarClassicWrapper');
+        if (classicWrapper) {
+            const likeBar = classicWrapper.querySelector('#likeBar'); // Get the inner bar back
+            const originalContainer = document.querySelector('.like-dislike-bar-container');
+            
+            if (likeBar && originalContainer) {
+                // Put the bar back inside its original grey container
+                originalContainer.appendChild(likeBar);
+            }
+            // Remove our temporary wrapper
+            classicWrapper.remove();
+        }
+        // ---------------------------------------------
+
+        // Remove View Count element
+        const vc = document.getElementById('viewCountClassic');
+        if (vc) vc.remove();
+    }
+})();
+
 // ==============================
 // Apply Title Color Scheme Preference (Blue Text)
 // ==============================

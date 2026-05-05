@@ -14,11 +14,13 @@ v4.20
 - Classic channel styling now modifies the /posts channel tab
 - Classic channel styling now changes the active tab line from white to red
 - Classic channel styling now renames the "Community" tab to "Discussion"
+- Added classic video page styling
+  - Enabling this option makes the video page look like it's 2017
 - Added an option to settings.html to not load channel post images
   - This saves on bandwidth and makes the page load instantly
 - Fixed position for short community post texts
  - Added a BETA Light Mode
-  - channel.html, playlist.html and video.html now fully support the new light mode
+  - The main pages (channel.html, video.html etc.) now fully support the new light mode
   - Other pages are still WIP and will look messy as of the current state
   - Click the "Appearance" toggle while holding Shift to activate light mode
 - Removed the opening/closing transitions on the profile modal
@@ -39,6 +41,7 @@ v4.20
   - Made the version number a separate element in profile-pic.js which can now properly display above the logo
 - Removed the divider on video.html comments
 - Removed some border-radiuses on settings.html
+- Made some cosmetic changes to video.html
 
 v4.10
 - Comments can now be liked
