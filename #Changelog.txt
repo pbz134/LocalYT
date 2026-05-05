@@ -38,6 +38,7 @@ v4.20
   - It now uses SVG instead of PNG to be more dynamic
   - Made the version number a separate element in profile-pic.js which can now properly display above the logo
 - Removed the divider on video.html comments
+- Removed some border-radiuses on settings.html
 
 v4.10
 - Comments can now be liked
