@@ -222,6 +222,11 @@
                 color: #000000 !important;
             }
 
+            /* White fade for collapsed comments in Light Mode */
+            .comment-text.collapsed::after {
+                background: linear-gradient(rgba(255, 255, 255, 0), #f1f1f1) !important;
+            }
+
             /* Channel name to dark grey */
             .channel-name {
                 color: #000000 !important;
