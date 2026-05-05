@@ -87,4 +87,3 @@ What if I only have the video files and no metadata?
 - Work on the documentation in the user modal
 - Make hamburger menu available on all related .html pages
 - Finish implementing Light Mode
-- Use Logo.svg with external rendered version number instead of PNG
