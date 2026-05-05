@@ -100,6 +100,7 @@
             border-bottom: 3px solid #cc181e;
             width: fit-content;
             transition: none;
+            font-weight: bold;
         }
         body.classic-channel .tab {
             padding: 10px 0;
@@ -208,8 +209,8 @@
             position: relative;
         }
         .sort-toggle {
-            background-color: #333;
-            color: white;
+            background-color: var(--secondary-bg-color, #333);
+            color: var(--input-text-color, white);
             border: none;
             padding: 8px 16px;
             cursor: pointer;
@@ -221,7 +222,7 @@
             gap: 8px;
         }
         .sort-toggle:hover {
-            background-color: #555;
+            background-color: var(--hover-bg-color, #555);
         }
         .sort-toggle-arrow {
             width: 0;
@@ -240,8 +241,7 @@
             top: 100%;
             right: 0;
             margin-top: 4px;
-            background-color: #333;
-            border-radius: 6px;
+            background-color: var(--secondary-bg-color, #333);
             overflow: hidden;
             min-width: 240px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -252,12 +252,15 @@
         }
         .sort-dropdown-item {
             padding: 10px 16px;
-            color: white;
+            color: var(--input-text-color, white);
             cursor: pointer;
             font-size: 14px;
             font-family: 'RobotoRegular', Arial, sans-serif;
             transition: background-color 0.15s;
             white-space: nowrap;
+        }
+        .sort-dropdown-item:hover {
+            background-color: var(--hover-bg-color, #555);
         }
         .sort-dropdown-item:hover {
             background-color: #555;
@@ -278,8 +281,8 @@
             position: relative;
         }
         .view-toggle {
-            background-color: #333;
-            color: white;
+            background-color: var(--secondary-bg-color, #333);
+            color: var(--input-text-color, white);
             border: none;
             padding: 8px 16px;
             cursor: pointer;
@@ -291,7 +294,7 @@
             gap: 8px;
         }
         .view-toggle:hover {
-            background-color: #555;
+            background-color: var(--hover-bg-color, #555);
         }
         .view-toggle-arrow {
             width: 0;
@@ -310,8 +313,7 @@
             top: 100%;
             right: 0;
             margin-top: 4px;
-            background-color: #333;
-            border-radius: 6px;
+            background-color: var(--secondary-bg-color, #333);
             overflow: hidden;
             min-width: 140px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -322,12 +324,15 @@
         }
         .view-dropdown-item {
             padding: 10px 16px;
-            color: white;
+            color: var(--input-text-color, white);
             cursor: pointer;
             font-size: 14px;
             font-family: 'RobotoRegular', Arial, sans-serif;
             transition: background-color 0.15s;
             white-space: nowrap;
+        }
+        .view-dropdown-item:hover {
+            background-color: var(--hover-bg-color, #555);
         }
         .view-dropdown-item:hover {
             background-color: #555;
@@ -688,7 +693,7 @@
         .tab-search-icon {
             width: 20px;
             height: 20px;
-            filter: invert(100%);
+            filter: invert(var(--icon-invert, 100%));
             pointer-events: none;
             display: block;
         }
@@ -707,7 +712,7 @@
             font-family: 'RobotoRegular', Arial, sans-serif;
             border: 1px solid #555;
             background-color: var(--input-bg-color);
-            color: #fff;
+            color: var(--input-text-color, #fff);
             border-radius: 3px;
             outline: none;
             box-sizing: border-box;

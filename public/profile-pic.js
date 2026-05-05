@@ -154,6 +154,12 @@
                 color: #666666 !important;
             }
 
+            /* Active Tab Color for Light Mode */
+            .tab.active {
+                color: #333 !important;
+                border-bottom-color: #333 !important;
+            }
+
             /* Replace #e3e3e3 with #000000 (Post text) */
             [style*="color: rgb(227, 227, 227)"],
             [style*="color: #e3e3e3"],
@@ -170,14 +176,24 @@
                 color: #737373 !important;
             }
 
-            /* Fix placeholder visibility */
+            /* Placeholder visibility */
             ::placeholder {
                 color: #737373 !important;
             }
 
-            /* Fix search icon visibility (invert back to dark) */
+            /* Search icon visibility (invert back to dark) */
             .search-icon {
                 filter: invert(0.6) !important; 
+            }
+
+            /* Tab search icon */
+            .tab-search-icon {
+                filter: invert(0) !important;
+            }
+
+            /* Dhannel search input text color */
+            #channelSearchInput {
+                color: #0f0f0f !important;
             }
 
             .video-title:not([style*="#128ee9"]),
@@ -189,6 +205,33 @@
 
             .openbtn {
                 filter: invert(1);
+            }
+
+            /* Sort/View Dropdowns Light Mode */
+            .sort-toggle,
+            .sort-toggle.open,
+            .view-toggle,
+            .view-toggle.open,
+            .sort-dropdown-menu,
+            .view-dropdown-menu {
+                background-color: #f0f0f0 !important;
+                color: #0f0f0f !important;
+            }
+            
+            .sort-dropdown-item,
+            .view-dropdown-item {
+                color: #0f0f0f !important;
+            }
+            
+            .sort-dropdown-item:hover,
+            .view-dropdown-item:hover {
+                background-color: #e0e0e0 !important;
+            }
+
+            /* Dropdown arrows for light mode */
+            .sort-toggle-arrow,
+            .view-toggle-arrow {
+                border-top-color: #0f0f0f !important;
             }
         `;
         document.head.appendChild(style);
@@ -303,17 +346,17 @@
                         background: #000000 !important;
                     }
                     
-                    /* OLED FIX: Ensure Subscribe button stays red/visible */
+                    /* Ensure Subscribe button stays red/visible */
                     .subscribe-button {
                         background-color: red !important;
                     }
                     
-                    /* OLED FIX: Ensure SVGs don't turn into white boxes */
+                    /* Ensure SVGs don't turn into white boxes */
                     img[src$=".svg"] {
                         background-color: transparent !important;
                     }
 
-                    /* CRITICAL FIX: Keep Thumbnails Visible */
+                    /* Keep Thumbnails Visible */
                     .playlist-thumbnail,
                     .video-thumbnail,
                     .channel-banner,
@@ -351,7 +394,7 @@
             }
             if (searchInput) {
                 searchInput.style.color = '#0f0f0f';
-                // FIX APPLIED HERE: Force exact color #f1f1f1 for search bar in Light Mode
+                // Force exact color #f1f1f1 for search bar in Light Mode
                 searchInput.style.backgroundColor = '#f1f1f1'; 
                 
                 const phStyle = document.getElementById('light-mode-placeholder-style');

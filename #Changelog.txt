@@ -32,6 +32,8 @@ v4.20
 - Hovering over a recommended video thumbnail on video.html turns the cursor into a pointer
 - The progress indicator dot on video.html now has the same color as the progress bar
 - Added cursor pointer hover effects to some missing elements
+- Removed border-radius on the channel sort dropdown menus and added Light Mode compatibility
+- The selected channel tab is now bold on Classic mode
 
 v4.10
 - Comments can now be liked
