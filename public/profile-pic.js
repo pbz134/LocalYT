@@ -227,6 +227,11 @@
                 background: linear-gradient(rgba(255, 255, 255, 0), #f1f1f1) !important;
             }
 
+            /* White fade for collapsed video description in Light Mode */
+            .video-description.collapsed::after {
+                background: linear-gradient(rgba(255, 255, 255, 0), #ffffff) !important;
+            }
+
             /* Channel name to dark grey */
             .channel-name {
                 color: #000000 !important;
