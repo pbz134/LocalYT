@@ -625,7 +625,6 @@
             background-color: #282828;
             padding: 15px;
             margin-top: 10px;
-            border-radius: 5px;
             font-family: 'RobotoRegular', Arial, sans-serif;
             font-size: 14px;
             color: #fff;
@@ -701,11 +700,7 @@
             color: #fff;
             margin-right: 24px;
         }
-        .comments-divider {
-            height: 1px;
-            background-color: #3f3f3f;
-            margin-bottom: 15px;
-        }
+
         .comment-item {
             display: flex;
             margin-bottom: 8px;
@@ -967,7 +962,7 @@
 </head>
 <body>
     <header class="top-bar">
-        <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
+        <img src="LocalYT-Rev-Files/Logo.svg" alt="Logo" class="logo" id="mainLogo">
         <div class="search-container">
             <input type="text" id="searchInput" placeholder="Search" data-de-placeholder="Suchen">
             <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
@@ -3213,7 +3208,73 @@ function toggleLiveChat() {
         syncChat();
     }
 }
+// ==============================
+// Apply Title Color Scheme Preference (Blue Text)
+// ==============================
+(function applyTitleColorScheme() {
+    const setting = JSON.parse(localStorage.getItem('titleColorScheme') || '{}');
+    
+    function applyBlueText() {
+        const existingStyle = document.getElementById('title-color-scheme-blue');
+        if (existingStyle) existingStyle.remove();
+        
+        if (setting.scheme === 'blue') {
+            const style = document.createElement('style');
+            style.id = 'title-color-scheme-blue';
+            
+            style.textContent = `
+                html body .comment-author.blue-text {
+                    color: #128ee9 !important;
+                }
+                
+                html body .comment-author.blue-text:hover {
+                    text-decoration: underline !important;
+                    cursor: pointer !important;
+                }
+            `;
+            
+            document.head.appendChild(style);
+            
+            // Add class to existing comment authors
+            document.querySelectorAll('.comment-author').forEach(el => {
+                el.classList.add('blue-text');
+            });
+            
+            // Watch for dynamically loaded comments
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === 1) {
+                            if (node.matches && node.matches('.comment-author')) {
+                                node.classList.add('blue-text');
+                            }
+                            
+                            if (node.querySelectorAll) {
+                                node.querySelectorAll('.comment-author').forEach(el => {
+                                    el.classList.add('blue-text');
+                                });
+                            }
+                        }
+                    });
+                });
+            });
+            
+            observer.observe(document.body, { childList: true, subtree: true });
+        } else {
+            document.querySelectorAll('.comment-author.blue-text').forEach(el => el.classList.remove('blue-text'));
+        }
+    }
 
+    // Apply immediately
+    applyBlueText();
+    
+    // Re-apply after profile-pic.js Light Mode runs
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => setTimeout(applyBlueText, 100));
+    } else {
+        setTimeout(applyBlueText, 100);
+    }
+})();
     </script>
     <script src="profile-pic.js"></script>
     <script src="fluidplayer-custom-stats.js"></script>

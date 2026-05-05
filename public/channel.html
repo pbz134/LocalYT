@@ -1170,7 +1170,7 @@
 </head>
 <body>
     <header class="top-bar">
-        <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
+        <img src="LocalYT-Rev-Files/Logo.svg" alt="Logo" class="logo" id="mainLogo">
         <div class="search-container">
             <input type="text" id="searchInput" placeholder="">
             <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
@@ -3031,30 +3031,91 @@ function openVideo(videoSrc) {
 // ==============================
 (function applyTitleColorScheme() {
     const setting = JSON.parse(localStorage.getItem('titleColorScheme') || '{}');
-    if (setting.scheme === 'blue') {
-        const style = document.createElement('style');
-        style.id = 'title-color-scheme-blue';
-        style.textContent = `
-            .post-author-name,
-            .home-video-title,
-            .video-title,
-            .playlist-title {
-                color: #128ee9 !important;
-            }
-            .post-author-name:hover,
-            .home-video-title:hover,
-            .video-title:hover,
-            .playlist-title:hover {
-                text-decoration: underline !important;
-                cursor: pointer !important;
-            }
-        `;
-        document.head.appendChild(style);
-    } else {
-        // Remove existing style tag if switching back to white
+    
+    function applyBlueText() {
+        // Remove old style if exists
         const existingStyle = document.getElementById('title-color-scheme-blue');
         if (existingStyle) existingStyle.remove();
+        
+        if (setting.scheme === 'blue') {
+            const style = document.createElement('style');
+            style.id = 'title-color-scheme-blue';
+            
+            // Use ultra-high specificity to beat Light Mode's !important
+            style.textContent = `
+                /* High specificity selectors to override Light Mode */
+                html body .video-title.blue-text,
+                html body .playlist-title.blue-text,
+                html body .home-video-title.blue-text,
+                html body .post-author-name.blue-text {
+                    color: #128ee9 !important;
+                }
+                
+                html body .video-title.blue-text:hover,
+                html body .playlist-title.blue-text:hover,
+                html body .home-video-title.blue-text:hover,
+                html body .post-author-name.blue-text:hover {
+                    text-decoration: underline !important;
+                    cursor: pointer !important;
+                }
+            `;
+            
+            // Append AFTER profile-pic.js styles so this loads later
+            document.head.appendChild(style);
+            
+            // Add class to all existing elements
+            document.querySelectorAll('.video-title, .playlist-title, .home-video-title, .post-author-name').forEach(el => {
+                el.classList.add('blue-text');
+            });
+            
+            // Watch for new elements added dynamically (infinite scroll, tab switching)
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === 1) { // Element node
+                            if (node.matches && (
+                                node.matches('.video-title') || 
+                                node.matches('.playlist-title') || 
+                                node.matches('.home-video-title') || 
+                                node.matches('.post-author-name')
+                            )) {
+                                node.classList.add('blue-text');
+                            }
+                            
+                            // Also check children
+                            if (node.querySelectorAll) {
+                                node.querySelectorAll('.video-title, .playlist-title, .home-video-title, .post-author-name').forEach(el => {
+                                    el.classList.add('blue-text');
+                                });
+                            }
+                        }
+                    });
+                });
+            });
+            
+            observer.observe(document.body, { childList: true, subtree: true });
+        } else {
+            // Remove classes if disabled
+            document.querySelectorAll('.blue-text').forEach(el => el.classList.remove('blue-text'));
+        }
     }
+
+    // Apply immediately
+    applyBlueText();
+    
+    // Re-apply after profile-pic.js loads (which applies Light Mode)
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => setTimeout(applyBlueText, 100));
+    } else {
+        setTimeout(applyBlueText, 100);
+    }
+    
+    // Re-apply when settings change (for live switching without reload)
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'titleColorScheme') {
+            location.reload(); // Simplest way to ensure consistency
+        }
+    });
 })();
 
     </script>

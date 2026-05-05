@@ -18,7 +18,7 @@ v4.20
   - This saves on bandwidth and makes the page load instantly
 - Fixed position for short community post texts
  - Added a BETA Light Mode
-  - channel.html and playlists.html now fully support the new light mode
+  - channel.html, playlist.html and video.html now fully support the new light mode
   - Other pages are still WIP and will look messy as of the current state
   - Click the "Appearance" toggle while holding Shift to activate light mode
 - Removed the opening/closing transitions on the profile modal
@@ -34,6 +34,10 @@ v4.20
 - Added cursor pointer hover effects to some missing elements
 - Removed border-radius on the channel sort dropdown menus and added Light Mode compatibility
 - The selected channel tab is now bold on Classic mode
+- Changed the LocalYT logo to support the new Light mode
+  - It now uses SVG instead of PNG to be more dynamic
+  - Made the version number a separate element in profile-pic.js which can now properly display above the logo
+- Removed the divider on video.html comments
 
 v4.10
 - Comments can now be liked

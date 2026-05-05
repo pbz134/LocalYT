@@ -107,6 +107,48 @@
         }
     }
 
+    // ======================================================================
+    // BULLETPROOF LOGO COLOR (Data URI method to bypass <img> SVG limits)
+    // ======================================================================
+    function applyLogoColor() {
+        const logo = document.getElementById('mainLogo');
+        if (!logo) return;
+
+        const isLight = getSetting('appearanceMode', 'dark') === 'light';
+        const targetColor = isLight ? '#333333' : '#ffffff';
+        const versionTextColor = isLight ? '#999999' : '#c8c8c8'; // Dark grey for light mode, light grey for dark
+
+        // If it's already correctly colored (e.g. from a previous run), do nothing
+        if (logo.dataset.currentLogoColor === targetColor) return;
+
+        fetch('LocalYT-Rev-Files/Logo.svg')
+            .then(response => response.text())
+            .then(svgText => {
+                // 1. Identify the 6 icon paths inside the red box (lines between the first <g> and </g>)
+                //    and temporarily mark them so they don't get changed.
+                const protectedSvg = svgText.replace(
+                    /(<g clip-path="url\(#clip1_2733_1405\)">[\s\S]*?<\/g>)/,
+                    (match) => match.replace(/fill="white"/g, 'fill="KEEP_WHITE"')
+                );
+
+                // 2. Now safely change all remaining 'fill="white"' (the text) to the target color
+                let modifiedSvg = protectedSvg.replace(/fill="white"/g, `fill="${targetColor}"`);
+
+                // 3. Restore the icon back to standard white
+                modifiedSvg = modifiedSvg.replace(/fill="KEEP_WHITE"/g, 'fill="white"');
+
+                // 5. Encode to Base64 Data URI to guarantee browser renders exactly this
+                const base64Svg = btoa(unescape(encodeURIComponent(modifiedSvg)));
+                logo.src = `data:image/svg+xml;base64,${base64Svg}`;
+                
+                // Mark as colored so we don't re-fetch unnecessarily
+                logo.dataset.currentLogoColor = targetColor;
+            })
+            .catch(err => {
+                console.error('Failed to load SVG for coloring, falling back to default:', err);
+            });
+    }
+
     // Helper to apply Light Mode overrides (#1e1e1e -> #FFFFFF, etc.)
     function applyLightModeBlackOverride() {
         let oldOverride = document.getElementById('light-mode-black-override');
@@ -118,6 +160,7 @@
         style.textContent = `
             [style*="background-color: rgb(30, 30, 30)"],
             [style*="background-color: #1e1e1e"],
+            .video-description,
             .video-item,
             .playlist-item,
             .post-item,
@@ -129,11 +172,17 @@
             [style*="color: rgb(136, 136, 136)"],
             [style*="color: #888888"],
             .video-description,
+            .video-description.collapsed,
+            .home-video-description-text,
             .playlist-description,
             .playlist-video-count,
             .video-count,
             .post-date,
-            .home-video-meta {
+            .home-video-meta,
+            .comment-timestamp,
+            .sidebar-autoplay-label,
+            .suggestion-channel,
+            .view-count {
                 color: #555555 !important;
             }
 
@@ -150,7 +199,13 @@
             /* Replace #aaaaaa with #666666 */
             [style*="color: rgb(170, 170, 170)"],
             [style*="color: #aaaaaa"],
-            .tab {
+            .tab,
+            .like-dislike-icons span,
+            .share-container span,
+            .save-container span,
+            .sub-count,
+            .comment-like-btn span,
+            .description-toggle {
                 color: #666666 !important;
             }
 
@@ -169,7 +224,7 @@
 
             /* Channel name to dark grey */
             .channel-name {
-                color: #333333 !important;
+                color: #000000 !important;
             }
 
             .subscriber-count {
@@ -191,16 +246,24 @@
                 filter: invert(0) !important;
             }
 
-            /* Dhannel search input text color */
+            /* Channel search input text color */
             #channelSearchInput {
                 color: #0f0f0f !important;
             }
-
-            .video-title:not([style*="#128ee9"]),
-            .playlist-title:not([style*="#128ee9"]),
-            .home-video-title:not([style*="#128ee9"]),
-            .post-author-name:not([style*="#128ee9"]) {
-                color: #000000;
+            /* Main search bar input text color in Light Mode */
+            #searchInput {
+                color: #000000 !important;
+            }
+            .video-title:not(.blue-text):not([style*="#128ee9"]),
+            .playlist-title:not(.blue-text):not([style*="#128ee9"]),
+            .home-video-title:not(.blue-text):not([style*="#128ee9"]),
+            .post-author-name:not(.blue-text):not([style*="#128ee9"]),
+            .suggestion-title,
+            .current-video-title,
+            .comment-author,
+            .comment-text,
+            .comments-count {
+                color: #000000 !important;
             }
 
             .openbtn {
@@ -233,24 +296,22 @@
             .view-toggle-arrow {
                 border-top-color: #0f0f0f !important;
             }
+
+            /* Prevent invert filter from breaking the Data URI SVG logo */
+            .logo {
+                filter: none !important;
+            }
         `;
         document.head.appendChild(style);
     }
 
     // Helper to safely refresh the page without causing loops
     function safeRefreshPage() {
-        // Check if we JUST refreshed to prevent infinite loops
         if (sessionStorage.getItem('justRefreshedAppearance') === 'true') {
-            // Clear the flag so future manual changes can trigger a refresh again
             sessionStorage.removeItem('justRefreshedAppearance');
             return; 
         }
-
-        // Set flag indicating we are about to refresh
         sessionStorage.setItem('justRefreshedAppearance', 'true');
-
-        // Small delay allows the UI to update visually before the browser 
-        // tears down the page for the reload, reducing the "white flash" glitch.
         setTimeout(() => {
             location.reload();
         }, 50); 
@@ -260,57 +321,44 @@
         const root = document.documentElement;
         const currentMode = getSetting('appearanceMode', 'dark');
 
-        // Remove OLED black override if switching away from OLED mode
         const oledOverride = document.getElementById('oled-black-override');
         if (oledOverride && currentMode === 'oled') {
             oledOverride.remove();
         }
 
-        // Remove Light Mode Black Override if switching away from Light mode
         const lightOverride = document.getElementById('light-mode-black-override');
         if (lightOverride && currentMode !== 'light') {
              lightOverride.remove();
         }
 
         if (isShiftHeld) {
-            // Shift+Click enables Light mode (or cycles to it)
             if (currentMode === 'dark' || currentMode === 'oled') {
                 root.style.setProperty('--main-bg-color', '#f1f1f1');
                 root.style.setProperty('--secondary-bg-color', '#ffffff');
-                root.style.setProperty('--input-bg-color', '#f1f1f1'); // Set variable to grey
+                root.style.setProperty('--input-bg-color', '#f1f1f1');
                 
                 applyLightModeBlackOverride();
-                
                 setSetting('appearanceMode', 'light');
-                
-                // REFRESH LOGIC: Activate Light Mode
                 safeRefreshPage();
 
             } else {
-                // Already light, go back to dark
                 root.style.setProperty('--main-bg-color', '#0f0f0f');
                 root.style.setProperty('--secondary-bg-color', '#212121');
                 root.style.setProperty('--input-bg-color', '#1a1a1a');
                 setSetting('appearanceMode', 'dark');
-
-                // REFRESH LOGIC: Deactivate Light Mode
                 safeRefreshPage();
             }
         } else {
-            // Normal click: toggles between Dark and OLED only
             if (currentMode === 'oled') {
                 root.style.setProperty('--main-bg-color', '#0f0f0f');
                 root.style.setProperty('--secondary-bg-color', '#212121');
                 root.style.setProperty('--input-bg-color', '#1a1a1a');
                 setSetting('appearanceMode', 'dark');
             } else if (currentMode === 'light') {
-                // If in light mode and normal clicked, go to dark
                 root.style.setProperty('--main-bg-color', '#0f0f0f');
                 root.style.setProperty('--secondary-bg-color', '#212121');
                 root.style.setProperty('--input-bg-color', '#1a1a1a');
                 setSetting('appearanceMode', 'dark');
-
-                 // REFRESH LOGIC: Deactivate Light Mode via Normal Click
                 safeRefreshPage();
 
             } else {
@@ -322,7 +370,6 @@
                 style.id = 'oled-black-override';
                 
                 style.textContent = `
-                    /* Force main structural elements to black */
                     body,
                     html,
                     .channel-top-section,
@@ -345,18 +392,12 @@
                         background-color: #000000 !important; 
                         background: #000000 !important;
                     }
-                    
-                    /* Ensure Subscribe button stays red/visible */
                     .subscribe-button {
                         background-color: red !important;
                     }
-                    
-                    /* Ensure SVGs don't turn into white boxes */
                     img[src$=".svg"] {
                         background-color: transparent !important;
                     }
-
-                    /* Keep Thumbnails Visible */
                     .playlist-thumbnail,
                     .video-thumbnail,
                     .channel-banner,
@@ -368,8 +409,11 @@
                         background-color: transparent !important;
                         background: transparent !important !important;
                     }
+            .video-description,
+            .video-description.collapsed {
+                color: #000000 !important;
+            }
                 `;
-                // Remove old override first if exists to avoid duplicates
                 const old = document.getElementById('oled-black-override');
                 if (old) old.remove();
                 document.head.appendChild(style);
@@ -378,23 +422,23 @@
             }
         }
         
-        // Re-inject profile menu styles for proper text/icon colors
         const oldStyle = document.getElementById('profile-menu-styles');
         if (oldStyle) oldStyle.remove();
         injectMenuStyles();
-        
-        // Update search bar visibility for light mode
+
+        // Update version text color dynamically
+        if (window.logoVersionRef) {
+            const mode = getSetting('appearanceMode', 'dark');
+            window.logoVersionRef.style.color = (mode === 'light') ? '#999999' : '#c8c8c8';
+        }
+      
         const searchIcon = document.getElementById('searchIcon') || document.querySelector('.search-icon');
         const searchInput = document.getElementById('searchInput');
         
         if (getSetting('appearanceMode', 'dark') === 'light') {
-            // Light mode: make icons visible and text dark
-            if (searchIcon) {
-                searchIcon.style.filter = 'invert(1)';
-            }
+            if (searchIcon) searchIcon.style.filter = 'invert(1)';
             if (searchInput) {
                 searchInput.style.color = '#0f0f0f';
-                // Force exact color #f1f1f1 for search bar in Light Mode
                 searchInput.style.backgroundColor = '#f1f1f1'; 
                 
                 const phStyle = document.getElementById('light-mode-placeholder-style');
@@ -408,54 +452,40 @@
             
             document.querySelectorAll('.top-bar img').forEach(img => {
                 if (!img.id || img.id !== 'headerProfilePic') {
-                    img.style.filter = 'invert(1)';
+                    if (!img.classList.contains('logo')) {
+                        img.style.filter = 'invert(1)';
+                    }
                 }
             });
             
-            // Ensure override is present
             applyLightModeBlackOverride();
             
         } else if (getSetting('appearanceMode', 'dark') === 'oled') {
-            // OLED mode: ensure everything is pure black
             if (searchIcon) searchIcon.style.filter = '';
             if (searchInput) {
                 searchInput.style.color = '';
                 searchInput.style.backgroundColor = '';
             }
-            
-            // Remove light mode styles
             const phStyle = document.getElementById('light-mode-placeholder-style');
             if (phStyle) phStyle.remove();
-            
             document.querySelectorAll('.top-bar img').forEach(img => {
-                if (!img.id || img.id !== 'headerProfilePic') {
-                    img.style.filter = '';
-                }
+                if (!img.id || img.id !== 'headerProfilePic') img.style.filter = '';
             });
             
         } else {
-            // Dark mode (#0f0f0f): restore defaults
             if (searchIcon) searchIcon.style.filter = '';
             if (searchInput) {
                 searchInput.style.color = '';
                 searchInput.style.backgroundColor = '';
             }
-            
-            // Clean up dynamic styles
             const phStyle = document.getElementById('light-mode-placeholder-style');
             if (phStyle) phStyle.remove();
-            
             const ovd = document.getElementById('oled-black-override');
             if (ovd) ovd.remove();
-
-            // Clean up light mode override when leaving light mode
             const lvd = document.getElementById('light-mode-black-override');
             if (lvd) lvd.remove();
-            
             document.querySelectorAll('.top-bar img').forEach(img => {
-                if (!img.id || img.id !== 'headerProfilePic') {
-                    img.style.filter = '';
-                }
+                if (!img.id || img.id !== 'headerProfilePic') img.style.filter = '';
             });
         }
     }
@@ -585,9 +615,7 @@
         } else if (mode === 'light') {
             document.documentElement.style.setProperty('--main-bg-color', '#f1f1f1');
             document.documentElement.style.setProperty('--secondary-bg-color', '#ffffff');
-            document.documentElement.style.setProperty('--input-bg-color', '#f1f1f1'); // Match the variable
-            
-            // Ensure override is applied on load if mode is light
+            document.documentElement.style.setProperty('--input-bg-color', '#f1f1f1');
             applyLightModeBlackOverride();
         }
     }
@@ -602,6 +630,33 @@
         }
 
         applyAppearanceMode();
+        applyLogoColor();
+
+        // --- Create Version Number Element ---
+        const logo = document.getElementById('mainLogo');
+        if (logo && !document.getElementById('logo-version')) {
+            // Ensure the logo is inside a wrapper for alignment, or just append after it
+            // We will insert the version span immediately after the logo image
+            const versionSpan = document.createElement('span');
+            versionSpan.id = 'logo-version';
+            versionSpan.textContent = 'v4.20'; // Current LocalYT version
+            
+            // Apply styles based on current mode
+            const isLight = getSetting('appearanceMode', 'dark') === 'light';
+            versionSpan.style.color = isLight ? '#999999' : '#c8c8c8';
+            versionSpan.style.fontFamily = "'RobotoRegular', Arial, sans-serif";
+            versionSpan.style.fontSize = "12px"; // Text size
+            versionSpan.style.marginLeft = "4px"; // Space between logo and text
+            versionSpan.style.transform = "translateY(-5px)"; // Text y position
+            versionSpan.style.userSelect = "none";
+            versionSpan.style.alignSelf = "center"; // Vertically center if parent is flex
+            
+            logo.parentNode.insertBefore(versionSpan, logo.nextSibling);
+            
+            // Store reference to update color later if needed without reload
+            window.logoVersionRef = versionSpan;
+        }
+        // --- End Version Number ---
 
         if (getSetting('language', 'en') === 'de') {
             applyLanguage();
