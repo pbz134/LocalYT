@@ -42,6 +42,7 @@ v4.20
 - Removed the divider on video.html comments
 - Removed some border-radiuses on settings.html
 - Made some cosmetic changes to video.html
+- Slightly decreased the video container size on video.html
 
 v4.10
 - Comments can now be liked
