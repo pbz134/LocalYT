@@ -107,15 +107,20 @@
         .playlist-info {
             color: #888;
             font-size: 14px;
+            display: inline-block;
+            margin-right: 0;
         }
-        /* New style for the duration element */
         .playlist-duration {
             color: #888;
             font-size: 14px;
-            margin-top: 4px; /* Slight spacing from info above */
+            display: inline-block;
+        }
+        .playlist-info::after {
+            content: " • ";
+            margin: 0 4px;
         }
         
-        /* Sort and View Options (matching channel.html) */
+        /* Sort and View Options */
         .sort-options {
             display: flex;
             justify-content: flex-end;
@@ -335,7 +340,7 @@
 </head>
 <body>
     <header class="top-bar">
-        <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
+        <img src="LocalYT-Rev-Files/Logo.svg" alt="Logo" class="logo" id="mainLogo">
         <div class="search-container">
             <input type="text" id="searchInput" placeholder="">
             <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
@@ -559,12 +564,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewToggleLabel = document.getElementById('viewToggleLabel');
     const playlistVideosContainer = document.getElementById('playlistVideosContainer');
     
+    // Load saved playlist layout preference (default to 'grid' if not set)
     let currentViewMode = 'grid';
+    const savedPlaylistLayout = JSON.parse(localStorage.getItem('playlistPageLayout') || '{}');
+    if (savedPlaylistLayout.view) {
+        currentViewMode = savedPlaylistLayout.view;
+    }
     
     // Update view labels
-    viewToggleLabel.textContent = getLang('Grid', 'Raster');
+    viewToggleLabel.textContent = getLang(
+        currentViewMode === 'grid' ? 'Grid' : 'List',
+        currentViewMode === 'grid' ? 'Raster' : 'Liste'
+    );
     document.querySelector('.view-dropdown-item[data-view="grid"]').textContent = getLang('Grid', 'Raster');
     document.querySelector('.view-dropdown-item[data-view="list"]').textContent = getLang('List', 'Liste');
+
+    // Update active state in dropdown based on saved preference
+    document.querySelectorAll('.view-dropdown-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.view === currentViewMode) {
+            item.classList.add('active');
+        }
+    });
+
+    // Apply saved view mode to container immediately
+    if (currentViewMode === 'list') {
+        playlistVideosContainer.classList.add('list-view');
+    } else {
+        playlistVideosContainer.classList.remove('list-view');
+    }
 
     viewToggle.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -583,6 +611,9 @@ document.addEventListener('DOMContentLoaded', () => {
         item.addEventListener('click', () => {
             const viewValue = item.dataset.view;
             currentViewMode = viewValue;
+
+            // Save preference to localStorage
+            localStorage.setItem('playlistPageLayout', JSON.stringify({ view: viewValue }));
 
             // Update active state in dropdown
             document.querySelectorAll('.view-dropdown-item').forEach(i => i.classList.remove('active'));

@@ -705,6 +705,52 @@
                 <div id="channelDefaultViewStatus" class="status-msg"></div>
             </div>
 
+            <!-- Video Page Layout Section -->
+            <div class="settings-section">
+                <h2 id="videoPageLayoutHeading">Video Page Layout</h2>
+
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div id="videoPageLayoutLabel">Video page style</div>
+                        <div class="setting-description" id="videoPageLayoutDesc">Choose between Modern layout or Classic layout (view count on right, buttons stacked vertically)</div>
+                    </div>
+                    <div class="setting-control">
+                        <select class="setting-select" id="videoPageLayout">
+                            <option value="modern">Modern</option>
+                            <option value="classic">Classic</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="inline-form" style="margin-top: 15px;">
+                    <button class="btn btn-save" id="saveVideoPageLayoutBtn">Save Preference</button>
+                </div>
+                <div id="videoPageLayoutStatus" class="status-msg"></div>
+            </div>
+
+            <!-- Playlist Page Layout Section -->
+            <div class="settings-section">
+                <h2 id="playlistPageLayoutHeading">Playlist Page Layout</h2>
+
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div id="playlistPageLayoutLabel">Default playlist video layout</div>
+                        <div class="setting-description" id="playlistPageLayoutDesc">Choose how playlist pages load by default (Grid or List view)</div>
+                    </div>
+                    <div class="setting-control">
+                        <select class="setting-select" id="playlistPageLayout">
+                            <option value="grid">Grid</option>
+                            <option value="list">List</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="inline-form" style="margin-top: 15px;">
+                    <button class="btn btn-save" id="savePlaylistPageLayoutBtn">Save Preference</button>
+                </div>
+                <div id="playlistPageLayoutStatus" class="status-msg"></div>
+            </div>
+
             <!-- Channel Page Style Section -->
             <div class="settings-section">
                 <h2 id="channelPageStyleHeading">Channel Page Style</h2>
@@ -865,6 +911,32 @@ function applyTranslations() {
     document.getElementById('channelDefaultViewLabel').textContent = getLang('Default channel video layout', 'Standard-Video-Layout für Kanäle');
     document.getElementById('channelDefaultViewDesc').textContent = getLang('Choose how the Videos tab on channel pages loads by default', 'Wähle, wie der Video-Tab auf Kanalseiten standardmäßig geladen wird');
     document.getElementById('saveChannelDefaultViewBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
+
+    // Video Page Layout Translations
+    document.getElementById('videoPageLayoutHeading').textContent = getLang('Video Page Layout', 'Videoseiten-Layout');
+    document.getElementById('videoPageLayoutLabel').textContent = getLang('Video page style', 'Videoseiten-Stil');
+    document.getElementById('videoPageLayoutDesc').textContent = getLang('Choose between Modern layout or Classic layout (view count on right, buttons stacked vertically)', 'Wähle zwischen modernem Layout oder klassischem Layout (Aufrufzahl rechts, Buttons gestapelt)');
+    document.getElementById('saveVideoPageLayoutBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
+
+    // Playlist Page Layout Translations
+    document.getElementById('playlistPageLayoutHeading').textContent = getLang('Playlist Page Layout', 'Playlistseiten-Layout');
+    document.getElementById('playlistPageLayoutLabel').textContent = getLang('Default playlist video layout', 'Standard-Video-Layout für Playlists');
+    document.getElementById('playlistPageLayoutDesc').textContent = getLang('Choose how playlist pages load by default (Grid or List view)', 'Wähle, wie Playlistseiten standardmäßig geladen werden (Raster- oder Listenansicht)');
+    document.getElementById('savePlaylistPageLayoutBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
+
+    // Update dropdown options text
+    const videoPageLayoutSelect = document.getElementById('videoPageLayout');
+    if (videoPageLayoutSelect) {
+        videoPageLayoutSelect.options[0].text = getLang('Modern', 'Modern');
+        videoPageLayoutSelect.options[1].text = getLang('Classic', 'Klassisch');
+    }
+
+    // Update dropdown options text for playlist layout
+    const playlistPageLayoutSelect = document.getElementById('playlistPageLayout');
+    if (playlistPageLayoutSelect) {
+        playlistPageLayoutSelect.options[0].text = getLang('Grid', 'Raster');
+        playlistPageLayoutSelect.options[1].text = getLang('List', 'Liste');
+    }
 
     // Channel Page Style Section
     document.getElementById('channelPageStyleHeading').textContent = getLang('Channel Page Style', 'Kanalseiten-Stil');
@@ -1061,6 +1133,108 @@ function saveChannelDefaultView() {
         })
         .catch(() => {
             showStatus('channelDefaultViewStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
+        });
+}
+
+// ==============================
+// Video Page Layout Logic
+// ==============================
+function loadVideoPageLayout() {
+    const savedLocal = JSON.parse(localStorage.getItem('videoPageLayout') || '{}');
+    const defaultLayout = 'modern';
+    const currentLayout = savedLocal.layout || defaultLayout;
+    
+    document.getElementById('videoPageLayout').value = currentLayout;
+
+    fetch('/user-settings')
+        .then(res => {
+            if (!res.ok) throw new Error('Not authenticated');
+            return res.json();
+        })
+        .then(serverSettings => {
+            if (serverSettings && serverSettings.videoPageLayout) {
+                const serverLayout = serverSettings.videoPageLayout;
+                document.getElementById('videoPageLayout').value = serverLayout;
+                localStorage.setItem('videoPageLayout', JSON.stringify({ layout: serverLayout }));
+            }
+        })
+        .catch(err => console.error('Could not load video page layout from server:', err));
+}
+
+function saveVideoPageLayout() {
+    const layout = document.getElementById('videoPageLayout').value;
+    localStorage.setItem('videoPageLayout', JSON.stringify({ layout: layout }));
+
+    fetch('/user-settings')
+        .then(res => res.json())
+        .then(currentSettings => {
+            const updatedSettings = { ...currentSettings, videoPageLayout: layout };
+            return fetch('/user-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings: updatedSettings })
+            });
+        })
+        .then(res => {
+            if (res.ok) {
+                showStatus('videoPageLayoutStatus', getLang('Video page layout saved!', 'Video-Layout gespeichert!'), true);
+            } else {
+                showStatus('videoPageLayoutStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
+            }
+        })
+        .catch(() => {
+            showStatus('videoPageLayoutStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
+        });
+}
+
+// ==============================
+// Playlist Page Layout Logic
+// ==============================
+function loadPlaylistPageLayout() {
+    const savedLocal = JSON.parse(localStorage.getItem('playlistPageLayout') || '{}');
+    const defaultView = 'grid';
+    const currentView = savedLocal.view || defaultView;
+    
+    document.getElementById('playlistPageLayout').value = currentView;
+
+    fetch('/user-settings')
+        .then(res => {
+            if (!res.ok) throw new Error('Not authenticated');
+            return res.json();
+        })
+        .then(serverSettings => {
+            if (serverSettings && serverSettings.playlistPageLayout) {
+                const serverView = serverSettings.playlistPageLayout;
+                document.getElementById('playlistPageLayout').value = serverView;
+                localStorage.setItem('playlistPageLayout', JSON.stringify({ view: serverView }));
+            }
+        })
+        .catch(err => console.error('Could not load playlist page layout from server:', err));
+}
+
+function savePlaylistPageLayout() {
+    const view = document.getElementById('playlistPageLayout').value;
+    localStorage.setItem('playlistPageLayout', JSON.stringify({ view: view }));
+
+    fetch('/user-settings')
+        .then(res => res.json())
+        .then(currentSettings => {
+            const updatedSettings = { ...currentSettings, playlistPageLayout: view };
+            return fetch('/user-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings: updatedSettings })
+            });
+        })
+        .then(res => {
+            if (res.ok) {
+                showStatus('playlistPageLayoutStatus', getLang('Playlist page layout saved!', 'Playlist-Layout gespeichert!'), true);
+            } else {
+                showStatus('playlistPageLayoutStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
+            }
+        })
+        .catch(() => {
+            showStatus('playlistPageLayoutStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
         });
 }
 
@@ -1294,6 +1468,8 @@ sidebarLinks.forEach(link => {
             loadAutoplaySettings();
             loadCommenterProfileStyle();
             loadChannelDefaultView();
+            loadVideoPageLayout();
+            loadPlaylistPageLayout();
             loadChannelPageStyle();
             loadFuzzySubCount();
             loadHidePostImages();
@@ -1342,6 +1518,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize save buttons for preferences tab
     document.getElementById('saveCommenterStyleBtn')?.addEventListener('click', saveCommenterProfileStyle);
     document.getElementById('saveChannelDefaultViewBtn')?.addEventListener('click', saveChannelDefaultView);
+    document.getElementById('saveVideoPageLayoutBtn')?.addEventListener('click', saveVideoPageLayout);
+    document.getElementById('savePlaylistPageLayoutBtn')?.addEventListener('click', savePlaylistPageLayout);
     document.getElementById('saveChannelPageStyleBtn')?.addEventListener('click', saveChannelPageStyle);
     document.getElementById('saveFuzzySubCountBtn')?.addEventListener('click', saveFuzzySubCount);
     document.getElementById('saveHidePostImagesBtn')?.addEventListener('click', saveHidePostImages);
