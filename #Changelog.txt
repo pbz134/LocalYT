@@ -50,6 +50,7 @@ v4.20
 - Improved .video-length positioning on channel.html
 - Added .video-length to playlist.html
 - Made the channel profile pic slightly smaller on Classic styling
+- Added Classic playlist.html styling and Light Mode compatibility
 
 v4.10
 - Comments can now be liked

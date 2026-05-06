@@ -209,6 +209,11 @@
                 color: #666666 !important;
             }
 
+            .channel-name,
+            .classic-channel-name-text {
+                color: #000000 !important;
+            }
+
             /* Active Tab Color for Light Mode */
             .tab.active {
                 color: #333 !important;
