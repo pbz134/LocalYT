@@ -843,6 +843,33 @@
                 <div id="titleColorSchemeStatus" class="status-msg"></div>
             </div>
 
+            <!-- Configuration Import/Export Section -->
+            <div class="settings-section">
+                <h2 id="configImportExportHeading">Configuration</h2>
+                
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div id="configExportLabel">Export settings configuration</div>
+                        <div class="setting-description" id="configExportDesc">Download all current preference settings as a JSON file for backup</div>
+                    </div>
+                    <div class="setting-control">
+                        <button class="btn btn-save" id="exportConfigBtn">Export Config</button>
+                    </div>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div id="configImportLabel">Import settings configuration</div>
+                        <div class="setting-description" id="configImportDesc">Load preference settings from a previously exported JSON file</div>
+                    </div>
+                    <div class="setting-control">
+                        <label class="btn" for="importConfigInput" style="cursor: pointer; display: inline-block;">Import Config</label>
+                        <input type="file" id="importConfigInput" accept=".json" style="display: none;">
+                    </div>
+                </div>
+                <div id="configImportExportStatus" class="status-msg"></div>
+            </div>
+
         </div>
 
 
@@ -1032,6 +1059,14 @@ function applyTranslations() {
     // Modal buttons
     document.getElementById('cancelCropBtn').textContent = getLang('Cancel', 'Abbrechen');
     document.getElementById('doneCropBtn').textContent = getLang('Done', 'Fertig');
+    
+    // Configuration Import/Export Translations
+    document.getElementById('configImportExportHeading').textContent = getLang('Configuration', 'Konfiguration');
+    document.getElementById('configExportLabel').textContent = getLang('Export settings configuration', 'Einstellungen exportieren');
+    document.getElementById('configExportDesc').textContent = getLang('Download all current preference settings as a JSON file for backup', 'Alle aktuellen Einstellungen als JSON-Datei zum Sichern herunterladen');
+    document.getElementById('exportConfigBtn').textContent = getLang('Export Config', 'Konfiguration exportieren');
+    document.getElementById('configImportLabel').textContent = getLang('Import settings configuration', 'Einstellungen importieren');
+    document.getElementById('configImportDesc').textContent = getLang('Load preference settings from a previously exported JSON file', 'Einstellungen aus einer zuvor exportierten JSON-Datei laden');
 }
 
 // ==============================
@@ -1524,6 +1559,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('saveFuzzySubCountBtn')?.addEventListener('click', saveFuzzySubCount);
     document.getElementById('saveHidePostImagesBtn')?.addEventListener('click', saveHidePostImages);
     document.getElementById('saveTitleColorSchemeBtn')?.addEventListener('click', saveTitleColorScheme);
+
+    // Initialize config import/export buttons
+    initConfigImportExport();
 
     // Wait for profile-pic.js to finish its session check before loading settings
     function waitForSessionCheck() {
@@ -2026,6 +2064,296 @@ function showStatus(elementId, message, success) {
     el.textContent = message;
     el.className = 'status-msg ' + (success ? 'success' : 'error');
     setTimeout(function() { el.textContent = ''; }, 3000);
+}
+
+// ==============================
+// Configuration Import/Export Logic
+// ==============================
+function initConfigImportExport() {
+    // Export button handler
+    document.getElementById('exportConfigBtn').addEventListener('click', exportConfiguration);
+    
+    // Import input handler
+    document.getElementById('importConfigInput').addEventListener('change', importConfiguration);
+}
+
+function gatherCurrentSettings() {
+    // Gather all current preference settings from the UI and localStorage
+    const config = {};
+    
+    // Autoplay settings
+    const autoplaySettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
+    config.autoplaySettings = {
+        enabled: document.getElementById('autoplayEnabled').checked,
+        playlistNext: document.getElementById('autoplayPlaylistNext').checked,
+        nonPlaylistMode: document.getElementById('autoplayNonPlaylistMode').value
+    };
+    
+    // Commenter profile style
+    config.commenterProfileStyle = document.getElementById('commenterProfileStyle').value;
+    
+    // Channel default view
+    config.channelDefaultView = document.getElementById('channelDefaultView').value;
+    
+    // Video page layout
+    config.videoPageLayout = document.getElementById('videoPageLayout').value;
+    
+    // Playlist page layout
+    config.playlistPageLayout = document.getElementById('playlistPageLayout').value;
+    
+    // Channel page style
+    config.channelPageStyle = document.getElementById('channelPageStyle').value;
+    
+    // Fuzzy subscription count
+    config.fuzzySubCount = document.getElementById('fuzzySubCount').checked;
+    
+    // Hide post images
+    config.hidePostImages = document.getElementById('hidePostImages').checked;
+    
+    // Title color scheme
+    config.titleColorScheme = document.getElementById('titleColorScheme').value;
+    
+    return config;
+}
+
+function exportConfiguration() {
+    try {
+        const config = gatherCurrentSettings();
+        const jsonString = JSON.stringify(config, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'localyt-config.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showStatus('configImportExportStatus', getLang('Configuration exported successfully!', 'Konfiguration erfolgreich exportiert!'), true);
+    } catch (error) {
+        console.error('Export error:', error);
+        showStatus('configImportExportStatus', getLang('Error exporting configuration.', 'Fehler beim Exportieren der Konfiguration.'), false);
+    }
+}
+
+function importConfiguration(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const config = JSON.parse(e.target.result);
+            
+            // Validate the configuration structure
+            if (!validateConfig(config)) {
+                showStatus('configImportExportStatus', getLang('Invalid configuration file. The configuration appears to be tampered with or contains invalid values.', 'Ungültige Konfigurationsdatei. Die Konfiguration scheint manipuliert zu sein oder enthält ungültige Werte.'), false);
+                return;
+            }
+            
+            // Apply all settings from the imported configuration
+            applyConfiguration(config);
+            
+            // Save all settings to server
+            saveImportedConfiguration(config);
+            
+            showStatus('configImportExportStatus', getLang('Configuration imported successfully! All settings have been applied.', 'Konfiguration erfolgreich importiert! Alle Einstellungen wurden angewendet.'), true);
+            
+        } catch (error) {
+            console.error('Import error:', error);
+            showStatus('configImportExportStatus', getLang('Invalid configuration file. The configuration appears to be tampered with or contains invalid values.', 'Ungültige Konfigurationsdatei. Die Konfiguration scheint manipuliert zu sein oder enthält ungültige Werte.'), false);
+        }
+        
+        // Reset the file input so the same file can be imported again if needed
+        event.target.value = '';
+    };
+    reader.readAsText(file);
+}
+
+function validateConfig(config) {
+    // Check if config is an object
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+        return false;
+    }
+    
+    // Validate autoplay settings
+    if (config.autoplaySettings) {
+        const autoplay = config.autoplaySettings;
+        if (typeof autoplay.enabled !== 'boolean') return false;
+        if (typeof autoplay.playlistNext !== 'boolean') return false;
+        const validModes = ['first-recommended', 'random-recommended', 'random-database'];
+        if (!validModes.includes(autoplay.nonPlaylistMode)) return false;
+    }
+    
+    // Validate commenter profile style
+    if (config.commenterProfileStyle && !['modern', 'classic'].includes(config.commenterProfileStyle)) {
+        return false;
+    }
+    
+    // Validate channel default view
+    if (config.channelDefaultView && !['grid', 'list'].includes(config.channelDefaultView)) {
+        return false;
+    }
+    
+    // Validate video page layout
+    if (config.videoPageLayout && !['modern', 'classic'].includes(config.videoPageLayout)) {
+        return false;
+    }
+    
+    // Validate playlist page layout
+    if (config.playlistPageLayout && !['grid', 'list'].includes(config.playlistPageLayout)) {
+        return false;
+    }
+    
+    // Validate channel page style
+    if (config.channelPageStyle && !['modern', 'legacy'].includes(config.channelPageStyle)) {
+        return false;
+    }
+    
+    // Validate boolean settings
+    if (config.fuzzySubCount !== undefined && typeof config.fuzzySubCount !== 'boolean') {
+        return false;
+    }
+    
+    if (config.hidePostImages !== undefined && typeof config.hidePostImages !== 'boolean') {
+        return false;
+    }
+    
+    // Validate title color scheme
+    if (config.titleColorScheme && !['white', 'blue'].includes(config.titleColorScheme)) {
+        return false;
+    }
+    
+    return true;
+}
+
+function applyConfiguration(config) {
+    // Apply autoplay settings
+    if (config.autoplaySettings) {
+        document.getElementById('autoplayEnabled').checked = config.autoplaySettings.enabled;
+        document.getElementById('autoplayPlaylistNext').checked = config.autoplaySettings.playlistNext;
+        document.getElementById('autoplayNonPlaylistMode').value = config.autoplaySettings.nonPlaylistMode;
+        
+        // Update sub-options visibility
+        const subOptions = document.getElementById('autoplaySubOptions');
+        if (config.autoplaySettings.enabled) {
+            subOptions.classList.add('visible');
+        } else {
+            subOptions.classList.remove('visible');
+        }
+        
+        // Save to localStorage
+        localStorage.setItem('autoplaySettings', JSON.stringify(config.autoplaySettings));
+    }
+    
+    // Apply commenter profile style
+    if (config.commenterProfileStyle) {
+        document.getElementById('commenterProfileStyle').value = config.commenterProfileStyle;
+        localStorage.setItem('commenterProfileStyle', JSON.stringify({ style: config.commenterProfileStyle }));
+    }
+    
+    // Apply channel default view
+    if (config.channelDefaultView) {
+        document.getElementById('channelDefaultView').value = config.channelDefaultView;
+        localStorage.setItem('channelDefaultView', JSON.stringify({ view: config.channelDefaultView }));
+    }
+    
+    // Apply video page layout
+    if (config.videoPageLayout) {
+        document.getElementById('videoPageLayout').value = config.videoPageLayout;
+        localStorage.setItem('videoPageLayout', JSON.stringify({ layout: config.videoPageLayout }));
+    }
+    
+    // Apply playlist page layout
+    if (config.playlistPageLayout) {
+        document.getElementById('playlistPageLayout').value = config.playlistPageLayout;
+        localStorage.setItem('playlistPageLayout', JSON.stringify({ view: config.playlistPageLayout }));
+    }
+    
+    // Apply channel page style
+    if (config.channelPageStyle) {
+        document.getElementById('channelPageStyle').value = config.channelPageStyle;
+        localStorage.setItem('channelPageStyle', JSON.stringify({ style: config.channelPageStyle }));
+    }
+    
+    // Apply fuzzy subscription count
+    if (config.fuzzySubCount !== undefined) {
+        document.getElementById('fuzzySubCount').checked = config.fuzzySubCount;
+        localStorage.setItem('fuzzySubCount', JSON.stringify({ enabled: config.fuzzySubCount }));
+    }
+    
+    // Apply hide post images
+    if (config.hidePostImages !== undefined) {
+        document.getElementById('hidePostImages').checked = config.hidePostImages;
+        localStorage.setItem('hidePostImages', JSON.stringify({ enabled: config.hidePostImages }));
+    }
+    
+    // Apply title color scheme
+    if (config.titleColorScheme) {
+        document.getElementById('titleColorScheme').value = config.titleColorScheme;
+        localStorage.setItem('titleColorScheme', JSON.stringify({ scheme: config.titleColorScheme }));
+    }
+}
+
+function saveImportedConfiguration(config) {
+    // Fetch current settings from server and merge with imported config
+    fetch('/user-settings')
+        .then(res => res.json())
+        .then(currentSettings => {
+            const updatedSettings = { ...currentSettings };
+            
+            // Merge imported settings
+            if (config.autoplaySettings) {
+                // Autoplay settings are saved separately
+                fetch('/autoplay-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ autoplay: config.autoplaySettings })
+                }).catch(err => console.error('Error saving autoplay settings:', err));
+            }
+            
+            if (config.commenterProfileStyle) {
+                updatedSettings.commenterProfileStyle = config.commenterProfileStyle;
+            }
+            
+            if (config.channelDefaultView) {
+                updatedSettings.channelDefaultView = config.channelDefaultView;
+            }
+            
+            if (config.videoPageLayout) {
+                updatedSettings.videoPageLayout = config.videoPageLayout;
+            }
+            
+            if (config.playlistPageLayout) {
+                updatedSettings.playlistPageLayout = config.playlistPageLayout;
+            }
+            
+            if (config.channelPageStyle) {
+                updatedSettings.channelPageStyle = config.channelPageStyle;
+            }
+            
+            if (config.fuzzySubCount !== undefined) {
+                updatedSettings.fuzzySubCount = config.fuzzySubCount;
+            }
+            
+            if (config.hidePostImages !== undefined) {
+                updatedSettings.hidePostImages = config.hidePostImages;
+            }
+            
+            if (config.titleColorScheme) {
+                updatedSettings.titleColorScheme = config.titleColorScheme;
+            }
+            
+            // Save merged settings to server
+            return fetch('/user-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings: updatedSettings })
+            });
+        })
+        .catch(err => console.error('Error saving imported configuration to server:', err));
 }
     </script>
     <!-- External Search Suggestion Script (Handles dropdown logic) -->
