@@ -3431,6 +3431,10 @@ function toggleLiveChat() {
                 border-radius: 2px !important;
             }
 
+            .channel-info.classic-layout .channel-name:hover {
+                text-decoration: underline !important;
+            }
+
             /* --- Subscribe and Sub-Count Wrapper for Classic Mode --- */
             .subscribe-count-wrapper {
                 display: flex;
@@ -3675,26 +3679,38 @@ function toggleLiveChat() {
                     text-decoration: underline !important;
                     cursor: pointer !important;
                 }
+                
+                html body .suggestion-title.blue-text:hover {
+                    color: #3ea6ff !important;
+                }
+                
+                html body .channel-name.blue-text:hover {
+                    text-decoration: underline !important;
+                }
             `;
             
             document.head.appendChild(style);
             
-            // Add class to existing comment authors
-            document.querySelectorAll('.comment-author').forEach(el => {
+            // Add class to existing elements
+            document.querySelectorAll('.comment-author, .suggestion-title, .channel-name').forEach(el => {
                 el.classList.add('blue-text');
             });
             
-            // Watch for dynamically loaded comments
+            // Watch for dynamically loaded comments and sidebar items
             const observer = new MutationObserver((mutations) => {
                 mutations.forEach((mutation) => {
                     mutation.addedNodes.forEach((node) => {
                         if (node.nodeType === 1) {
-                            if (node.matches && node.matches('.comment-author')) {
+                            if (node.matches && (
+                                node.matches('.comment-author') || 
+                                node.matches('.suggestion-title') || 
+                                node.matches('.channel-name')
+                            )) {
                                 node.classList.add('blue-text');
                             }
                             
                             if (node.querySelectorAll) {
-                                node.querySelectorAll('.comment-author').forEach(el => {
+                                node.querySelectorAll('.comment-author, .suggestion-title, .channel-name').forEach(el => {
                                     el.classList.add('blue-text');
                                 });
                             }
@@ -3705,7 +3721,7 @@ function toggleLiveChat() {
             
             observer.observe(document.body, { childList: true, subtree: true });
         } else {
-            document.querySelectorAll('.comment-author.blue-text').forEach(el => el.classList.remove('blue-text'));
+            document.querySelectorAll('.comment-author.blue-text, .suggestion-title.blue-text, .channel-name.blue-text').forEach(el => el.classList.remove('blue-text'));
         }
     }
 
