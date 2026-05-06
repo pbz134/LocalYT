@@ -49,6 +49,7 @@ v4.20
 - Preferences can now be exported and imported on settings.html
 - Improved .video-length positioning on channel.html
 - Added .video-length to playlist.html
+- Made the channel profile pic slightly smaller on Classic styling
 
 v4.10
 - Comments can now be liked
