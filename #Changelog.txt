@@ -51,8 +51,12 @@ v4.20
 - Added .video-length to playlist.html
 - Made the channel profile pic slightly smaller on Classic styling
 - Added Classic playlist.html styling and Light Mode compatibility
+  - This will lock the view to "List" only
 - Blank playlist thumbnails on channel.html fallback to the next available thumbnail
   - This means that all playlist thumbnails should be visible
+- Implemented playlist descriptions
+  - Put your playlist description TXT files into /playlist-descriptions/[channelname]/[playlistname].txt
+  - Note that they only show up on Classic styling for now
 
 v4.10
 - Comments can now be liked
