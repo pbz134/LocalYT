@@ -47,6 +47,8 @@ v4.20
 - You can now toggle playlist.html videos between the standard grid and a list view
 - Fixed the video/duration count positioning on playlist.html
 - Preferences can now be exported and imported on settings.html
+- Improved .video-length positioning on channel.html
+- Added .video-length to playlist.html
 
 v4.10
 - Comments can now be liked

@@ -300,13 +300,12 @@
         }
         .video-length {
             position: absolute;
-            bottom: 8px;
-            right: 8px;
+            bottom: 4px;
+            right: 4px;
             background: rgba(0, 0, 0, 0.8);
             color: white;
             padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: bold;
         }
 
@@ -733,6 +732,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         // We do this inside the fetch so it updates as lengths load
                         const formattedTotal = formatTotalDuration(totalPlaylistSeconds);
                         playlistDurationEl.textContent = `${getLang('Total duration', 'Gesamtdauer')}: ${formattedTotal}`;
+
+                        // Update individual video length badges
+                        const videoPathWithoutExt = video.path.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+                        const lengthElement = document.querySelector(`[data-video-path="${encodeURIComponent(videoPathWithoutExt)}"] .video-length`);
+                        if (lengthElement && length.trim()) {
+                            lengthElement.textContent = length.trim();
+                        }
                     })
                     .catch(error => {
                         console.error('Error fetching video length:', error);
@@ -752,7 +758,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const videoElement = document.createElement('div');
             videoElement.className = 'video-item';
             const videoTitle = video.displayName;
-            const thumbnailSrc = `/thumbnails/${encodeURIComponent(video.path.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, ''))}.jpg`;
+            const videoPathWithoutExt = video.path.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+            const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
 
             // Format view count for current language
             let rawViews = (video.viewCount || "0").replace(/,/g, '');
@@ -761,6 +768,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (localStorage.getItem('language') === 'de') {
                 formattedViewCount = formattedViewCount.replace(/,/g, '.');
             }
+
+            // Add data attribute for finding this specific video's length element later
+            videoElement.setAttribute('data-video-path', encodeURIComponent(videoPathWithoutExt));
 
             videoElement.innerHTML = `
                 <div class="thumbnail-container">
@@ -848,6 +858,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             renderVideos(sortedVideos);
+
+            // Re-fetch lengths after re-render since DOM elements are replaced
+            sortedVideos.forEach(video => {
+                const videoPathWithoutExt = video.path.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+                fetch(`/videolengths/${channel}/${encodeURIComponent(video.path.split('/').pop().replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, ''))}.txt`)
+                    .then(response => response.text())
+                    .then(length => {
+                        const lengthElement = document.querySelector(`[data-video-path="${encodeURIComponent(videoPathWithoutExt)}"] .video-length`);
+                        if (lengthElement && length.trim()) {
+                            lengthElement.textContent = length.trim();
+                        }
+                    })
+                    .catch(() => {});
+            });
         });
     });
 
