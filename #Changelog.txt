@@ -43,6 +43,7 @@ v4.20
 - Removed some border-radiuses on settings.html
 - Made some cosmetic changes to video.html
 - Slightly decreased the video container size on video.html
+- The playlist manager is now scrollable on 6 or more videos instead of 8 or more
 
 v4.10
 - Comments can now be liked
