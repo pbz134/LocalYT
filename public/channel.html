@@ -2461,10 +2461,6 @@ function getMimeType(extension) {
 
             const playlistUrl = `playlist.html?channel=${encodeURIComponent(channel)}&playlist=${encodeURIComponent(playlist.path)}`;
 
-            const thumbnailStyle = playlist.thumbnail 
-                ? `background-image: url('${playlist.thumbnail.replace(/'/g, "\\'")}');` 
-                : 'background-color: #333;';
-
             let overlayHtml;
             if (isClassic) {
                 overlayHtml = `
@@ -2480,37 +2476,62 @@ function getMimeType(extension) {
 
             const displayTitle = playlist.displayName || playlist.name || playlist.title || playlist.path;
 
+            // Create the thumbnail div with a default grey background
             playlistElement.innerHTML = `
-                <div class="playlist-thumbnail" style="${thumbnailStyle}"><div class="playlist-overlay">${overlayHtml}</div></div>
+                <div class="playlist-thumbnail" style="background-color: #333;"><div class="playlist-overlay">${overlayHtml}</div></div>
                 <div class="playlist-title">${displayTitle}</div>
                 <div class="playlist-video-count">${playlist.videoCount || 0} ${videosText}</div>
             `;
 
-            playlistElement.addEventListener('click', () => {
-                window.location.href = playlistUrl;
-            });
+            const thumbnailDiv = playlistElement.querySelector('.playlist-thumbnail');
+            const mainThumbnailSrc = (playlist.thumbnail && playlist.thumbnail.trim() !== '') ? playlist.thumbnail : null;
 
-            playlistElement.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                window.open(playlistUrl, '_blank');
-            });
+            if (mainThumbnailSrc) {
+                // Test main thumbnail to see if it actually exists
+                const testImg = new Image();
+                testImg.onload = function() {
+                    thumbnailDiv.style.backgroundImage = `url('${testImg.src.replace(/'/g, "\\'")}')`;
+                };
+                testImg.onerror = function() {
+                    // Main thumbnail 404'd, fetch real first video from playlist exactly like playlist.html
+                    fetchRealFirstVideoThumbnail(channel, playlist.path, thumbnailDiv);
+                };
+                
+                // Using the URL constructor fixes the NS_BINDING_ABORTED errors caused by unencoded spaces
+                try {
+                    testImg.src = new URL(mainThumbnailSrc, window.location.origin).href;
+                } catch(e) {
+                    fetchRealFirstVideoThumbnail(channel, playlist.path, thumbnailDiv);
+                }
+            } else {
+                // No main thumbnail provided, fetch real first video directly
+                fetchRealFirstVideoThumbnail(channel, playlist.path, thumbnailDiv);
+            }
 
-            playlistElement.addEventListener('mouseup', (e) => {
-                if (e.button === 1) {
-                    e.preventDefault();
-                    window.open(playlistUrl, '_blank');
-                }
-            });
-            
-            playlistElement.addEventListener('auxclick', (e) => {
-                if (e.button === 1) {
-                    e.preventDefault();
-                    window.open(playlistUrl, '_blank');
-                }
-            });
+            playlistElement.addEventListener('click', () => { window.location.href = playlistUrl; });
+            playlistElement.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open(playlistUrl, '_blank'); });
+            playlistElement.addEventListener('mouseup', (e) => { if (e.button === 1) { e.preventDefault(); window.open(playlistUrl, '_blank'); } });
+            playlistElement.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); window.open(playlistUrl, '_blank'); } });
 
             playlistsContainer.appendChild(playlistElement);
         });
+    }
+
+    function fetchRealFirstVideoThumbnail(channelName, playlistPath, thumbnailDiv) {
+        fetch(`/playlist-videos/${encodeURIComponent(channelName)}/${encodeURIComponent(playlistPath)}`)
+            .then(response => response.json())
+            .then(videos => {
+                if (videos && videos.length > 0 && videos[0].path) {
+                    const pathWithoutExt = videos[0].path.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+                    const fallbackSrc = `/thumbnails/${encodeURIComponent(pathWithoutExt)}.jpg`;
+                    thumbnailDiv.style.backgroundImage = `url('${fallbackSrc}')`;
+                } else {
+                    thumbnailDiv.style.backgroundColor = '#333';
+                }
+            })
+            .catch(() => {
+                thumbnailDiv.style.backgroundColor = '#333';
+            });
     }
 
     function loadAbout() {

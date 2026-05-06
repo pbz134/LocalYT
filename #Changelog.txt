@@ -51,6 +51,8 @@ v4.20
 - Added .video-length to playlist.html
 - Made the channel profile pic slightly smaller on Classic styling
 - Added Classic playlist.html styling and Light Mode compatibility
+- Blank playlist thumbnails on channel.html fallback to the next available thumbnail
+  - This means that all playlist thumbnails should be visible
 
 v4.10
 - Comments can now be liked
