@@ -1208,7 +1208,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="video-length"></div>
                 </div>
                 <div class="video-title">${videoTitle}</div>
-                <div class="video-description">${formattedViewCount} ${getLang('views', 'Aufrufe')} • ${getLang('Uploaded on', 'Hochgeladen am')} ${video.fileDate}</div>
+                <div class="video-description">${document.body.classList.contains('classic-channel') ? `by ${channel}&nbsp;&nbsp;${formattedViewCount} ${getLang('views', 'Aufrufe')}` : `${formattedViewCount} ${getLang('views', 'Aufrufe')} • ${getLang('Uploaded on', 'Hochgeladen am')} ${video.fileDate}`}</div>
             `;
             
             videosContainer.appendChild(videoElement);
