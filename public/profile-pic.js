@@ -228,10 +228,10 @@
                 color: #333 !important;
             }
 
-            /* Replace #e3e3e3 with #000000 (Post text) */
             [style*="color: rgb(227, 227, 227)"],
             [style*="color: #e3e3e3"],
-            .post-content-text {
+            .post-content-text,
+            .classic-playlist-description {
                 color: #000000 !important;
             }
 
