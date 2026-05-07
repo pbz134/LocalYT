@@ -58,6 +58,7 @@ v4.20
   - Put your playlist description TXT files into /playlist-descriptions/[channelname]/[playlistname].txt
   - Note that they only show up on Classic styling for now
 - Improved .video-length positioning on video.html
+- Fixed search result titles getting cut off if longer than two lines
 
 v4.10
 - Comments can now be liked
