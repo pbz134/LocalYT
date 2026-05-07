@@ -863,7 +863,7 @@
                         <div class="setting-description" id="configImportDesc">Load preference settings from a previously exported JSON file</div>
                     </div>
                     <div class="setting-control">
-                        <label class="btn" for="importConfigInput" style="cursor: pointer; display: inline-block;">Import Config</label>
+                        <label class="btn" for="importConfigInput" style="cursor: pointer; display: inline-block;" id="importConfigLabelBtn">Import Config</label>
                         <input type="file" id="importConfigInput" accept=".json" style="display: none;">
                     </div>
                 </div>
@@ -1067,6 +1067,7 @@ function applyTranslations() {
     document.getElementById('exportConfigBtn').textContent = getLang('Export Config', 'Konfiguration exportieren');
     document.getElementById('configImportLabel').textContent = getLang('Import settings configuration', 'Einstellungen importieren');
     document.getElementById('configImportDesc').textContent = getLang('Load preference settings from a previously exported JSON file', 'Einstellungen aus einer zuvor exportierten JSON-Datei laden');
+    document.getElementById('importConfigLabelBtn').textContent = getLang('Import Config', 'Konfiguration importieren');
 }
 
 // ==============================

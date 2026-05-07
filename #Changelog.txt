@@ -59,6 +59,7 @@ v4.20
   - Note that they only show up on Classic styling for now
 - Improved .video-length positioning on video.html
 - Fixed search result titles getting cut off if longer than two lines
+- Added some missing German translations
 
 v4.10
 - Comments can now be liked
