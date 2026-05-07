@@ -228,6 +228,29 @@
                 color: #333 !important;
             }
 
+            /* Search Suggestions Light Mode */
+            .suggestion-item {
+                background-color: #ffffff !important;
+                color: #0f0f0f !important;
+            }
+
+            .suggestion-item:hover {
+                background-color: #e0e0e0 !important;
+            }
+
+            .search-suggestions {
+                background-color: #ffffff !important;
+                border-color: rgba(0, 0, 0, 0.1) !important;
+            }
+
+            .suggestion-item .history-icon {
+                filter: invert(0) !important;
+            }
+
+            .suggestion-item .history-icon {
+                filter: invert(0.8) !important;
+            }
+
             [style*="color: rgb(227, 227, 227)"],
             [style*="color: #e3e3e3"],
             .post-content-text,
