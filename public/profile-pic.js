@@ -457,7 +457,7 @@
                     }
             .video-description,
             .video-description.collapsed {
-                color: #000000 !important;
+                color: #aaaaaa !important;
             }
                 `;
                 const old = document.getElementById('oled-black-override');
