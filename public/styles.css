@@ -48,8 +48,8 @@ body {
 }
 
 .logo {
-    width: 175px;
-    height: 20px;
+    width: 160px;
+    height: auto;
     cursor: pointer;
 }
 
@@ -332,11 +332,11 @@ body {
 
 .video-length {
     position: absolute;
-    bottom: 4px;
-    right: 10px;
+    bottom: 2px;
+    right: 12px;
     background-color: rgba(0, 0, 0, 0.5);
     color: #fff;
-    padding: 2px 5px;
+    padding: 2px 4px;
     font-size: 10px;
 }
 
@@ -431,6 +431,25 @@ img.search-icon {
     border-color: #fff;
 }
 /* --- End search icon --- */
+
+/* --- Logo Container Logic --- */
+#mainLogo {
+    display: block;
+    /* Ensure no extra margins break the inline look */
+    margin: 0; 
+}
+
+#logo-version {
+    /* Prevents the version text from wrapping to the next line on small screens */
+    white-space: nowrap;
+    
+    /* Aligns text vertically with the logo image */
+    line-height: 1;
+    
+    /* Cursor pointer so it looks clickable like the logo */
+    cursor: pointer;
+}
+/* --- End Logo Container Logic --- */
 
 /* --- Profile Picture --- */
 .header-profile-pic {
