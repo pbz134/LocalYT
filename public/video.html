@@ -2353,7 +2353,7 @@ document.addEventListener('click', function(e) {
                     videos.sort(naturalCompare);
                     
                     // Find current video index
-                    const currentIndex = videos.findIndex(v => safeDecodeURIComponent(v.path) === safedecodeURIComponent(videoSrc));
+                    const currentIndex = videos.findIndex(v => safeDecodeURIComponent(v.path) === safeDecodeURIComponent(videoSrc));
                     
                     if (currentIndex !== -1 && currentIndex < videos.length - 1) {
                         // Go to next video in playlist
