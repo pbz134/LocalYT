@@ -2,6 +2,9 @@
 
 v4.30
 - Special Christmas logo overlay for December
+- Updated createFiledates.py
+  - The script now grabs the file creation dates from the embedded metadata first
+  - This leads to slower but much more accurate offline file date generation
 
 v4.20
 - New Appearance setting in settings.html
