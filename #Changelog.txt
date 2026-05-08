@@ -1,5 +1,8 @@
 +++LocalYT Revamped - Changelog+++
 
+v4.30
+- Special Christmas logo overlay for December
+
 v4.20
 - New Appearance setting in settings.html
   - This changes all video and playlist titles from white/black to blue

@@ -116,7 +116,7 @@
 
         const isLight = getSetting('appearanceMode', 'dark') === 'light';
         const targetColor = isLight ? '#333333' : '#ffffff';
-        const versionTextColor = isLight ? '#999999' : '#c8c8c8'; // Dark grey for light mode, light grey for dark
+        const versionTextColor = isLight ? '#999999' : '#c8c8c8';
 
         // If it's already correctly colored (e.g. from a previous run), do nothing
         if (logo.dataset.currentLogoColor === targetColor) return;
@@ -124,28 +124,106 @@
         fetch('LocalYT-Rev-Files/Logo.svg')
             .then(response => response.text())
             .then(svgText => {
-                // 1. Identify the 6 icon paths inside the red box (lines between the first <g> and </g>)
-                //    and temporarily mark them so they don't get changed.
                 const protectedSvg = svgText.replace(
                     /(<g clip-path="url\(#clip1_2733_1405\)">[\s\S]*?<\/g>)/,
                     (match) => match.replace(/fill="white"/g, 'fill="KEEP_WHITE"')
                 );
 
-                // 2. Now safely change all remaining 'fill="white"' (the text) to the target color
                 let modifiedSvg = protectedSvg.replace(/fill="white"/g, `fill="${targetColor}"`);
-
-                // 3. Restore the icon back to standard white
                 modifiedSvg = modifiedSvg.replace(/fill="KEEP_WHITE"/g, 'fill="white"');
 
-                // 5. Encode to Base64 Data URI to guarantee browser renders exactly this
                 const base64Svg = btoa(unescape(encodeURIComponent(modifiedSvg)));
                 logo.src = `data:image/svg+xml;base64,${base64Svg}`;
                 
                 // Mark as colored so we don't re-fetch unnecessarily
                 logo.dataset.currentLogoColor = targetColor;
             })
+            .then(() => {
+                applyChristmasHat(); 
+            })
             .catch(err => {
                 console.error('Failed to load SVG for coloring, falling back to default:', err);
+            });
+    }
+
+    // ======================================================================
+    // CHRISTMAS HAT OVERLAY (Server Time Check)
+    // ======================================================================
+    function applyChristmasHat() {
+        const logo = document.getElementById('mainLogo');
+        if (!logo) return;
+
+        // Prevent applying it multiple times
+        if (logo.dataset.christmasHatApplied === 'true') return;
+
+        // 1. Perform a lightweight HEAD request to grab the Server's Date header
+        fetch(window.location.href, { method: 'HEAD' })
+            .then(response => {
+                const serverDateStr = response.headers.get('Date');
+                if (!serverDateStr) return;
+                
+                const serverMonth = new Date(serverDateStr).getMonth(); // 0 = Jan, 11 = Dec
+                
+                // 2. Only apply if the server time is in December
+                if (serverMonth !== 11) return;
+
+                // 3. Wait for layout calculation so offsetWidth/Height are guaranteed to be > 0
+                requestAnimationFrame(() => {
+                    // If it was applied in a previous frame, abort
+                    if (logo.dataset.christmasHatApplied === 'true') return;
+
+                    const logoWidth = logo.offsetWidth;
+                    const logoHeight = logo.offsetHeight;
+
+                    if (logoWidth === 0 || logoHeight === 0) {
+                        // Fallback if still no dimensions somehow
+                        return;
+                    }
+
+                    // 4. Ensure the logo is inside a wrapper (we cannot append children to <img>)
+                    let wrapper = logo.parentElement;
+                    if (!wrapper.classList.contains('christmas-logo-wrapper')) {
+                        wrapper = document.createElement('div');
+                        wrapper.className = 'christmas-logo-wrapper';
+                        wrapper.style.position = 'relative';
+                        wrapper.style.display = 'inline-flex';
+                        wrapper.style.alignItems = 'center';
+                        wrapper.style.overflow = 'visible';
+                        logo.parentNode.insertBefore(wrapper, logo);
+                        wrapper.appendChild(logo);
+                    }
+
+                    // 5. Create the hat element
+                    const hatImg = document.createElement('img');
+                    hatImg.src = '/LocalYT-Rev-Files/christmas-hat.png';
+                    hatImg.className = 'christmas-hat-overlay';
+                    hatImg.draggable = false;
+
+                    // Size the hat relative to the logo
+                    const hatWidth = logoWidth * 0.18; 
+                    
+                    // Calculate offsets to align perfectly with the top-left edge
+                    const offsetY = -(hatWidth * 0.45); // Push up slightly
+                    const offsetX = -(hatWidth * -0.55);  // Push left slightly
+
+                    Object.assign(hatImg.style, {
+                        position: 'absolute',
+                        top: `${offsetY}px`,
+                        left: `${offsetX}px`,
+                        width: `${hatWidth}px`,
+                        height: 'auto',
+                        pointerEvents: 'none',
+                        zIndex: '10',
+                        transform: 'rotate(15deg)'
+                    });
+
+                    // 6. Append to the wrapper container (NOT the logo element)
+                    wrapper.appendChild(hatImg);
+                    logo.dataset.christmasHatApplied = 'true';
+                });
+            })
+            .catch(err => {
+                console.error('Failed to check server time for Christmas hat:', err);
             });
     }
 
@@ -498,7 +576,7 @@
             
             document.querySelectorAll('.top-bar img').forEach(img => {
                 if (!img.id || img.id !== 'headerProfilePic') {
-                    if (!img.classList.contains('logo')) {
+                    if (!img.classList.contains('logo') && !img.classList.contains('christmas-hat-overlay')) {
                         img.style.filter = 'invert(1)';
                     }
                 }
@@ -681,25 +759,21 @@
         // --- Create Version Number Element ---
         const logo = document.getElementById('mainLogo');
         if (logo && !document.getElementById('logo-version')) {
-            // Ensure the logo is inside a wrapper for alignment, or just append after it
-            // We will insert the version span immediately after the logo image
             const versionSpan = document.createElement('span');
             versionSpan.id = 'logo-version';
-            versionSpan.textContent = 'v4.20'; // Current LocalYT version
+            versionSpan.textContent = 'v4.30'; // Current LocalYT version
             
-            // Apply styles based on current mode
             const isLight = getSetting('appearanceMode', 'dark') === 'light';
             versionSpan.style.color = isLight ? '#999999' : '#c8c8c8';
             versionSpan.style.fontFamily = "'RobotoRegular', Arial, sans-serif";
-            versionSpan.style.fontSize = "12px"; // Text size
-            versionSpan.style.marginLeft = "4px"; // Space between logo and text
-            versionSpan.style.transform = "translateY(-5px)"; // Text y position
+            versionSpan.style.fontSize = "12px";
+            versionSpan.style.marginLeft = "4px";
+            versionSpan.style.transform = "translateY(-5px)";
             versionSpan.style.userSelect = "none";
-            versionSpan.style.alignSelf = "center"; // Vertically center if parent is flex
+            versionSpan.style.alignSelf = "center";
             
             logo.parentNode.insertBefore(versionSpan, logo.nextSibling);
             
-            // Store reference to update color later if needed without reload
             window.logoVersionRef = versionSpan;
         }
         // --- End Version Number ---
