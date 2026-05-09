@@ -697,8 +697,14 @@
             margin-bottom: 5px;
         }
         .comments-count {
-            font-size: 20px;
-            font-weight: bold;
+            font-size: 17px;
+            font-weight: regular;
+            color: #fff;
+            margin-right: 4px;
+        }
+        #commentsTotalAmount {
+            font-size: 17px;
+            font-weight: regular;
             color: #fff;
             margin-right: 24px;
         }
@@ -992,7 +998,7 @@
 
         .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container:hover .fluid_controls_progress,
         .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container:hover .fluid_controls_buffered,
-        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container:hover .fluid_controls_ad_markers_holder {
+        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container:hover .fluid_controls_progress_container:hover .fluid_controls_ad_markers_holder {
             margin-top: 0px !important;
             height: 5px !important;
         }
@@ -1395,7 +1401,17 @@ function renderCommentsBatch() {
     const container = document.getElementById('commentsContainer');
     const countEl = document.getElementById('commentsCount');
 
-    countEl.textContent = (state.allTopLevel.length === 1 ? '1 Comment' : state.allTopLevel.length + ' Comments');
+    const totalCount = state.allTopLevel.length + state.allReplies.length;
+    countEl.textContent = getLang('Comments', 'Kommentare');
+    countEl.style.marginRight = '4px';
+    
+    let countSpan = document.getElementById('commentsTotalAmount');
+    if (!countSpan) {
+        countSpan = document.createElement('span');
+        countSpan.id = 'commentsTotalAmount';
+        countEl.parentNode.insertBefore(countSpan, countEl.nextSibling);
+    }
+    countSpan.textContent = ' \u2022 ' + totalCount.toLocaleString();
 
     const start = state.renderedCount;
     const end = Math.min(start + state.batchSize, state.allTopLevel.length);
@@ -1526,9 +1542,25 @@ function renderComments(comments, channelPicUrl, userCommentLikes = {}) {
         const lang = localStorage.getItem('language');
         if (lang === 'de') {
             countEl.textContent = 'Kommentare';
+            countEl.style.marginRight = '4px';
+            let countSpanDe = document.getElementById('commentsTotalAmount');
+            if (!countSpanDe) {
+                countSpanDe = document.createElement('span');
+                countSpanDe.id = 'commentsTotalAmount';
+                countEl.parentNode.insertBefore(countSpanDe, countEl.nextSibling);
+            }
+            countSpanDe.textContent = ' \u2022 0';
             container.innerHTML = '<div class="no-comments">Keine Kommentare für dieses Video vorhanden.</div>';
         } else {
             countEl.textContent = 'Comments';
+            countEl.style.marginRight = '4px';
+            let countSpanEn = document.getElementById('commentsTotalAmount');
+            if (!countSpanEn) {
+                countSpanEn = document.createElement('span');
+                countSpanEn.id = 'commentsTotalAmount';
+                countEl.parentNode.insertBefore(countSpanEn, countEl.nextSibling);
+            }
+            countSpanEn.textContent = ' \u2022 0';
             container.innerHTML = '<div class="no-comments">No comments available for this video.</div>';
         }
         return;
