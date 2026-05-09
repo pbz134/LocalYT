@@ -386,7 +386,8 @@
             .current-video-title,
             .comment-author,
             .comment-text,
-            .comments-count {
+            .comments-count,
+            #commentsTotalAmount {
                 color: #000000 !important;
             }
 
