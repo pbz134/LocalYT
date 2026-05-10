@@ -145,7 +145,7 @@
       "match_type": "contains",
       "match_value": "asmr",
       "case_sensitive": false,
-      "tags": ["ASMR"]
+      "tags": ["ASMR", "Relaxing"]
     },
     {
       "name": "Nightcore Rule",
