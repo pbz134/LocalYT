@@ -55,7 +55,7 @@
         volumeLow: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 9v6h4l5 5V4l-5 5H7z"/></svg>',
         volumeMute: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>',
         subtitles: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12zM6 10h2v2H6v-2zm0 4h8v2H6v-2zm10 0h2v2h-2v-2zm-6-4h8v2h-8v-2z"/></svg>',
-        speed: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 8v8l6-4-6-4zM6.3 5L5 6.3 6.3 5zM2 12l2.1 2.1L2 12zm4.3 7L5 17.7 6.3 19zM12 22l2.1-2.1L12 22zm5.7-3L19 17.7 17.7 19zM22 12l-2.1-2.1L22 12zm-4.3-7L19 6.3 17.7 5zM12 2L9.9 4.1 12 2z" opacity=".3"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-2-12l6 4-6 4V8z"/></svg>',
+        speed: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>',
         fullscreen: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>',
         fullscreenExit: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>'
     };
@@ -85,9 +85,10 @@
             this._seeking = false;
             this._statsInterval = null;
             this._fpsFrameId = null;
+            this._hasPlayedOnce = false; // Track if video has started playing
             
             // Version
-            this.version = 'v1.0.0';
+            this.version = 'v1.1.0';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -103,7 +104,11 @@
             
             // Set initial volume display
             this.updateVolumeIcon();
-            this.dom.volumeSlider.value = this.video.muted ? 0 : this.video.volume;
+            // Initialize volume bar width based on state
+            if(this.dom.volumeBar) {
+                const vol = this.video.muted ? 0 : this.video.volume;
+                this.dom.volumeFill.style.width = `${vol * 100}%`;
+            }
             
             // Apply subtitles on by default if option is set
             const layout = this.options.layoutControls || {};
@@ -117,6 +122,11 @@
             
             // Initial subtitle button opacity
             this.dom.subtitlesBtn.style.opacity = '0.6';
+            
+            // Set title text if provided
+            if (layout.title && this.dom.titleDisplay) {
+                this.dom.titleDisplay.textContent = layout.title;
+            }
             
             // Trigger user callback
             if (layout.playerInitCallback) {
@@ -142,6 +152,10 @@
         setupControls() {
             const layout = this.options.layoutControls || {};
             const primaryColor = layout.primaryColor || 'red';
+            const posterImage = layout.posterImage || '';
+
+            // FIX: Escaped single quotes properly for inline style attribute to prevent SyntaxError
+            const posterStyle = posterImage ? "background-image: url('" + posterImage.replace(/'/g, "\\'") + "');" : '';
 
             const controlsHtml = `
                 <style>
@@ -149,10 +163,62 @@
                     .fluid_video_wrapper {
                         position: relative !important;
                         overflow: hidden;
+                        background: #000;
                     }
                     .fluid_video_wrapper video {
                         display: block;
                         width: 100%;
+                        height: auto;
+                        aspect-ratio: 16 / 9;
+                    }
+                    
+                    /* Poster / Thumbnail Overlay */
+                    .lyt_poster_overlay {
+                        position: absolute;
+                        top: 0; left: 0; right: 0; bottom: 0;
+                        background-size: cover;
+                        background-position: center;
+                        background-repeat: no-repeat;
+                        z-index: 1;
+                        cursor: pointer;
+                        transition: opacity 0.2s ease;
+                        background-color: #000;
+                    }
+
+                    .fluid_video_wrapper video[poster] {
+                        object-fit: cover;
+                    }
+
+                    .video-stage .logo-overlay {
+                        position: absolute;
+                        z-index: 6;
+                        pointer-events: none;
+                    }
+
+                    .lyt_poster_overlay.lyt_hidden {
+                        opacity: 0;
+                        pointer-events: none;
+                    }
+                    
+                    /* Title Display (Top Left) */
+                    .lyt_title_display {
+                        position: absolute;
+                        top: 12px;
+                        left: 12px;
+                        color: #fff;
+                        font-size: 16px;
+                        font-family: 'Roboto', 'Arial', sans-serif;
+                        font-weight: 500;
+                        text-shadow: 0 1px 2px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.6);
+                        pointer-events: none;
+                        opacity: 0;
+                        transition: opacity 0.3s ease;
+                        z-index: 15;
+                        max-width: calc(100% - 120px);
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        line-height: 1.2;
                     }
                     
                     .lyt_controls_container {
@@ -167,6 +233,15 @@
                         z-index: 10;
                         user-select: none;
                     }
+                    
+                    .fluid_video_wrapper:hover .lyt_title_display,
+                    .lyt_controls_container.lyt_controls_visible ~ .lyt_title_display,
+                    .fluid_video_wrapper:hover .lyt_controls_container ~ .lyt_title_display,
+                    .lyt_controls_container.lyt_controls_visible + .lyt_title_display,
+                    .lyt_controls_container.lyt_controls_visible ~ .lyt_title_display {
+                        opacity: 1;
+                    }
+                    
                     .fluid_video_wrapper:hover .lyt_controls_container,
                     .lyt_controls_container.lyt_controls_visible {
                         opacity: 1;
@@ -184,7 +259,7 @@
                         transition: height 0.15s ease;
                     }
                     .lyt_progress_container:hover {
-                        height: 8px;
+                        height: 7px;
                     }
                     .lyt_progress_buffered {
                         position: absolute;
@@ -207,7 +282,6 @@
                         align-items: center;
                         justify-content: flex-end;
                     }
-                    /* The Red Dot at the front of the progress bar */
                     .lyt_progress_dot {
                         width: 13px;
                         height: 13px;
@@ -284,44 +358,50 @@
                         opacity: 0;
                         display: flex;
                         align-items: center;
+                        height: 24px; /* Increased height to fit the 13px dot vertically */
                     }
                     .lyt_volume_group:hover .lyt_volume_slider_wrap,
                     .lyt_volume_slider_wrap.lyt_slider_visible {
                         width: 70px;
                         opacity: 1;
                     }
-                    .lyt_volume_slider {
-                        -webkit-appearance: none;
-                        appearance: none;
+                    
+                    .lyt_volume_bar {
                         width: 64px;
                         height: 4px;
                         background: rgba(255,255,255,0.3);
                         border-radius: 2px;
-                        outline: none;
                         cursor: pointer;
+                        position: relative;
                         margin: 0 6px 0 4px;
+                        overflow: visible; /* Added to allow dot to overflow vertically */
                     }
-                    .lyt_volume_slider::-webkit-slider-thumb {
-                        -webkit-appearance: none;
-                        appearance: none;
-                        width: 12px;
-                        height: 12px;
-                        border-radius: 50%;
+                    .lyt_volume_fill {
+                        position: absolute;
+                        top: 0; left: 0;
+                        height: 100%;
                         background: #fff;
-                        cursor: pointer;
-                    }
-                    .lyt_volume_slider::-moz-range-thumb {
-                        width: 12px;
-                        height: 12px;
-                        border-radius: 50%;
-                        background: #fff;
-                        cursor: pointer;
-                        border: none;
-                    }
-                    .lyt_volume_slider::-moz-range-track {
-                        height: 4px;
                         border-radius: 2px;
-                        background: transparent;
+                        pointer-events: none;
+                        width: 100%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: flex-end;
+                        overflow: visible; /* Added to allow dot to overflow vertically */
+                    }
+                    /* The White Dot at the front of the volume bar */
+                    .lyt_volume_dot {
+                        width: 13px;
+                        height: 13px;
+                        background: #fff;
+                        border-radius: 50%;
+                        position: absolute;
+                        right: -6.5px;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        box-shadow: 0 0 4px rgba(0,0,0,0.5);
+                        z-index: 2;
+                        pointer-events: none;
                     }
                     
                     /* Time display */
@@ -380,7 +460,7 @@
                     /* Context Menu */
                     .lyt_context_menu {
                         position: absolute;
-                        background: rgba(50, 50, 50, 0.8); /* Dark grey with 20% transparency */
+                        background: rgba(50, 50, 50, 0.8);
                         border-radius: 4px;
                         padding: 4px 0;
                         min-width: 200px;
@@ -474,28 +554,33 @@
                         background: rgba(0,0,0,0.2);
                         pointer-events: none;
                     }
-                    .lds-ellipsis {
+                    .lyt-spinner {
                         display: inline-block;
-                        position: relative;
                         width: 64px;
-                        height: 32px;
+                        height: 64px;
                     }
-                    .lds-ellipsis div {
-                        position: absolute;
-                        top: 14px;
-                        width: 11px;
-                        height: 11px;
-                        border-radius: 50%;
-                        background: #fff;
-                        animation-timing-function: cubic-bezier(0, 1, 1, 0);
+                    .lyt-spinner svg {
+                        animation: lyt-rotate 2s linear infinite;
+                        width: 100%;
+                        height: 100%;
                     }
-                    .lds-ellipsis div:nth-child(1) { left: 6px; animation: lds-ellipsis1 0.6s infinite; }
-                    .lds-ellipsis div:nth-child(2) { left: 6px; animation: lds-ellipsis2 0.6s infinite; }
-                    .lds-ellipsis div:nth-child(3) { left: 26px; animation: lds-ellipsis2 0.6s infinite; }
-                    .lds-ellipsis div:nth-child(4) { left: 45px; animation: lds-ellipsis3 0.6s infinite; }
-                    @keyframes lds-ellipsis1 { 0% { transform: scale(0); } 100% { transform: scale(1); } }
-                    @keyframes lds-ellipsis3 { 0% { transform: scale(1); } 100% { transform: scale(0); } }
-                    @keyframes lds-ellipsis2 { 0% { transform: translate(0, 0); } 100% { transform: translate(19px, 0); } }
+                    .lyt-spinner circle {
+                        stroke: #fff;
+                        stroke-width: 4;
+                        stroke-linecap: round;
+                        fill: none;
+                        stroke-dasharray: 80, 200;
+                        stroke-dashoffset: 0;
+                        animation: lyt-dash 1.5s ease-in-out infinite;
+                    }
+                    @keyframes lyt-rotate {
+                        100% { transform: rotate(360deg); }
+                    }
+                    @keyframes lyt-dash {
+                        0% { stroke-dasharray: 1, 200; stroke-dashoffset: 0; }
+                        50% { stroke-dasharray: 90, 200; stroke-dashoffset: -35px; }
+                        100% { stroke-dasharray: 90, 200; stroke-dashoffset: -125px; }
+                    }
                     
                     /* Fullscreen pseudo fallback */
                     .fluid_video_wrapper.pseudo_fullscreen {
@@ -556,6 +641,12 @@
                     .lyt_copy_toast.show { opacity: 1; }
                 </style>
 
+                <!-- Poster/Thumbnail Overlay -->
+                <div class="lyt_poster_overlay" style="${posterStyle}"></div>
+
+                <!-- Title Display -->
+                <div class="lyt_title_display"></div>
+
                 <!-- Subtitles Overlay -->
                 <div class="lyt_subtitles_display"></div>
 
@@ -586,7 +677,12 @@
                             <div class="lyt_volume_group">
                                 <button class="lyt_btn lyt_btn_volume" aria-label="Volume">${SVG.volumeHigh}</button>
                                 <div class="lyt_volume_slider_wrap">
-                                    <input type="range" class="lyt_volume_slider" min="0" max="1" step="0.01" value="1">
+                                    <!-- New Volume Bar Structure -->
+                                    <div class="lyt_volume_bar">
+                                        <div class="lyt_volume_fill">
+                                            <div class="lyt_volume_dot"></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             
@@ -607,7 +703,7 @@
                 </div>
                 
                 <!-- Loading Spinner -->
-                <div class="vast_video_loading"><div class="lds-ellipsis"><div></div><div></div><div></div><div></div></div></div>
+                <div class="vast_video_loading"><div class="lyt-spinner"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="20"></circle></svg></div></div>
             `;
 
             this.wrapper.insertAdjacentHTML('beforeend', controlsHtml);
@@ -621,7 +717,9 @@
                 bufferBar: this.wrapper.querySelector('.lyt_progress_buffered'),
                 playBtn: this.wrapper.querySelector('.lyt_btn_play'),
                 volumeBtn: this.wrapper.querySelector('.lyt_btn_volume'),
-                volumeSlider: this.wrapper.querySelector('.lyt_volume_slider'),
+                volumeBar: this.wrapper.querySelector('.lyt_volume_bar'),       
+                volumeFill: this.wrapper.querySelector('.lyt_volume_fill'),   
+                volumeDot: this.wrapper.querySelector('.lyt_volume_dot'),     
                 volumeSliderWrap: this.wrapper.querySelector('.lyt_volume_slider_wrap'),
                 timeDisplay: this.wrapper.querySelector('.lyt_time'),
                 subtitlesBtn: this.wrapper.querySelector('.lyt_btn_subtitles'),
@@ -632,7 +730,9 @@
                 fullscreenBtn: this.wrapper.querySelector('.lyt_btn_fullscreen'),
                 loading: this.wrapper.querySelector('.vast_video_loading'),
                 preview: this.wrapper.querySelector('.lyt_timeline_preview'),
-                contextMenu: this.wrapper.querySelector('.lyt_context_menu')
+                contextMenu: this.wrapper.querySelector('.lyt_context_menu'),
+                posterOverlay: this.wrapper.querySelector('.lyt_poster_overlay'),
+                titleDisplay: this.wrapper.querySelector('.lyt_title_display')
             };
             
             this.buildSpeedMenu();
@@ -667,7 +767,10 @@
 
         bindEvents() {
             // Video Events
-            this.video.addEventListener('play', () => this.updatePlayPauseBtn(true));
+            this.video.addEventListener('play', () => {
+                this.updatePlayPauseBtn(true);
+                this.hidePoster();
+            });
             this.video.addEventListener('pause', () => this.updatePlayPauseBtn(false));
             this.video.addEventListener('timeupdate', () => this.updateTime());
             this.video.addEventListener('progress', () => this.updateBuffer());
@@ -701,29 +804,12 @@
                 this.toggleMute();
             });
             
-            // Volume slider
-            this.dom.volumeSlider.addEventListener('input', (e) => {
-                const vol = parseFloat(e.target.value);
-                this.video.volume = vol;
-                if (vol > 0) {
-                    this.video.muted = false;
-                    this._lastVolume = vol;
-                } else {
-                    this.video.muted = true;
-                }
-                this.isMuted = this.video.muted;
-                this.updateVolumeIcon();
-            });
+            // --- New Volume Bar Events (Drag handling) ---
+            this.dom.volumeBar.addEventListener('mousedown', (e) => this.handleVolumeDrag(e));
             
-            // Keep volume slider visible while dragging
-            this.dom.volumeSlider.addEventListener('mousedown', () => {
+            // Keep volume slider visible while interacting
+            this.dom.volumeBar.addEventListener('mousedown', () => {
                 this.dom.volumeSliderWrap.classList.add('lyt_slider_visible');
-            });
-            this.dom.volumeSlider.addEventListener('focus', () => {
-                this.dom.volumeSliderWrap.classList.add('lyt_slider_visible');
-            });
-            this.dom.volumeSlider.addEventListener('blur', () => {
-                this.dom.volumeSliderWrap.classList.remove('lyt_slider_visible');
             });
 
             // Progress Bar seeking
@@ -816,6 +902,24 @@
             this.video.textTracks.addEventListener('change', () => {
                 this.updateSubtitlesDisplay();
             });
+
+            // Poster click to play
+            if (this.dom.posterOverlay) {
+                this.dom.posterOverlay.addEventListener('click', () => {
+                    this.video.play();
+                    const logoOverlay = document.querySelector('.video-wrapper .logo-overlay');
+                    if (logoOverlay) {
+                        logoOverlay.style.display = 'none';
+                    }
+                });
+            }
+        }
+        
+        hidePoster() {
+            if (!this._hasPlayedOnce && this.dom.posterOverlay) {
+                this._hasPlayedOnce = true;
+                this.dom.posterOverlay.classList.add('lyt_hidden');
+            }
         }
         
         setupAutoHide() {
@@ -849,28 +953,24 @@
         }
 
         showContextMenu(clientX, clientY) {
-            this.closeContextMenu(); // Close any existing
+            this.closeContextMenu(); 
             
             const menu = this.dom.contextMenu;
             menu.classList.add('lyt_show');
             
-            // Position calculation to ensure menu stays within viewport bounds
             const wrapperRect = this.wrapper.getBoundingClientRect();
             const menuRect = menu.getBoundingClientRect();
             
             let x = clientX - wrapperRect.left;
             let y = clientY - wrapperRect.top;
             
-            // Prevent overflow right
             if (x + menuRect.width > wrapperRect.width) {
                 x = wrapperRect.width - menuRect.width;
             }
-            // Prevent overflow bottom
             if (y + menuRect.height > wrapperRect.height) {
                 y = wrapperRect.height - menuRect.height;
             }
             
-            // Prevent overflow left/top
             x = Math.max(0, x);
             y = Math.max(0, y);
             
@@ -881,8 +981,6 @@
         closeContextMenu() {
             this.dom.contextMenu.classList.remove('lyt_show');
         }
-
-        // --- State Updates ---
 
         updatePlayPauseBtn(isPlaying) {
             this.dom.playBtn.innerHTML = isPlaying ? SVG.pause : SVG.play;
@@ -914,12 +1012,10 @@
             if (this.video.muted || this.video.volume === 0) {
                 this.video.muted = false;
                 this.video.volume = this._lastVolume || 0.5;
-                this.dom.volumeSlider.value = this.video.volume;
                 this.isMuted = false;
             } else {
                 this._lastVolume = this.video.volume;
                 this.video.muted = true;
-                this.dom.volumeSlider.value = 0;
                 this.isMuted = true;
             }
             this.updateVolumeIcon();
@@ -939,10 +1035,11 @@
             }
             this.dom.volumeBtn.innerHTML = icon;
             
-            // Update volume slider fill background
-            const slider = this.dom.volumeSlider;
+            // Update volume bar fill width
             const percent = vol * 100;
-            slider.style.background = `linear-gradient(to right, #fff ${percent}%, rgba(255,255,255,0.3) ${percent}%)`;
+            if(this.dom.volumeFill) {
+                this.dom.volumeFill.style.width = `${percent}%`;
+            }
         }
         
         setPlaybackSpeed(speed) {
@@ -957,14 +1054,12 @@
             this.currentTrackIndex = trackIndex;
             const tracks = this.video.textTracks;
             
-            // Disable all tracks first
             for (let i = 0; i < tracks.length; i++) {
                 if (i !== trackIndex) {
                     tracks[i].mode = 'hidden';
                 }
             }
             
-            // Enable selected track
             if (trackIndex >= 0 && tracks[trackIndex]) {
                 tracks[trackIndex].mode = 'showing';
                 const trackElements = this.video.querySelectorAll('track');
@@ -1013,8 +1108,6 @@
             }
         }
 
-        // --- Interactions ---
-
         handleSeekDrag(e) {
             e.preventDefault();
             this._seeking = true;
@@ -1048,6 +1141,46 @@
             document.addEventListener('mouseup', upHandler);
         }
 
+        handleVolumeDrag(e) {
+            e.preventDefault();
+            const rect = this.dom.volumeBar.getBoundingClientRect();
+            
+            const calcVol = (clientX) => {
+                let x = clientX - rect.left;
+                let vol = x / rect.width;
+                return Math.max(0, Math.min(1, vol));
+            };
+
+            const setVolume = (vol) => {
+                this.video.volume = vol;
+                if (vol > 0) {
+                    this.video.muted = false;
+                    this._lastVolume = vol;
+                    this.isMuted = false;
+                } else {
+                    this.video.muted = true;
+                    this.isMuted = true;
+                }
+                this.updateVolumeIcon();
+            };
+
+            const initialVol = calcVol(e.clientX);
+            setVolume(initialVol);
+
+            const moveHandler = (ev) => {
+                const v = calcVol(ev.clientX);
+                setVolume(v);
+            };
+            
+            const upHandler = (ev) => {
+                document.removeEventListener('mousemove', moveHandler);
+                document.removeEventListener('mouseup', upHandler);
+            };
+            
+            document.addEventListener('mousemove', moveHandler);
+            document.addEventListener('mouseup', upHandler);
+        }
+
         handleKeyboard(e) {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
             if (e.target.isContentEditable) return;
@@ -1056,6 +1189,7 @@
                 case ' ':
                 case 'k':
                     e.preventDefault();
+                    e.stopPropagation(); 
                     this.video.paused ? this.video.play() : this.video.pause();
                     break;
                 case 'arrowleft':
@@ -1069,13 +1203,11 @@
                 case 'arrowup':
                     e.preventDefault();
                     this.video.volume = Math.min(1, this.video.volume + 0.05);
-                    this.dom.volumeSlider.value = this.video.volume;
                     this.updateVolumeIcon();
                     break;
                 case 'arrowdown':
                     e.preventDefault();
                     this.video.volume = Math.max(0, this.video.volume - 0.05);
-                    this.dom.volumeSlider.value = this.video.volume;
                     this.updateVolumeIcon();
                     break;
                 case 'f':
@@ -1105,8 +1237,6 @@
             }
         }
 
-        // --- Features ---
-
         async copyVideoUrl() {
             const url = this.video.currentSrc || this.video.src;
             await this.copyToClipboard(url);
@@ -1125,7 +1255,6 @@
                 await navigator.clipboard.writeText(text);
                 this.showToast('Link Copied!');
             } catch (err) {
-                // Fallback for older browsers
                 const textArea = document.createElement("textarea");
                 textArea.value = text;
                 document.body.appendChild(textArea);
@@ -1141,7 +1270,6 @@
         }
 
         showToast(message) {
-            // Remove existing toast if any
             const existingToast = this.wrapper.querySelector('.lyt_copy_toast');
             if (existingToast) existingToast.remove();
 
@@ -1150,14 +1278,13 @@
             toast.innerText = message;
             this.wrapper.appendChild(toast);
 
-            // Trigger reflow to enable transition
             requestAnimationFrame(() => {
                 toast.classList.add('show');
             });
 
             setTimeout(() => {
                 toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300); // Wait for fade out
+                setTimeout(() => toast.remove(), 300); 
             }, 1500);
         }
 
@@ -1177,13 +1304,11 @@
 
             const video = this.video;
             
-            // Accurate FPS Counter using requestAnimationFrame
             let fpsFrames = 0;
             let fpsLastTime = performance.now();
             let fpsCurrentValue = '...';
 
             const fpsLoop = () => {
-                // If overlay is gone, stop loop
                 if (!document.body.contains(overlay)) {
                      cancelAnimationFrame(this._fpsFrameId);
                      return;
@@ -1192,7 +1317,6 @@
                 fpsFrames++;
                 const now = performance.now();
                 
-                // Update display every ~500ms
                 if (now >= fpsLastTime + 500) {
                     fpsCurrentValue = Math.round((fpsFrames * 1000) / (now - fpsLastTime));
                     fpsFrames = 0;
@@ -1210,36 +1334,24 @@
                 }
 
                 let html = '';
-                
-                // Resolution
                 html += this.createStatRow('Resolution', `${video.videoWidth} x ${video.videoHeight}`);
-
-                // FPS
                 html += this.createStatRow('FPS (Current)', `${fpsCurrentValue}`);
-
-                // Codec
                 html += this.createStatRow('Codec', this.getCodecInfo());
-
-                // Buffer Speed / Bitrate
                 html += this.createStatRow('Buffer Speed', this.calculateBitrate());
 
-                // Volume
                 let volStr = Math.round(video.volume * 100) + '%';
                 if (video.muted || video.volume === 0) volStr += ' (Muted)';
                 html += this.createStatRow('Volume', volStr);
 
-                // Speed
                 let speedVal = video.playbackRate.toFixed(2);
                 if (speedVal === '1.00') speedVal = '1';
                 html += this.createStatRow('Speed', speedVal + 'x');
 
-                // Buffer Health
                 if (video.buffered.length > 0) {
                     const buffered = video.buffered.end(video.buffered.length - 1) - video.currentTime;
                     html += this.createStatRow('Buffer', this.formatTimeStat(buffered));
                 }
 
-                // Dropped Frames
                 if (video.mozDecodedFrames !== undefined) {
                     const dropped = video.mozParsedFrames - video.mozDecodedFrames;
                     html += this.createStatRow('Dropped Frames', dropped);
@@ -1264,13 +1376,10 @@
 
         getCodecInfo() {
             const video = this.video;
-            // 1. Check HLS/DASH config
             if (window.Hls && video.hlsPlayer && video.hlsPlayer.levels) {
                 const level = video.hlsPlayer.levels[video.hlsPlayer.currentLevel];
                 if(level && level.codecSet) return level.codecSet;
             }
-
-            // 2. Check Source Tags
             if (video.currentSrc) {
                 const sources = video.querySelectorAll('source');
                 for (let i=0; i<sources.length; i++) {
@@ -1282,8 +1391,6 @@
                     }
                 }
             }
-
-            // 3. File Extension Fallback
             const src = video.currentSrc || video.src;
             if (src) {
                 const ext = src.split('?')[0].split('#')[0].split('.').pop().toLowerCase();
@@ -1291,8 +1398,6 @@
                 if (['webm'].includes(ext)) return 'VP9/AV1 (Likely)';
                 if (['ogg', 'ogv'].includes(ext)) return 'Theora/Vorbis';
             }
-
-            // 4. Browser Capability Guess
             if (video.canPlayType) {
                  if (video.canPlayType('video/mp4; codecs="avc1.42E01E"') !== '') return 'H.264 (Guessed)';
                  if (video.canPlayType('video/webm; codecs="vp9"') !== '') return 'VP9 (Guessed)';
@@ -1302,12 +1407,9 @@
 
         calculateBitrate() {
             const video = this.video;
-            // 1. Safari Native API
             if (video.webkitVideoDecodingByteRate) {
                 return (video.webkitVideoDecodingByteRate / 1000).toFixed(0) + ' kbps';
             }
-
-            // 2. HLS.js API
             if (window.Hls && video.hlsPlayer) {
                 if (video.hlsPlayer.stats && video.hlsPlayer.stats.total && video.hlsPlayer.stats.total.bwEstimate) {
                      return (video.hlsPlayer.stats.total.bwEstimate / 1000).toFixed(0) + ' kbps';
@@ -1317,8 +1419,6 @@
                     if (level && level.bitrate) return (level.bitrate / 1000).toFixed(0) + ' kbps';
                 }
             }
-
-            // 3. Buffer Growth Estimation
             if (video.buffered.length > 0) {
                 const now = Date.now();
                 const currentBufferEnd = video.buffered.end(video.buffered.length - 1);
@@ -1355,14 +1455,11 @@
         }
 
         toggleFullScreen(state) {
-            // Determine the desired state: true = fullscreen, false = normal
-            // If no state is provided, toggle based on the current state
             if (typeof state === 'undefined') {
                 state = !this.isFullScreen;
             }
 
             if (state) {
-                // Enter fullscreen
                 const requestFn = this.wrapper.requestFullscreen || this.wrapper.webkitRequestFullscreen || this.wrapper.msRequestFullscreen;
                 if (requestFn) {
                     requestFn.call(this.wrapper).catch(err => {
@@ -1370,7 +1467,6 @@
                     });
                 }
             } else {
-                // Exit fullscreen
                 const exitFn = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
                 if (exitFn) {
                     exitFn.call(document).catch(err => {
@@ -1381,14 +1477,11 @@
         }
         
         onFullScreenChange() {
-            // Re-sync the internal state with the actual DOM state
             this.isFullScreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
             
-            // Update the icon based on the actual state
             if (this.isFullScreen) {
                 this.dom.fullscreenBtn.innerHTML = SVG.fullscreenExit;
                 this.dom.fullscreenBtn.setAttribute('aria-label', 'Exit fullscreen');
-                // Only apply pseudo_fullscreen if the native Fullscreen API isn't active
                 if (!document.fullscreenElement && !document.webkitFullscreenElement) {
                     this.wrapper.classList.add('pseudo_fullscreen');
                 }
@@ -1489,15 +1582,12 @@
             this.updatePlayPauseBtn(false);
         }
 
-        // --- Public API Methods ---
-        
         play() { this.video.play(); }
         pause() { this.video.pause(); }
         skipTo(time) { this.video.currentTime = time; }
         
         setVolume(vol) { 
             this.video.volume = vol; 
-            this.dom.volumeSlider.value = vol;
             this.updateVolumeIcon();
         }
         
@@ -1506,7 +1596,6 @@
         }
     }
 
-    // Factory function to match Fluid Player usage
     global.LYTPlayer = function(videoId, options) {
         return new LYTPlayer(videoId, options);
     };
