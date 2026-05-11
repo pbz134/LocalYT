@@ -728,6 +728,29 @@
                 <div id="videoPageLayoutStatus" class="status-msg"></div>
             </div>
 
+            <!-- Video Player Section -->
+            <div class="settings-section">
+                <h2 id="videoPlayerHeading">Video Player</h2>
+
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div id="videoPlayerLabel">Default video player</div>
+                        <div class="setting-description" id="videoPlayerDesc">Choose between the lightweight LYT Player or Fluid Player</div>
+                    </div>
+                    <div class="setting-control">
+                        <select class="setting-select" id="videoPlayer">
+                            <option value="lyt" selected>LYT Player</option>
+                            <option value="fluid">Fluid Player</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="inline-form" style="margin-top: 15px;">
+                    <button class="btn btn-save" id="saveVideoPlayerBtn">Save Preference</button>
+                </div>
+                <div id="videoPlayerStatus" class="status-msg"></div>
+            </div>
+
             <!-- Playlist Page Layout Section -->
             <div class="settings-section">
                 <h2 id="playlistPageLayoutHeading">Playlist Page Layout</h2>
@@ -944,6 +967,18 @@ function applyTranslations() {
     document.getElementById('videoPageLayoutLabel').textContent = getLang('Video page style', 'Videoseiten-Stil');
     document.getElementById('videoPageLayoutDesc').textContent = getLang('Choose between Modern layout or Classic layout (view count on right, buttons stacked vertically)', 'Wähle zwischen modernem Layout oder klassischem Layout (Aufrufzahl rechts, Buttons gestapelt)');
     document.getElementById('saveVideoPageLayoutBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
+
+    // Video Player Translations
+    document.getElementById('videoPlayerHeading').textContent = getLang('Video Player', 'Videoplayer');
+    document.getElementById('videoPlayerLabel').textContent = getLang('Default video player', 'Standard-Videoplayer');
+    document.getElementById('videoPlayerDesc').textContent = getLang('Choose between the lightweight LYT Player or Fluid Player', 'Wähle zwischen dem leichten LYT Player oder dem Fluid Player');
+    document.getElementById('saveVideoPlayerBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
+
+    const videoPlayerSelect = document.getElementById('videoPlayer');
+    if (videoPlayerSelect) {
+        videoPlayerSelect.options[0].text = getLang('LYT Player', 'LYT Player');
+        videoPlayerSelect.options[1].text = getLang('Fluid Player', 'Fluid Player');
+    }
 
     // Playlist Page Layout Translations
     document.getElementById('playlistPageLayoutHeading').textContent = getLang('Playlist Page Layout', 'Playlistseiten-Layout');
@@ -1220,6 +1255,57 @@ function saveVideoPageLayout() {
         })
         .catch(() => {
             showStatus('videoPageLayoutStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
+        });
+}
+
+// ==============================
+// Video Player Logic
+// ==============================
+function loadVideoPlayer() {
+    const savedLocal = JSON.parse(localStorage.getItem('videoPlayer') || '{}');
+    const defaultPlayer = 'lyt';
+    const currentPlayer = savedLocal.player || defaultPlayer;
+    
+    document.getElementById('videoPlayer').value = currentPlayer;
+
+    fetch('/user-settings')
+        .then(res => {
+            if (!res.ok) throw new Error('Not authenticated');
+            return res.json();
+        })
+        .then(serverSettings => {
+            if (serverSettings && serverSettings.videoPlayer) {
+                const serverPlayer = serverSettings.videoPlayer;
+                document.getElementById('videoPlayer').value = serverPlayer;
+                localStorage.setItem('videoPlayer', JSON.stringify({ player: serverPlayer }));
+            }
+        })
+        .catch(err => console.error('Could not load video player setting from server:', err));
+}
+
+function saveVideoPlayer() {
+    const player = document.getElementById('videoPlayer').value;
+    localStorage.setItem('videoPlayer', JSON.stringify({ player: player }));
+
+    fetch('/user-settings')
+        .then(res => res.json())
+        .then(currentSettings => {
+            const updatedSettings = { ...currentSettings, videoPlayer: player };
+            return fetch('/user-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings: updatedSettings })
+            });
+        })
+        .then(res => {
+            if (res.ok) {
+                showStatus('videoPlayerStatus', getLang('Video player preference saved!', 'Videoplayer-Einstellung gespeichert!'), true);
+            } else {
+                showStatus('videoPlayerStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
+            }
+        })
+        .catch(() => {
+            showStatus('videoPlayerStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
         });
 }
 
@@ -1505,6 +1591,7 @@ sidebarLinks.forEach(link => {
             loadCommenterProfileStyle();
             loadChannelDefaultView();
             loadVideoPageLayout();
+            loadVideoPlayer();
             loadPlaylistPageLayout();
             loadChannelPageStyle();
             loadFuzzySubCount();
@@ -1555,6 +1642,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('saveCommenterStyleBtn')?.addEventListener('click', saveCommenterProfileStyle);
     document.getElementById('saveChannelDefaultViewBtn')?.addEventListener('click', saveChannelDefaultView);
     document.getElementById('saveVideoPageLayoutBtn')?.addEventListener('click', saveVideoPageLayout);
+    document.getElementById('saveVideoPlayerBtn')?.addEventListener('click', saveVideoPlayer);
     document.getElementById('savePlaylistPageLayoutBtn')?.addEventListener('click', savePlaylistPageLayout);
     document.getElementById('saveChannelPageStyleBtn')?.addEventListener('click', saveChannelPageStyle);
     document.getElementById('saveFuzzySubCountBtn')?.addEventListener('click', saveFuzzySubCount);
@@ -2099,6 +2187,9 @@ function gatherCurrentSettings() {
     // Video page layout
     config.videoPageLayout = document.getElementById('videoPageLayout').value;
     
+    // Video player
+    config.videoPlayer = document.getElementById('videoPlayer').value;
+    
     // Playlist page layout
     config.playlistPageLayout = document.getElementById('playlistPageLayout').value;
     
@@ -2203,6 +2294,11 @@ function validateConfig(config) {
         return false;
     }
     
+    // Validate video player
+    if (config.videoPlayer && !['lyt', 'fluid'].includes(config.videoPlayer)) {
+        return false;
+    }
+    
     // Validate playlist page layout
     if (config.playlistPageLayout && !['grid', 'list'].includes(config.playlistPageLayout)) {
         return false;
@@ -2267,6 +2363,12 @@ function applyConfiguration(config) {
         localStorage.setItem('videoPageLayout', JSON.stringify({ layout: config.videoPageLayout }));
     }
     
+    // Apply video player
+    if (config.videoPlayer) {
+        document.getElementById('videoPlayer').value = config.videoPlayer;
+        localStorage.setItem('videoPlayer', JSON.stringify({ player: config.videoPlayer }));
+    }
+    
     // Apply playlist page layout
     if (config.playlistPageLayout) {
         document.getElementById('playlistPageLayout').value = config.playlistPageLayout;
@@ -2325,6 +2427,10 @@ function saveImportedConfiguration(config) {
             
             if (config.videoPageLayout) {
                 updatedSettings.videoPageLayout = config.videoPageLayout;
+            }
+            
+            if (config.videoPlayer) {
+                updatedSettings.videoPlayer = config.videoPlayer;
             }
             
             if (config.playlistPageLayout) {

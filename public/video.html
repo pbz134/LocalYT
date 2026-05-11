@@ -15,20 +15,17 @@
     function safeDecodeURIComponent(str) {
         if (!str) return '';
         try {
-            // Call the REAL built-in decodeURIComponent (note: capital U, capital C)
             return decodeURIComponent(str);
         } catch (e) {
-            // Malformed sequence detected (e.g., "100%")
             console.warn('[safeDecode] Malformed URI sequence, returning raw:', str);
             return str;
         }
     }
 
-    // Determine which Fluid Player script to load based on video file extension
+    // Determine which Player script to load based on settings and video file extension
     (function() {
         const urlParams = new URLSearchParams(window.location.search);
         
-        // Safe URI decoding to handle special characters like % in filenames
         let videoSrc = '';
         try {
             videoSrc = safeDecodeURIComponent(urlParams.get('src') || '');
@@ -38,25 +35,33 @@
         }
         
         const extension = videoSrc.split('.').pop().toLowerCase();
+        const playerSettings = JSON.parse(localStorage.getItem('videoPlayer') || '{}');
+        const selectedPlayer = playerSettings.player || 'lyt';
         
-        // Choose script based on file type
-        const scriptMap = {
-            'mp3': 'fluidplayer.minMP3MOD.js',
-            'default': 'fluidplayer.min.js'
-        };
+        const scriptsToLoad = [];
+
+        if (selectedPlayer === 'lyt') {
+            scriptsToLoad.push('lyt-player.js');
+        } else {
+            // Fluid Player
+            if (extension === 'mp3') {
+                scriptsToLoad.push('fluidplayer.minMP3MOD.js');
+            } else {
+                scriptsToLoad.push('fluidplayer.min.js');
+            }
+        }
         
-        // Use MP3-modified script for audio files, default for video files
-        const scriptFile = (extension === 'mp3') ? scriptMap.mp3 : scriptMap.default;
-        
-        // Create and load the script
-        const script = document.createElement('script');
-        script.src = scriptFile;
-        script.onload = function() {
-            console.log(`Loaded Fluid Player for ${extension} files`);
-        };
-        document.head.appendChild(script);
+        scriptsToLoad.forEach(scriptFile => {
+            const script = document.createElement('script');
+            script.src = scriptFile;
+            script.onload = function() {
+                console.log(`Loaded ${scriptFile} for ${extension} files (Player: ${selectedPlayer})`);
+            };
+            document.head.appendChild(script);
+        });
     })();
 </script>
+<script src="lyt-player.js"></script>
     <style>
         .channel-info {
             display: flex;
@@ -2211,7 +2216,7 @@ document.addEventListener('click', function(e) {
             const suggestedVideosBlob = new Blob([suggestedVideosJson], { type: 'application/json' });
             const suggestedVideosUrl = URL.createObjectURL(suggestedVideosBlob);
 
-            // Get the video title for Fluid Player
+            // Get the video title for Player
             const videoTitle = currentVideoTitle ? currentVideoTitle.textContent : '';
 
             // 1. Helper to clean the filename (remove special chars) to match Python output
@@ -2232,8 +2237,13 @@ document.addEventListener('click', function(e) {
                 return filename.replace(/[^\w\s-]/g, '').trim();
             }
 
-            var myFP = fluidPlayer(
-                'videoPlayer', {
+            // Check player preference setting
+            const playerSettings = JSON.parse(localStorage.getItem('videoPlayer') || '{}');
+            const selectedPlayer = playerSettings.player || 'lyt';
+
+            if (selectedPlayer === 'lyt' && typeof LYTPlayer === 'function') {
+                // Initialize LYT Player
+                var myFP = LYTPlayer('videoPlayer', {
                     "layoutControls": {
                         "title": videoTitle,
                         "subtitlesEnabled": true,
@@ -2265,8 +2275,50 @@ document.addEventListener('click', function(e) {
                         "adCTAText": false,
                         "adCTATextPosition": ""
                     }
-                }
-            );
+                });
+            } else if (typeof fluidPlayer === 'function') {
+                // Initialize Fluid Player (Normal or MP3 mod)
+                var myFP = fluidPlayer(
+                    'videoPlayer', {
+                        "layoutControls": {
+                            "title": videoTitle,
+                            "subtitlesEnabled": true,
+                            "controlBar": {
+                                "autoHideTimeout": 3,
+                                "animated": true,
+                                "autoHide": true
+                            },
+                            "htmlOnPauseBlock": { "html": null, "height": null, "width": null },
+                            "autoPlay": false,
+                            "mute": false,
+                            "allowTheatre": true,
+                            "playPauseAnimation": true,
+                            "playbackRateEnabled": true,
+                            "allowDownload": false,
+                            "playButtonShowing": false,
+                            "fillToContainer": true,
+                            "posterImage": posterImageUrl,
+                            "posterImageSize": "cover",
+                            subtitlesOnByDefault: false,
+                            "timelinePreview": {
+                                file: `/thumbnails/${encodeURIComponent(currentChannel)}/${encodeURIComponent(getCleanVideoName(videoSrc))}.vtt`,
+                                sprite: `/thumbnails/${encodeURIComponent(currentChannel)}/${encodeURIComponent(getCleanVideoName(videoSrc))}SpriteImg.jpg`,
+                                type: 'VTT'
+                            }
+                        },
+                        "vastOptions": {
+                            "adList": [],
+                            "adCTAText": false,
+                            "adCTATextPosition": ""
+                        }
+                    }
+                );
+            } else {
+                console.warn('No compatible video player library found. Falling back to native controls.');
+                var myFP = null;
+                videoPlayer.removeAttribute('controlsList');
+                videoPlayer.controls = true;
+            }
 
             videoPlayer.addEventListener('ended', async () => {
                 // ===== AUTOPLAY LOGIC =====
