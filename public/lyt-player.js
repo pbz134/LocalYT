@@ -57,6 +57,7 @@
         volumeMute: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>',
         subtitles: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12zM6 10h2v2H6v-2zm0 4h8v2H6v-2zm10 0h2v2h-2v-2zm-6-4h8v2h-8v-2z"/></svg>',
         speed: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>',
+        settings: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>',
         fullscreen: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>',
         fullscreenExit: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>'
     };
@@ -89,7 +90,7 @@
             this._hasPlayedOnce = false; // Track if video has started playing
             
             // Version
-            this.version = 'v1.2.0';
+            this.version = 'v1.3.0';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -155,11 +156,45 @@
             const primaryColor = layout.primaryColor || 'red';
             const posterImage = layout.posterImage || '';
 
-            // FIX: Escaped single quotes properly for inline style attribute to prevent SyntaxError
+            // Escaped single quotes properly for inline style attribute to prevent SyntaxError
             const posterStyle = posterImage ? "background-image: url('" + posterImage.replace(/'/g, "\\'") + "');" : '';
 
             const controlsHtml = `
                 <style>
+                    /* HD Badge */
+                    .lyt_btn_settings {
+                        position: relative;
+                    }
+                    .lyt_hd_badge {
+                        position: absolute;
+                        top: 2px;
+                        right: 0px;
+                        background-color: red;
+                        color: white;
+                        font-size: 7px;;
+                        font-weight: bold;
+                        font-family: 'Roboto', 'Arial', sans-serif;
+                        padding: 0px 2px;
+                        line-height: 1.4;
+                        pointer-events: none;
+                        z-index: 12;
+                        display: none;
+                    }
+                    .lyt_hd_badge.lyt_visible {
+                        display: block;
+                    }
+            
+                    /* ===== SETTINGS BUTTON ROTATION ==== */       
+                    .lyt_btn_settings svg {
+                        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                        transform-origin: center;
+                    }
+                    
+                    .lyt_settings_menu.lyt_show ~ .lyt_btn_settings svg,
+                    .lyt_btn_settings.lyt_open svg {
+                        transform: rotate(30deg);
+                    }
+
                     /* ===== LYT PLAYER CONTROLS ===== */
                     .fluid_video_wrapper {
                         position: relative !important;
@@ -356,7 +391,7 @@
                         opacity: 0;
                         display: flex;
                         align-items: center;
-                        height: 24px; /* Increased height to fit the 13px dot vertically */
+                        height: 24px; 
                     }
                     .lyt_volume_group:hover .lyt_volume_slider_wrap,
                     .lyt_volume_slider_wrap.lyt_slider_visible {
@@ -372,7 +407,7 @@
                         cursor: pointer;
                         position: relative;
                         margin: 0 6px 0 4px;
-                        overflow: visible; /* Added to allow dot to overflow vertically */
+                        overflow: visible; 
                     }
                     .lyt_volume_fill {
                         position: absolute;
@@ -385,7 +420,7 @@
                         display: flex;
                         align-items: center;
                         justify-content: flex-end;
-                        overflow: visible; /* Added to allow dot to overflow vertically */
+                        overflow: visible; 
                     }
                     /* The White Dot at the front of the volume bar */
                     .lyt_volume_dot {
@@ -420,7 +455,6 @@
                         bottom: 42px;
                         right: 0;
                         background: rgba(28,28,28,0.97);
-                        border-radius: 4px;
                         padding: 4px 0;
                         min-width: 90px;
                         display: none;
@@ -453,6 +487,23 @@
                     }
                     .lyt_menu_option.lyt_active::before {
                         content: '\\2713  ';
+                    }
+
+                    /* Submenu specific styles */
+                    .lyt_popup_submenu {
+                        position: absolute;
+                        right: 100%; /* Align to left of parent */
+                        bottom: 0; /* Align bottom edge with parent's bottom edge */
+                        margin-right: 4px; /* Small gap */
+                        background: rgba(28,28,28,0.97);
+                        padding: 4px 0;
+                        min-width: 120px;
+                        display: none;
+                        z-index: 30; /* Higher than main menu */
+                        box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+                    }
+                    .lyt_popup_submenu.lyt_show {
+                        display: block;
                     }
                     
                     /* Context Menu */
@@ -742,11 +793,21 @@
                         <!-- Right Controls -->
                         <div class="lyt_controls_right">
                             <button class="lyt_btn lyt_btn_subtitles" aria-label="Subtitles">${SVG.subtitles}</button>
-                            <div class="lyt_popup_menu lyt_subtitles_menu"></div>
+                            <!-- Note: Individual subtitle menu removed, now handled by settings or separate logic if needed, but keeping structure clean -->
                             
-                            <button class="lyt_btn lyt_btn_speed" aria-label="Playback speed">${SVG.speed}</button>
-                            <div class="lyt_popup_menu lyt_speed_menu"></div>
-                            
+                            <!-- Settings Button (Replaces Speed Button functionality) -->
+                            <button class="lyt_btn lyt_btn_settings" aria-label="Settings">${SVG.settings}</button>
+                            <div class="lyt_popup_menu lyt_settings_menu">
+                                <div class="lyt_menu_option lyt_opt_speed" data-submenu="speed">Speed</div>
+                                <div class="lyt_popup_submenu lyt_speed_menu"></div> <!-- Speed Submenu -->
+                                
+                                <div class="lyt_menu_option lyt_opt_subs" data-submenu="subs">Subtitles/CC</div>
+                                <div class="lyt_popup_submenu lyt_subtitles_menu"></div> <!-- Subs Submenu -->
+                                
+                                <div class="lyt_menu_option lyt_opt_quality" data-submenu="quality">Quality</div>
+                                <div class="lyt_popup_submenu lyt_quality_menu"></div> <!-- Quality Submenu -->
+                            </div>
+
                             <button class="lyt_btn lyt_btn_fullscreen" aria-label="Fullscreen">${SVG.fullscreen}</button>
                         </div>
                     </div>
@@ -776,8 +837,13 @@
                 subtitlesBtn: this.wrapper.querySelector('.lyt_btn_subtitles'),
                 subtitlesMenu: this.wrapper.querySelector('.lyt_subtitles_menu'),
                 subtitlesDisplay: this.wrapper.querySelector('.lyt_subtitles_display'),
-                speedBtn: this.wrapper.querySelector('.lyt_btn_speed'),
+                
+                // Settings & Menus
+                settingsBtn: this.wrapper.querySelector('.lyt_btn_settings'),
+                settingsMenu: this.wrapper.querySelector('.lyt_settings_menu'),
                 speedMenu: this.wrapper.querySelector('.lyt_speed_menu'),
+                qualityMenu: this.wrapper.querySelector('.lyt_quality_menu'),
+
                 fullscreenBtn: this.wrapper.querySelector('.lyt_btn_fullscreen'),
                 loading: this.wrapper.querySelector('.vast_video_loading'),
                 preview: this.wrapper.querySelector('.lyt_timeline_preview'),
@@ -788,6 +854,7 @@
             
             this.buildSpeedMenu();
             this.buildSubtitlesMenu();
+            this.buildQualityMenu();
         }
         
         buildSpeedMenu() {
@@ -816,6 +883,23 @@
             this.dom.subtitlesMenu.innerHTML = html;
         }
 
+        buildQualityMenu() {
+            // Determine quality based on video height
+            let h = this.video.videoHeight || 0;
+            let label = 'Auto'; // Default fallback
+            
+            if (h >= 2160) label = '2160p (4K)';
+            else if (h >= 1440) label = '1440p (2K)';
+            else if (h >= 1080) label = '1080p (HD)';
+            else if (h >= 720) label = '720p (HD)';
+            else if (h >= 480) label = '480p';
+            else if (h > 0) label = h + 'p';
+
+            // Only one option available as per requirements ("Usually, only one video quality is available")
+            const html = `<button class="lyt_menu_option lyt_active" disabled>${label}</button>`;
+            this.dom.qualityMenu.innerHTML = html;
+        }
+
         bindEvents() {
             // Video Events
             this.video.addEventListener('play', () => {
@@ -836,6 +920,7 @@
             this.video.addEventListener('volumechange', () => this.updateVolumeIcon());
             this.video.addEventListener('loadedmetadata', () => {
                 this.buildSubtitlesMenu();
+                this.buildQualityMenu(); // Update quality when metadata loads
             });
 
             // Play/Pause button
@@ -844,15 +929,39 @@
                 this.video.paused ? this.video.play() : this.video.pause();
             });
             
-            // Skip button (Added)
+            // Skip button
             this.dom.skipBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                // Dispatch custom event to allow parent (video.html) to handle navigation
                 this.video.dispatchEvent(new CustomEvent('lyt-skip'));
-                // Optional: Give immediate feedback by pausing
                 this.video.pause(); 
             });
             
+            // HD Badge Logic
+            const updateHdBadge = () => {
+                if (!this.dom.settingsBtn) return; // Changed from speedBtn to settingsBtn
+                
+                let badge = this.wrapper.querySelector('.lyt_hd_badge');
+                if (!badge) {
+                    badge = document.createElement('div');
+                    badge.className = 'lyt_hd_badge';
+                    badge.textContent = 'HD';
+                    this.dom.settingsBtn.appendChild(badge); // Changed from speedBtn
+                }
+
+                if (this.video.videoHeight >= 720) {
+                    badge.classList.add('lyt_visible');
+                } else {
+                    badge.classList.remove('lyt_visible');
+                }
+            };
+
+            this.video.addEventListener('loadedmetadata', updateHdBadge);
+            
+            // Initial check in case metadata is already loaded
+            if (this.video.readyState >= 1) {
+                updateHdBadge();
+            }
+
             // Single click on video to toggle play
             this.video.addEventListener('click', () => {
                 this.video.paused ? this.video.play() : this.video.pause();
@@ -886,26 +995,47 @@
                 this.toggleFullScreen();
             });
             
-            // Speed button & menu
-            this.dom.speedBtn.addEventListener('click', (e) => {
+            // Settings Button Logic
+            this.dom.settingsBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                this.toggleMenu(this.dom.speedMenu);
+                this.toggleMenu(this.dom.settingsMenu);
             });
+
+            // Handle Main Menu Options (Speed/Subs/Quality) -> Open Submenus
+            this.dom.settingsMenu.querySelectorAll('[data-submenu]').forEach(option => {
+                option.addEventListener('mouseenter', (e) => {
+                    const targetId = e.target.dataset.submenu;
+                    const submenu = this.dom.settingsMenu.querySelector(`.lyt_${targetId}_menu`);
+                    if(submenu) {
+                        // Hide other submenus first
+                        this.hideAllSubmenus();
+                        submenu.classList.add('lyt_show');
+                        
+                        // Dynamic updates before showing
+                        if(targetId === 'subs') this.buildSubtitlesMenu();
+                        if(targetId === 'quality') this.buildQualityMenu();
+                    }
+                });
+            });
+
+            // Close submenus when leaving the menu container entirely
+            this.dom.settingsMenu.addEventListener('mouseleave', () => {
+                 // Optional: keep open or close? Usually settings menus stay until click away.
+                 // We will rely on document click to close all.
+            });
+
+
+            // Speed Submenu Actions
             this.dom.speedMenu.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const option = e.target.closest('.lyt_speed_option');
                 if (!option) return;
                 const speed = parseFloat(option.dataset.speed);
                 this.setPlaybackSpeed(speed);
-                this.closeAllMenus();
+                this.closeAllMenus(); // Close everything after selection
             });
             
-            // Subtitles button & menu
-            this.dom.subtitlesBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.buildSubtitlesMenu();
-                this.toggleMenu(this.dom.subtitlesMenu);
-            });
+            // Subtitles Submenu Actions
             this.dom.subtitlesMenu.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const option = e.target.closest('.lyt_sub_option');
@@ -914,6 +1044,21 @@
                 this.setSubtitleTrack(trackIndex);
                 this.closeAllMenus();
             });
+
+            // Old Subtitle Button Logic (Optional: keep it to toggle subs directly? Or remove?)
+            // Keeping it simple: If they click the CC icon directly, maybe toggle?
+            // For now, let's make it open the Settings > Subs menu or just toggle.
+            // Let's make it toggle the last used track or off.
+            this.dom.subtitlesBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // Simple toggle logic
+                if (this.currentTrackIndex >= 0) {
+                    this.setSubtitleTrack(-1);
+                } else if (this.video.textTracks.length > 0) {
+                    this.setSubtitleTrack(0);
+                }
+            });
+
 
             // Context Menu
             this.wrapper.addEventListener('contextmenu', (e) => {
@@ -979,6 +1124,12 @@
                 });
             }
         }
+
+        hideAllSubmenus() {
+            if(this.dom.speedMenu) this.dom.speedMenu.classList.remove('lyt_show');
+            if(this.dom.subtitlesMenu) this.dom.subtitlesMenu.classList.remove('lyt_show');
+            if(this.dom.qualityMenu) this.dom.qualityMenu.classList.remove('lyt_show');
+        }
         
         hidePoster() {
             if (!this._hasPlayedOnce && this.dom.posterOverlay) {
@@ -1009,12 +1160,22 @@
             this.closeAllMenus();
             if (!isOpen) {
                 menu.classList.add('lyt_show');
+                // Add rotation class to the button if opening settings
+                if(menu === this.dom.settingsMenu) {
+                    this.dom.settingsBtn.classList.add('lyt_open');
+                }
+            } else {
+                 // Remove rotation class if closing settings
+                 if(menu === this.dom.settingsMenu) {
+                    this.dom.settingsBtn.classList.remove('lyt_open');
+                }
             }
         }
         
         closeAllMenus() {
-            this.dom.speedMenu.classList.remove('lyt_show');
-            this.dom.subtitlesMenu.classList.remove('lyt_show');
+            this.dom.settingsMenu.classList.remove('lyt_show');
+            this.dom.settingsBtn.classList.remove('lyt_open'); // Reset rotation
+            this.hideAllSubmenus();
         }
 
         showContextMenu(clientX, clientY) {
@@ -1323,7 +1484,7 @@
                     e.preventDefault();
                     this.video.currentTime += 10;
                     break;
-                case 'shift+n': // Optional: Shortcut for skip if desired, though not requested
+                case 'shift+n': 
                      this.video.dispatchEvent(new CustomEvent('lyt-skip'));
                      break;
             }
