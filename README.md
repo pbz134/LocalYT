@@ -87,4 +87,4 @@ What if I only have the video files and no metadata?
 - Work on the documentation in the user modal
 - Make hamburger menu available on all related .html pages
 - Finish implementing Light Mode
-- Work on LYT Player (Loading animation, skipping animation)
+- Work on LYT Player (Rewing/fast-forward animation, Space bar trigger, Skip Video button)
