@@ -2320,8 +2320,9 @@ document.addEventListener('click', function(e) {
                 videoPlayer.controls = true;
             }
 
-            videoPlayer.addEventListener('ended', async () => {
-                // ===== AUTOPLAY LOGIC =====
+            // ===== AUTOPLAY / SKIP LOGIC =====
+            // Define the handler function OUTSIDE the event listener to avoid nesting errors
+            async function handleAutoPlayOrSkip() {
                 try {
                     const autoplaySettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
                     
@@ -2330,16 +2331,16 @@ document.addEventListener('click', function(e) {
                          autoplaySettings.nonPlaylistMode = 'first-recommended';
                     }
 
-                    console.log('[Autoplay] Settings:', autoplaySettings);
-                    console.log('[Autoplay] In playlist?', !!playlistName, playlistName);
+                    console.log('[Autoplay/Skip] Settings:', autoplaySettings);
+                    console.log('[Autoplay/Skip] In playlist?', !!playlistName, playlistName);
                     
                     if (autoplaySettings.enabled) {
                         if (playlistName && autoplaySettings.playlistNext !== false) {
-                            console.log('[Autoplay] → Next in playlist');
+                            console.log('[Autoplay/Skip] → Next in playlist');
                             await autoplayNextInPlaylist();
                         } 
                         else if (!playlistName) {
-                            console.log('[Autoplay] → Non-playlist mode:', autoplaySettings.nonPlaylistMode);
+                            console.log('[Autoplay/Skip] → Non-playlist mode:', autoplaySettings.nonPlaylistMode);
                             switch (autoplaySettings.nonPlaylistMode) {
                                 case 'first-recommended':
                                     await autoplayFirstRecommended();
@@ -2351,77 +2352,109 @@ document.addEventListener('click', function(e) {
                                     await autoplayRandomDatabase();
                                     break;
                                 default:
-                                    console.warn('[Autoplay] Unknown/Default mode, falling back to first recommended');
+                                    console.warn('[Autoplay/Skip] Unknown/Default mode, falling back to first recommended');
                                     await autoplayFirstRecommended();
                             }
                         } else {
-                            console.log('[Autoplay] In playlist but playlistNext is disabled');
+                            console.log('[Autoplay/Skip] In playlist but playlistNext is disabled');
                         }
                     } else {
-                        console.log('[Autoplay] Disabled');
+                        // Skip button should still work even if autoplay is disabled (treat as manual skip)
+                        console.log('[Autoplay/Skip] Manual Skip (Autoplay Disabled)');
+                        
+                        if (playlistName) {
+                             await autoplayNextInPlaylist();
+                        } else {
+                            // Fallback to first recommended for manual skips when not in playlist
+                            await autoplayFirstRecommended();
+                        }
                     }
                 } catch (e) {
-                    console.error('Autoplay error:', e);
+                    console.error('Autoplay/Skip error:', e);
                 }
-            });
+            }
+
+            // Listen for video end
+            videoPlayer.addEventListener('ended', handleAutoPlayOrSkip);
+            
+            // Listen for the custom Skip button event from lyt-player.js
+            videoPlayer.addEventListener('lyt-skip', handleAutoPlayOrSkip);
 
             document.addEventListener('keydown', (event) => {
                 const activeElement = document.activeElement;
-                const isSearchInput = activeElement && (
+                
+                // 1. Ignore if typing
+                const isTyping = activeElement && (
                     activeElement.id === 'searchInput' || 
                     activeElement.tagName === 'INPUT' || 
                     activeElement.tagName === 'TEXTAREA' ||
                     activeElement.isContentEditable
                 );
                 
-                if (isSearchInput) return;
-                
+                if (isTyping) return;
                 if (event.ctrlKey || event.metaKey) return;
-                
+
                 const key = event.key.toLowerCase();
-                const controlKeys = [' ', 'arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'k', 'f', ',', '.', ';', ':'];
-                
-                if (controlKeys.includes(key) || key === ' ') {
-                    event.preventDefault();
-                }
-                
+
                 switch (key) {
+                    case ' ': // Spacebar
                     case 'k':
-                    case ' ':
-                        videoPlayer.paused ? videoPlayer.play() : videoPlayer.pause();
+                        // 2. UNIVERSAL FIX: 
+                        // If myFP exists (it could be LYT or Fluid), assume the player 
+                        // is handling the keypress. We just prevent scrolling and stop.
+                        if (myFP) {
+                            event.preventDefault(); // Prevent page scroll
+                            return; // Exit - Let the player script do the work!
+                        }
+
+                        // 3. FALLBACK: Only run this if NO player loaded (Native HTML5)
+                        event.preventDefault();
+                        if (videoPlayer) {
+                            videoPlayer.paused ? videoPlayer.play() : videoPlayer.pause();
+                        }
                         break;
+                    
                     case 'arrowleft':
-                        videoPlayer.currentTime -= 5;
+                        event.preventDefault();
+                        if(videoPlayer) videoPlayer.currentTime -= 5;
                         break;
                     case 'arrowright':
-                        videoPlayer.currentTime += 5;
+                        event.preventDefault();
+                        if(videoPlayer) videoPlayer.currentTime += 5;
                         break;
                     case 'arrowup':
-                        videoPlayer.volume = Math.min(1, videoPlayer.volume + 0.1);
+                        event.preventDefault();
+                        if(videoPlayer) videoPlayer.volume = Math.min(1, videoPlayer.volume + 0.1);
                         break;
                     case 'arrowdown':
-                        videoPlayer.volume = Math.max(0, videoPlayer.volume - 0.1);
+                        event.preventDefault();
+                        if(videoPlayer) videoPlayer.volume = Math.max(0, videoPlayer.volume - 0.1);
                         break;
                     case 'f':
-                        // Use Fluid Player's fullscreen toggle instead of native browser fullscreen
+                        event.preventDefault();
+                        // Note: We allow video.html to handle Fullscreen because 
+                        // sometimes player fullscreen implementations differ or we want custom behavior.
                         if (myFP && typeof myFP.toggleFullScreen === 'function') {
                             myFP.toggleFullScreen();
-                        } else {
-                            // Fallback to browser fullscreen if Fluid Player method isn't available
+                        } else if (videoPlayer) {
                             document.fullscreenElement ? document.exitFullscreen() : videoPlayer.requestFullscreen();
                         }
                         break;
                     case ',':
-                        videoPlayer.currentTime -= 1 / 30;
+                        event.preventDefault();
+                        if(videoPlayer) videoPlayer.currentTime -= 1 / 30;
                         break;
                     case '.':
-                        videoPlayer.currentTime += 1 / 30;
+                        event.preventDefault();
+                        if(videoPlayer) videoPlayer.currentTime += 1 / 30;
                         break;
                     case ';':
-                        videoPlayer.playbackRate = Math.max(0.25, videoPlayer.playbackRate - 0.25);
+                        event.preventDefault();
+                        if(videoPlayer) videoPlayer.playbackRate = Math.max(0.25, videoPlayer.playbackRate - 0.25);
                         break;
                     case ':':
-                        videoPlayer.playbackRate = Math.min(4, videoPlayer.playbackRate + 0.25);
+                        event.preventDefault();
+                        if(videoPlayer) videoPlayer.playbackRate = Math.min(4, videoPlayer.playbackRate + 0.25);
                         break;
                 }
             });
@@ -2436,18 +2469,12 @@ document.addEventListener('click', function(e) {
                     const videos = await response.json();
                     videos.sort(naturalCompare);
                     
-                    // Find current video index
                     const currentIndex = videos.findIndex(v => safeDecodeURIComponent(v.path) === safeDecodeURIComponent(videoSrc));
                     
                     if (currentIndex !== -1 && currentIndex < videos.length - 1) {
-                        // Go to next video in playlist
                         const nextVideo = videos[currentIndex + 1];
                         const nextUrl = `video.html?src=${encodeURIComponent(nextVideo.path)}&playlist=${encodeURIComponent(playlistName)}`;
-                        
-                        // Small delay so user sees the end screen briefly
-                        setTimeout(() => {
-                            window.location.href = nextUrl;
-                        }, 1500);
+                        setTimeout(() => { window.location.href = nextUrl; }, 1500);
                     }
                 } catch (e) {
                     console.error('Error getting next playlist video:', e);
@@ -2456,12 +2483,7 @@ document.addEventListener('click', function(e) {
 
             async function autoplayFirstRecommended() {
                 try {
-                    console.log('[Autoplay] Trying first recommended from sidebar...');
-                    
                     const suggestionItems = document.querySelectorAll('#videoSuggestions .suggestion-item[data-video-path]');
-                    console.log('[Autoplay] Found items with data:', suggestionItems.length);
-                    
-                    // Filter out current video if it has current-video-item class
                     const availableItems = Array.from(suggestionItems).filter(
                         item => !item.classList.contains('current-video-item')
                     );
@@ -2470,10 +2492,7 @@ document.addEventListener('click', function(e) {
                     if (pool.length > 0) {
                         const firstVideo = pool[0].dataset.videoPath;
                         const nextUrl = `video.html?src=${encodeURIComponent(firstVideo)}`;
-                        console.log('[Autoplay] Navigating to first recommended:', nextUrl);
                         setTimeout(() => { window.location.href = nextUrl; }, 1500);
-                    } else {
-                        console.warn('[Autoplay] No sidebar items found');
                     }
                 } catch (e) {
                     console.error('[Autoplay] Error in first recommended:', e);
@@ -2482,12 +2501,7 @@ document.addEventListener('click', function(e) {
 
             async function autoplayRandomRecommended() {
                 try {
-                    console.log('[Autoplay] Trying random recommended from sidebar...');
-                    
                     const suggestionItems = document.querySelectorAll('#videoSuggestions .suggestion-item[data-video-path]');
-                    console.log('[Autoplay] Found items with data:', suggestionItems.length);
-                    
-                    // Filter out current video
                     const availableItems = Array.from(suggestionItems).filter(
                         item => !item.classList.contains('current-video-item')
                     );
@@ -2497,13 +2511,26 @@ document.addEventListener('click', function(e) {
                         const randomIndex = Math.floor(Math.random() * pool.length);
                         const randomVideo = pool[randomIndex].dataset.videoPath;
                         const nextUrl = `video.html?src=${encodeURIComponent(randomVideo)}`;
-                        console.log('[Autoplay] Navigating to random recommended:', nextUrl);
                         setTimeout(() => { window.location.href = nextUrl; }, 1500);
-                    } else {
-                        console.warn('[Autoplay] No sidebar items found');
                     }
                 } catch (e) {
                     console.error('[Autoplay] Error in random recommended:', e);
+                }
+            }
+
+            async function autoplayRandomDatabase() {
+                try {
+                    const response = await fetch('/videos?page=1&limit=1&random=true');
+                    if (!response.ok) return;
+                    const data = await response.json();
+                    const videos = data.videos || [];
+                    if (videos.length > 0) {
+                        const randomVideo = videos[0].path;
+                        const nextUrl = `video.html?src=${encodeURIComponent(randomVideo)}`;
+                        setTimeout(() => { window.location.href = nextUrl; }, 1500);
+                    }
+                } catch (e) {
+                    console.error('[Autoplay] Error in random database:', e);
                 }
             }
 
@@ -2545,7 +2572,6 @@ document.addEventListener('click', function(e) {
                 }
             });
 
-            // --- Search icon click ---
             document.getElementById('searchIcon').addEventListener('click', () => {
                 const query = searchInput.value.trim();
                 if (query) {
@@ -2574,10 +2600,8 @@ document.addEventListener('click', function(e) {
                 shareModal.style.display = 'flex';
             });
 
-            // Helper to build the Short Link API URL
             function getShortLinkApiUrl() {
                 let apiUrl = `/api/shortlink?video=${encodeURIComponent(videoSrc)}`;
-                
                 if (playlistName) { 
                     apiUrl += `&playlist=${encodeURIComponent(playlistName)}`;
                 }
@@ -2590,7 +2614,6 @@ document.addEventListener('click', function(e) {
                     const response = await fetch(getShortLinkApiUrl()); 
                     if (response.ok) {
                         const data = await response.json();
-                        const separator = data.shortPath.includes('?') ? '&' : '?';
                         const finalUrl = new URL(window.location.origin + data.shortPath);
                         finalUrl.searchParams.set('t', currentTime);
                         copyToClipboard(finalUrl.toString());
@@ -2712,6 +2735,7 @@ document.addEventListener('click', function(e) {
                 document.body.removeChild(tempInput);
                 showCopyMessage();
             }
+            
             function showCopyMessage() {
                 copyMessage.style.display = 'block';
                 setTimeout(() => {
@@ -2720,20 +2744,19 @@ document.addEventListener('click', function(e) {
             }
 
             function showSaveMessage() {
-                const saveMessage = document.getElementById('saveMessage');
-                saveMessage.textContent = getLang('Saved to playlist', 'Zur Playlist hinzugefügt');
-                saveMessage.style.display = 'block';
+                const saveMsg = document.getElementById('saveMessage');
+                saveMsg.textContent = getLang('Saved to playlist', 'Zur Playlist hinzugefügt');
+                saveMsg.style.display = 'block';
                 setTimeout(() => {
-                    saveMessage.style.display = 'none';
+                    saveMsg.style.display = 'none';
                 }, 2000);
             }
 
             // ===== SAVE TO PLAYLIST =====
-            const saveContainer = document.getElementById('saveContainer');
-            const saveModal = document.getElementById('saveModal');
-            const saveModalClose = document.getElementById('saveModalClose');
-            const savePlaylistList = document.getElementById('savePlaylistList');
-            const noPlaylistsMessage = document.getElementById('noPlaylistsMessage');
+            const saveModalEl = document.getElementById('saveModal');
+            const saveModalCloseBtn = document.getElementById('saveModalClose');
+            const savePlaylistListEl = document.getElementById('savePlaylistList');
+            const noPlaylistsMsg = document.getElementById('noPlaylistsMessage');
             const newPlaylistNameInput = document.getElementById('newPlaylistName');
             const createPlaylistBtn = document.getElementById('createPlaylistBtn');
 
@@ -2747,20 +2770,20 @@ document.addEventListener('click', function(e) {
                     const playlists = await response.json();
                     renderSaveModal(playlists);
                     newPlaylistNameInput.value = '';
-                    saveModal.style.display = 'flex';
+                    saveModalEl.style.display = 'flex';
                 } catch (e) {
                     console.error('Error loading playlists:', e);
                 }
             });
 
             function renderSaveModal(playlists) {
-                savePlaylistList.innerHTML = '';
+                savePlaylistListEl.innerHTML = '';
                 const playlistNames = Object.keys(playlists);
 
                 if (playlistNames.length === 0) {
-                    noPlaylistsMessage.style.display = 'block';
+                    noPlaylistsMsg.style.display = 'block';
                 } else {
-                    noPlaylistsMessage.style.display = 'none';
+                    noPlaylistsMsg.style.display = 'none';
                     playlistNames.forEach(name => {
                         const item = document.createElement('div');
                         item.className = 'save-playlist-item';
@@ -2774,29 +2797,26 @@ document.addEventListener('click', function(e) {
                             item.innerHTML = '<span>' + escapeHtml(name) + '<span class="playlist-video-count">' + videoCount + ' videos</span></span>';
                             item.addEventListener('click', () => saveToPlaylist(name));
                         }
-                        savePlaylistList.appendChild(item);
+                        savePlaylistListEl.appendChild(item);
                     });
                 }
             }
 
-            async function saveToPlaylist(playlistName) {
+            async function saveToPlaylist(pName) {
                 try {
                     const response = await fetch('/save-to-playlist', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ playlist: playlistName, video: videoSrc })
+                        body: JSON.stringify({ playlist: pName, video: videoSrc })
                     });
                     if (response.status === 409) return;
                     if (!response.ok) {
                         alert('Error saving to playlist.');
                         return;
                     }
-                    // Close the modal immediately
-                    saveModal.style.display = 'none';
-                    // Update the save button text and icon instantly
+                    saveModalEl.style.display = 'none';
                     document.getElementById('saveIcon').src = 'LocalYT-Rev-Files/saved.svg';
                     document.getElementById('saveContainer').querySelector('span').textContent = getLang('Saved', 'Gespeichert');
-                    // Show confirmation message at the bottom
                     showSaveMessage();
                 } catch (e) {
                     console.error('Error saving to playlist:', e);
@@ -2835,30 +2855,30 @@ document.addEventListener('click', function(e) {
                 if (e.key === 'Enter') createAndSavePlaylist();
             });
 
-            saveModalClose.addEventListener('click', () => {
-                saveModal.style.display = 'none';
+            saveModalCloseBtn.addEventListener('click', () => {
+                saveModalEl.style.display = 'none';
             });
-            saveModal.addEventListener('click', (e) => {
-                if (e.target === saveModal) saveModal.style.display = 'none';
+            saveModalEl.addEventListener('click', (e) => {
+                if (e.target === saveModalEl) saveModalEl.style.display = 'none';
             });
 
             // ===== END OF SAVE TO PLAYLIST BLOCK =====
 
-        // Update save icon based on whether video is in a playlist
-        fetch('/user-playlists')
-            .then(r => r.ok ? r.json() : {})
-            .then(playlists => {
-                const inPlaylist = Object.values(playlists).some(videos => videos.includes(videoSrc));
-                document.getElementById('saveIcon').src = inPlaylist ? 'LocalYT-Rev-Files/saved.svg' : 'LocalYT-Rev-Files/save.svg';
-                // Use language-aware text
-                document.getElementById('saveContainer').querySelector('span').textContent = inPlaylist ? getLang('Saved', 'Gespeichert') : getLang('Save', 'Speichern');
-            })
-            .catch(() => {});
+            // Update save icon based on whether video is in a playlist
+            fetch('/user-playlists')
+                .then(r => r.ok ? r.json() : {})
+                .then(playlists => {
+                    const inPlaylist = Object.values(playlists).some(videos => videos.includes(videoSrc));
+                    document.getElementById('saveIcon').src = inPlaylist ? 'LocalYT-Rev-Files/saved.svg' : 'LocalYT-Rev-Files/save.svg';
+                    document.getElementById('saveContainer').querySelector('span').textContent = inPlaylist ? getLang('Saved', 'Gespeichert') : getLang('Save', 'Speichern');
+                })
+                .catch(() => {});
 
             if (timestamp) {
                 videoPlayer.currentTime = parseInt(timestamp, 10);
             }
-        });
+            }); // End of 'ended' event listener
+
 
         function openVideo(videoSrc) {
             window.location.href = `video.html?src=${videoSrc}`;

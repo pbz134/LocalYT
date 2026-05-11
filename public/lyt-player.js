@@ -50,6 +50,7 @@
     const SVG = {
         play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>',
         pause: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>',
+        skipNext: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 18h2V6h-2zM6 18l8.5-6L6 6v12z"/></svg>', 
         volumeHigh: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>',
         volumeMedium: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z"/></svg>',
         volumeLow: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 9v6h4l5 5V4l-5 5H7z"/></svg>',
@@ -88,7 +89,7 @@
             this._hasPlayedOnce = false; // Track if video has started playing
             
             // Version
-            this.version = 'v1.1.0';
+            this.version = 'v1.2.0';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -254,7 +255,6 @@
                         background: rgba(255,255,255,0.2);
                         cursor: pointer;
                         position: relative;
-                        border-radius: 2px;
                         margin-bottom: 6px;
                         transition: height 0.15s ease;
                     }
@@ -265,8 +265,7 @@
                         position: absolute;
                         top: 0; left: 0;
                         height: 100%;
-                        background: rgba(255,255,255,0.25);
-                        border-radius: 2px;
+                        background: rgba(255,255,255,0.4);
                         pointer-events: none;
                         width: 0%;
                     }
@@ -275,7 +274,6 @@
                         top: 0; left: 0;
                         height: 100%;
                         background: ${primaryColor};
-                        border-radius: 2px;
                         pointer-events: none;
                         width: 0%;
                         display: flex;
@@ -639,6 +637,55 @@
                         transition: opacity 0.3s ease;
                     }
                     .lyt_copy_toast.show { opacity: 1; }
+
+                    /* Center Play/Pause Animation */
+                    .lyt_center_anim {
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        z-index: 20;
+                        pointer-events: none;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        opacity: 0;
+                        transition: opacity 0.3s ease, transform 0.3s ease;
+                    }
+                    
+                    .lyt_center_anim.lyt_show {
+                        opacity: 1;
+                        animation: lyt-center-pop 0.4s ease-out forwards;
+                    }
+                    
+                    .lyt_center_bg {
+                        position: absolute;
+                        width: 80px;
+                        height: 80px;
+                        background-color: rgba(0, 0, 0, 0.5);
+                        border-radius: 50%;
+                        z-index: -1;
+                    }
+                    
+                    .lyt_center_icon {
+                        color: #fff;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    
+                    .lyt_center_icon svg {
+                        width: 40px;
+                        height: 40px;
+                        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+                    }
+
+                    @keyframes lyt-center-pop {
+                        0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+                        20% { opacity: 1; }
+                        100% { transform: translate(-50%, -50%) scale(1.1); opacity: 0; }
+                    }
+
                 </style>
 
                 <!-- Poster/Thumbnail Overlay -->
@@ -673,6 +720,9 @@
                         <!-- Left Controls -->
                         <div class="lyt_controls_left">
                             <button class="lyt_btn lyt_btn_play" aria-label="Play">${SVG.play}</button>
+                            
+                            <!-- Skip Button (Added) -->
+                            <button class="lyt_btn lyt_btn_skip" aria-label="Skip to next video">${SVG.skipNext}</button>
                             
                             <div class="lyt_volume_group">
                                 <button class="lyt_btn lyt_btn_volume" aria-label="Volume">${SVG.volumeHigh}</button>
@@ -716,6 +766,7 @@
                 progressDot: this.wrapper.querySelector('.lyt_progress_dot'),
                 bufferBar: this.wrapper.querySelector('.lyt_progress_buffered'),
                 playBtn: this.wrapper.querySelector('.lyt_btn_play'),
+                skipBtn: this.wrapper.querySelector('.lyt_btn_skip'), // Added
                 volumeBtn: this.wrapper.querySelector('.lyt_btn_volume'),
                 volumeBar: this.wrapper.querySelector('.lyt_volume_bar'),       
                 volumeFill: this.wrapper.querySelector('.lyt_volume_fill'),   
@@ -770,6 +821,11 @@
             this.video.addEventListener('play', () => {
                 this.updatePlayPauseBtn(true);
                 this.hidePoster();
+                this.showCenterAnimation('pause');
+            });
+            this.video.addEventListener('pause', () => {
+                this.updatePlayPauseBtn(false);
+                this.showCenterAnimation('play');
             });
             this.video.addEventListener('pause', () => this.updatePlayPauseBtn(false));
             this.video.addEventListener('timeupdate', () => this.updateTime());
@@ -786,6 +842,15 @@
             this.dom.playBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.video.paused ? this.video.play() : this.video.pause();
+            });
+            
+            // Skip button (Added)
+            this.dom.skipBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // Dispatch custom event to allow parent (video.html) to handle navigation
+                this.video.dispatchEvent(new CustomEvent('lyt-skip'));
+                // Optional: Give immediate feedback by pausing
+                this.video.pause(); 
             });
             
             // Single click on video to toggle play
@@ -985,6 +1050,31 @@
         updatePlayPauseBtn(isPlaying) {
             this.dom.playBtn.innerHTML = isPlaying ? SVG.pause : SVG.play;
             this.dom.playBtn.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
+        }
+
+        showCenterAnimation(type) {
+            const existing = this.wrapper.querySelector('.lyt_center_anim');
+            if (existing) existing.remove();
+
+            const icon = type === 'play' ? SVG.play : SVG.pause;
+            
+            const anim = document.createElement('div');
+            anim.className = 'lyt_center_anim';
+            anim.innerHTML = `
+                <div class="lyt_center_bg"></div>
+                <div class="lyt_center_icon">${icon}</div>
+            `;
+            
+            this.wrapper.appendChild(anim);
+
+            void anim.offsetWidth;
+            
+            anim.classList.add('lyt_show');
+
+            setTimeout(() => {
+                anim.classList.remove('lyt_show');
+                setTimeout(() => anim.remove(), 300); 
+            }, 400);
         }
 
         updateTime() {
@@ -1189,7 +1279,6 @@
                 case ' ':
                 case 'k':
                     e.preventDefault();
-                    e.stopPropagation(); 
                     this.video.paused ? this.video.play() : this.video.pause();
                     break;
                 case 'arrowleft':
@@ -1234,6 +1323,9 @@
                     e.preventDefault();
                     this.video.currentTime += 10;
                     break;
+                case 'shift+n': // Optional: Shortcut for skip if desired, though not requested
+                     this.video.dispatchEvent(new CustomEvent('lyt-skip'));
+                     break;
             }
         }
 
