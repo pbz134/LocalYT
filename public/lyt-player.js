@@ -1230,8 +1230,18 @@
                     this.dom.controls.classList.remove('lyt_controls_visible');
                 }
             };
+
+            // Handle mousemove with edge detection for fullscreen mode
+            const handleMouseMove = (e) => {
+                // If fullscreen is active and mouse is at the left or right edge (within 10px)
+                if (this.isFullScreen && (e.clientX <= 10 || e.clientX >= window.innerWidth - 10)) {
+                    hideControls();
+                    return; // Prevent showing controls if hovering at the edge
+                }
+                showControls();
+            };
             
-            this.wrapper.addEventListener('mousemove', showControls);
+            this.wrapper.addEventListener('mousemove', handleMouseMove);
             this.wrapper.addEventListener('mouseenter', showControls);
             this.wrapper.addEventListener('mouseleave', hideControls);
             this.wrapper.addEventListener('touchstart', showControls);
