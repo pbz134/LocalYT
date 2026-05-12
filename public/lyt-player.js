@@ -1175,6 +1175,11 @@
                 this.updateSubtitlesDisplay();
             });
 
+            // Continuously update subtitles as the video plays
+            this.video.addEventListener('timeupdate', () => {
+                this.updateSubtitlesDisplay();
+            });
+
             // Poster click to play
             if (this.dom.posterOverlay) {
                 this.dom.posterOverlay.addEventListener('click', () => {
@@ -1438,7 +1443,9 @@
         
         updateSubtitlesDisplay() {
             if (!this.subtitlesEnabled || this.currentTrackIndex < 0) {
-                this.dom.subtitlesDisplay.innerHTML = '';
+                if (this.dom.subtitlesDisplay.innerHTML !== '') {
+                    this.dom.subtitlesDisplay.innerHTML = '';
+                }
                 return;
             }
             
@@ -1450,15 +1457,20 @@
             }
             
             const activeCues = track.activeCues;
+            let html = '';
+            
             if (activeCues && activeCues.length > 0) {
-                let html = '';
                 for (let i = 0; i < activeCues.length; i++) {
                     const cue = activeCues[i];
                     html += `<span class="lyt_sub_text">${cue.text}</span><br>`;
                 }
+            }
+            
+            // Only update the DOM if the content has actually changed
+            // This prevents flickering and improves performance on timeupdate
+            const currentHtml = this.dom.subtitlesDisplay.innerHTML;
+            if (currentHtml !== html) {
                 this.dom.subtitlesDisplay.innerHTML = html;
-            } else {
-                this.dom.subtitlesDisplay.innerHTML = '';
             }
         }
 
