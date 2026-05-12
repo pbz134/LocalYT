@@ -2415,12 +2415,15 @@ document.addEventListener('click', function(e) {
                         break;
                     
                     case 'arrowleft':
-                        event.preventDefault();
-                        if(videoPlayer) videoPlayer.currentTime -= 5;
-                        break;
                     case 'arrowright':
-                        event.preventDefault();
-                        if(videoPlayer) videoPlayer.currentTime += 5;
+                        event.preventDefault(); // Prevent page scroll either way
+                        if (myFP) {
+                            return; // LYT Player handles seeking — don't double-seek!
+                        }
+                        // Fallback: Only run this if NO player loaded (Native HTML5)
+                        if(videoPlayer) {
+                            videoPlayer.currentTime += (key === 'arrowleft') ? -5 : 5;
+                        }
                         break;
                     case 'arrowup':
                         event.preventDefault();

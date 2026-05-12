@@ -93,7 +93,7 @@
             this._spritePreloaded = false;
             
             // Version
-            this.version = 'v1.5.0';
+            this.version = 'v1.6.0';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -1593,12 +1593,12 @@
                     break;
                 case 'j':
                     e.preventDefault();
-                    this.video.currentTime -= 10;
+                    this.video.currentTime -= 5;
                     this.showSeekAnimation('left');
                     break;
                 case 'l':
                     e.preventDefault();
-                    this.video.currentTime += 10;
+                    this.video.currentTime += 5;
                     this.showSeekAnimation('right');
                     break;
                 case 'shift+n':
