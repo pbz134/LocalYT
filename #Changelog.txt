@@ -5,7 +5,6 @@ v4.30
   - You can now choose between the new lightweight LYT player and Fluid Player
   - For full offline environments, Fluid Player's UI will look broken as it can't fetch online assets
   - This makes LYT Player the better choice in specific cases, as all assets are baked into the script
-
 - Special Christmas logo overlay for December
 - Updated createFiledates.py
   - The script now grabs the file creation dates from the embedded metadata first

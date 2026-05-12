@@ -893,6 +893,29 @@
                 <div id="configImportExportStatus" class="status-msg"></div>
             </div>
 
+            <!-- Channel Profile Pic in Player Section (NEW) -->
+            <div class="settings-section">
+                <h2 id="playerOverlayHeading">Player Overlays</h2>
+
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div id="channelProfilePicLabel">Show Channel Profile Picture</div>
+                        <div class="setting-description" id="channelProfilePicDesc">Display the channel's profile picture in the bottom-right corner of the video player</div>
+                    </div>
+                    <div class="setting-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="showChannelProfilePic">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="inline-form" style="margin-top: 15px;">
+                    <button class="btn btn-save" id="saveChannelProfilePicBtn">Save Preference</button>
+                </div>
+                <div id="channelProfilePicStatus" class="status-msg"></div>
+            </div>
+
         </div>
 
 
@@ -1103,6 +1126,12 @@ function applyTranslations() {
     document.getElementById('configImportLabel').textContent = getLang('Import settings configuration', 'Einstellungen importieren');
     document.getElementById('configImportDesc').textContent = getLang('Load preference settings from a previously exported JSON file', 'Einstellungen aus einer zuvor exportierten JSON-Datei laden');
     document.getElementById('importConfigLabelBtn').textContent = getLang('Import Config', 'Konfiguration importieren');
+
+    // Player Overlay Translations (NEW)
+    document.getElementById('playerOverlayHeading').textContent = getLang('Player Overlays', 'Player-Overlays');
+    document.getElementById('channelProfilePicLabel').textContent = getLang('Show Channel Profile Picture', 'Kanal-Profilbild anzeigen');
+    document.getElementById('channelProfilePicDesc').textContent = getLang("Display the channel's profile picture in the bottom-right corner of the video player", 'Zeigt das Profilbild des Kanals in der unteren rechten Ecke des Videoplayers an');
+    document.getElementById('saveChannelProfilePicBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
 }
 
 // ==============================
@@ -1565,6 +1594,57 @@ function saveTitleColorScheme() {
 }
 
 // ==============================
+// Channel Profile Pic in Player Logic (NEW)
+// ==============================
+function loadShowChannelProfilePic() {
+    const savedLocal = JSON.parse(localStorage.getItem('showChannelProfilePic') || '{}');
+    const defaultValue = false;
+    const currentValue = savedLocal.enabled !== undefined ? savedLocal.enabled : defaultValue;
+    
+    document.getElementById('showChannelProfilePic').checked = currentValue;
+
+    fetch('/user-settings')
+        .then(res => {
+            if (!res.ok) throw new Error('Not authenticated');
+            return res.json();
+        })
+        .then(serverSettings => {
+            if (serverSettings && serverSettings.showChannelProfilePic !== undefined) {
+                const serverValue = serverSettings.showChannelProfilePic;
+                document.getElementById('showChannelProfilePic').checked = serverValue;
+                localStorage.setItem('showChannelProfilePic', JSON.stringify({ enabled: serverValue }));
+            }
+        })
+        .catch(err => console.error('Could not load channel profile pic setting from server:', err));
+}
+
+function saveShowChannelProfilePic() {
+    const enabled = document.getElementById('showChannelProfilePic').checked;
+    localStorage.setItem('showChannelProfilePic', JSON.stringify({ enabled: enabled }));
+
+    fetch('/user-settings')
+        .then(res => res.json())
+        .then(currentSettings => {
+            const updatedSettings = { ...currentSettings, showChannelProfilePic: enabled };
+            return fetch('/user-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings: updatedSettings })
+            });
+        })
+        .then(res => {
+            if (res.ok) {
+                showStatus('channelProfilePicStatus', getLang('Preference saved!', 'Einstellung gespeichert!'), true);
+            } else {
+                showStatus('channelProfilePicStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
+            }
+        })
+        .catch(() => {
+            showStatus('channelProfilePicStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
+        });
+}
+
+// ==============================
 // Tab Switching
 // ==============================
 const sidebarLinks = document.querySelectorAll('.settings-sidebar a');
@@ -1597,6 +1677,7 @@ sidebarLinks.forEach(link => {
             loadFuzzySubCount();
             loadHidePostImages();
             loadTitleColorScheme();
+            loadShowChannelProfilePic(); // Load new setting
         }
     });
 });
@@ -1648,6 +1729,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('saveFuzzySubCountBtn')?.addEventListener('click', saveFuzzySubCount);
     document.getElementById('saveHidePostImagesBtn')?.addEventListener('click', saveHidePostImages);
     document.getElementById('saveTitleColorSchemeBtn')?.addEventListener('click', saveTitleColorScheme);
+    document.getElementById('saveChannelProfilePicBtn')?.addEventListener('click', saveShowChannelProfilePic); // NEW
 
     // Initialize config import/export buttons
     initConfigImportExport();
@@ -2204,6 +2286,9 @@ function gatherCurrentSettings() {
     
     // Title color scheme
     config.titleColorScheme = document.getElementById('titleColorScheme').value;
+
+    // Channel Profile Pic in Player (NEW)
+    config.showChannelProfilePic = document.getElementById('showChannelProfilePic').checked;
     
     return config;
 }
@@ -2317,6 +2402,11 @@ function validateConfig(config) {
     if (config.hidePostImages !== undefined && typeof config.hidePostImages !== 'boolean') {
         return false;
     }
+
+    // Validate boolean settings (NEW)
+    if (config.showChannelProfilePic !== undefined && typeof config.showChannelProfilePic !== 'boolean') {
+        return false;
+    }
     
     // Validate title color scheme
     if (config.titleColorScheme && !['white', 'blue'].includes(config.titleColorScheme)) {
@@ -2398,6 +2488,12 @@ function applyConfiguration(config) {
         document.getElementById('titleColorScheme').value = config.titleColorScheme;
         localStorage.setItem('titleColorScheme', JSON.stringify({ scheme: config.titleColorScheme }));
     }
+
+    // Apply Channel Profile Pic in Player (NEW)
+    if (config.showChannelProfilePic !== undefined) {
+        document.getElementById('showChannelProfilePic').checked = config.showChannelProfilePic;
+        localStorage.setItem('showChannelProfilePic', JSON.stringify({ enabled: config.showChannelProfilePic }));
+    }
 }
 
 function saveImportedConfiguration(config) {
@@ -2451,6 +2547,11 @@ function saveImportedConfiguration(config) {
             
             if (config.titleColorScheme) {
                 updatedSettings.titleColorScheme = config.titleColorScheme;
+            }
+
+            // Save merged settings to server (NEW)
+            if (config.showChannelProfilePic !== undefined) {
+                updatedSettings.showChannelProfilePic = config.showChannelProfilePic;
             }
             
             // Save merged settings to server

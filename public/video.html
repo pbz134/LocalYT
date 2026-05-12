@@ -2241,6 +2241,15 @@ document.addEventListener('click', function(e) {
             const playerSettings = JSON.parse(localStorage.getItem('videoPlayer') || '{}');
             const selectedPlayer = playerSettings.player || 'lyt';
 
+            // --- CHECK CHANNEL PROFILE PIC SETTING ---
+            const profilePicSetting = JSON.parse(localStorage.getItem('showChannelProfilePic') || '{}');
+            let channelProfilePicUrl = null;
+            
+            if (profilePicSetting.enabled && currentChannel) {
+                channelProfilePicUrl = `/channelpic/${encodeURIComponent(currentChannel)}.jpg`;
+            }
+            // ------------------------------------------------
+
             if (selectedPlayer === 'lyt' && typeof LYTPlayer === 'function') {
                 // Initialize LYT Player
                 var myFP = LYTPlayer('videoPlayer', {
@@ -2268,7 +2277,9 @@ document.addEventListener('click', function(e) {
                             file: `/thumbnails/${encodeURIComponent(currentChannel)}/${encodeURIComponent(getCleanVideoName(videoSrc))}.vtt`,
                             sprite: `/thumbnails/${encodeURIComponent(currentChannel)}/${encodeURIComponent(getCleanVideoName(videoSrc))}SpriteImg.jpg`,
                             type: 'VTT'
-                        }
+                        },
+                        // PASS THE IMAGE URL HERE
+                        "channelProfilePic": channelProfilePicUrl 
                     },
                     "vastOptions": {
                         "adList": [],

@@ -132,6 +132,12 @@
             if (layout.title && this.dom.titleDisplay) {
                 this.dom.titleDisplay.textContent = layout.title;
             }
+
+            // Setup Channel Profile Picture if provided in options
+            if (layout.channelProfilePic && this.dom.channelProfilePic) {
+                this.dom.channelProfilePic.src = layout.channelProfilePic;
+                this.dom.channelProfilePic.classList.add('lyt_visible');
+            }
             
             // Trigger user callback
             if (layout.playerInitCallback) {
@@ -160,7 +166,7 @@
             const posterImage = layout.posterImage || '';
 
             // Escaped single quotes properly for inline style attribute to prevent SyntaxError
-            const posterStyle = posterImage ? "background-image: url('" + posterImage.replace(/'/g, "\\'") + "');" : '';
+            const posterStyle = posterImage ? "background-image: url('" + posterImage.replace(/'/g, "\'") + "');" : '';
 
             const controlsHtml = `
                 <style>
@@ -196,6 +202,45 @@
                     .lyt_settings_menu.lyt_show ~ .lyt_btn_settings svg,
                     .lyt_btn_settings.lyt_open svg {
                         transform: rotate(30deg);
+                    }
+
+                    /* ===== CHANNEL PROFILE PIC OVERLAY ===== */
+                    .lyt_channel_profile_pic {
+                        position: absolute;
+                        bottom: 10px; 
+                        right: 10px;
+                        width: 45px;
+                        height: 45px;
+                        z-index: 12;
+                        pointer-events: none;
+                        object-fit: cover;
+                        opacity: 0;
+                        display: none;
+                        
+                        /* ANIMATION: Smooth sliding transition */
+                        transition: 
+                            bottom 0.3s ease, 
+                            opacity 0.3s ease, 
+                            transform 0.2s ease;
+                    }
+
+                    /* Visibility Class (Base) */
+                    .lyt_channel_profile_pic.lyt_visible {
+                        opacity: 1;
+                        display: block;
+                    }
+
+                    /* STATE 1: UI Visible (Controls showing) 
+                       The wrapper has class .lyt_active or .lyt_controls_visible */
+                    .fluid_video_wrapper.lyt_active .lyt_channel_profile_pic.lyt_visible,
+                    .lyt_controls_container.lyt_controls_visible ~ .lyt_channel_profile_pic.lyt_visible {
+                        bottom: 65px; /* Move up above the control bar */
+                    }
+
+                    /* STATE 2: UI Hidden (Controls faded out)
+                       The wrapper does NOT have .lyt_active, or controls are transparent */
+                    .fluid_video_wrapper:not(.lyt_active) .lyt_channel_profile_pic.lyt_visible {
+                        bottom: 10px; /* Sit at the very bottom */
                     }
 
                     /* ===== LYT PLAYER CONTROLS ===== */
@@ -899,6 +944,9 @@
                 
                 <!-- Loading Spinner -->
                 <div class="vast_video_loading"><div class="lyt-spinner"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="20"></circle></svg></div></div>
+
+                <!-- Channel Profile Picture Overlay -->
+                <img class="lyt_channel_profile_pic" src="" alt="Channel Profile">
             `;
 
             this.wrapper.insertAdjacentHTML('beforeend', controlsHtml);
@@ -934,7 +982,10 @@
                 previewTime: this.wrapper.querySelector('.lyt_preview_time'),
                 contextMenu: this.wrapper.querySelector('.lyt_context_menu'),
                 posterOverlay: this.wrapper.querySelector('.lyt_poster_overlay'),
-                titleDisplay: this.wrapper.querySelector('.lyt_title_display')
+                titleDisplay: this.wrapper.querySelector('.lyt_title_display'),
+                
+                // Channel Profile Pic
+                channelProfilePic: this.wrapper.querySelector('.lyt_channel_profile_pic')
             };
             
             this.buildSpeedMenu();
