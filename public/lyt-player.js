@@ -56,7 +56,7 @@
         volumeLow: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 9v6h4l5 5V4l-5 5H7z"/></svg>',
         volumeMute: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>',
         subtitles: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12zM6 10h2v2H6v-2zm0 4h8v2H6v-2zm10 0h2v2h-2v-2zm-6-4h8v2h-8v-2z"/></svg>',
-        speed: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>',
+        speed: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>',
         settings: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>',
         fullscreen: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>',
         fullscreenExit: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>'
@@ -87,10 +87,13 @@
             this._seeking = false;
             this._statsInterval = null;
             this._fpsFrameId = null;
-            this._hasPlayedOnce = false; // Track if video has started playing
+            this._hasPlayedOnce = false;
+            this._thumbWidth = 160;  // Default thumbnail width from VTT
+            this._thumbHeight = 90;   // Default thumbnail height from VTT
+            this._spritePreloaded = false;
             
             // Version
-            this.version = 'v1.4.0';
+            this.version = 'v1.5.0';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -639,19 +642,37 @@
                         word-wrap: break-word;
                     }
                     
-                    /* Timeline preview */
+                    /* Timeline preview (scrubbing thumbnails) */
                     .lyt_timeline_preview {
                         display: none;
                         position: absolute;
-                        bottom: 18px;
+                        bottom: 22px;
                         pointer-events: none;
                         z-index: 15;
-                        width: 120px;
-                        height: 68px;
-                        background-size: cover;
+                        width: 160px;
+                        height: 90px;
+                        background-color: #000;
+                        background-repeat: no-repeat;
                         background-position: center;
+                        background-size: cover;
                         border-radius: 3px;
-                        border: 1px solid rgba(255,255,255,0.15);
+                        border: 1px solid rgba(255,255,255,0.2);
+                        overflow: hidden;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+                    }
+                    .lyt_preview_time {
+                        position: absolute;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                        background: rgba(0,0,0,0.8);
+                        color: #fff;
+                        font-size: 11px;
+                        font-family: 'Roboto', 'Arial', sans-serif;
+                        text-align: center;
+                        padding: 2px 0;
+                        letter-spacing: 0.3px;
+                        border-radius: 0 0 2px 2px;
                     }
 
                     /* Loading spinner */
@@ -825,7 +846,9 @@
                         <div class="lyt_progress_played">
                             <div class="lyt_progress_dot"></div>
                         </div>
-                        <div class="lyt_timeline_preview"></div>
+                        <div class="lyt_timeline_preview">
+                            <div class="lyt_preview_time"></div>
+                        </div>
                     </div>
 
                     <!-- Bottom Row -->
@@ -855,19 +878,18 @@
                         <!-- Right Controls -->
                         <div class="lyt_controls_right">
                             <button class="lyt_btn lyt_btn_subtitles" aria-label="Subtitles">${SVG.subtitles}</button>
-                            <!-- Note: Individual subtitle menu removed, now handled by settings or separate logic if needed, but keeping structure clean -->
                             
-                            <!-- Settings Button (Replaces Speed Button functionality) -->
+                            <!-- Settings Button -->
                             <button class="lyt_btn lyt_btn_settings" aria-label="Settings">${SVG.settings}</button>
                             <div class="lyt_popup_menu lyt_settings_menu">
                                 <div class="lyt_menu_option lyt_opt_speed" data-submenu="speed">Speed</div>
-                                <div class="lyt_popup_submenu lyt_speed_menu"></div> <!-- Speed Submenu -->
+                                <div class="lyt_popup_submenu lyt_speed_menu"></div>
                                 
                                 <div class="lyt_menu_option lyt_opt_subs" data-submenu="subs">Subtitles/CC</div>
-                                <div class="lyt_popup_submenu lyt_subtitles_menu"></div> <!-- Subs Submenu -->
+                                <div class="lyt_popup_submenu lyt_subtitles_menu"></div>
                                 
                                 <div class="lyt_menu_option lyt_opt_quality" data-submenu="quality">Quality</div>
-                                <div class="lyt_popup_submenu lyt_quality_menu"></div> <!-- Quality Submenu -->
+                                <div class="lyt_popup_submenu lyt_quality_menu"></div>
                             </div>
 
                             <button class="lyt_btn lyt_btn_fullscreen" aria-label="Fullscreen">${SVG.fullscreen}</button>
@@ -889,7 +911,7 @@
                 progressDot: this.wrapper.querySelector('.lyt_progress_dot'),
                 bufferBar: this.wrapper.querySelector('.lyt_progress_buffered'),
                 playBtn: this.wrapper.querySelector('.lyt_btn_play'),
-                skipBtn: this.wrapper.querySelector('.lyt_btn_skip'), // Added
+                skipBtn: this.wrapper.querySelector('.lyt_btn_skip'),
                 volumeBtn: this.wrapper.querySelector('.lyt_btn_volume'),
                 volumeBar: this.wrapper.querySelector('.lyt_volume_bar'),       
                 volumeFill: this.wrapper.querySelector('.lyt_volume_fill'),   
@@ -909,6 +931,7 @@
                 fullscreenBtn: this.wrapper.querySelector('.lyt_btn_fullscreen'),
                 loading: this.wrapper.querySelector('.vast_video_loading'),
                 preview: this.wrapper.querySelector('.lyt_timeline_preview'),
+                previewTime: this.wrapper.querySelector('.lyt_preview_time'),
                 contextMenu: this.wrapper.querySelector('.lyt_context_menu'),
                 posterOverlay: this.wrapper.querySelector('.lyt_poster_overlay'),
                 titleDisplay: this.wrapper.querySelector('.lyt_title_display')
@@ -946,9 +969,8 @@
         }
 
         buildQualityMenu() {
-            // Determine quality based on video height
             let h = this.video.videoHeight || 0;
-            let label = 'Auto'; // Default fallback
+            let label = 'Auto';
             
             if (h >= 2160) label = '2160p (4K)';
             else if (h >= 1440) label = '1440p (2K)';
@@ -957,7 +979,6 @@
             else if (h >= 480) label = '480p';
             else if (h > 0) label = h + 'p';
 
-            // Only one option available as per requirements ("Usually, only one video quality is available")
             const html = `<button class="lyt_menu_option lyt_active" disabled>${label}</button>`;
             this.dom.qualityMenu.innerHTML = html;
         }
@@ -982,7 +1003,7 @@
             this.video.addEventListener('volumechange', () => this.updateVolumeIcon());
             this.video.addEventListener('loadedmetadata', () => {
                 this.buildSubtitlesMenu();
-                this.buildQualityMenu(); // Update quality when metadata loads
+                this.buildQualityMenu();
             });
 
             // Play/Pause button
@@ -1000,14 +1021,14 @@
             
             // HD Badge Logic
             const updateHdBadge = () => {
-                if (!this.dom.settingsBtn) return; // Changed from speedBtn to settingsBtn
+                if (!this.dom.settingsBtn) return;
                 
                 let badge = this.wrapper.querySelector('.lyt_hd_badge');
                 if (!badge) {
                     badge = document.createElement('div');
                     badge.className = 'lyt_hd_badge';
                     badge.textContent = 'HD';
-                    this.dom.settingsBtn.appendChild(badge); // Changed from speedBtn
+                    this.dom.settingsBtn.appendChild(badge);
                 }
 
                 if (this.video.videoHeight >= 720) {
@@ -1019,7 +1040,6 @@
 
             this.video.addEventListener('loadedmetadata', updateHdBadge);
             
-            // Initial check in case metadata is already loaded
             if (this.video.readyState >= 1) {
                 updateHdBadge();
             }
@@ -1040,7 +1060,7 @@
                 this.toggleMute();
             });
             
-            // --- New Volume Bar Events (Drag handling) ---
+            // --- Volume Bar Events (Drag handling) ---
             this.dom.volumeBar.addEventListener('mousedown', (e) => this.handleVolumeDrag(e));
             
             // Keep volume slider visible while interacting
@@ -1069,23 +1089,14 @@
                     const targetId = e.target.dataset.submenu;
                     const submenu = this.dom.settingsMenu.querySelector(`.lyt_${targetId}_menu`);
                     if(submenu) {
-                        // Hide other submenus first
                         this.hideAllSubmenus();
                         submenu.classList.add('lyt_show');
                         
-                        // Dynamic updates before showing
                         if(targetId === 'subs') this.buildSubtitlesMenu();
                         if(targetId === 'quality') this.buildQualityMenu();
                     }
                 });
             });
-
-            // Close submenus when leaving the menu container entirely
-            this.dom.settingsMenu.addEventListener('mouseleave', () => {
-                 // Optional: keep open or close? Usually settings menus stay until click away.
-                 // We will rely on document click to close all.
-            });
-
 
             // Speed Submenu Actions
             this.dom.speedMenu.addEventListener('click', (e) => {
@@ -1094,7 +1105,7 @@
                 if (!option) return;
                 const speed = parseFloat(option.dataset.speed);
                 this.setPlaybackSpeed(speed);
-                this.closeAllMenus(); // Close everything after selection
+                this.closeAllMenus();
             });
             
             // Subtitles Submenu Actions
@@ -1107,20 +1118,14 @@
                 this.closeAllMenus();
             });
 
-            // Old Subtitle Button Logic (Optional: keep it to toggle subs directly? Or remove?)
-            // Keeping it simple: If they click the CC icon directly, maybe toggle?
-            // For now, let's make it open the Settings > Subs menu or just toggle.
-            // Let's make it toggle the last used track or off.
             this.dom.subtitlesBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                // Simple toggle logic
                 if (this.currentTrackIndex >= 0) {
                     this.setSubtitleTrack(-1);
                 } else if (this.video.textTracks.length > 0) {
                     this.setSubtitleTrack(0);
                 }
             });
-
 
             // Context Menu
             this.wrapper.addEventListener('contextmenu', (e) => {
@@ -1164,7 +1169,7 @@
             // Keyboard shortcuts
             document.addEventListener('keydown', (e) => this.handleKeyboard(e));
             
-            // Fullscreen change event (properly listen to the document event)
+            // Fullscreen change event
             document.addEventListener('fullscreenchange', () => this.onFullScreenChange());
             
             // Auto-hide controls
@@ -1239,12 +1244,10 @@
             this.closeAllMenus();
             if (!isOpen) {
                 menu.classList.add('lyt_show');
-                // Add rotation class to the button if opening settings
                 if(menu === this.dom.settingsMenu) {
                     this.dom.settingsBtn.classList.add('lyt_open');
                 }
             } else {
-                 // Remove rotation class if closing settings
                  if(menu === this.dom.settingsMenu) {
                     this.dom.settingsBtn.classList.remove('lyt_open');
                 }
@@ -1253,7 +1256,7 @@
         
         closeAllMenus() {
             this.dom.settingsMenu.classList.remove('lyt_show');
-            this.dom.settingsBtn.classList.remove('lyt_open'); // Reset rotation
+            this.dom.settingsBtn.classList.remove('lyt_open');
             this.hideAllSubmenus();
         }
 
@@ -1336,11 +1339,9 @@
         
             this.wrapper.appendChild(anim);
         
-            // Force reflow to restart animation
             void anim.offsetWidth;
             anim.classList.add('lyt_seek_show');
         
-            // Clean up after animation completes
             setTimeout(() => {
                 anim.remove();
             }, 650);
@@ -1394,7 +1395,6 @@
             }
             this.dom.volumeBtn.innerHTML = icon;
             
-            // Update volume bar fill width
             const percent = vol * 100;
             if(this.dom.volumeFill) {
                 this.dom.volumeFill.style.width = `${percent}%`;
@@ -1466,8 +1466,6 @@
                 }
             }
             
-            // Only update the DOM if the content has actually changed
-            // This prevents flickering and improves performance on timeupdate
             const currentHtml = this.dom.subtitlesDisplay.innerHTML;
             if (currentHtml !== html) {
                 this.dom.subtitlesDisplay.innerHTML = html;
@@ -1874,63 +1872,132 @@
             this.wrapper.classList.toggle('fluid_mini_player_mode', this.isMiniPlayer);
         }
 
+        /**
+         * Load and parse VTT timeline preview file for scrubbing thumbnails.
+         * Resolves relative image URLs against the VTT file's base path,
+         * correctly displays sprite sheet thumbnails using #xywh= coordinates,
+         * and shows a time tooltip alongside the preview.
+         */
         async loadTimelinePreview() {
             const vtt = this.options.layoutControls && this.options.layoutControls.timelinePreview && this.options.layoutControls.timelinePreview.file;
             if (!vtt) return;
 
             try {
                 const resp = await fetch(vtt);
+                if (!resp.ok) {
+                    console.log('Timeline preview VTT not found:', resp.status);
+                    return;
+                }
                 const text = await resp.text();
                 const lines = text.split('\n');
                 let timeStart, timeEnd;
+                
+                // Base URL for resolving relative image paths from the VTT
+                // e.g. "/thumbnails/ChannelName/Video.vtt" -> "/thumbnails/ChannelName/"
+                const vttBaseUrl = vtt.substring(0, vtt.lastIndexOf('/') + 1);
                 
                 lines.forEach(line => {
                     if (line.includes('-->')) {
                         const times = line.split('-->');
                         timeStart = this.parseTimeCode(times[0]);
                         timeEnd = this.parseTimeCode(times[1]);
-                    } else if (timeStart !== undefined && line.trim() !== '') {
+                    } else if (timeStart !== undefined && line.trim() !== '' && !line.startsWith('WEBVTT')) {
+                        let imgRef = line.trim();
+                        
+                        // Resolve relative URLs against VTT base path
+                        if (!imgRef.startsWith('http://') && !imgRef.startsWith('https://') && !imgRef.startsWith('/')) {
+                            let imgPath = imgRef;
+                            let fragment = '';
+                            
+                            // Separate #xywh= fragment before URL-encoding the path
+                            const hashIndex = imgPath.indexOf('#xywh=');
+                            if (hashIndex !== -1) {
+                                fragment = imgPath.substring(hashIndex);
+                                imgPath = imgPath.substring(0, hashIndex);
+                            }
+                            
+                            // URL-encode each path segment (handles spaces, special chars)
+                            const encodedPath = imgPath.split('/').map(part => encodeURIComponent(part)).join('/');
+                            imgRef = vttBaseUrl + encodedPath + fragment;
+                        }
+                        
+                        // Extract thumbnail dimensions from #xywh= for proper display sizing
+                        if (imgRef.includes('#xywh=')) {
+                            const coordsStr = imgRef.split('#xywh=')[1];
+                            const coords = coordsStr.split(',').map(Number);
+                            if (coords.length === 4 && (coords[2] !== this._thumbWidth || coords[3] !== this._thumbHeight)) {
+                                this._thumbWidth = coords[2];
+                                this._thumbHeight = coords[3];
+                            }
+                        }
+                        
                         this.timelinePreviewData.push({
                             start: timeStart,
                             end: timeEnd,
-                            img: line.trim()
+                            img: imgRef
                         });
                     }
                 });
 
+                // Preload the sprite image for instant hover previews
+                const spriteUrl = this.options.layoutControls.timelinePreview.sprite;
+                if (spriteUrl) {
+                    const preloadImg = new Image();
+                    preloadImg.src = spriteUrl;
+                    preloadImg.onload = () => { this._spritePreloaded = true; };
+                }
+
+                // Preview display on hover
                 this.dom.progressContainer.addEventListener('mousemove', throttle((e) => {
                     const rect = this.dom.progressContainer.getBoundingClientRect();
                     const percent = (e.clientX - rect.left) / rect.width;
-                    const time = percent * this.video.duration;
+                    const duration = this.video.duration;
+                    if (!duration || !isFinite(duration)) return;
+                    const time = percent * duration;
                     
+                    // Find the matching preview entry for the current hover time
                     const preview = this.timelinePreviewData.find(p => time >= p.start && time <= p.end);
                     if (preview) {
                         this.dom.preview.style.display = 'block';
                         let imgUrl = preview.img;
                         let bgPos = 'center';
                         let bgSize = 'cover';
+                        let previewW = this._thumbWidth;
+                        let previewH = this._thumbHeight;
                         
                         if (imgUrl.includes('#xywh=')) {
+                            // Sprite sheet: extract coordinates and set up background
                             const parts = imgUrl.split('#xywh=');
                             imgUrl = parts[0];
                             const coords = parts[1].split(',').map(Number);
                             if (coords.length === 4) {
+                                // coords = [x, y, width, height]
                                 bgPos = `-${coords[0]}px -${coords[1]}px`;
-                                bgSize = 'auto';
+                                bgSize = 'auto'; // Natural sprite size; container clips the rest
+                                previewW = coords[2];
+                                previewH = coords[3];
                             }
                         }
                         
                         this.dom.preview.style.backgroundImage = `url(${imgUrl})`;
                         this.dom.preview.style.backgroundPosition = bgPos;
                         this.dom.preview.style.backgroundSize = bgSize;
+                        this.dom.preview.style.width = `${previewW}px`;
+                        this.dom.preview.style.height = `${previewH}px`;
                         
-                        let left = e.clientX - rect.left - 60;
-                        left = Math.max(0, Math.min(left, rect.width - 120));
+                        // Update the time label inside the preview
+                        if (this.dom.previewTime) {
+                            this.dom.previewTime.textContent = formatTime(time);
+                        }
+                        
+                        // Position the preview centered above the cursor
+                        let left = e.clientX - rect.left - (previewW / 2);
+                        left = Math.max(0, Math.min(left, rect.width - previewW));
                         this.dom.preview.style.left = `${left}px`;
                     } else {
                         this.dom.preview.style.display = 'none';
                     }
-                }, 100));
+                }, 50)); // 50ms throttle for smooth preview tracking
                 
                 this.dom.progressContainer.addEventListener('mouseleave', () => {
                     this.dom.preview.style.display = 'none';
