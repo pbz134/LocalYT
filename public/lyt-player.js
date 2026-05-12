@@ -90,7 +90,7 @@
             this._hasPlayedOnce = false; // Track if video has started playing
             
             // Version
-            this.version = 'v1.3.0';
+            this.version = 'v1.4.0';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -268,19 +268,20 @@
                         transition: opacity 0.3s ease;
                         z-index: 10;
                         user-select: none;
+                        pointer-events: none; /* Prevent clicking invisible controls */
                     }
                     
-                    .fluid_video_wrapper:hover .lyt_title_display,
-                    .lyt_controls_container.lyt_controls_visible ~ .lyt_title_display,
-                    .fluid_video_wrapper:hover .lyt_controls_container ~ .lyt_title_display,
-                    .lyt_controls_container.lyt_controls_visible + .lyt_title_display,
-                    .lyt_controls_container.lyt_controls_visible ~ .lyt_title_display {
+                    .fluid_video_wrapper.lyt_active .lyt_title_display {
                         opacity: 1;
                     }
                     
-                    .fluid_video_wrapper:hover .lyt_controls_container,
                     .lyt_controls_container.lyt_controls_visible {
                         opacity: 1;
+                        pointer-events: auto; /* Re-enable clicks when visible */
+                    }
+                    
+                    .fluid_video_wrapper:not(.lyt_active) {
+                        cursor: none;
                     }
                     
                     /* Progress Bar */
@@ -487,6 +488,67 @@
                     }
                     .lyt_menu_option.lyt_active::before {
                         content: '\\2713  ';
+                    }
+
+                    /* Seek Animation (Rewind/Forward) */
+                    .lyt_seek_anim {
+                        position: absolute;
+                        top: 0;
+                        width: 50%;
+                        height: 100%;
+                        display: flex;
+                        align-items: center;
+                        pointer-events: none;
+                        z-index: 20;
+                        opacity: 0;
+                    }
+                    .lyt_seek_left { left: 0; justify-content: flex-start; padding-left: 18%; }
+                    .lyt_seek_right { right: 0; justify-content: flex-end; padding-right: 18%; }
+                    .lyt_seek_anim.lyt_seek_show {
+                        animation: lyt-seek-fade 0.6s ease-out forwards;
+                    }
+                    .lyt_seek_icon {
+                        position: relative;
+                        z-index: 2;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 52px;
+                        height: 52px;
+                        background: rgba(0, 0, 0, 0.45);
+                        border-radius: 50%;
+                    }
+                    .lyt_seek_icon svg {
+                        width: 32px;
+                        height: 32px;
+                        color: #fff;
+                        filter: drop-shadow(0 1px 4px rgba(0,0,0,0.5));
+                    }
+                    .lyt_seek_ripple {
+                        position: absolute;
+                        width: 52px;
+                        height: 52px;
+                        border-radius: 50%;
+                        background: rgba(255, 255, 255, 0.15);
+                        z-index: 1;
+                    }
+                    .lyt_seek_left .lyt_seek_ripple { left: 18%; }
+                    .lyt_seek_right .lyt_seek_ripple { right: 18%; }
+                    .lyt_seek_anim.lyt_seek_show .lyt_seek_ripple_1 {
+                        animation: lyt-ripple-out 0.55s ease-out forwards;
+                    }
+                    .lyt_seek_anim.lyt_seek_show .lyt_seek_ripple_2 {
+                        animation: lyt-ripple-out 0.55s 0.08s ease-out forwards;
+                    }
+                    @keyframes lyt-seek-fade {
+                        0%   { opacity: 0; }
+                        12%  { opacity: 1; }
+                        65%  { opacity: 1; }
+                        100% { opacity: 0; }
+                    }
+                    @keyframes lyt-ripple-out {
+                        0%   { transform: scale(1); opacity: 0.5; }
+                        100% { transform: scale(2.4); opacity: 0; }
                     }
 
                     /* Submenu specific styles */
@@ -1140,16 +1202,28 @@
         
         setupAutoHide() {
             const showControls = () => {
+                this.wrapper.classList.add('lyt_active');
                 this.dom.controls.classList.add('lyt_controls_visible');
                 clearTimeout(this._hideTimer);
                 if (!this.video.paused) {
                     this._hideTimer = setTimeout(() => {
+                        this.wrapper.classList.remove('lyt_active');
                         this.dom.controls.classList.remove('lyt_controls_visible');
                     }, 3000);
                 }
             };
             
+            const hideControls = () => {
+                if (!this.video.paused) {
+                    clearTimeout(this._hideTimer);
+                    this.wrapper.classList.remove('lyt_active');
+                    this.dom.controls.classList.remove('lyt_controls_visible');
+                }
+            };
+            
             this.wrapper.addEventListener('mousemove', showControls);
+            this.wrapper.addEventListener('mouseenter', showControls);
+            this.wrapper.addEventListener('mouseleave', hideControls);
             this.wrapper.addEventListener('touchstart', showControls);
             this.video.addEventListener('play', showControls);
             this.video.addEventListener('pause', showControls);
@@ -1236,6 +1310,35 @@
                 anim.classList.remove('lyt_show');
                 setTimeout(() => anim.remove(), 300); 
             }, 400);
+        }
+
+        showSeekAnimation(direction) {
+            const existing = this.wrapper.querySelector('.lyt_seek_anim');
+            if (existing) existing.remove();
+        
+            const rewindSvg = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>';
+            const forwardSvg = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>';
+        
+            const icon = direction === 'left' ? rewindSvg : forwardSvg;
+        
+            const anim = document.createElement('div');
+            anim.className = `lyt_seek_anim lyt_seek_${direction}`;
+            anim.innerHTML = `
+                <div class="lyt_seek_ripple lyt_seek_ripple_1"></div>
+                <div class="lyt_seek_ripple lyt_seek_ripple_2"></div>
+                <div class="lyt_seek_icon">${icon}</div>
+            `;
+        
+            this.wrapper.appendChild(anim);
+        
+            // Force reflow to restart animation
+            void anim.offsetWidth;
+            anim.classList.add('lyt_seek_show');
+        
+            // Clean up after animation completes
+            setTimeout(() => {
+                anim.remove();
+            }, 650);
         }
 
         updateTime() {
@@ -1435,7 +1538,7 @@
         handleKeyboard(e) {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
             if (e.target.isContentEditable) return;
-
+        
             switch (e.key.toLowerCase()) {
                 case ' ':
                 case 'k':
@@ -1445,10 +1548,12 @@
                 case 'arrowleft':
                     e.preventDefault();
                     this.video.currentTime -= 5;
+                    this.showSeekAnimation('left');
                     break;
                 case 'arrowright':
                     e.preventDefault();
                     this.video.currentTime += 5;
+                    this.showSeekAnimation('right');
                     break;
                 case 'arrowup':
                     e.preventDefault();
@@ -1479,14 +1584,16 @@
                 case 'j':
                     e.preventDefault();
                     this.video.currentTime -= 10;
+                    this.showSeekAnimation('left');
                     break;
                 case 'l':
                     e.preventDefault();
                     this.video.currentTime += 10;
+                    this.showSeekAnimation('right');
                     break;
-                case 'shift+n': 
-                     this.video.dispatchEvent(new CustomEvent('lyt-skip'));
-                     break;
+                case 'shift+n':
+                    this.video.dispatchEvent(new CustomEvent('lyt-skip'));
+                    break;
             }
         }
 
@@ -1831,6 +1938,7 @@
         }
 
         onVideoEnded() {
+            this.wrapper.classList.add('lyt_active');
             this.dom.controls.classList.add('lyt_controls_visible');
             this.updatePlayPauseBtn(false);
         }
