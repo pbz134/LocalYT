@@ -57,7 +57,7 @@
         volumeMute: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>',
         subtitles: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12zM6 10h2v2H6v-2zm0 4h8v2H6v-2zm10 0h2v2h-2v-2zm-6-4h8v2h-8v-2z"/></svg>',
         speed: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>',
-        settings: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>',
+        settings: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>',
         fullscreen: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>',
         fullscreenExit: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>'
     };
@@ -88,12 +88,22 @@
             this._statsInterval = null;
             this._fpsFrameId = null;
             this._hasPlayedOnce = false;
-            this._thumbWidth = 160;  // Default thumbnail width from VTT
-            this._thumbHeight = 90;   // Default thumbnail height from VTT
+            this._thumbWidth = 160;
+            this._thumbHeight = 90;
             this._spritePreloaded = false;
             
+            // Recommendation system state
+            this._recTriggered = false;
+            this._recShownCount = 0;
+            this._recMaxShows = 2;
+            this._recLastDismissTime = 0;
+            this._recData = null;
+            this._recDismissTimer = null;
+            this._recThumbVisible = false;
+            this._recTriggerTimes = [30, 180];
+            
             // Version
-            this.version = 'v1.7.0';
+            this.version = 'v1.8.0';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -165,7 +175,6 @@
             const primaryColor = layout.primaryColor || 'red';
             const posterImage = layout.posterImage || '';
 
-            // Escaped single quotes properly for inline style attribute to prevent SyntaxError
             const posterStyle = posterImage ? "background-image: url('" + posterImage.replace(/'/g, "\'") + "');" : '';
 
             const controlsHtml = `
@@ -217,30 +226,171 @@
                         opacity: 0;
                         display: none;
                         
-                        /* ANIMATION: Smooth sliding transition */
                         transition: 
                             bottom 0.3s ease, 
                             opacity 0.3s ease, 
                             transform 0.2s ease;
                     }
 
-                    /* Visibility Class (Base) */
                     .lyt_channel_profile_pic.lyt_visible {
                         opacity: 1;
                         display: block;
                     }
 
-                    /* STATE 1: UI Visible (Controls showing) 
-                       The wrapper has class .lyt_active or .lyt_controls_visible */
                     .fluid_video_wrapper.lyt_active .lyt_channel_profile_pic.lyt_visible,
                     .lyt_controls_container.lyt_controls_visible ~ .lyt_channel_profile_pic.lyt_visible {
-                        bottom: 65px; /* Move up above the control bar */
+                        bottom: 65px;
                     }
 
-                    /* STATE 2: UI Hidden (Controls faded out)
-                       The wrapper does NOT have .lyt_active, or controls are transparent */
                     .fluid_video_wrapper:not(.lyt_active) .lyt_channel_profile_pic.lyt_visible {
-                        bottom: 10px; /* Sit at the very bottom */
+                        bottom: 10px;
+                    }
+
+                    /* ===== RECOMMENDATION POPUP ===== */
+                    .lyt_recommendation_popup {
+                        position: absolute;
+                        top: 12px;
+                        right: -400px;
+                        background: rgba(255, 255, 255, 0.95);
+                        color: #000;
+                        padding: 7px 10px;
+                        border-radius: 3px;
+                        font-family: 'Roboto', 'Arial', sans-serif;
+                        font-size: 13px;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        z-index: 25;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+                        transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+                        white-space: nowrap;
+                        max-width: 340px;
+                        pointer-events: auto;
+                        cursor: default;
+                    }
+
+                    .lyt_recommendation_popup.lyt_rec_slide_in {
+                        right: 12px;
+                    }
+
+                    .lyt_rec_text {
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        flex: 1;
+                    }
+
+                    .lyt_rec_prefix {
+                        color: #888;
+                        font-size: 11px;
+                    }
+
+                    .lyt_rec_title {
+                        color: #000;
+                        font-weight: 500;
+                        cursor: pointer;
+                    }
+
+                    .lyt_rec_title:hover {
+                        color: #065fd4;
+                    }
+
+                    .lyt_info_btn {
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 50%;
+                        border: 1.5px solid #666;
+                        background: transparent;
+                        color: #666;
+                        font-size: 12px;
+                        font-style: italic;
+                        font-family: 'Times New Roman', serif;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex-shrink: 0;
+                        transition: all 0.15s;
+                        padding: 0;
+                        line-height: 1;
+                    }
+
+                    .lyt_info_btn:hover {
+                        border-color: #000;
+                        color: #000;
+                        background: rgba(0,0,0,0.05);
+                    }
+
+                    .lyt_recommendation_thumbnail {
+                        position: absolute;
+                        top: 44px;
+                        right: 12px;
+                        background: #1a1a1a;
+                        border-radius: 4px;
+                        overflow: hidden;
+                        z-index: 26;
+                        box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+                        width: 200px;
+                        opacity: 0;
+                        visibility: hidden;
+                        transform: translateY(-8px) scale(0.97);
+                        transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+                        pointer-events: none;
+                        cursor: default;
+                    }
+
+                    .lyt_recommendation_thumbnail.lyt_rec_thumb_show {
+                        opacity: 1;
+                        visibility: visible;
+                        transform: translateY(0) scale(1);
+                        pointer-events: auto;
+                    }
+
+                    .lyt_thumb_img {
+                        width: 200px;
+                        height: 112px;
+                        object-fit: cover;
+                        cursor: pointer;
+                        display: block;
+                    }
+
+                    .lyt_thumb_close {
+                        position: absolute;
+                        top: 4px;
+                        right: 4px;
+                        width: 20px;
+                        height: 20px;
+                        background: rgba(0,0,0,0.7);
+                        color: #fff;
+                        border: none;
+                        border-radius: 50%;
+                        font-size: 13px;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: background 0.15s;
+                        line-height: 1;
+                        padding: 0;
+                    }
+
+                    .lyt_thumb_close:hover {
+                        background: rgba(200,0,0,0.8);
+                    }
+
+                    .lyt_thumb_title {
+                        padding: 8px;
+                        color: #fff;
+                        font-size: 11px;
+                        font-family: 'Roboto', 'Arial', sans-serif;
+                        cursor: pointer;
+                        line-height: 1.3;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+
+                    .lyt_thumb_title:hover {
+                        color: #3ea6ff;
                     }
 
                     /* ===== LYT PLAYER CONTROLS ===== */
@@ -316,7 +466,7 @@
                         transition: opacity 0.3s ease;
                         z-index: 10;
                         user-select: none;
-                        pointer-events: none; /* Prevent clicking invisible controls */
+                        pointer-events: none;
                     }
                     
                     .fluid_video_wrapper.lyt_active .lyt_title_display {
@@ -325,7 +475,7 @@
                     
                     .lyt_controls_container.lyt_controls_visible {
                         opacity: 1;
-                        pointer-events: auto; /* Re-enable clicks when visible */
+                        pointer-events: auto;
                     }
                     
                     .fluid_video_wrapper:not(.lyt_active) {
@@ -471,7 +621,6 @@
                         justify-content: flex-end;
                         overflow: visible; 
                     }
-                    /* The White Dot at the front of the volume bar */
                     .lyt_volume_dot {
                         width: 13px;
                         height: 13px;
@@ -602,14 +751,14 @@
                     /* Submenu specific styles */
                     .lyt_popup_submenu {
                         position: absolute;
-                        right: 100%; /* Align to left of parent */
-                        bottom: 0; /* Align bottom edge with parent's bottom edge */
-                        margin-right: 4px; /* Small gap */
+                        right: 100%;
+                        bottom: 0;
+                        margin-right: 4px;
                         background: rgba(28,28,28,0.97);
                         padding: 4px 0;
                         min-width: 120px;
                         display: none;
-                        z-index: 30; /* Higher than main menu */
+                        z-index: 30;
                         box-shadow: 0 4px 16px rgba(0,0,0,0.6);
                     }
                     .lyt_popup_submenu.lyt_show {
@@ -884,6 +1033,17 @@
                     <div class="lyt_ctx_item lyt_ctx_version">LYT Player ${this.version}</div>
                 </div>
 
+                <!-- Recommendation Popup -->
+                <div class="lyt_recommendation_popup">
+                    <span class="lyt_rec_text"><span class="lyt_rec_prefix">Recommended: </span><span class="lyt_rec_title"></span></span>
+                    <button class="lyt_info_btn" title="Show thumbnail">i</button>
+                </div>
+                <div class="lyt_recommendation_thumbnail">
+                    <button class="lyt_thumb_close">&times;</button>
+                    <img class="lyt_thumb_img" src="" alt="">
+                    <div class="lyt_thumb_title"></div>
+                </div>
+
                 <div class="lyt_controls_container">
                     <!-- Progress Bar -->
                     <div class="lyt_progress_container">
@@ -908,7 +1068,6 @@
                             <div class="lyt_volume_group">
                                 <button class="lyt_btn lyt_btn_volume" aria-label="Volume">${SVG.volumeHigh}</button>
                                 <div class="lyt_volume_slider_wrap">
-                                    <!-- New Volume Bar Structure -->
                                     <div class="lyt_volume_bar">
                                         <div class="lyt_volume_fill">
                                             <div class="lyt_volume_dot"></div>
@@ -985,7 +1144,16 @@
                 titleDisplay: this.wrapper.querySelector('.lyt_title_display'),
                 
                 // Channel Profile Pic
-                channelProfilePic: this.wrapper.querySelector('.lyt_channel_profile_pic')
+                channelProfilePic: this.wrapper.querySelector('.lyt_channel_profile_pic'),
+
+                // Recommendation popup
+                recPopup: this.wrapper.querySelector('.lyt_recommendation_popup'),
+                recTitle: this.wrapper.querySelector('.lyt_rec_title'),
+                recInfoBtn: this.wrapper.querySelector('.lyt_info_btn'),
+                recThumbnail: this.wrapper.querySelector('.lyt_recommendation_thumbnail'),
+                recThumbImg: this.wrapper.querySelector('.lyt_thumb_img'),
+                recThumbTitle: this.wrapper.querySelector('.lyt_thumb_title'),
+                recThumbClose: this.wrapper.querySelector('.lyt_thumb_close')
             };
             
             this.buildSpeedMenu();
@@ -1246,7 +1414,250 @@
                     }
                 });
             }
+
+            // ===== RECOMMENDATION SYSTEM EVENT BINDINGS =====
+
+            // Trigger recommendation after playback reaches threshold
+            this.video.addEventListener('timeupdate', () => {
+                if (this._recShownCount >= this._recMaxShows) return;
+                if (this._recTriggered) return;
+                // 45s cooldown after last dismissal
+                if (this._recLastDismissTime && (Date.now() - this._recLastDismissTime < 45000)) return;
+
+                const triggerTime = this._recTriggerTimes[Math.min(this._recShownCount, this._recTriggerTimes.length - 1)];
+                if (this.video.currentTime >= triggerTime) {
+                    this._recTriggered = true;
+                    this.showRecommendationPopup();
+                }
+            });
+
+            // Reset recommendation state on new source
+            this.video.addEventListener('loadstart', () => {
+                this._recTriggered = false;
+                this._recShownCount = 0;
+                this._recLastDismissTime = 0;
+                this._recData = null;
+                this._recThumbVisible = false;
+                this.dom.recPopup.classList.remove('lyt_rec_slide_in');
+                this.dom.recThumbnail.classList.remove('lyt_rec_thumb_show');
+            });
+
+            // Hide recommendation on video end
+            this.video.addEventListener('ended', () => {
+                this.hideRecommendationPopup();
+            });
+
+            // Popup hover: pause dismiss timer
+            this.dom.recPopup.addEventListener('mouseenter', () => {
+                clearTimeout(this._recDismissTimer);
+            });
+
+            // Popup mouse leave: restart dismiss timer (only if thumbnail not visible)
+            this.dom.recPopup.addEventListener('mouseleave', () => {
+                if (!this._recThumbVisible) {
+                    this.startRecDismissTimer();
+                }
+            });
+
+            // Info button: toggle thumbnail
+            this.dom.recInfoBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (this._recThumbVisible) {
+                    this.hideRecommendationThumbnail();
+                } else {
+                    this.showRecommendationThumbnail();
+                }
+                this.startRecDismissTimer();
+            });
+
+            // Popup title click: open video
+            this.dom.recTitle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (this._recData) {
+                    window.location.href = `video.html?src=${encodeURIComponent(this._recData.path)}`;
+                }
+            });
+
+            // Thumbnail hover: pause dismiss timer
+            this.dom.recThumbnail.addEventListener('mouseenter', () => {
+                clearTimeout(this._recDismissTimer);
+            });
+
+            // Thumbnail mouse leave: restart dismiss timer
+            this.dom.recThumbnail.addEventListener('mouseleave', () => {
+                this.startRecDismissTimer();
+            });
+
+            // Thumbnail close button
+            this.dom.recThumbClose.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.hideRecommendationThumbnail();
+                this.startRecDismissTimer();
+            });
+
+            // Thumbnail image click: open video
+            this.dom.recThumbImg.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (this._recData) {
+                    window.location.href = `video.html?src=${encodeURIComponent(this._recData.path)}`;
+                }
+            });
+
+            // Thumbnail title click: open video
+            this.dom.recThumbTitle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (this._recData) {
+                    window.location.href = `video.html?src=${encodeURIComponent(this._recData.path)}`;
+                }
+            });
         }
+
+        // ===== RECOMMENDATION SYSTEM METHODS =====
+
+        /**
+         * Extract the current channel name from the video source URL.
+         */
+        getCurrentChannel() {
+            try {
+                if (!this.video.currentSrc) return null;
+                const url = new URL(this.video.currentSrc, window.location.origin);
+                const path = decodeURIComponent(url.pathname);
+                const videoPath = path.replace(/^\/videos\//, '');
+                if (!videoPath) return null;
+                return videoPath.split('/')[0];
+            } catch (e) {
+                return null;
+            }
+        }
+
+        /**
+         * Extract the full current video path from the video source URL.
+         */
+        getCurrentVideoPath() {
+            try {
+                if (!this.video.currentSrc) return null;
+                const url = new URL(this.video.currentSrc, window.location.origin);
+                const path = decodeURIComponent(url.pathname);
+                return path.replace(/^\/videos\//, '');
+            } catch (e) {
+                return null;
+            }
+        }
+
+        /**
+         * Fetch a random video from the same channel (excluding the current video).
+         */
+        async fetchChannelRecommendation() {
+            const channel = this.getCurrentChannel();
+            if (!channel) return null;
+
+            try {
+                const response = await fetch(`/channel-random-videos/${encodeURIComponent(channel)}?limit=5`);
+                if (!response.ok) return null;
+
+                const videos = await response.json();
+                const currentPath = this.getCurrentVideoPath();
+
+                // Filter out the currently playing video
+                const filtered = videos.filter(v => v.path !== currentPath);
+                if (filtered.length === 0) return null;
+
+                // Pick a random one
+                return filtered[Math.floor(Math.random() * filtered.length)];
+            } catch (e) {
+                return null;
+            }
+        }
+
+        /**
+         * Build the thumbnail URL from a video path.
+         */
+        buildThumbnailUrl(videoPath) {
+            const pathParts = videoPath.split('/');
+            const channel = pathParts[0];
+
+            if (pathParts.length > 2) {
+                // Channel/Playlist/Video structure
+                const playlist = pathParts[1];
+                const videoName = pathParts[pathParts.length - 1].replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+                return `/thumbnails/${encodeURIComponent(channel)}/${encodeURIComponent(playlist)}/${encodeURIComponent(videoName)}.jpg`;
+            } else {
+                // Channel/Video structure
+                const videoName = pathParts[pathParts.length - 1].replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+                return `/thumbnails/${encodeURIComponent(channel)}/${encodeURIComponent(videoName)}.jpg`;
+            }
+        }
+
+        /**
+         * Show the recommendation popup (slide in from right).
+         */
+        async showRecommendationPopup() {
+            const video = await this.fetchChannelRecommendation();
+            if (!video) {
+                // Fetch failed or no other videos in channel — don't retry this trigger
+                this._recTriggered = false;
+                this._recShownCount++;
+                return;
+            }
+
+            this._recData = video;
+
+            // Set popup content
+            this.dom.recTitle.textContent = video.displayName;
+
+            // Set thumbnail data
+            this.dom.recThumbImg.src = this.buildThumbnailUrl(video.path);
+            this.dom.recThumbTitle.textContent = video.displayName;
+
+            // Slide in
+            this.dom.recPopup.classList.add('lyt_rec_slide_in');
+
+            // Start 8-second auto-dismiss timer
+            this.startRecDismissTimer();
+        }
+
+        /**
+         * Start (or restart) the 8-second auto-dismiss timer.
+         */
+        startRecDismissTimer() {
+            clearTimeout(this._recDismissTimer);
+            this._recDismissTimer = setTimeout(() => {
+                this.hideRecommendationPopup();
+            }, 8000);
+        }
+
+        /**
+         * Hide the recommendation popup (slide out to right).
+         */
+        hideRecommendationPopup() {
+            clearTimeout(this._recDismissTimer);
+            this.dom.recPopup.classList.remove('lyt_rec_slide_in');
+            this.hideRecommendationThumbnail();
+
+            // Track dismissal and allow next recommendation
+            this._recTriggered = false;
+            this._recShownCount++;
+            this._recLastDismissTime = Date.now();
+        }
+
+        /**
+         * Show the thumbnail card below the popup bar.
+         */
+        showRecommendationThumbnail() {
+            if (!this._recData) return;
+            this._recThumbVisible = true;
+            this.dom.recThumbnail.classList.add('lyt_rec_thumb_show');
+        }
+
+        /**
+         * Hide the thumbnail card.
+         */
+        hideRecommendationThumbnail() {
+            this._recThumbVisible = false;
+            this.dom.recThumbnail.classList.remove('lyt_rec_thumb_show');
+        }
+
+        // ===== END RECOMMENDATION SYSTEM =====
 
         hideAllSubmenus() {
             if(this.dom.speedMenu) this.dom.speedMenu.classList.remove('lyt_show');
@@ -1282,12 +1693,10 @@
                 }
             };
 
-            // Handle mousemove with edge detection for fullscreen mode
             const handleMouseMove = (e) => {
-                // If fullscreen is active and mouse is at the left or right edge (within 10px)
                 if (this.isFullScreen && (e.clientX <= 10 || e.clientX >= window.innerWidth - 10)) {
                     hideControls();
-                    return; // Prevent showing controls if hovering at the edge
+                    return;
                 }
                 showControls();
             };
@@ -1935,9 +2344,6 @@
 
         /**
          * Load and parse VTT timeline preview file for scrubbing thumbnails.
-         * Resolves relative image URLs against the VTT file's base path,
-         * correctly displays sprite sheet thumbnails using #xywh= coordinates,
-         * and shows a time tooltip alongside the preview.
          */
         async loadTimelinePreview() {
             const vtt = this.options.layoutControls && this.options.layoutControls.timelinePreview && this.options.layoutControls.timelinePreview.file;
@@ -1953,8 +2359,6 @@
                 const lines = text.split('\n');
                 let timeStart, timeEnd;
                 
-                // Base URL for resolving relative image paths from the VTT
-                // e.g. "/thumbnails/ChannelName/Video.vtt" -> "/thumbnails/ChannelName/"
                 const vttBaseUrl = vtt.substring(0, vtt.lastIndexOf('/') + 1);
                 
                 lines.forEach(line => {
@@ -1965,24 +2369,20 @@
                     } else if (timeStart !== undefined && line.trim() !== '' && !line.startsWith('WEBVTT')) {
                         let imgRef = line.trim();
                         
-                        // Resolve relative URLs against VTT base path
                         if (!imgRef.startsWith('http://') && !imgRef.startsWith('https://') && !imgRef.startsWith('/')) {
                             let imgPath = imgRef;
                             let fragment = '';
                             
-                            // Separate #xywh= fragment before URL-encoding the path
                             const hashIndex = imgPath.indexOf('#xywh=');
                             if (hashIndex !== -1) {
                                 fragment = imgPath.substring(hashIndex);
                                 imgPath = imgPath.substring(0, hashIndex);
                             }
                             
-                            // URL-encode each path segment (handles spaces, special chars)
                             const encodedPath = imgPath.split('/').map(part => encodeURIComponent(part)).join('/');
                             imgRef = vttBaseUrl + encodedPath + fragment;
                         }
                         
-                        // Extract thumbnail dimensions from #xywh= for proper display sizing
                         if (imgRef.includes('#xywh=')) {
                             const coordsStr = imgRef.split('#xywh=')[1];
                             const coords = coordsStr.split(',').map(Number);
@@ -2000,7 +2400,6 @@
                     }
                 });
 
-                // Preload the sprite image for instant hover previews
                 const spriteUrl = this.options.layoutControls.timelinePreview.sprite;
                 if (spriteUrl) {
                     const preloadImg = new Image();
@@ -2008,7 +2407,6 @@
                     preloadImg.onload = () => { this._spritePreloaded = true; };
                 }
 
-                // Preview display on hover
                 this.dom.progressContainer.addEventListener('mousemove', throttle((e) => {
                     const rect = this.dom.progressContainer.getBoundingClientRect();
                     const percent = (e.clientX - rect.left) / rect.width;
@@ -2016,7 +2414,6 @@
                     if (!duration || !isFinite(duration)) return;
                     const time = percent * duration;
                     
-                    // Find the matching preview entry for the current hover time
                     const preview = this.timelinePreviewData.find(p => time >= p.start && time <= p.end);
                     if (preview) {
                         this.dom.preview.style.display = 'block';
@@ -2027,14 +2424,12 @@
                         let previewH = this._thumbHeight;
                         
                         if (imgUrl.includes('#xywh=')) {
-                            // Sprite sheet: extract coordinates and set up background
                             const parts = imgUrl.split('#xywh=');
                             imgUrl = parts[0];
                             const coords = parts[1].split(',').map(Number);
                             if (coords.length === 4) {
-                                // coords = [x, y, width, height]
                                 bgPos = `-${coords[0]}px -${coords[1]}px`;
-                                bgSize = 'auto'; // Natural sprite size; container clips the rest
+                                bgSize = 'auto';
                                 previewW = coords[2];
                                 previewH = coords[3];
                             }
@@ -2046,19 +2441,17 @@
                         this.dom.preview.style.width = `${previewW}px`;
                         this.dom.preview.style.height = `${previewH}px`;
                         
-                        // Update the time label inside the preview
                         if (this.dom.previewTime) {
                             this.dom.previewTime.textContent = formatTime(time);
                         }
                         
-                        // Position the preview centered above the cursor
                         let left = e.clientX - rect.left - (previewW / 2);
                         left = Math.max(0, Math.min(left, rect.width - previewW));
                         this.dom.preview.style.left = `${left}px`;
                     } else {
                         this.dom.preview.style.display = 'none';
                     }
-                }, 50)); // 50ms throttle for smooth preview tracking
+                }, 50));
                 
                 this.dom.progressContainer.addEventListener('mouseleave', () => {
                     this.dom.preview.style.display = 'none';
