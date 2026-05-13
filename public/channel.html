@@ -7,10 +7,17 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
     <script>
-    // Load Fluid Player for the HOME tab miniplayer
+    // Load Player for the HOME tab miniplayer based on user's preference
     (function() {
+        const playerSettings = JSON.parse(localStorage.getItem('videoPlayer') || '{}');
+        const selectedPlayer = playerSettings.player || 'lyt';
+
         const script = document.createElement('script');
-        script.src = 'fluidplayer.min.js';
+        if (selectedPlayer === 'lyt') {
+            script.src = 'lyt-player.js';
+        } else {
+            script.src = 'fluidplayer.min.js';
+        }
         document.head.appendChild(script);
     })();
     </script>
@@ -1933,7 +1940,37 @@ function getMimeType(extension) {
         wrapper.appendChild(videoElement);
 
         function initPlayer() {
-            if (typeof fluidPlayer === 'function') {
+            const playerSettings = JSON.parse(localStorage.getItem('videoPlayer') || '{}');
+            const selectedPlayer = playerSettings.player || 'lyt';
+
+            if (selectedPlayer === 'lyt' && typeof LYTPlayer === 'function') {
+                homeFluidPlayerInstance = LYTPlayer('homeVideoPlayer', {
+                    "layoutControls": {
+                        "title": video.displayName,
+                        "controlBar": {
+                            "autoHideTimeout": 3,
+                            "animated": true,
+                            "autoHide": true
+                        },
+                        "htmlOnPauseBlock": { "html": null, "height": null, "width": null },
+                        "autoPlay": false,
+                        "mute": false,
+                        "allowTheatre": false,
+                        "playPauseAnimation": true,
+                        "playbackRateEnabled": true,
+                        "allowDownload": false,
+                        "playButtonShowing": false,
+                        "fillToContainer": true,
+                        "posterImage": thumbnailSrc,
+                        "posterImageSize": "cover"
+                    },
+                    "vastOptions": {
+                        "adList": [],
+                        "adCTAText": false,
+                        "adCTATextPosition": ""
+                    }
+                });
+            } else if (selectedPlayer !== 'lyt' && typeof fluidPlayer === 'function') {
                 homeFluidPlayerInstance = fluidPlayer('homeVideoPlayer', {
                     "layoutControls": {
                         "title": video.displayName,
