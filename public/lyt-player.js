@@ -103,7 +103,7 @@
             this._recTriggerTimes = [30, 180];
             
             // Version
-            this.version = 'v1.9.0';
+            this.version = 'v2.0.0';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -652,7 +652,7 @@
                         bottom: 42px;
                         right: 0;
                         background: rgba(28,28,28,0.97);
-                        padding: 4px 0;
+                        padding: 0;
                         min-width: 90px;
                         display: none;
                         z-index: 20;
@@ -661,6 +661,12 @@
                     .lyt_popup_menu.lyt_show {
                         display: block;
                     }
+                    
+                    /* Main menu content and submenu content wrappers */
+                    .lyt_menu_content {
+                        padding: 4px 0;
+                    }
+
                     .lyt_menu_option {
                         display: block;
                         width: 100%;
@@ -684,6 +690,47 @@
                     }
                     .lyt_menu_option.lyt_active::before {
                         content: '\\2713  ';
+                    }
+
+                    /* Submenu specific styles */
+                    .lyt_popup_submenu {
+                        display: none;
+                        background: rgba(28,28,28,0.97);
+                        padding: 0;
+                        min-width: 120px;
+                        z-index: 30;
+                    }
+                    .lyt_popup_submenu.lyt_show {
+                        display: block;
+                    }
+                    
+                    .lyt_submenu_back {
+                        display: flex;
+                        align-items: center;
+                        width: 100%;
+                        background: none;
+                        border: none;
+                        border-bottom: 1px solid rgba(255,255,255,0.15);
+                        color: #eee;
+                        font-size: 13px;
+                        padding: 8px 12px;
+                        cursor: pointer;
+                        text-align: left;
+                        font-family: 'Roboto', 'Arial', sans-serif;
+                        transition: background 0.1s;
+                        white-space: nowrap;
+                        gap: 8px;
+                        box-sizing: border-box;
+                    }
+                    .lyt_submenu_back:hover {
+                        background: rgba(255,255,255,0.1);
+                        color: #fff;
+                    }
+                    .lyt_submenu_back svg {
+                        width: 16px;
+                        height: 16px;
+                        flex-shrink: 0;
+                        pointer-events: none;
                     }
 
                     /* Seek Animation (Rewind/Forward) */
@@ -747,23 +794,6 @@
                         100% { transform: scale(2.4); opacity: 0; }
                     }
 
-                    /* Submenu specific styles */
-                    .lyt_popup_submenu {
-                        position: absolute;
-                        right: 100%;
-                        bottom: 0;
-                        margin-right: 4px;
-                        background: rgba(28,28,28,0.97);
-                        padding: 4px 0;
-                        min-width: 120px;
-                        display: none;
-                        z-index: 30;
-                        box-shadow: 0 4px 16px rgba(0,0,0,0.6);
-                    }
-                    .lyt_popup_submenu.lyt_show {
-                        display: block;
-                    }
-                    
                     /* Context Menu */
                     .lyt_context_menu {
                         position: absolute;
@@ -1085,14 +1115,26 @@
                             <!-- Settings Button -->
                             <button class="lyt_btn lyt_btn_settings" aria-label="Settings">${SVG.settings}</button>
                             <div class="lyt_popup_menu lyt_settings_menu">
-                                <div class="lyt_menu_option lyt_opt_speed" data-submenu="speed">Speed</div>
-                                <div class="lyt_popup_submenu lyt_speed_menu"></div>
+                                <div class="lyt_menu_content">
+                                    <div class="lyt_menu_option lyt_opt_speed" data-submenu="speed">Speed</div>
+                                    <div class="lyt_menu_option lyt_opt_subs" data-submenu="subs">Subtitles/CC</div>
+                                    <div class="lyt_menu_option lyt_opt_quality" data-submenu="quality">Quality</div>
+                                </div>
+
+                                <div class="lyt_popup_submenu lyt_speed_menu">
+                                    <button class="lyt_submenu_back" data-back="main"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg> Speed</button>
+                                    <div class="lyt_menu_content"></div>
+                                </div>
                                 
-                                <div class="lyt_menu_option lyt_opt_subs" data-submenu="subs">Subtitles/CC</div>
-                                <div class="lyt_popup_submenu lyt_subtitles_menu"></div>
+                                <div class="lyt_popup_submenu lyt_subtitles_menu">
+                                    <button class="lyt_submenu_back" data-back="main"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg> Subtitles/CC</button>
+                                    <div class="lyt_menu_content"></div>
+                                </div>
                                 
-                                <div class="lyt_menu_option lyt_opt_quality" data-submenu="quality">Quality</div>
-                                <div class="lyt_popup_submenu lyt_quality_menu"></div>
+                                <div class="lyt_popup_submenu lyt_quality_menu">
+                                    <button class="lyt_submenu_back" data-back="main"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg> Quality</button>
+                                    <div class="lyt_menu_content"></div>
+                                </div>
                             </div>
 
                             <button class="lyt_btn lyt_btn_fullscreen" aria-label="Fullscreen">${SVG.fullscreen}</button>
@@ -1133,6 +1175,7 @@
                 settingsMenu: this.wrapper.querySelector('.lyt_settings_menu'),
                 speedMenu: this.wrapper.querySelector('.lyt_speed_menu'),
                 qualityMenu: this.wrapper.querySelector('.lyt_quality_menu'),
+                mainMenuContent: this.wrapper.querySelector('.lyt_settings_menu > .lyt_menu_content'),
 
                 fullscreenBtn: this.wrapper.querySelector('.lyt_btn_fullscreen'),
                 loading: this.wrapper.querySelector('.vast_video_loading'),
@@ -1167,7 +1210,7 @@
                 const activeClass = speed === 1 ? ' lyt_active' : '';
                 html += `<button class="lyt_menu_option lyt_speed_option${activeClass}" data-speed="${speed}">${label}</button>`;
             });
-            this.dom.speedMenu.innerHTML = html;
+            this.dom.speedMenu.querySelector('.lyt_menu_content').innerHTML = html;
         }
         
         buildSubtitlesMenu() {
@@ -1183,7 +1226,7 @@
                 }
             }
             
-            this.dom.subtitlesMenu.innerHTML = html;
+            this.dom.subtitlesMenu.querySelector('.lyt_menu_content').innerHTML = html;
         }
 
         buildQualityMenu() {
@@ -1198,7 +1241,7 @@
             else if (h > 0) label = h + 'p';
 
             const html = `<button class="lyt_menu_option lyt_active" disabled>${label}</button>`;
-            this.dom.qualityMenu.innerHTML = html;
+            this.dom.qualityMenu.querySelector('.lyt_menu_content').innerHTML = html;
         }
 
         bindEvents() {
@@ -1303,16 +1346,25 @@
 
             // Handle Main Menu Options (Speed/Subs/Quality) -> Open Submenus
             this.dom.settingsMenu.querySelectorAll('[data-submenu]').forEach(option => {
-                option.addEventListener('mouseenter', (e) => {
+                option.addEventListener('click', (e) => {
                     const targetId = e.target.dataset.submenu;
                     const submenu = this.dom.settingsMenu.querySelector(`.lyt_${targetId}_menu`);
                     if(submenu) {
-                        this.hideAllSubmenus();
+                        this.hideMainMenu();
                         submenu.classList.add('lyt_show');
                         
                         if(targetId === 'subs') this.buildSubtitlesMenu();
                         if(targetId === 'quality') this.buildQualityMenu();
                     }
+                });
+            });
+
+            // Handle Submenu Back Buttons
+            this.dom.settingsMenu.querySelectorAll('.lyt_submenu_back').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.hideAllSubmenus();
+                    this.showMainMenu();
                 });
             });
 
@@ -1662,6 +1714,14 @@
             if(this.dom.speedMenu) this.dom.speedMenu.classList.remove('lyt_show');
             if(this.dom.subtitlesMenu) this.dom.subtitlesMenu.classList.remove('lyt_show');
             if(this.dom.qualityMenu) this.dom.qualityMenu.classList.remove('lyt_show');
+        }
+        
+        hideMainMenu() {
+            if(this.dom.mainMenuContent) this.dom.mainMenuContent.style.display = 'none';
+        }
+        
+        showMainMenu() {
+            if(this.dom.mainMenuContent) this.dom.mainMenuContent.style.display = '';
         }
         
         hidePoster() {
