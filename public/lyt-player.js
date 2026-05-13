@@ -93,7 +93,7 @@
             this._spritePreloaded = false;
             
             // Version
-            this.version = 'v1.6.0';
+            this.version = 'v1.7.0';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -176,7 +176,7 @@
                     }
                     .lyt_hd_badge {
                         position: absolute;
-                        top: 2px;
+                        top: 5px;
                         right: 0px;
                         background-color: red;
                         color: white;
@@ -211,7 +211,7 @@
                         right: 10px;
                         width: 45px;
                         height: 45px;
-                        z-index: 12;
+                        z-index: 9;
                         pointer-events: none;
                         object-fit: cover;
                         opacity: 0;
@@ -311,7 +311,7 @@
                         left: 0;
                         right: 0;
                         background: linear-gradient(transparent, rgba(0,0,0,0.9));
-                        padding: 24px 12px 6px 12px;
+                        padding: 22px 12px 4px 12px;
                         opacity: 0;
                         transition: opacity 0.3s ease;
                         z-index: 10;
@@ -339,7 +339,7 @@
                         background: rgba(255,255,255,0.2);
                         cursor: pointer;
                         position: relative;
-                        margin-bottom: 6px;
+                        margin-bottom: 4px;
                         transition: height 0.15s ease;
                     }
                     .lyt_progress_container:hover {
