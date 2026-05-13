@@ -10,6 +10,7 @@ v4.30
   - The script now grabs the file creation dates from the embedded metadata first
   - This leads to slower but much more accurate offline file date generation
 - The amount of comments now gets displayed on video.html
+- Updated createFiledates.py for more efficient filedate creation
 
 v4.20
 - New Appearance setting in settings.html
