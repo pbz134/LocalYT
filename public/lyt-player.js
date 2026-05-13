@@ -103,7 +103,7 @@
             this._recTriggerTimes = [30, 180];
             
             // Version
-            this.version = 'v1.8.0';
+            this.version = 'v1.9.0';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -254,7 +254,6 @@
                         background: rgba(255, 255, 255, 0.95);
                         color: #000;
                         padding: 7px 10px;
-                        border-radius: 3px;
                         font-family: 'Roboto', 'Arial', sans-serif;
                         font-size: 13px;
                         display: flex;
@@ -2019,6 +2018,16 @@
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
             if (e.target.isContentEditable) return;
         
+            // Number keys 0-9: seek to 0%-90% of the video
+            if (e.key >= '0' && e.key <= '9' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                e.preventDefault();
+                const percent = parseInt(e.key, 10) / 10;
+                if (this.video.duration && isFinite(this.video.duration)) {
+                    this.video.currentTime = this.video.duration * percent;
+                }
+                return;
+            }
+
             switch (e.key.toLowerCase()) {
                 case ' ':
                 case 'k':
