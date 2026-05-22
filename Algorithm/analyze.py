@@ -234,7 +234,7 @@ def generate_tags_for_video(video_name, allowed_tags, auto_tag_rules):
                 prompt=prompt,
                 max_tokens=30,
                 stop=["\n"],
-                temperature=0.7,  # Adjust for creativity
+                temperature=0.1,
                 timeout=30  # Add timeout parameter here too
             )
 
