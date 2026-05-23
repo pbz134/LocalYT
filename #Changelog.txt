@@ -11,6 +11,9 @@ v4.30
   - This leads to slower but much more accurate offline file date generation
 - The amount of comments now gets displayed on video.html
 - Updated createFiledates.py for more efficient filedate creation
+- Improved search-worker.js and search.html
+  - Multi-word searches now find the correct video(s) if multiple words are entered and matching with local files
+- Added the sidebar (hamburger menu) to all pages as an external .js script (sidebar.js)
 
 v4.20
 - New Appearance setting in settings.html

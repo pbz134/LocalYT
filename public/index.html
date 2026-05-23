@@ -28,80 +28,14 @@
             top: 10px;
         }
 
-        /* ============================================================
-           Constrained container that matches video grid width
-           ============================================================ */
         .container {
             background-color: var(--secondary-bg-color);
             padding-top: 95px;
             padding-bottom: 20px;
-            /* Replace fit-content with explicit responsive max-width */
             max-width: 1800px;
             width: 100%;
             margin: 0 auto;
             box-sizing: border-box;
-        }
-
-        .sidebar {
-            height: 100%;
-            width: 0;
-            position: fixed;
-            z-index: 1;
-            top: 0;
-            left: 0;
-            background-color: var(--main-bg-color);
-            overflow-x: hidden;
-            transition: 0.5s;
-            padding-top: 60px;
-        }
-
-        .sidebar a {
-            padding: 8px 8px 8px 32px;
-            text-decoration: none;
-            font-size: 25px;
-            color: #818181;
-            display: block;
-            transition: 0.3s;
-        }
-
-        .sidebar a:hover {
-            color: #f1f1f1;
-        }
-
-        .sidebar .closebtn {
-            position: absolute;
-            top: 0;
-            right: 25px;
-            font-size: 36px;
-            margin-left: 50px;
-        }
-
-        .sidebar .sidebar-divider {
-            height: 1px;
-            background-color: #3f3f3f;
-            margin: 12px 24px;
-        }
-
-        .sidebar .genre-label {
-            padding: 8px 8px 4px 32px;
-            font-size: 13px;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: bold;
-        }
-
-        .sidebar .genre-link {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .sidebar .genre-link img {
-            width: 20px;
-            height: 20px;
-            flex-shrink: 0;
-            filter: invert(60%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(60%) contrast(90%);
         }
 
         #main {
@@ -109,6 +43,8 @@
             padding: 16px;
         }
 
+        /* Note: The .openbtn styles have been moved into sidebar.js, 
+           but keeping them here won't hurt anything if you prefer to leave them. */
         .openbtn {
             font-size: 20px;
             cursor: pointer;
@@ -145,20 +81,20 @@
             user-select: none;
         }
 
-.video-item .video-info,
-.video-item .video-details,
-.video-item .video-description,
-.video-item .video-length {
-    cursor: default;
-}
+        .video-item .video-info,
+        .video-item .video-details,
+        .video-item .video-description,
+        .video-item .video-length {
+            cursor: default;
+        }
 
-.video-item .thumbnail-container,
-.video-item .thumbnail-container img,
-.video-item .video-title,
-.video-item .channel-name,
-.video-item .channel-pic-link {
-    cursor: pointer !important;
-}
+        .video-item .thumbnail-container,
+        .video-item .thumbnail-container img,
+        .video-item .video-title,
+        .video-item .channel-name,
+        .video-item .channel-pic-link {
+            cursor: pointer !important;
+        }
         
         .video-title,
         .thumbnail-container,
@@ -174,8 +110,8 @@
 </head>
 <body class="index-page">
     <header class="top-bar">
-        <button class="openbtn" onclick="toggleNav()">☰</button>
-        <img src="LocalYT-Rev-Files/Logo.png" alt="Logo" class="logo" id="mainLogo">
+        <!-- The ☰ toggle button is now injected automatically by sidebar.js -->
+        <img src="LocalYT-Rev-Files/Logo.svg" alt="Logo" class="logo" id="mainLogo">
         <div class="category-container" id="categoryContainer"></div>
         <div class="search-container">
             <input type="text" id="searchInput" placeholder="">
@@ -183,28 +119,9 @@
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
     </header>
-    <div id="mySidebar" class="sidebar">
-        <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
-        <a href="watch_history.html" id="sidebarWatchHistory">Watch History</a>
-        <a href="liked_videos.html" id="sidebarLikedVideos">Liked Videos</a>
-        <a href="subscribed_channels.html" id="sidebarSubscriptions">Subscriptions</a>
-        <a href="user_playlists.html" id="sidebarPlaylists">Playlists</a>
-        <a href="about.html" id="sidebarAbout">About</a>
-        <div class="sidebar-divider"></div>
-        <div class="genre-label" id="sidebarGenreLabel">Topics</div>
-        <a href="genre_channel.html?genre=gaming" class="genre-link" id="sidebarGaming">
-            <img src="LocalYT-Rev-Files/genre_gaming.svg" alt="">Gaming
-        </a>
-        <a href="genre_channel.html?genre=music" class="genre-link" id="sidebarMusic">
-            <img src="LocalYT-Rev-Files/genre_music.svg" alt="">Music
-        </a>
-        <a href="genre_channel.html?genre=sports" class="genre-link" id="sidebarSports">
-            <img src="LocalYT-Rev-Files/genre_sports.svg" alt="">Sports
-        </a>
-        <a href="genre_channel.html?genre=movies" class="genre-link" id="sidebarMovies">
-            <img src="LocalYT-Rev-Files/genre_movies.svg" alt="">Movies
-        </a>
-    </div>
+    
+    <!-- The sidebar div is now injected automatically by sidebar.js -->
+    
     <div class="container" id="videoContainer"></div>
     
     <script>
@@ -266,17 +183,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
-    document.getElementById('sidebarWatchHistory').textContent = getLang('Watch History', 'Wiedergabeverlauf');
-    document.getElementById('sidebarLikedVideos').textContent = getLang('Liked Videos', 'Videos, die ich mag');
-    document.getElementById('sidebarSubscriptions').textContent = getLang('Subscriptions', 'Abonnements');
-    document.getElementById('sidebarPlaylists').textContent = getLang('Playlists', 'Playlisten');
-    document.getElementById('sidebarAbout').textContent = getLang('About', 'Über');
-    document.getElementById('sidebarGenreLabel').textContent = getLang('Topics', 'Themen');
-    
-    document.getElementById('sidebarGaming').lastChild.textContent = getLang('Gaming', 'Gaming');
-    document.getElementById('sidebarMusic').lastChild.textContent = getLang('Music', 'Musik');
-    document.getElementById('sidebarSports').lastChild.textContent = getLang('Sports', 'Sport');
-    document.getElementById('sidebarMovies').lastChild.textContent = getLang('Movies', 'Filme');
 });
 
 function stripExtension(filename) {
@@ -286,24 +192,6 @@ function stripExtension(filename) {
 function getVideoExtension(path) {
     const match = path.match(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i);
     return match ? match[1] : 'mp4';
-}
-
-function toggleNav() {
-    const sidebar = document.getElementById("mySidebar");
-    const main = document.getElementById("main");
-    
-    if (sidebar.style.width === "250px") {
-        sidebar.style.width = "0";
-        main.style.marginLeft = "0";
-    } else {
-        sidebar.style.width = "250px";
-        main.style.marginLeft = "250px";
-    }
-}
-        
-function closeNav() {
-    document.getElementById("mySidebar").style.width = "0";
-    document.getElementById("main").style.marginLeft = "0";
 }
 
 let currentPage = 1;
@@ -325,7 +213,7 @@ function checkLoginStatus() {
         .then(data => {
             if (data.username) {
                 const loginButton = document.getElementById('loginButton');
-                loginButton.textContent = data.username;
+                if (loginButton) loginButton.textContent = data.username;
                 isUserLoggedIn = true;
                 return true;
             }
@@ -400,14 +288,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function loadRecommendations() {
     if (isLoading) return;
-    
     isLoading = true;
     
     fetch('/recommendations?page=1&limit=' + limit)
         .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to load recommendations');
-            }
+            if (!response.ok) throw new Error('Failed to load recommendations');
             return response.json();
         })
         .then(data => {
@@ -419,11 +304,8 @@ function loadRecommendations() {
             } else if (data.videos) {
                 videos = data.videos;
                 hasMore = data.hasMore || false;
-                if (hasMore) {
-                    recommendationsPage = 2;
-                } else {
-                    hasLoadedRecommendations = true;
-                }
+                if (hasMore) recommendationsPage = 2;
+                else hasLoadedRecommendations = true;
             }
             
             if (videos.length > 0) {
@@ -432,7 +314,6 @@ function loadRecommendations() {
                 hasLoadedRecommendations = true;
                 loadMoreVideos();
             }
-            
             isLoading = false;
         })
         .catch(error => {
@@ -445,14 +326,11 @@ function loadRecommendations() {
 
 function loadMoreRecommendations() {
     if (isLoading || !hasMore) return;
-    
     isLoading = true;
     
     fetch('/recommendations?page=' + recommendationsPage + '&limit=' + limit)
         .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to load more recommendations');
-            }
+            if (!response.ok) throw new Error('Failed to load more recommendations');
             return response.json();
         })
         .then(data => {
@@ -464,18 +342,12 @@ function loadMoreRecommendations() {
             } else if (data.videos) {
                 newVideos = data.videos;
                 hasMore = data.hasMore;
-                if (hasMore) {
-                    recommendationsPage++;
-                } else {
-                    hasLoadedRecommendations = true;
-                }
+                if (hasMore) recommendationsPage++;
+                else hasLoadedRecommendations = true;
             }
             
-            if (newVideos.length > 0) {
-                renderVideos(newVideos);
-            } else {
-                hasLoadedRecommendations = true;
-            }
+            if (newVideos.length > 0) renderVideos(newVideos);
+            else hasLoadedRecommendations = true;
             
             isLoading = false;
         })
@@ -488,25 +360,17 @@ function loadMoreRecommendations() {
 
 function loadMoreVideos() {
     if (isLoading || !hasMore) return;
-    
     isLoading = true;
     
     fetch(`/videos?page=${currentPage}&limit=${limit}`)
         .then(response => response.json())
         .then(data => {
             const videos = data.videos || [];
-            
-            if (videos.length > 0) {
-                renderVideos(videos);
-            }
-
+            if (videos.length > 0) renderVideos(videos);
             isLoading = false;
             
-            if (videos.length < limit) {
-                hasMore = false;
-            } else {
-                currentPage++;
-            }
+            if (videos.length < limit) hasMore = false;
+            else currentPage++;
         })
         .catch(error => {
             console.error('Error fetching videos:', error);
@@ -624,6 +488,7 @@ function setupChannelLinkEvents(element, channel) {
     </script>
     <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>
+    <script src="sidebar.js"></script>
     <script>
     // ============================================================
     // Hide category buttons when Channel Page Style is "Classic"

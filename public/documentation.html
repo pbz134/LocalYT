@@ -6,4 +6,670 @@
     <title>Documentation - LocalYT</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
-WIP
+    <style>
+        /* --- Layout Structure --- */
+        .documentation-wrapper {
+            display: flex;
+            min-height: 100vh;
+            padding-top: 0; /* Removed padding for top bar */
+            background-color: var(--main-bg-color);
+        }
+
+        /* --- Sidebar (Table of Contents) --- */
+        .doc-sidebar {
+            width: 280px;
+            flex-shrink: 0;
+            background-color: #0f0f0f;
+            border-right: 1px solid #2a2a2a;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            overflow-y: auto;
+            padding: 75px 0 20px 0; /* Added 75px top padding to clear the floating logo */
+            z-index: 100;
+        }
+
+        .toc-category {
+            margin-bottom: 25px;
+        }
+
+        .toc-title {
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            font-size: 16px;
+            font-weight: bold;
+            color: #ffffff;
+            padding: 0 24px 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            pointer-events: none; /* Not clickable */
+        }
+
+        .toc-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .toc-item a {
+            display: block;
+            padding: 8px 24px;
+            color: #888;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .toc-item a:hover {
+            color: #d2cfcf;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-left-color: #555;
+        }
+
+        /* --- Main Content Area --- */
+        .doc-content {
+            margin-left: 280px; /* Width of sidebar */
+            flex-grow: 1;
+            padding: 40px 60px;
+            max-width: 900px;
+            color: #d2cfcf;
+        }
+
+        .doc-header {
+            margin-bottom: 50px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .doc-header h1 {
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            font-size: 32px;
+            font-weight: normal;
+            color: #ffffff;
+            margin: 0 0 12px 0;
+        }
+
+        .doc-header p {
+            font-size: 15px;
+            color: #888;
+            line-height: 1.6;
+        }
+
+        /* --- Section Styling --- */
+        .doc-section {
+            margin-bottom: 50px;
+            scroll-margin-top: 20px; /* Reduced from 80px since no top bar */
+        }
+
+        .doc-section h2 {
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            font-size: 22px;
+            font-weight: normal;
+            color: #ffffff;
+            margin: 0 0 16px 0;
+            border-left: 4px solid #444;
+            padding-left: 15px;
+        }
+
+        .doc-section p {
+            font-size: 14px;
+            line-height: 1.8;
+            color: #b0adae;
+            margin-bottom: 16px;
+        }
+
+        .doc-section ul {
+            padding-left: 20px;
+            margin-bottom: 16px;
+        }
+
+        .doc-section li {
+            font-size: 14px;
+            color: #b0adae;
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .doc-divider {
+            border: none;
+            border-top: 1px solid #1e1e1e;
+            margin: 40px 0;
+        }
+
+        /* --- Image Helper --- 
+           Usage: <img src="LocalYT-Rev-Docs/your-image.png" class="doc-image" alt="Description">
+        */
+        .doc-image {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #333;
+            display: block;
+        }
+        
+        .doc-caption {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            margin-top: -15px;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        code {
+            background-color: #212121;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #b0adae;
+            font-size: 13px;
+        }
+        
+        /* New styles for header elements without background */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 200;
+            background-color: transparent; /* Make background transparent */
+            pointer-events: none; /* Let clicks pass through to elements below */
+        }
+
+        /* Re-enable clicking on the actual logo and profile pic */
+        .top-bar .logo,
+        .top-bar #userProfilePicContainer,
+        .top-bar #userProfilePicContainer * {
+            pointer-events: auto;
+        }
+        
+        /* Responsive adjustments if needed later */
+        @media (max-width: 1024px) {
+            .doc-sidebar { width: 220px; }
+            .doc-content { margin-left: 220px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header with transparent background -->
+    <header class="top-bar">
+        <img src="LocalYT-Rev-Files/Logo.svg" alt="Logo" class="logo" id="mainLogo">
+        <div id="userProfilePicContainer"></div>
+    </header>
+
+    <div class="documentation-wrapper">
+        
+        <!-- Sidebar Navigation -->
+        <nav class="doc-sidebar">
+            <div class="toc-category">
+                <div class="toc-title">Setup</div>
+                <ul class="toc-list">
+                    <li class="toc-item"><a href="#hardware">Hardware requirements</a></li>
+                    <li class="toc-item"><a href="#software">Software requirements</a></li>
+                    <li class="toc-item"><a href="#installation">Installation</a></li>
+                    <li class="toc-item"><a href="#caching">Caching</a></li>
+                    <li class="toc-item"><a href="#compatibility">Compatibility</a></li>
+                    <li class="toc-item"><a href="#troubleshooting">Troubleshooting</a></li>
+                </ul>
+            </div>
+
+            <div class="toc-category">
+                <div class="toc-title">Tools</div>
+                <ul class="toc-list">
+                    <li class="toc-item"><a href="#user-management">User management</a></li>
+                    <li class="toc-item"><a href="#metadata-backup">Metadata backup</a></li>
+                    <li class="toc-item"><a href="#metadata-gathering">Metadata gathering</a></li>
+                    <li class="toc-item"><a href="#metadata-integration">Metadata integration</a></li>
+                    <li class="toc-item"><a href="#algorithm">Algorithm</a></li>
+                </ul>
+            </div>
+
+            <div class="toc-category">
+                <div class="toc-title">User data</div>
+                <ul class="toc-list">
+                    <li class="toc-item"><a href="#name">Name</a></li>
+                    <li class="toc-item"><a href="#password">Password</a></li>
+                    <li class="toc-item"><a href="#profile-image">Profile image</a></li>
+                    <li class="toc-item"><a href="#preferences">Preferences</a></li>
+                    <li class="toc-item"><a href="#login-attempts">Login attempts</a></li>
+                    <li class="toc-item"><a href="#search-history">Search history</a></li>
+                    <li class="toc-item"><a href="#watch-history">Watch History</a></li>
+                    <li class="toc-item"><a href="#liked-videos">Liked videos</a></li>
+                    <li class="toc-item"><a href="#users-json">users.json</a></li>
+                </ul>
+            </div>
+
+            <div class="toc-category">
+                <div class="toc-title">Pages</div>
+                <ul class="toc-list">
+                    <li class="toc-item"><a href="#page-about">about.html</a></li>
+                    <li class="toc-item"><a href="#page-channel">channel.html</a></li>
+                    <li class="toc-item"><a href="#page-genre-channel">genre_channel.html</a></li>
+                    <li class="toc-item"><a href="#page-index">index.html</a></li>
+                    <li class="toc-item"><a href="#page-liked">liked_videos.html</a></li>
+                    <li class="toc-item"><a href="#page-login">login.html</a></li>
+                    <li class="toc-item"><a href="#page-playlist">playlist.html</a></li>
+                    <li class="toc-item"><a href="#page-register">register.html</a></li>
+                    <li class="toc-item"><a href="#page-search">search.html</a></li>
+                    <li class="toc-item"><a href="#page-settings">settings.html</a></li>
+                    <li class="toc-item"><a href="#page-shared-playlist">shared_playlist.html</a></li>
+                    <li class="toc-item"><a href="#page-subscribed">subscribed_channels.html</a></li>
+                    <li class="toc-item"><a href="#page-user-playlists">user_playlists.html</a></li>
+                    <li class="toc-item"><a href="#page-video">video.html</a></li>
+                    <li class="toc-item"><a href="#page-watch-history">watch_history.html</a></li>
+                </ul>
+            </div>
+
+            <div class="toc-category">
+                <div class="toc-title">Miscellaneous</div>
+                <ul class="toc-list">
+                    <li class="toc-item"><a href="#python-venv">Python venv</a></li>
+                    <li class="toc-item"><a href="#fluid-player">Fluid Player</a></li>
+                    <li class="toc-item"><a href="#limitations">Limitations</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="doc-content">
+            
+            <div class="doc-header">
+                <h1 id="docTitle">Documentation</h1>
+                <p id="docSubtitle">Comprehensive guide and wiki for LocalYT</p>
+            </div>
+
+            <!-- ================= SETUP ================= -->
+            <section class="doc-section" id="hardware">
+                <h2>Hardware Requirements</h2>
+                <p>LocalYT should be able to run on almost any Windows computer, but specific tasks like generation of subtitles, tags and seek bar previews require more powerful hardware to be fast.</p>
+                
+                <p><strong>Minimum Hardware requirements:</strong></p>
+                <ul>
+                    <li><strong>CPU:</strong> Any CPU that supports AVX1 instructions (AVX2-compatible CPU recommended).</li>
+                    <li><strong>GPU:</strong> No dedicated GPU is needed, but would significantly speed up some metadata generation.</li>
+                    <li><strong>RAM:</strong> At least 12 GB system memory.</li>
+                    <li><strong>Required Storage:</strong> 3 GB for the LocalYT application and its dependencies, 500 MB for full metadata of 1000 videos (example).</li>
+                    <li><strong>Non-mandatory storage:</strong> 5 GB for all Whisper (subtitle generation) models, 20 MB for yt-dlp (metadata fetching).</li>
+                    <li><strong>Storage type:</strong> HDD or SSD (Micro SD or USB Flash Drive NOT recommended).</li>
+                    <li><strong>Network:</strong> Only required for initial Fluid Player asset download and remote access</li>
+                </ul>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="software">
+                <h2>Software Requirements</h2>
+                <p>To run LocalYT, the following software is required.</p>
+    
+                <ul>
+                    <li><strong>OS:</strong> Windows 10 or 11</li>
+                    <li><strong>Node.js:</strong> Version 20.x or higher (Latest version recommended).</li>
+                    <li><strong>FFmpeg:</strong> Any FFmpeg version that supports AV1 codec and image file handling (must be added to PATH).</li>
+                    <li><strong>Python:</strong> Integrated in the portable GitHub release, version 3.10 or higher.</li>
+                    <li><strong>Browser:</strong> Any modern browser for accessing the web UI.</li>
+                </ul>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="installation">
+                <h2>Installation</h2>
+                Setting up LocalYT involves downloading one of the GitHub releases and preparing it for launch.
+                
+                <p><strong>Step 1: Download the latest release</strong><br>
+                <a href="https://github.com/pbz134/LocalYT/releases/latest" style="color: inherit; text-decoration: underline;">Download</a> <code>LocalYT-vXX.7z</code> and decompress it into your desired directory (e.g., <code>D:\LocalYT</code>).</p>
+
+                <p><strong>Step 2: Prepare videos</strong><br>
+                Download any H.264. VP9 or AV1 codec videos or .mp3 audio files and paste them into <code>/videos/[channelname]</code>.
+                <p>Channel playlists are supported as well. Use them by creating subfolders within channel folders.</p>
+                <p>Example:</p>
+                <p><code>/videos/Modern Vintage Gamer/Xbox Guide.mp4</code> or <code>/videos/S3RL/best songs of 2020/Cool Music.mp3</code></p>
+
+                <p><strong>Step 3: Add metadata</strong><br>
+                If you already have metadata, you can insert them into their respective metadata directories. Each channel requires its own folder in all directories.
+                <p>Example:</p>
+                <p><code>/thumbnails/Domtendo/Mario Bros. Playthrough.jpg</code> or <code>/viewcounts/Goose's Gamer Folklore/Goldeneye Speedrun.txt</code>
+                <p>If you don't have metadata available, you can fetch them like so:</p>
+                <p>1. Run <code>LocalYT-Debug/get-latest-ytdlp.bat</code> to download the latest yt-dlp version.</p>
+                <p>2. Run <code>LocalYT-Debug/download-channel-or-playlist.bat</code> to get your desired video links into a .txt file.</p>
+                <p>3. Run <code>LocalYT-Debug/Fetch-GUI.bat</code> to fetch all required video metadata.</p>
+
+                <p><strong>Step 4: Run the Server</strong><br>
+                Double-click <code>#Setup-or-Update.bat</code> and let the script finish organizing and generating all the necessary metadata.
+                <p>Note that this can take a while, depending on your amount of video and audio files, and your CPU/GPU power.</p>
+                <p>Once the server is ready, your browser should open <code>http://localhost:3000</code> automatically.</p>
+                <p>For full offline access with other computers, connect an Ethernet cable to your LocalYT server and guest computer</p>
+                <p>Then, visit <code>http://[IPV4 of server]:3000</code> in your browser.</p>
+                <p>For remote access, consider using a cloudflared.exe tunnel, a VPN, or port-forwarding.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="caching">
+                <h2>Caching</h2>
+                <p>LocalYT utilizes caching mechanisms to manage massive video databases, even on slow drives.</p>
+                <li><strong>video_cache.json:</strong> References all video and audio file paths for fast page loading.</li>
+                <li><strong>recommendation_index.json:</strong> References all video and audio file paths for instant recommendation/algorithm adjustments.</li>
+                <li><strong>shortlinks.json:</strong> Stores shortened video links, e.g. <code>http://localyt.net:3000/v/7bWeLpJ</code>.</li>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="compatibility">
+                <h2>Compatibility</h2>
+                <p>LocalYT supports several media formats and codecs.</p>
+                <ul>
+                    <li><strong>Video Formats:</strong> MP4 and MKV (H.264, VP9, AV1 codec)</li>
+                    <li><strong>Audio Formats:</strong> MP3</li>
+                    <li><strong>Metadata Formats:</strong> TXT, JSON, JPG, SRT, VTT</li>
+                </ul>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="troubleshooting">
+                <h2>Troubleshooting</h2>
+                <p>Encountering issues? Here are solutions to common problems.</p>
+                
+                <p><strong>Problem: Videos won't play.</strong><br>
+                <em>Solution:</em> Ensure the file path in your configuration does not contain special characters that break URLs. Check that the format is MP4/WebM. Check the browser console (F12) for CORS errors.</p>
+
+                <p><strong>Problem: Server won't start (Port in use).</strong><br>
+                <em>Solution:</em> Another application might be using port 3000. You can change the port in <code>server.js</code> or kill the process using that port.</p>
+
+                <p><strong>Problem: Metadata is missing.</strong><br>
+                <em>Solution:</em> Run the metadata gathering script manually via Python to ensure there are no errors in the console output. Check that your <code>.json</code> files are not malformed.</p>
+            </section>
+
+
+            <!-- ================= TOOLS ================= -->
+            <section class="doc-section" id="user-management">
+                <h2>User Management</h2>
+                <p>LocalYT includes a basic authentication system to allow multiple users to maintain separate profiles on the same machine.</p>
+                <p>The system handles registration, login sessions, and profile persistence. User data is stored locally in JSON files, meaning there is no cloud dependency. The "Admin" user typically has elevated privileges to trigger global metadata updates or manage users.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="metadata-backup">
+                <h2>Metadata Backup</h2>
+                <p>Your metadata is the backbone of the library organization. It is crucial to back this up regularly.</p>
+                <p>All metadata is stored in structured JSON files within the <code>data</code> or <code>metadata</code> directory. To backup, simply copy this entire folder to an external drive or cloud storage. In the event of a system failure, restoring these files will instantly bring back your watch history, likes, and video descriptions without needing to re-analyze the video files.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="metadata-gathering">
+                <h2>Metadata Gathering</h2>
+                <p>How does LocalYT know what your video files are? It uses a gathering process.</p>
+                <p>Python scripts scan your designated video directories. For each file found, it attempts to extract metadata such as title, duration, resolution, and codec information. If configured, it can also use Speech-to-Text (STT) models to transcribe audio, which is then used for search indexing and description generation.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="metadata-integration">
+                <h2>Metadata Integration</h2>
+                <p>Once gathered, raw data must be integrated into the frontend.</p>
+                <p>The Node.js backend reads the generated JSON files and serves them via API endpoints (e.g., <code>/api/videos</code>). When you load the homepage, JavaScript fetches this data and dynamically generates the HTML cards you see. This separation allows the UI to remain fast while the heavy lifting is done by the backend.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="algorithm">
+                <h2>Algorithm</h2>
+                <p>The "Algorithm" in LocalYT determines what videos appear in your recommendations and search results.</p>
+                <p>Unlike commercial platforms that track you for ads, LocalYT's algorithm is based purely on content similarity and your local interaction history. It uses vector embeddings or tag matching (generated via the Qwen model) to find relationships between videos. If you watch a video about "Cooking", the algorithm checks other videos for "Cooking" tags or similar transcription keywords to suggest them next.</p>
+            </section>
+
+
+            <!-- ================= USER DATA ================= -->
+            <section class="doc-section" id="name">
+                <h2>Name</h2>
+                <p>The user's display name. This is shown in the top bar next to the profile picture and on the settings page. It can be changed at any time without affecting login credentials.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="password">
+                <h2>Password</h2>
+                <p>User passwords are hashed before storage. We do not store plain-text passwords. If you forget your password, the current workflow involves resetting the entry in the <code>users.json</code> file or using a recovery script provided in the tools directory.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="profile-image">
+                <h2>Profile Image</h2>
+                <p>Users can upload a custom avatar. Images are resized and saved to the assets folder. Default avatars are used if no custom image is uploaded. Supported formats include JPG, PNG, and GIF.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="preferences">
+                <h2>Preferences</h2>
+                <p>This includes UI settings such as theme variations (if applicable), default video quality selection, and autoplay toggles. Preferences are stored per-user in the session data.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="login-attempts">
+                <h2>Login Attempts</h2>
+                <p>For security, the system tracks failed login attempts. After a threshold (e.g., 5 failed attempts), the account may be temporarily locked out or throttled to prevent brute-force attacks, even on a local network.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="search-history">
+                <h2>Search History</h2>
+                <p>A list of recent search queries performed by the user. This is useful for quickly re-finding content. It is stored locally in the user's data object and cleared when history is wiped.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="watch-history">
+                <h2>Watch History</h2>
+                <p>A chronological log of every video played. This data powers the "Watch History" page and contributes to the recommendation algorithm. It records the Video ID, Timestamp of viewing, and Watch duration (progress).</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="liked-videos">
+                <h2>Liked Videos</h2>
+                <p>A collection of Video IDs that the user has explicitly "Liked". This acts as a favorites list. These videos are accessible via the <code>liked_videos.html</code> page.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="users-json">
+                <h2>users.json</h2>
+                <p>This is the core database file for user accounts. It contains objects for each user, holding their ID, hashed password, name, and paths to their profile images. Manual editing of this file should be done with caution to maintain valid JSON syntax.</p>
+            </section>
+
+
+            <!-- ================= PAGES ================= -->
+            <section class="doc-section" id="page-about">
+                <h2>about.html</h2>
+                <p>The static informational page for the project. It contains credits, technology stack info, and a brief overview of what LocalYT is. It uses the standard layout but focuses on text content rather than dynamic data.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="page-channel">
+                <h2>channel.html</h2>
+                <p>In LocalYT, a "Channel" usually represents a folder or a creator tag associated with multiple videos. This page displays a banner image (if available), channel statistics (total videos, total views), and a grid of all videos belonging to that specific channel entity.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="page-genre-channel">
+                <h2>genre_channel.html</h2>
+                <p>Similar to the channel page, but filtered by Genre tags (e.g., "Gaming", "Music", "Education"). It aggregates videos across different folders that share the same genre metadata tag.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="page-index">
+                <h2>index.html</h2>
+                <p>The homepage and landing pad of the application. It features the main feed of videos. Depending on the user's state, this might show "Recommended" videos, "Recently Added", or "Continue Watching". It is the central hub for navigation.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="page-liked">
+                <h2>liked_videos.html</h2>
+                <p>A personal playlist of videos the user has clicked "Like" on. It allows users to quickly access their favorite content without creating a manual playlist.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="page-login">
+                <h2>login.html</h2>
+                <p>The authentication gateway. It provides fields for username and password. Upon successful validation against <code>users.json</code>, a session token is created, and the user is redirected to the index.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="page-playlist">
+                <h2>playlist.html</h2>
+                <p>The view for a specific user-created playlist. It lists the videos in the order set by the user and includes controls to reorder or remove items from the list.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="page-register">
+                <h2>register.html</h2>
+                <p>The interface for new users to create an account. It validates username uniqueness and password strength before writing the new entry to the user database.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="page-search">
+                <h2>search.html</h2>
+                <p>Dedicated to displaying results for a query string passed via URL parameters (<code>?q=searchterm</code>). It searches through titles, descriptions, and auto-generated tags. Results are ranked by relevance.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="page-settings">
+                <h2>settings.html</h2>
+                <p>Allows users to configure their account. Options include changing the display name, uploading a new profile picture, changing the password, and managing data export/deletion.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="page-shared-playlist">
+                <h2>shared_playlist.html</h2>
+                <p>A view-only mode for playlists. If a user generates a share link for a playlist, other users (or guests) can view this page to see the list of videos without having editing permissions.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="page-subscribed">
+                <h2>subscribed_channels.html</h2>
+                <p>Displays a grid of channels/folders that the user has chosen to "Subscribe" to. Subscribing ensures that content from these sources appears more prominently in the home feed.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="page-user-playlists">
+                <h2>user_playlists.html</h2>
+                <p>The management hub for all playlists created by the logged-in user. From here, users can create new playlists, delete old ones, or edit details (title, privacy setting).</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="page-video">
+                <h2>video.html</h2>
+                <p>The core viewing experience. This page hosts the Fluid Player instance, the video title, description, and metadata. It also features the sidebar with "Up Next" suggestions. It handles the logic for updating watch history and progress tracking as the video plays.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="page-watch-history">
+                <h2>watch_history.html</h2>
+                <p>A chronological list of watched videos. Each item shows a thumbnail, title, and how long ago it was viewed. Users can clear this history or resume playback from where they left off.</p>
+            </section>
+
+
+            <!-- ================= MISC ================= -->
+            <section class="doc-section" id="python-venv">
+                <h2>Python venv</h2>
+                <p>We use Python Virtual Environments (venvs) to isolate our dependencies. This prevents conflicts between LocalYT's required libraries (like OpenAI Whisper, Transformers) and other Python projects you might have on your system. Always ensure your venv is activated before running metadata scripts.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="fluid-player">
+                <h2>Fluid Player</h2>
+                <p>Fluid Player is the open-source HTML5 video player used by LocalYT. It was chosen for its lightweight nature, lack of tracking, and customization options. It handles the actual playback of MP4/WebM files inside the browser, providing controls for play/pause, volume, fullscreen, and theater mode.</p>
+            </section>
+
+            <hr class="doc-divider">
+
+            <section class="doc-section" id="limitations">
+                <h2>Limitations</h2>
+                <p>Please be aware of the following limitations:
+                <ul>
+                    <li><strong>No Streaming:</strong> This is a local library. You cannot stream content *to* the internet easily without additional networking setup (Nginx reverse proxy, port forwarding).</li>
+                    <li><strong>Mobile Support:</strong> While responsive, the UI is primarily optimized for desktop use (mouse/keyboard).</li>
+                    <li><strong>AI Accuracy:</strong> Auto-generated tags rely on local LLMs. They are generally good but can sometimes produce hallucinations or irrelevant tags depending on the model size.</li>
+                </ul>
+                </p>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        // --- Language Helper ---
+        function getLang(en, de) {
+            return localStorage.getItem('language') === 'de' ? de : en;
+        }
+
+        // Handle logo clicks
+        document.addEventListener('DOMContentLoaded', () => {
+            const mainLogo = document.getElementById('mainLogo');
+            
+            if (mainLogo) {
+                mainLogo.addEventListener('click', (event) => {
+                    if (event.button === 0) window.location.href = 'index.html';
+                });
+                mainLogo.addEventListener('mouseup', (event) => {
+                    if (event.button === 1) { event.preventDefault(); window.open('index.html', '_blank'); }
+                });
+                mainLogo.addEventListener('contextmenu', (event) => {
+                    event.preventDefault(); window.open('index.html', '_blank');
+                });
+                mainLogo.title = "Go to homepage";
+            }
+
+            // --- UI Translation ---
+            document.getElementById('docTitle').textContent = getLang('Documentation', 'Dokumentation');
+            document.getElementById('docSubtitle').textContent = getLang('Comprehensive guide and wiki for LocalYT', 'Umfassender Leitfaden und Wiki für LocalYT');
+
+            // Smooth scroll for sidebar links
+            document.querySelectorAll('.toc-item a').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    const targetElement = document.querySelector(targetId);
+                    if(targetElement) {
+                        targetElement.scrollIntoView({ behavior: 'smooth' });
+                    }
+                });
+            });
+        });
+    </script>
+    
+    <!-- External Scripts -->
+    <script src="search-suggestions.js"></script>
+    <script src="profile-pic.js"></script>
+</body>
+</html>

@@ -106,7 +106,7 @@
         }
         .video-item {
             display: flex;
-            margin-bottom: 20px;
+            margin-bottom: -20px;
             gap: 15px;
             min-height: 200px;
         }
@@ -395,25 +395,48 @@ function performSearch(query, maxResults = 100) {
 function localSearch(query, maxResults = 100) {
     if (!searchState.index || !query) return [];
     
-    const queryTerms = query.toLowerCase().split(/\s+/).filter(term => term.length > 0);
+    const queryLower = query.toLowerCase();
+    const queryTerms = queryLower.split(/\s+/).filter(term => term.length > 0);
     const scoredResults = [];
     
     for (const video of searchState.index.videos) {
-        let score = 0;
         const lowerTitle = video.displayName.toLowerCase();
         const lowerChannel = video.path.split('/')[0].toLowerCase();
         
-        if (lowerTitle === query) score += 100;
-        if (lowerChannel === query) score += 80;
+        let titleMatchCount = 0;
+        let channelMatchCount = 0;
+        let baseScore = 0;
+
+        // Exact full-string match bonuses
+        if (lowerTitle === queryLower) baseScore += 100;
+        if (lowerChannel === queryLower) baseScore += 80;
+
+        // Strict word boundary matching
+        queryTerms.forEach(term => {
+            const termRegex = new RegExp(`\\b(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'i');
+            
+            if (termRegex.test(lowerTitle)) {
+                titleMatchCount++;
+                baseScore += 10;
+            }
+            if (termRegex.test(lowerChannel)) {
+                channelMatchCount++;
+                baseScore += 5;
+            }
+            if (video.description && termRegex.test(video.description.toLowerCase())) {
+                baseScore += 2;
+            }
+        });
+
+        // Exponential multiplier for multiple exact word matches
+        if (titleMatchCount >= 4) baseScore *= 15;
+        else if (titleMatchCount === 3) baseScore *= 8;
+        else if (titleMatchCount === 2) baseScore *= 3;
         
-        for (const term of queryTerms) {
-            if (lowerTitle.includes(term)) score += 10;
-            if (lowerChannel.includes(term)) score += 5;
-            if (video.description && video.description.toLowerCase().includes(term)) score += 2;
-        }
-        
+        if (channelMatchCount >= 2) baseScore *= 2;
+
         if (score > 0) {
-            scoredResults.push({ ...video, score });
+            scoredResults.push({ ...video, score: baseScore });
         }
     }
     
@@ -648,5 +671,6 @@ function showError(message) {
     <!-- External Search Suggestion Script (Handles dropdown logic) -->
     <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>
+    <script src="sidebar.js"></script>
 </body>
 </html>
