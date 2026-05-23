@@ -601,7 +601,6 @@
                         width: 64px;
                         height: 4px;
                         background: rgba(255,255,255,0.3);
-                        border-radius: 2px;
                         cursor: pointer;
                         position: relative;
                         margin: 0 6px 0 4px;
@@ -612,7 +611,6 @@
                         top: 0; left: 0;
                         height: 100%;
                         background: #fff;
-                        border-radius: 2px;
                         pointer-events: none;
                         width: 100%;
                         display: flex;
@@ -637,7 +635,7 @@
                     /* Time display */
                     .lyt_time {
                         color: #fff;
-                        font-size: 12px;
+                        font-size: 13px;
                         font-family: 'Roboto', 'Arial', sans-serif;
                         white-space: nowrap;
                         user-select: none;
