@@ -5,16 +5,21 @@ const sidebarCSS = document.createElement('style');
 sidebarCSS.id = 'sidebar-styles';
 sidebarCSS.textContent = `
     .sidebar {
-        height: calc(100% - 60px); /* Fill the remaining screen height */
+        height: calc(100% - 60px);
         width: 0;
         position: fixed;
         z-index: 1001;
-        top: 60px; /* Start below the top bar instead of at the very top */
+        top: 60px;
         left: 0;
         background-color: var(--main-bg-color);
         overflow-x: hidden;
         transition: 0.5s;
         padding-top: 0;
+    }
+
+    /* Prevents text inside from squishing/reflowing while the sidebar width animates */
+    .sidebar-inner {
+        width: 270px;
     }
 
     .sidebar a {
@@ -24,6 +29,7 @@ sidebarCSS.textContent = `
         color: #818181;
         display: block;
         transition: 0.3s;
+        white-space: nowrap; /* Prevents text from wrapping during animation */
     }
 
     .sidebar a:hover {
@@ -43,6 +49,7 @@ sidebarCSS.textContent = `
         text-transform: uppercase;
         letter-spacing: 0.5px;
         font-weight: bold;
+        white-space: nowrap; /* Prevents text from wrapping during animation */
     }
 
     .sidebar .genre-link {
@@ -85,27 +92,29 @@ function initSidebar() {
         document.body.prepend(sidebar);
     }
 
-    // 2. Populate the sidebar HTML
+    // 2. Populate the sidebar HTML (wrapped in .sidebar-inner)
     sidebar.innerHTML = `
-        <a href="watch_history.html" id="sidebarWatchHistory">Watch History</a>
-        <a href="liked_videos.html" id="sidebarLikedVideos">Liked Videos</a>
-        <a href="subscribed_channels.html" id="sidebarSubscriptions">Subscriptions</a>
-        <a href="user_playlists.html" id="sidebarPlaylists">Playlists</a>
-        <a href="about.html" id="sidebarAbout">About</a>
-        <div class="sidebar-divider"></div>
-        <div class="genre-label" id="sidebarGenreLabel">Topics</div>
-        <a href="genre_channel.html?genre=gaming" class="genre-link" id="sidebarGaming">
-            <img src="LocalYT-Rev-Files/genre_gaming.svg" alt="">Gaming
-        </a>
-        <a href="genre_channel.html?genre=music" class="genre-link" id="sidebarMusic">
-            <img src="LocalYT-Rev-Files/genre_music.svg" alt="">Music
-        </a>
-        <a href="genre_channel.html?genre=sports" class="genre-link" id="sidebarSports">
-            <img src="LocalYT-Rev-Files/genre_sports.svg" alt="">Sports
-        </a>
-        <a href="genre_channel.html?genre=movies" class="genre-link" id="sidebarMovies">
-            <img src="LocalYT-Rev-Files/genre_movies.svg" alt="">Movies
-        </a>
+        <div class="sidebar-inner">
+            <a href="watch_history.html" id="sidebarWatchHistory">Watch History</a>
+            <a href="liked_videos.html" id="sidebarLikedVideos">Liked Videos</a>
+            <a href="subscribed_channels.html" id="sidebarSubscriptions">Subscriptions</a>
+            <a href="user_playlists.html" id="sidebarPlaylists">Playlists</a>
+            <a href="about.html" id="sidebarAbout">About</a>
+            <div class="sidebar-divider"></div>
+            <div class="genre-label" id="sidebarGenreLabel">Topics</div>
+            <a href="genre_channel.html?genre=gaming" class="genre-link" id="sidebarGaming">
+                <img src="LocalYT-Rev-Files/genre_gaming.svg" alt="">Gaming
+            </a>
+            <a href="genre_channel.html?genre=music" class="genre-link" id="sidebarMusic">
+                <img src="LocalYT-Rev-Files/genre_music.svg" alt="">Music
+            </a>
+            <a href="genre_channel.html?genre=sports" class="genre-link" id="sidebarSports">
+                <img src="LocalYT-Rev-Files/genre_sports.svg" alt="">Sports
+            </a>
+            <a href="genre_channel.html?genre=movies" class="genre-link" id="sidebarMovies">
+                <img src="LocalYT-Rev-Files/genre_movies.svg" alt="">Movies
+            </a>
+        </div>
     `;
 
     // 3. Create and inject the ☰ toggle button into the header
@@ -151,12 +160,12 @@ function toggleNav() {
     const sidebar = document.getElementById("mySidebar");
     const main = document.getElementById("main");
     
-    if (sidebar.style.width === "250px") {
+    if (sidebar.style.width === "270px") {
         sidebar.style.width = "0";
         if (main) main.style.marginLeft = "0";
     } else {
-        sidebar.style.width = "250px";
-        if (main) main.style.marginLeft = "250px";
+        sidebar.style.width = "270px";
+        if (main) main.style.marginLeft = "270px";
     }
 }
 window.toggleNav = toggleNav;
