@@ -14,6 +14,8 @@ v4.30
 - Improved search-worker.js and search.html
   - Multi-word searches now find the correct video(s) if multiple words are entered and matching with local files
 - Added the sidebar (hamburger menu) to all pages as an external .js script (sidebar.js)
+- Added a search filter to search.html
+  - While searching for videos, you can filter for resolution, length, filetype and more
 
 v4.20
 - New Appearance setting in settings.html
