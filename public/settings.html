@@ -893,7 +893,7 @@
                 <div id="configImportExportStatus" class="status-msg"></div>
             </div>
 
-            <!-- Channel Profile Pic in Player Section (NEW) -->
+            <!-- Channel Profile Pic in Player Section -->
             <div class="settings-section">
                 <h2 id="playerOverlayHeading">Player Overlays</h2>
 
@@ -914,6 +914,43 @@
                     <button class="btn btn-save" id="saveChannelProfilePicBtn">Save Preference</button>
                 </div>
                 <div id="channelProfilePicStatus" class="status-msg"></div>
+            </div>
+
+            <!-- Player UI Scale Section -->
+            <div class="settings-section">
+                <h2 id="playerUIScaleHeading">Player UI Scale</h2>
+
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div id="playerUIScaleLabel">Player interface size</div>
+                        <div class="setting-description" id="playerUIScaleDesc">Scale the player controls and text. Use + and - keys while playing to adjust quickly.</div>
+                    </div>
+                    <div class="setting-control">
+                        <select class="setting-select" id="playerUIScale">
+                            <option value="0.5">50%</option>
+                            <option value="0.6">60%</option>
+                            <option value="0.7">70%</option>
+                            <option value="0.8">80%</option>
+                            <option value="0.9">90%</option>
+                            <option value="1" selected>100% (Default)</option>
+                            <option value="1.1">110%</option>
+                            <option value="1.2">120%</option>
+                            <option value="1.3">130%</option>
+                            <option value="1.4">140%</option>
+                            <option value="1.5">150%</option>
+                            <option value="1.6">160%</option>
+                            <option value="1.7">170%</option>
+                            <option value="1.8">180%</option>
+                            <option value="1.9">190%</option>
+                            <option value="2.0">200%</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="inline-form" style="margin-top: 15px;">
+                    <button class="btn btn-save" id="savePlayerUIScaleBtn">Save Preference</button>
+                </div>
+                <div id="playerUIScaleStatus" class="status-msg"></div>
             </div>
 
         </div>
@@ -1001,6 +1038,32 @@ function applyTranslations() {
     if (videoPlayerSelect) {
         videoPlayerSelect.options[0].text = getLang('LYT Player', 'LYT Player');
         videoPlayerSelect.options[1].text = getLang('Fluid Player', 'Fluid Player');
+    }
+
+    // Player UI Scale Translations
+    document.getElementById('playerUIScaleHeading').textContent = getLang('Player UI Scale', 'Player-UI-Skalierung');
+    document.getElementById('playerUIScaleLabel').textContent = getLang('Player interface size', 'Größe der Player-Oberfläche');
+    document.getElementById('playerUIScaleDesc').textContent = getLang('Scale the player controls and text. Use + and - keys while playing to adjust quickly.', 'Skaliere die Player-Steuerung und Texte. Verwende die Tasten + und - während der Wiedergabe für schnelle Anpassung.');
+    document.getElementById('savePlayerUIScaleBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
+
+    const playerUIScaleSelect = document.getElementById('playerUIScale');
+    if (playerUIScaleSelect) {
+        playerUIScaleSelect.options[0].text = getLang('50%', '50%');
+        playerUIScaleSelect.options[1].text = getLang('60%', '60%');
+        playerUIScaleSelect.options[2].text = getLang('70%', '70%');
+        playerUIScaleSelect.options[3].text = getLang('80%', '80%');
+        playerUIScaleSelect.options[4].text = getLang('90%', '90%');
+        playerUIScaleSelect.options[5].text = getLang('100% (Default)', '100% (Standard)');
+        playerUIScaleSelect.options[6].text = getLang('110%', '110%');
+        playerUIScaleSelect.options[7].text = getLang('120%', '120%');
+        playerUIScaleSelect.options[8].text = getLang('130%', '130%');
+        playerUIScaleSelect.options[9].text = getLang('140%', '140%');
+        playerUIScaleSelect.options[10].text = getLang('150%', '150%');
+        playerUIScaleSelect.options[11].text = getLang('160%', '160%');
+        playerUIScaleSelect.options[12].text = getLang('170%', '170%');
+        playerUIScaleSelect.options[13].text = getLang('180%', '180%');
+        playerUIScaleSelect.options[14].text = getLang('190%', '190%');
+        playerUIScaleSelect.options[15].text = getLang('200%', '200%');
     }
 
     // Playlist Page Layout Translations
@@ -1127,7 +1190,7 @@ function applyTranslations() {
     document.getElementById('configImportDesc').textContent = getLang('Load preference settings from a previously exported JSON file', 'Einstellungen aus einer zuvor exportierten JSON-Datei laden');
     document.getElementById('importConfigLabelBtn').textContent = getLang('Import Config', 'Konfiguration importieren');
 
-    // Player Overlay Translations (NEW)
+    // Player Overlay Translations
     document.getElementById('playerOverlayHeading').textContent = getLang('Player Overlays', 'Player-Overlays');
     document.getElementById('channelProfilePicLabel').textContent = getLang('Show Channel Profile Picture', 'Kanal-Profilbild anzeigen');
     document.getElementById('channelProfilePicDesc').textContent = getLang("Display the channel's profile picture in the bottom-right corner of the video player", 'Zeigt das Profilbild des Kanals in der unteren rechten Ecke des Videoplayers an');
@@ -1335,6 +1398,57 @@ function saveVideoPlayer() {
         })
         .catch(() => {
             showStatus('videoPlayerStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
+        });
+}
+
+// ==============================
+// Player UI Scale Logic
+// ==============================
+function loadPlayerUIScale() {
+    const savedLocal = JSON.parse(localStorage.getItem('playerUIScale') || '{}');
+    const defaultScale = 1;
+    const currentScale = savedLocal.scale !== undefined ? savedLocal.scale : defaultScale;
+    
+    document.getElementById('playerUIScale').value = currentScale;
+
+    fetch('/user-settings')
+        .then(res => {
+            if (!res.ok) throw new Error('Not authenticated');
+            return res.json();
+        })
+        .then(serverSettings => {
+            if (serverSettings && serverSettings.playerUIScale !== undefined) {
+                const serverValue = serverSettings.playerUIScale;
+                document.getElementById('playerUIScale').value = serverValue;
+                localStorage.setItem('playerUIScale', JSON.stringify({ scale: serverValue }));
+            }
+        })
+        .catch(err => console.error('Could not load player UI scale from server:', err));
+}
+
+function savePlayerUIScale() {
+    const scale = parseFloat(document.getElementById('playerUIScale').value);
+    localStorage.setItem('playerUIScale', JSON.stringify({ scale: scale }));
+
+    fetch('/user-settings')
+        .then(res => res.json())
+        .then(currentSettings => {
+            const updatedSettings = { ...currentSettings, playerUIScale: scale };
+            return fetch('/user-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings: updatedSettings })
+            });
+        })
+        .then(res => {
+            if (res.ok) {
+                showStatus('playerUIScaleStatus', getLang('Player UI scale saved!', 'Player-UI-Skalierung gespeichert!'), true);
+            } else {
+                showStatus('playerUIScaleStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
+            }
+        })
+        .catch(() => {
+            showStatus('playerUIScaleStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
         });
 }
 
@@ -1594,7 +1708,7 @@ function saveTitleColorScheme() {
 }
 
 // ==============================
-// Channel Profile Pic in Player Logic (NEW)
+// Channel Profile Pic in Player Logic
 // ==============================
 function loadShowChannelProfilePic() {
     const savedLocal = JSON.parse(localStorage.getItem('showChannelProfilePic') || '{}');
@@ -1677,7 +1791,8 @@ sidebarLinks.forEach(link => {
             loadFuzzySubCount();
             loadHidePostImages();
             loadTitleColorScheme();
-            loadShowChannelProfilePic(); // Load new setting
+            loadShowChannelProfilePic();
+            loadPlayerUIScale(); 
         }
     });
 });
@@ -1729,7 +1844,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('saveFuzzySubCountBtn')?.addEventListener('click', saveFuzzySubCount);
     document.getElementById('saveHidePostImagesBtn')?.addEventListener('click', saveHidePostImages);
     document.getElementById('saveTitleColorSchemeBtn')?.addEventListener('click', saveTitleColorScheme);
-    document.getElementById('saveChannelProfilePicBtn')?.addEventListener('click', saveShowChannelProfilePic); // NEW
+    document.getElementById('saveChannelProfilePicBtn')?.addEventListener('click', saveShowChannelProfilePic);
+    document.getElementById('savePlayerUIScaleBtn')?.addEventListener('click', savePlayerUIScale);
 
     // Initialize config import/export buttons
     initConfigImportExport();
@@ -2287,8 +2403,11 @@ function gatherCurrentSettings() {
     // Title color scheme
     config.titleColorScheme = document.getElementById('titleColorScheme').value;
 
-    // Channel Profile Pic in Player (NEW)
+    // Channel Profile Pic in Player
     config.showChannelProfilePic = document.getElementById('showChannelProfilePic').checked;
+
+    // Player UI Scale (NEW)
+    config.playerUIScale = parseFloat(document.getElementById('playerUIScale').value);
     
     return config;
 }
@@ -2403,11 +2522,16 @@ function validateConfig(config) {
         return false;
     }
 
-    // Validate boolean settings (NEW)
+    // Validate boolean settings
     if (config.showChannelProfilePic !== undefined && typeof config.showChannelProfilePic !== 'boolean') {
         return false;
     }
     
+    // Validate player UI scale
+    if (config.playerUIScale !== undefined && (typeof config.playerUIScale !== 'number' || config.playerUIScale < 0.5 || config.playerUIScale > 2.0)) {
+        return false;
+    }
+
     // Validate title color scheme
     if (config.titleColorScheme && !['white', 'blue'].includes(config.titleColorScheme)) {
         return false;
@@ -2489,10 +2613,16 @@ function applyConfiguration(config) {
         localStorage.setItem('titleColorScheme', JSON.stringify({ scheme: config.titleColorScheme }));
     }
 
-    // Apply Channel Profile Pic in Player (NEW)
+    // Apply Channel Profile Pic in Player
     if (config.showChannelProfilePic !== undefined) {
         document.getElementById('showChannelProfilePic').checked = config.showChannelProfilePic;
         localStorage.setItem('showChannelProfilePic', JSON.stringify({ enabled: config.showChannelProfilePic }));
+    }
+
+    // Apply Player UI Scale
+    if (config.playerUIScale !== undefined) {
+        document.getElementById('playerUIScale').value = config.playerUIScale;
+        localStorage.setItem('playerUIScale', JSON.stringify({ scale: config.playerUIScale }));
     }
 }
 
@@ -2549,11 +2679,16 @@ function saveImportedConfiguration(config) {
                 updatedSettings.titleColorScheme = config.titleColorScheme;
             }
 
-            // Save merged settings to server (NEW)
+            // Save merged settings to server
             if (config.showChannelProfilePic !== undefined) {
                 updatedSettings.showChannelProfilePic = config.showChannelProfilePic;
             }
             
+            // Save Player UI Scale
+            if (config.playerUIScale !== undefined) {
+                updatedSettings.playerUIScale = config.playerUIScale;
+            }
+
             // Save merged settings to server
             return fetch('/user-settings', {
                 method: 'POST',

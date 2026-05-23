@@ -92,6 +92,12 @@
             this._thumbHeight = 90;
             this._spritePreloaded = false;
             
+            // UI Scaling State
+            this._uiScale = 1;
+            this._uiScaleStep = 0.1;
+            this._uiScaleMin = 0.5;
+            this._uiScaleMax = 2.0;
+            
             // Recommendation system state
             this._recTriggered = false;
             this._recShownCount = 0;
@@ -116,6 +122,7 @@
             this.setupControls();
             this.bindEvents();
             this.loadTimelinePreview();
+            this.loadPlayerUIScale();
             
             // Set initial volume display
             this.updateVolumeIcon();
@@ -397,6 +404,17 @@
                         position: relative !important;
                         overflow: hidden;
                         background: #000;
+                        
+                        /* UI Scale Variables */
+                        --lyt-ui-scale: 1;
+                        --lyt-btn-size: 24px;
+                        --lyt-btn-play-size: 26px;
+                        --lyt-controls-row-height: 36px;
+                        --lyt-time-font-size: 13px;
+                        --lyt-popup-font-size: 13px;
+                        --lyt-popup-min-width: 90px;
+                        --lyt-subtitle-font-size: 16px;
+                        --lyt-title-font-size: 16px;
                     }
                     .fluid_video_wrapper video {
                         display: block;
@@ -439,7 +457,7 @@
                         top: 12px;
                         left: 12px;
                         color: #fff;
-                        font-size: 16px;
+                        font-size: calc(var(--lyt-title-font-size) * var(--lyt-ui-scale));
                         font-family: 'Roboto', 'Arial', sans-serif;
                         font-weight: 500;
                         text-shadow: 0 1px 2px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.6);
@@ -533,7 +551,7 @@
                         display: flex;
                         align-items: center;
                         justify-content: space-between;
-                        height: 36px;
+                        height: calc(var(--lyt-controls-row-height) * var(--lyt-ui-scale));
                     }
                     .lyt_controls_left {
                         display: flex;
@@ -566,14 +584,14 @@
                         background: rgba(255,255,255,0.1);
                     }
                     .lyt_btn svg {
-                        width: 24px;
-                        height: 24px;
+                        width: calc(var(--lyt-btn-size) * var(--lyt-ui-scale));
+                        height: calc(var(--lyt-btn-size) * var(--lyt-ui-scale));
                         display: block;
                         pointer-events: none;
                     }
                     .lyt_btn_play svg {
-                        width: 26px;
-                        height: 26px;
+                        width: calc(var(--lyt-btn-play-size) * var(--lyt-ui-scale));
+                        height: calc(var(--lyt-btn-play-size) * var(--lyt-ui-scale));
                     }
                     
                     /* Volume group */
@@ -589,16 +607,16 @@
                         opacity: 0;
                         display: flex;
                         align-items: center;
-                        height: 24px; 
+                        height: calc(24px * var(--lyt-ui-scale)); 
                     }
                     .lyt_volume_group:hover .lyt_volume_slider_wrap,
                     .lyt_volume_slider_wrap.lyt_slider_visible {
-                        width: 70px;
+                        width: calc(70px * var(--lyt-ui-scale));
                         opacity: 1;
                     }
                     
                     .lyt_volume_bar {
-                        width: 64px;
+                        width: calc(64px * var(--lyt-ui-scale));
                         height: 4px;
                         background: rgba(255,255,255,0.3);
                         cursor: pointer;
@@ -635,7 +653,7 @@
                     /* Time display */
                     .lyt_time {
                         color: #fff;
-                        font-size: 13px;
+                        font-size: calc(var(--lyt-time-font-size) * var(--lyt-ui-scale));
                         font-family: 'Roboto', 'Arial', sans-serif;
                         white-space: nowrap;
                         user-select: none;
@@ -647,11 +665,11 @@
                     /* Popup menus */
                     .lyt_popup_menu {
                         position: absolute;
-                        bottom: 42px;
+                        bottom: calc(42px * var(--lyt-ui-scale));
                         right: 0;
                         background: rgba(28,28,28,0.97);
                         padding: 0;
-                        min-width: 90px;
+                        min-width: calc(var(--lyt-popup-min-width) * var(--lyt-ui-scale));
                         display: none;
                         z-index: 20;
                         box-shadow: 0 4px 16px rgba(0,0,0,0.6);
@@ -671,7 +689,7 @@
                         background: none;
                         border: none;
                         color: #eee;
-                        font-size: 13px;
+                        font-size: calc(var(--lyt-popup-font-size) * var(--lyt-ui-scale));
                         padding: 6px 16px;
                         cursor: pointer;
                         text-align: left;
@@ -695,7 +713,7 @@
                         display: none;
                         background: rgba(28,28,28,0.97);
                         padding: 0;
-                        min-width: 120px;
+                        min-width: calc(120px * var(--lyt-ui-scale));
                         z-index: 30;
                     }
                     .lyt_popup_submenu.lyt_show {
@@ -710,7 +728,7 @@
                         border: none;
                         border-bottom: 1px solid rgba(255,255,255,0.15);
                         color: #eee;
-                        font-size: 13px;
+                        font-size: calc(var(--lyt-popup-font-size) * var(--lyt-ui-scale));
                         padding: 8px 12px;
                         cursor: pointer;
                         text-align: left;
@@ -854,7 +872,7 @@
                         display: inline-block;
                         background: rgba(0,0,0,0.75);
                         color: #fff;
-                        font-size: 16px;
+                        font-size: calc(var(--lyt-subtitle-font-size) * var(--lyt-ui-scale));
                         font-family: 'Roboto', 'Arial', sans-serif;
                         padding: 3px 10px;
                         border-radius: 3px;
@@ -2141,6 +2159,16 @@
                 case 'shift+n':
                     this.video.dispatchEvent(new CustomEvent('lyt-skip'));
                     break;
+                case '+':
+                case '=':
+                    e.preventDefault();
+                    this.setPlayerUIScale(this._uiScale + this._uiScaleStep);
+                    break;
+                case '-':
+                case '_':
+                    e.preventDefault();
+                    this.setPlayerUIScale(this._uiScale - this._uiScaleStep);
+                    break;
             }
         }
 
@@ -2408,7 +2436,7 @@
             this.isMiniPlayer = !this.isMiniPlayer;
             this.wrapper.classList.toggle('fluid_mini_player_mode', this.isMiniPlayer);
         }
-
+        
         /**
          * Load and parse VTT timeline preview file for scrubbing thumbnails.
          */
@@ -2555,6 +2583,89 @@
         on(event, callback) {
             this.video.addEventListener(event, callback);
         }
+
+        // ===== PLAYER UI SCALING SYSTEM =====
+        
+        /**
+         * Load player UI scale from userSettings (via localStorage first for instant apply).
+         */
+        async loadPlayerUIScale() {
+            // 1. Instantly apply local preference to avoid flickering
+            const savedLocal = JSON.parse(localStorage.getItem('playerUIScale') || '{}');
+            if (savedLocal.scale !== undefined) {
+                this._uiScale = savedLocal.scale;
+                this.applyPlayerUIScale();
+            }
+            
+            // 2. Then sync from server to ensure consistency across devices
+            try {
+                const response = await fetch('/user-settings');
+                if (response.ok) {
+                    const serverSettings = await response.json();
+                    if (serverSettings.playerUIScale !== undefined) {
+                        this._uiScale = serverSettings.playerUIScale;
+                        localStorage.setItem('playerUIScale', JSON.stringify({ scale: this._uiScale }));
+                        this.applyPlayerUIScale();
+                    }
+                }
+            } catch (err) {
+                // Not logged in or error - local preference already applied
+            }
+        }
+        
+        /**
+         * Set the player UI scale.
+         * @param {number} scale - The new scale factor (0.5 - 2.0).
+         */
+        setPlayerUIScale(scale) {
+            // Clamp to bounds
+            scale = Math.round(scale * 10) / 10; // Round to 1 decimal
+            scale = Math.max(this._uiScaleMin, Math.min(this._uiScaleMax, scale));
+            
+            if (this._uiScale === scale) return;
+            
+            this._uiScale = scale;
+            this.applyPlayerUIScale();
+            
+            // Show toast feedback
+            this.showToast(`Player UI: ${Math.round(scale * 100)}%`);
+            
+            // Save to localStorage immediately
+            localStorage.setItem('playerUIScale', JSON.stringify({ scale: scale }));
+            
+            // Save to server in background
+            this.savePlayerUIScale(scale);
+        }
+        
+        /**
+         * Apply the current UI scale to the player wrapper.
+         */
+        applyPlayerUIScale() {
+            this.wrapper.style.setProperty('--lyt-ui-scale', this._uiScale);
+        }
+        
+        /**
+         * Save the player UI scale to userSettings.json via the server.
+         */
+        async savePlayerUIScale(scale) {
+            try {
+                const response = await fetch('/user-settings');
+                if (!response.ok) return;
+                
+                const currentSettings = await response.json();
+                currentSettings.playerUIScale = scale;
+                
+                await fetch('/user-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ settings: currentSettings })
+                });
+            } catch (err) {
+                // Silently fail - local preference is already saved
+            }
+        }
+        
+        // ===== END PLAYER UI SCALING SYSTEM =====
     }
 
     global.LYTPlayer = function(videoId, options) {
