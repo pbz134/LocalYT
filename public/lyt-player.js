@@ -109,16 +109,38 @@
             this._recTriggerTimes = [30, 180];
             
             // Version
-            this.version = 'v2.0.0';
+            this.version = 'v2.0.5';
             
             // Speed options
-            this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+            this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
             
             this.init();
         }
 
         init() {
             this.setupWrapper();
+            
+            // --- RESTORE VOLUME FROM PREVIOUS SESSION ---
+            // Must happen BEFORE setupControls() so the UI renders with the correct values
+            try {
+                const savedVolData = localStorage.getItem('lyt_player_volume');
+                if (savedVolData) {
+                    const volData = JSON.parse(savedVolData);
+                    if (typeof volData.volume === 'number' && volData.volume >= 0 && volData.volume <= 1) {
+                        this.video.volume = volData.volume;
+                        if (volData.volume > 0) {
+                            this._lastVolume = volData.volume;
+                        }
+                    }
+                    if (typeof volData.muted === 'boolean') {
+                        this.video.muted = volData.muted;
+                        this.isMuted = volData.muted;
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not restore volume from localStorage', e);
+            }
+
             this.setupControls();
             this.bindEvents();
             this.loadTimelinePreview();
@@ -1337,6 +1359,16 @@
                 this.toggleMute();
             });
             
+            // --- SAVE VOLUME TO LOCALSTORAGE ON EVERY CHANGE ---
+            this.video.addEventListener('volumechange', () => {
+                try {
+                    localStorage.setItem('lyt_player_volume', JSON.stringify({
+                        volume: this.video.volume,
+                        muted: this.video.muted
+                    }));
+                } catch (e) {}
+            });
+            
             // --- Volume Bar Events (Drag handling) ---
             this.dom.volumeBar.addEventListener('mousedown', (e) => this.handleVolumeDrag(e));
             
@@ -1803,6 +1835,7 @@
             this.dom.settingsMenu.classList.remove('lyt_show');
             this.dom.settingsBtn.classList.remove('lyt_open');
             this.hideAllSubmenus();
+            this.showMainMenu();
         }
 
         showContextMenu(clientX, clientY) {
