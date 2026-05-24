@@ -17,6 +17,7 @@ v4.30
 - Added a search filter to search.html
   - While searching for videos, you can filter for resolution, length, filetype and more
 - The sidebar text now doesn't squish anymore
+- Fixed Autoplay being always active on video.html
 
 v4.20
 - New Appearance setting in settings.html

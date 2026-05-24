@@ -2333,7 +2333,7 @@ document.addEventListener('click', function(e) {
 
             // ===== AUTOPLAY / SKIP LOGIC =====
             // Define the handler function OUTSIDE the event listener to avoid nesting errors
-            async function handleAutoPlayOrSkip() {
+            async function handleAutoPlayOrSkip(isManualSkip = false) {
                 try {
                     const autoplaySettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
                     
@@ -2341,18 +2341,25 @@ document.addEventListener('click', function(e) {
                     if (autoplaySettings.enabled && !autoplaySettings.nonPlaylistMode && !playlistName) {
                          autoplaySettings.nonPlaylistMode = 'first-recommended';
                     }
-
+            
                     console.log('[Autoplay/Skip] Settings:', autoplaySettings);
                     console.log('[Autoplay/Skip] In playlist?', !!playlistName, playlistName);
+                    console.log('[Autoplay/Skip] Is manual skip?', isManualSkip);
                     
-                    if (autoplaySettings.enabled) {
-                        if (playlistName && autoplaySettings.playlistNext !== false) {
+                    // If autoplay is disabled AND this is not a manual skip, do nothing
+                    if (!autoplaySettings.enabled && !isManualSkip) {
+                        console.log('[Autoplay/Skip] Autoplay disabled and not a manual skip. Staying put.');
+                        return;
+                    }
+            
+                    if (autoplaySettings.enabled || isManualSkip) {
+                        if (playlistName && (autoplaySettings.playlistNext !== false || isManualSkip)) {
                             console.log('[Autoplay/Skip] → Next in playlist');
                             await autoplayNextInPlaylist();
                         } 
                         else if (!playlistName) {
-                            console.log('[Autoplay/Skip] → Non-playlist mode:', autoplaySettings.nonPlaylistMode);
-                            switch (autoplaySettings.nonPlaylistMode) {
+                            console.log('[Autoplay/Skip] → Non-playlist mode:', autoplaySettings.nonPlaylistMode || 'first-recommended');
+                            switch (autoplaySettings.nonPlaylistMode || 'first-recommended') {
                                 case 'first-recommended':
                                     await autoplayFirstRecommended();
                                     break;
@@ -2369,27 +2376,17 @@ document.addEventListener('click', function(e) {
                         } else {
                             console.log('[Autoplay/Skip] In playlist but playlistNext is disabled');
                         }
-                    } else {
-                        // Skip button should still work even if autoplay is disabled (treat as manual skip)
-                        console.log('[Autoplay/Skip] Manual Skip (Autoplay Disabled)');
-                        
-                        if (playlistName) {
-                             await autoplayNextInPlaylist();
-                        } else {
-                            // Fallback to first recommended for manual skips when not in playlist
-                            await autoplayFirstRecommended();
-                        }
                     }
                 } catch (e) {
                     console.error('Autoplay/Skip error:', e);
                 }
             }
-
-            // Listen for video end
-            videoPlayer.addEventListener('ended', handleAutoPlayOrSkip);
             
-            // Listen for the custom Skip button event from lyt-player.js
-            videoPlayer.addEventListener('lyt-skip', handleAutoPlayOrSkip);
+            // Listen for video end (NOT a manual skip)
+            videoPlayer.addEventListener('ended', () => handleAutoPlayOrSkip(false));
+            
+            // Listen for the custom Skip button event from lyt-player.js (IS a manual skip)
+            videoPlayer.addEventListener('lyt-skip', () => handleAutoPlayOrSkip(true));
 
             document.addEventListener('keydown', (event) => {
                 const activeElement = document.activeElement;
