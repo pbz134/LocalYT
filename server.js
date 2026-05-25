@@ -198,6 +198,7 @@ app.use('/playlist-descriptions', express.static(path.join(__dirname, 'playlist-
 app.use('/favicon.png', express.static(path.join(__dirname, 'favicon.png')));
 app.use('/playlist_cache.json', express.static(path.join(__dirname, 'playlist_cache.json')));
 app.use('/video_date_cache.json', express.static(path.join(__dirname, 'video_date_cache.json')));
+app.use('/videoresolutions', express.static(path.join(__dirname, 'videoresolutions')));
 
 // --- DISCORD EMBED ROUTE ---
 app.get('/video.html', (req, res) => {
@@ -218,7 +219,6 @@ app.get('/video.html', (req, res) => {
     }
     
     // --- Get Title ---
-    // Try to read the custom filename, fallback to the actual filename
     const basePath = stripExtension(decodedSrc);
     const titlePath = path.join(__dirname, 'filenames', `${basePath}.txt`);
     let title = decodedSrc.split('/').pop(); // Default title
@@ -237,12 +237,10 @@ app.get('/video.html', (req, res) => {
     let thumbRelativePath = '';
 
     if (pathParts.length > 2) {
-        // Channel/Playlist/Video structure
         const playlist = pathParts[1];
         const videoName = stripExtension(pathParts[pathParts.length - 1]);
         thumbRelativePath = `thumbnails/${encodeURIComponent(channel)}/${encodeURIComponent(playlist)}/${encodeURIComponent(videoName)}.jpg`;
     } else {
-        // Channel/Video structure
         const videoName = stripExtension(pathParts[pathParts.length - 1]);
         thumbRelativePath = `thumbnails/${encodeURIComponent(channel)}/${encodeURIComponent(videoName)}.jpg`;
     }
@@ -257,7 +255,6 @@ app.get('/video.html', (req, res) => {
     const htmlFilePath = path.join(__dirname, 'public', 'video.html');
     let htmlContent = fs.readFileSync(htmlFilePath, 'utf8');
 
-    // Only embed video player for MP4 files
     const isMp4 = decodedSrc.toLowerCase().endsWith('.mp4');
 
     const metaTags = `
@@ -284,7 +281,6 @@ app.get('/video.html', (req, res) => {
         ` : ''}
     `;
 
-    // Inject into <head>
     htmlContent = htmlContent.replace('</head>', metaTags + '</head>');
 
     res.send(htmlContent);
@@ -301,19 +297,15 @@ app.get('/v/:code', (req, res) => {
 
     let redirectUrl = `/video.html?src=${encodeURIComponent(videoPath)}`;
     
-    // Preserve timestamp
     if (req.query.t) redirectUrl += `&t=${encodeURIComponent(req.query.t)}`;
 
-    // Handle Playlist Short Code (?pl=...)
     if (req.query.pl) {
         const plCode = req.query.pl;
         const playlistName = shortCodeToPlaylistMap.get(plCode);
         
         if (playlistName) {
-            // Found the real name, append it
             redirectUrl += `&playlist=${encodeURIComponent(playlistName)}`;
         } else {
-            // Fallback: If code not found, pass raw value (in case it's a manual test)
             redirectUrl += `&playlist=${encodeURIComponent(plCode)}`;
         }
     }
@@ -354,7 +346,6 @@ function getOrCreatePlaylistShortCode(playlistName) {
     playlistShortMap.set(playlistName, code);
     shortCodeToPlaylistMap.set(code, playlistName);
     
-    // Auto-save when new ones are created
     savePlaylistLinksToFile();
     
     return code;
@@ -370,13 +361,7 @@ function savePlaylistLinksToFile() {
     }
 }
 
-// NOTE: The initialization function is called at the bottom of the file 
-// to ensure videoArray is loaded first.
-
-// Generic public static middleware (loaded after specific routes)
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Generic public static middleware (loaded after specific routes)
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(cookieParser());
@@ -438,6 +423,84 @@ function ensureWatchHistoryFile() {
 ensurePreferencesFile();
 ensureWatchHistoryFile();
 
+// --- RECOMMENDATION ALGORITHM: DECAY SYSTEM ---
+const DECAY_HALF_LIFE_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
+const DECAY_LAMBDA = Math.log(2) / DECAY_HALF_LIFE_MS;
+const MIN_WEIGHT_THRESHOLD = 0.5; 
+const TAG_INCREMENT = 5; 
+
+function applyDecayAndPrune(userPrefs) {
+    const now = Date.now();
+    let changed = false;
+    
+    for (const tag in userPrefs) {
+        const entry = userPrefs[tag];
+        
+        if (typeof entry === 'number') {
+            userPrefs[tag] = { weight: entry, lastSeen: now };
+            changed = true;
+            continue;
+        }
+        
+        if (entry && typeof entry === 'object' && entry.lastSeen) {
+            const elapsed = now - entry.lastSeen;
+            const decayFactor = Math.exp(-DECAY_LAMBDA * elapsed);
+            entry.weight *= decayFactor;
+            
+            if (entry.weight < MIN_WEIGHT_THRESHOLD) {
+                delete userPrefs[tag];
+            }
+        }
+        
+        changed = true;
+    }
+    
+    return changed;
+}
+
+function getEffectiveWeights(userPrefs) {
+    const weights = {};
+    for (const tag in userPrefs) {
+        const entry = userPrefs[tag];
+        if (typeof entry === 'number') {
+            weights[tag] = entry;
+        } else if (entry && typeof entry === 'object') {
+            weights[tag] = entry.weight || 0;
+        }
+    }
+    return weights;
+}
+
+// --- SAFE FILE WRITE WITH MUTEX (Prevents Windows EPERM errors) ---
+let preferenceWriteLock = false;
+let preferenceWriteQueue = [];
+
+function safeWritePreferences(data, callback) {
+    preferenceWriteQueue.push({ data, callback });
+    
+    if (!preferenceWriteLock) {
+        processPreferenceWriteQueue();
+    }
+}
+
+function processPreferenceWriteQueue() {
+    if (preferenceWriteQueue.length === 0) {
+        preferenceWriteLock = false;
+        return;
+    }
+    
+    preferenceWriteLock = true;
+    const { data, callback } = preferenceWriteQueue.shift();
+    
+    fs.writeFile(preferencesFilePath, JSON.stringify(data, null, 2), (err) => {
+        if (err) console.error('Error writing preferences file:', err);
+        if (callback) callback(err);
+        
+        // Process next item in queue after a tiny delay to ensure file handles are released
+        setTimeout(processPreferenceWriteQueue, 50);
+    });
+}
+
 // --- PLAYLIST THUMBNAIL CACHE SYSTEM ---
 const playlistCacheFilePath = path.join(__dirname, 'playlist_cache.json');
 let playlistThumbnailCache = {};
@@ -492,13 +555,11 @@ function buildPlaylistThumbnailCache() {
                     } else if (file.match(/\.(mp4|mp3|mkv)$/i)) {
                         const basePath = path.relative(path.join(__dirname, 'videos'), filePath).replace(/\\/g, '/').replace(/\.(mp4|mp3|mkv)$/i, '');
                         
-                        // Check if thumbnail exists
                         const thumbPath = path.join(thumbnailsDir, `${basePath}.jpg`);
                         if (!fs.existsSync(thumbPath)) return;
 
-                        // Get upload date
                         const datePath = path.join(filedatesDir, `${basePath}.txt`);
-                        let dateObj = new Date(0); // Default to epoch if no date
+                        let dateObj = new Date(0);
                         
                         if (fs.existsSync(datePath)) {
                             try {
@@ -513,9 +574,7 @@ function buildPlaylistThumbnailCache() {
                         }
                     }
                 });
-            } catch (err) {
-                // Silently skip inaccessible directories
-            }
+            } catch (err) {}
         }
 
         readDirRecursive(dir);
@@ -525,7 +584,6 @@ function buildPlaylistThumbnailCache() {
         }
     }
 
-    // Find all playlists from video cache (paths with more than 1 segment)
     const playlistsFound = new Set();
     videoArray.forEach(video => {
         const parts = video.path.split('/');
@@ -537,7 +595,6 @@ function buildPlaylistThumbnailCache() {
         }
     });
 
-    // Scan each playlist for its earliest thumbnail
     const videosDir = path.join(__dirname, 'videos');
     playlistsFound.forEach(playlistKey => {
         const playlistDir = path.join(videosDir, playlistKey);
@@ -546,7 +603,6 @@ function buildPlaylistThumbnailCache() {
         }
     });
 
-    // Save cache to disk
     try {
         fs.writeFileSync(playlistCacheFilePath, JSON.stringify(cache, null, 2));
         playlistThumbnailCache = cache;
@@ -557,8 +613,8 @@ function buildPlaylistThumbnailCache() {
 }
 
 // --- OPTIMIZED VIDEO CACHING SYSTEM ---
-let videoCache = new Map(); // Map for O(1) lookups
-let videoArray = []; // Array for pagination
+let videoCache = new Map();
+let videoArray = [];
 let recommendationIndex = {};
 
 function initializeVideoCache() {
@@ -597,7 +653,6 @@ function scanAndCacheVideos() {
         try {
             const files = fs.readdirSync(dir);
             files.forEach(file => {
-                // Skip MacOS metadata files
                 if (file.startsWith('._')) return;
 
                 const filePath = path.join(dir, file);
@@ -712,7 +767,6 @@ function initializeRecommendationIndex() {
     }
 }
 
-// --- LOAD CHANNEL HOME PREVIEW STATS ---
 const channelHomePreviewDir = path.join(__dirname, 'channel-home-previews');
 if (fs.existsSync(channelHomePreviewDir)) {
     try {
@@ -728,8 +782,8 @@ app.use('/channel-home-previews', express.static(channelHomePreviewDir));
 
 // --- SHORT LINK SYSTEM ---
 const shortLinksFilePath = path.join(__dirname, 'shortlinks.json');
-let shortLinksMap = new Map();       // video path -> short code
-let shortCodeToVideoMap = new Map(); // short code -> video path
+let shortLinksMap = new Map();
+let shortCodeToVideoMap = new Map();
 const SHORT_CODE_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
 function generateShortCode() {
@@ -744,7 +798,6 @@ function generateShortCode() {
 }
 
 function initializeShortLinks() {
-    // Load existing short links from file
     if (fs.existsSync(shortLinksFilePath)) {
         try {
             const data = fs.readFileSync(shortLinksFilePath, 'utf8');
@@ -763,7 +816,6 @@ function initializeShortLinks() {
         console.log('shortlinks.json not found, will generate new links.');
     }
 
-    // Generate short codes for any videos that don't have one yet
     let newCodesGenerated = 0;
     videoArray.forEach(video => {
         if (!shortLinksMap.has(video.path)) {
@@ -774,7 +826,6 @@ function initializeShortLinks() {
         }
     });
 
-    // Save to disk if any new codes were generated
     if (newCodesGenerated > 0) {
         const obj = {};
         shortLinksMap.forEach((code, videoPath) => { obj[videoPath] = code; });
@@ -788,7 +839,6 @@ initializeShortLinks();
 initializeRecommendationIndex();
 loadPlaylistThumbnailCache();
 
-// --- LOAD CHANNEL HOME META CACHE ---
 const channelHomeMetaCacheDir = path.join(__dirname, 'channel-home-meta-cache');
 if (fs.existsSync(channelHomeMetaCacheDir)) {
     try {
@@ -800,9 +850,7 @@ if (fs.existsSync(channelHomeMetaCacheDir)) {
 }
 app.use('/channel-home-meta-cache', express.static(channelHomeMetaCacheDir));
 
-// --- PLAYLIST SHORT LINK SYSTEM (INITIALIZATION) ---
 function initializePlaylistShortLinks() {
-    // 1. Load existing links from file
     if (fs.existsSync(PLAYLIST_SHORT_FILE)) {
         try {
             const data = fs.readFileSync(PLAYLIST_SHORT_FILE, 'utf8');
@@ -817,11 +865,9 @@ function initializePlaylistShortLinks() {
         }
     }
 
-    // 2. Scan Video Cache and Generate Missing Links
     let newCodesGenerated = 0;
     const playlistsFound = new Set();
 
-    // videoArray is now defined because this runs after initializeVideoCache()
     videoArray.forEach(video => {
         const parts = video.path.split('/');
         if (parts.length > 2) {
@@ -851,7 +897,6 @@ function initializePlaylistShortLinks() {
     }
 }
 
-// Run playlist shortlink initialization
 initializePlaylistShortLinks();
 
 function getVideoDetails(videoSlice) {
@@ -879,7 +924,6 @@ function shuffleArray(array) {
     return array;
 }
 
-// --- HELPER FOR USER MANAGEMENT ---
 function findUserByUsername(username) {
     const usersFilePath = path.join(__dirname, 'users.json');
     try {
@@ -893,7 +937,6 @@ function findUserByUsername(username) {
 
 // --- SETTINGS ROUTES ---
 
-// Get User Preferences for Editing
 app.get('/get-preferences', (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('Not authenticated');
@@ -902,13 +945,18 @@ app.get('/get-preferences', (req, res) => {
         const data = fs.readFileSync(preferencesFilePath, 'utf8');
         const allPrefs = JSON.parse(data);
         const userPrefs = allPrefs[userId] || {};
-        res.json(userPrefs);
+        
+        applyDecayAndPrune(userPrefs);
+        allPrefs[userId] = userPrefs;
+        safeWritePreferences(allPrefs);
+        
+        const effectiveWeights = getEffectiveWeights(userPrefs);
+        res.json(effectiveWeights);
     } catch (err) {
         res.status(500).send('Error reading preferences');
     }
 });
 
-// Reset Preferences
 app.post('/reset-preferences', (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('Not authenticated');
@@ -917,14 +965,12 @@ app.post('/reset-preferences', (req, res) => {
         const data = fs.readFileSync(preferencesFilePath, 'utf8');
         const allPrefs = JSON.parse(data);
         delete allPrefs[userId];
-        fs.writeFileSync(preferencesFilePath, JSON.stringify(allPrefs, null, 2));
-        res.sendStatus(200);
+        safeWritePreferences(allPrefs, () => res.sendStatus(200));
     } catch (err) {
         res.status(500).send('Error resetting preferences');
     }
 });
 
-// Update Single Preference Tag
 app.post('/update-preference-tag', (req, res) => {
     const { tag, value } = req.body;
     const userId = req.session.userId;
@@ -937,15 +983,21 @@ app.post('/update-preference-tag', (req, res) => {
         const allPrefs = JSON.parse(data);
         if (!allPrefs[userId]) allPrefs[userId] = {};
         
-        allPrefs[userId][tag] = parseInt(value) || 0;
-        fs.writeFileSync(preferencesFilePath, JSON.stringify(allPrefs, null, 2));
-        res.sendStatus(200);
+        applyDecayAndPrune(allPrefs[userId]);
+        
+        const numValue = parseInt(value) || 0;
+        if (numValue <= 0) {
+            delete allPrefs[userId][tag];
+        } else {
+            allPrefs[userId][tag] = { weight: numValue, lastSeen: Date.now() };
+        }
+        
+        safeWritePreferences(allPrefs, () => res.sendStatus(200));
     } catch (err) {
         res.status(500).send('Error updating preference');
     }
 });
 
-// Rename Account
 app.post('/rename-account', (req, res) => {
     const { newUsername } = req.body;
     const userId = req.session.userId;
@@ -958,12 +1010,10 @@ app.post('/rename-account', (req, res) => {
         const data = fs.readFileSync(usersFilePath, 'utf8');
         const usersData = JSON.parse(data);
 
-        // Check if new username exists
         if (usersData[newUsername]) {
             return res.status(409).send('Username already exists');
         }
 
-        // Find current user
         let currentUsername = null;
         for (const [name, user] of Object.entries(usersData)) {
             if (user.id === userId) {
@@ -976,7 +1026,6 @@ app.post('/rename-account', (req, res) => {
             return res.status(404).send('User not found');
         }
 
-        // Rename
         usersData[newUsername] = usersData[currentUsername];
         delete usersData[currentUsername];
 
@@ -987,7 +1036,6 @@ app.post('/rename-account', (req, res) => {
     }
 });
 
-// Reset Password
 app.post('/reset-password', (req, res) => {
     const { currentPassword, newPassword } = req.body;
     const userId = req.session.userId;
@@ -999,7 +1047,6 @@ app.post('/reset-password', (req, res) => {
         const data = fs.readFileSync(usersFilePath, 'utf8');
         const usersData = JSON.parse(data);
 
-        // Find user
         let username = null;
         let user = null;
         for (const [name, u] of Object.entries(usersData)) {
@@ -1012,12 +1059,10 @@ app.post('/reset-password', (req, res) => {
 
         if (!user) return res.status(404).send('User not found');
 
-        // Verify current password
         if (!bcrypt.compareSync(currentPassword, user.password)) {
             return res.status(403).send('Incorrect current password');
         }
 
-        // Update password
         user.password = bcrypt.hashSync(newPassword, 10);
         fs.writeFileSync(usersFilePath, JSON.stringify(usersData, null, 2));
         res.sendStatus(200);
@@ -1026,7 +1071,6 @@ app.post('/reset-password', (req, res) => {
     }
 });
 
-// --- USER SETTINGS SYSTEM ---
 const userSettingsFilePath = path.join(__dirname, 'userSettings.json');
 
 function ensureUserSettingsFile() {
@@ -1040,7 +1084,6 @@ function ensureUserSettingsFile() {
 
 ensureUserSettingsFile();
 
-// Get user settings (language, appearance, etc.)
 app.get('/user-settings', (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('Not authenticated');
@@ -1054,7 +1097,6 @@ app.get('/user-settings', (req, res) => {
     }
 });
 
-// Save user settings
 app.post('/user-settings', (req, res) => {
     const { settings } = req.body;
     const userId = req.session.userId;
@@ -1076,7 +1118,6 @@ app.post('/user-settings', (req, res) => {
     }
 });
 
-// Get Autoplay Settings
 app.get('/autoplay-settings', (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('Not authenticated');
@@ -1091,7 +1132,6 @@ app.get('/autoplay-settings', (req, res) => {
     }
 });
 
-// Save Autoplay Settings
 app.post('/autoplay-settings', (req, res) => {
     const { autoplay } = req.body;
     const userId = req.session.userId;
@@ -1114,7 +1154,6 @@ app.post('/autoplay-settings', (req, res) => {
     }
 });
 
-// Also clean up user settings when deleting account
 app.post('/delete-account', (req, res) => {
     const { password } = req.body;
     const userId = req.session.userId;
@@ -1128,7 +1167,6 @@ app.post('/delete-account', (req, res) => {
         const data = fs.readFileSync(usersFilePath, 'utf8');
         const usersData = JSON.parse(data);
 
-        // Find user and verify password
         let username = null;
         let user = null;
         for (const [name, u] of Object.entries(usersData)) {
@@ -1141,26 +1179,22 @@ app.post('/delete-account', (req, res) => {
 
         if (!user) return res.status(404).send('User not found');
 
-        // Verify password before deletion
         if (!bcrypt.compareSync(password, user.password)) {
             return res.status(403).send('Incorrect password');
         }
 
-        // Remove from users.json
         delete usersData[username];
         fs.writeFileSync(usersFilePath, JSON.stringify(usersData, null, 2));
 
-        // Remove preferences
         if (fs.existsSync(preferencesFilePath)) {
             const prefData = fs.readFileSync(preferencesFilePath, 'utf8');
             const allPrefs = JSON.parse(prefData);
             if (allPrefs[userId]) {
                 delete allPrefs[userId];
-                fs.writeFileSync(preferencesFilePath, JSON.stringify(allPrefs, null, 2));
+                safeWritePreferences(allPrefs);
             }
         }
 
-        // Remove user settings (language, appearance)
         if (fs.existsSync(userSettingsFilePath)) {
             const settingsData = fs.readFileSync(userSettingsFilePath, 'utf8');
             const allSettings = JSON.parse(settingsData);
@@ -1170,13 +1204,11 @@ app.post('/delete-account', (req, res) => {
             }
         }
 
-        // Remove profile picture
         const profilePicPath = path.join(userProfileDir, `${userId}.jpg`);
         if (fs.existsSync(profilePicPath)) {
             fs.unlinkSync(profilePicPath);
         }
 
-        // Destroy session
         req.session.destroy(err => {
             if (err) return res.status(500).send('Error deleting session');
             res.sendStatus(200);
@@ -1187,15 +1219,11 @@ app.post('/delete-account', (req, res) => {
     }
 });
 
-// --- PROFILE PICTURE ROUTES ---
-
-// Ensure user-profiles directory exists
 const userProfileDir = path.join(__dirname, 'user-profiles');
 if (!fs.existsSync(userProfileDir)) {
     fs.mkdirSync(userProfileDir, { recursive: true });
 }
 
-// Get current user's profile picture URL
 app.get('/user-profile-pic', (req, res) => {
     const userId = req.session.userId;
     if (!userId) {
@@ -1210,7 +1238,6 @@ app.get('/user-profile-pic', (req, res) => {
     }
 });
 
-// Upload profile picture (with cropping and resizing)
 app.post('/user-profile-pic', upload.single('profilePic'), async (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('Not logged in');
@@ -1223,12 +1250,10 @@ app.post('/user-profile-pic', upload.single('profilePic'), async (req, res) => {
     const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
 
     if (!allowedMimes.includes(uploadedFile.mimetype)) {
-        // Clean up temp file
         fs.unlink(uploadedFile.path, () => {});
         return res.status(400).send('Only JPEG, PNG, and WebP images are allowed');
     }
 
-    // Limit to 5MB
     if (uploadedFile.size > 5 * 1024 * 1024) {
         fs.unlink(uploadedFile.path, () => {});
         return res.status(400).send('Image must be under 5MB');
@@ -1238,19 +1263,16 @@ app.post('/user-profile-pic', upload.single('profilePic'), async (req, res) => {
     const tempPath = uploadedFile.path;
 
     try {
-        // Extract crop data from body
         const { x, y, width, height } = req.body;
         
         let sharpInstance = sharp(tempPath);
 
-        // If cropping data is provided, extract that region
         if (x && y && width && height) {
             const cropX = parseInt(x);
             const cropY = parseInt(y);
             const cropW = parseInt(width);
             const cropH = parseInt(height);
 
-            // Ensure valid dimensions
             if (cropW > 0 && cropH > 0) {
                 sharpInstance = sharpInstance.extract({
                     left: cropX,
@@ -1261,13 +1283,11 @@ app.post('/user-profile-pic', upload.single('profilePic'), async (req, res) => {
             }
         }
 
-        // Resize to 500x500 and convert to JPEG
         await sharpInstance
             .resize(500, 500)
             .jpeg({ quality: 90 })
             .toFile(targetPath);
 
-        // Clean up the temp file
         fs.unlink(tempPath, (err) => {
             if (err) console.error('Error deleting temp file:', err);
         });
@@ -1276,13 +1296,11 @@ app.post('/user-profile-pic', upload.single('profilePic'), async (req, res) => {
 
     } catch (err) {
         console.error('Error processing image:', err);
-        // Clean up temp file on error
         fs.unlink(tempPath, () => {});
         res.status(500).send('Error processing image');
     }
 });
 
-// Delete profile picture (revert to placeholder)
 app.delete('/user-profile-pic', (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('Not logged in');
@@ -1294,13 +1312,10 @@ app.delete('/user-profile-pic', (req, res) => {
     res.sendStatus(200);
 });
 
-// GET ALL TAGS (For settings suggestion list)
 app.get('/get-all-tags', (req, res) => {
-    // Returns keys from the recommendation index (channels + tags)
     res.json(Object.keys(recommendationIndex));
 });
 
-// SAVE PREFERENCES (Bulk Overwrite)
 app.post('/save-preferences', (req, res) => {
     const { preferences } = req.body;
     const userId = req.session.userId;
@@ -1310,17 +1325,21 @@ app.post('/save-preferences', (req, res) => {
         const data = fs.readFileSync(preferencesFilePath, 'utf8');
         const allPrefs = JSON.parse(data);
         
-        // Overwrite user preferences
-        allPrefs[userId] = preferences;
+        const convertedPrefs = {};
+        for (const [tag, value] of Object.entries(preferences)) {
+            const numValue = parseInt(value) || 0;
+            if (numValue > 0) {
+                convertedPrefs[tag] = { weight: numValue, lastSeen: Date.now() };
+            }
+        }
         
-        // Clear the memory queue for this user to prevent old queued updates 
-        // from overwriting this manual save
+        allPrefs[userId] = convertedPrefs;
+        
         if (preferenceUpdateQueue.has(userId)) {
             preferenceUpdateQueue.delete(userId);
         }
 
-        fs.writeFileSync(preferencesFilePath, JSON.stringify(allPrefs, null, 2));
-        res.sendStatus(200);
+        safeWritePreferences(allPrefs, () => res.sendStatus(200));
     } catch (err) {
         console.error(err);
         res.status(500).send('Error saving preferences');
@@ -1348,7 +1367,6 @@ app.get('/videos', (req, res) => {
     });
 });
 
-// --- SIDEBAR RECOMMENDATIONS (AGGRESSIVE CHANNEL PRIORITY) ---
 app.get('/sidebar-recommendations', recommendationsLimiter, (req, res) => {
     const currentVideoPath = req.query.video;
     const userId = req.session.userId;
@@ -1366,11 +1384,10 @@ app.get('/sidebar-recommendations', recommendationsLimiter, (req, res) => {
     const currentChannel = currentVideoPath.split('/')[0];
     
     const addedPaths = new Set();
-    addedPaths.add(currentVideoPath); // Prevent watching the exact same video
+    addedPaths.add(currentVideoPath);
 
     const finalRecommendations = [];
 
-    // Helper to add unique videos
     const addVideos = (videos, count, forceShuffle = true) => {
         let pool = videos.filter(v => !addedPaths.has(v.path));
         if (forceShuffle) shuffleArray(pool);
@@ -1384,8 +1401,6 @@ app.get('/sidebar-recommendations', recommendationsLimiter, (req, res) => {
         return taken;
     };
 
-    // --- 1. CURRENT CHANNEL VIDEOS (TOP PRIORITY) ---
-    // Allocate 50% of the sidebar strictly to the current channel
     const channelQuota = Math.floor(limit * 0.1); 
     
     let sameChannelVideos = [];
@@ -1398,7 +1413,6 @@ app.get('/sidebar-recommendations', recommendationsLimiter, (req, res) => {
         });
     }
     
-    // Shuffle channel videos so it's not always the same ones, but add them FIRST
     shuffleArray(sameChannelVideos);
     const channelToAdd = sameChannelVideos.slice(0, channelQuota);
     
@@ -1407,7 +1421,6 @@ app.get('/sidebar-recommendations', recommendationsLimiter, (req, res) => {
         addedPaths.add(v.path);
     });
 
-    // --- 2. SIMILAR POOL (TAGS) ---
     const remainingSlots = limit - finalRecommendations.length;
     const similarTarget = Math.floor(remainingSlots * 0.7);
 
@@ -1426,7 +1439,6 @@ app.get('/sidebar-recommendations', recommendationsLimiter, (req, res) => {
         }
     });
 
-    // Deduplicate similar pool
     const uniqueSimilarPool = [];
     const seenSim = new Set();
     similarPool.forEach(v => {
@@ -1444,7 +1456,6 @@ app.get('/sidebar-recommendations', recommendationsLimiter, (req, res) => {
         addedPaths.add(v.path);
     });
 
-    // --- 3. PREFERENCE POOL ---
     const prefTarget = limit - finalRecommendations.length;
     
     let preferencePool = [];
@@ -1455,7 +1466,13 @@ app.get('/sidebar-recommendations', recommendationsLimiter, (req, res) => {
             const prefData = JSON.parse(data);
             const userPrefs = prefData[userId] || {};
 
-            const sortedTags = Object.entries(userPrefs)
+            applyDecayAndPrune(userPrefs);
+            prefData[userId] = userPrefs;
+            safeWritePreferences(prefData);
+
+            const effectiveWeights = getEffectiveWeights(userPrefs);
+
+            const sortedTags = Object.entries(effectiveWeights)
                 .sort((a, b) => b[1] - a[1])
                 .map(t => t[0]);
 
@@ -1493,7 +1510,6 @@ app.get('/sidebar-recommendations', recommendationsLimiter, (req, res) => {
         addedPaths.add(v.path);
     });
 
-    // --- 4. BACKFILL ---
     if (finalRecommendations.length < limit) {
         const allVideos = [...videoCache.values()];
         const backfill = addVideos(allVideos, limit - finalRecommendations.length);
@@ -1586,9 +1602,6 @@ app.get('/api/comments', (req, res) => {
     });
 });
 
-// --- COMMENT LIKES SYSTEM ---
-
-// Like a comment
 app.post('/like-comment', (req, res) => {
     const { commentId } = req.body;
     const userId = req.session.userId;
@@ -1609,7 +1622,6 @@ app.post('/like-comment', (req, res) => {
         
         if (!likesData[userId]) likesData[userId] = {};
         
-        // Toggle: if already liked, unlike; otherwise like
         const isCurrentlyLiked = likesData[userId][commentId] === true;
         likesData[userId][commentId] = !isCurrentlyLiked;
         
@@ -1620,7 +1632,6 @@ app.post('/like-comment', (req, res) => {
     });
 });
 
-// Get current user's comment likes
 app.get('/user-comment-likes', (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('User not authenticated');
@@ -1636,8 +1647,6 @@ app.get('/user-comment-likes', (req, res) => {
         }
     });
 });
-
-// ========== PLAYLIST ROUTES ==========
 
 app.get('/user-playlists', (req, res) => {
     const userId = req.session.userId;
@@ -1785,7 +1794,6 @@ app.get('/subcount/fuzzy/:channel', (req, res) => {
     });
 });
 
-// Get all subscribed channels for the current user
 app.get('/user-subscriptions', (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('User not authenticated');
@@ -1822,7 +1830,6 @@ app.post('/subscribe', (req, res) => {
     });
 });
 
-// Get random videos from a specific channel
 app.get('/channel-random-videos/:channel', (req, res) => {
     const channel = decodeURIComponent(req.params.channel);
     const limit = parseInt(req.query.limit) || 20;
@@ -1853,11 +1860,9 @@ app.get('/viewcounts/:video', (req, res) => {
     });
 });
 
-// --- REGISTRATION COOLDOWN SYSTEM ---
 const registrationCooldowns = new Map();
-const REGISTER_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+const REGISTER_COOLDOWN_MS = 10 * 60 * 1000;
 
-// Check registration cooldown status (for page load)
 app.get('/register-status', (req, res) => {
     const clientIp = getClientIp(req);
     const cooldownEnd = registrationCooldowns.get(clientIp);
@@ -1869,18 +1874,15 @@ app.get('/register-status', (req, res) => {
         });
     }
     
-    // Clean up expired cooldown
     if (cooldownEnd) registrationCooldowns.delete(clientIp);
     
     res.json({ blocked: false });
 });
 
-// Update the existing /register route to include the cooldown check
 app.post('/register', (req, res) => {
     const clientIp = getClientIp(req);
     const cooldownEnd = registrationCooldowns.get(clientIp);
     
-    // Check if IP is currently on cooldown
     if (cooldownEnd && Date.now() < cooldownEnd) {
         return res.status(429).json({ 
             blocked: true, 
@@ -1906,7 +1908,6 @@ app.post('/register', (req, res) => {
         fs.writeFile(usersFilePath, JSON.stringify(usersData, null, 2), err => {
             if (err) return res.status(500).json({ error: 'Error saving user' });
             
-            // Set cooldown for this IP on successful registration
             registrationCooldowns.set(clientIp, Date.now() + REGISTER_COOLDOWN_MS);
             
             res.sendStatus(200);
@@ -1914,11 +1915,9 @@ app.post('/register', (req, res) => {
     });
 });
 
-// --- LOGIN WITH BRUTE-FORCE PROTECTION ---
 app.post('/login', (req, res) => {
     const clientIp = getClientIp(req);
     
-    // Check if permanently blocked FIRST
     const attemptData = getLoginAttemptData(clientIp);
     if (attemptData && attemptData.permanent) {
         return res.status(403).json({ 
@@ -1927,7 +1926,6 @@ app.post('/login', (req, res) => {
         });
     }
     
-    // Check if temporarily blocked
     if (isIpBlocked(clientIp)) {
         const remainingTime = getRemainingBlockTime(clientIp);
         const minutes = Math.ceil(remainingTime / 60000);
@@ -1950,10 +1948,8 @@ app.post('/login', (req, res) => {
         const user = usersData[username];
         
         if (!user || !bcrypt.compareSync(password, user.password)) {
-            // Record failed attempt
             recordFailedAttempt(clientIp);
             
-            // Check if this attempt triggered a block
             const updatedData = getLoginAttemptData(clientIp);
             
             if (updatedData && updatedData.permanent) {
@@ -1978,14 +1974,12 @@ app.post('/login', (req, res) => {
             return res.status(401).json({ error: 'Invalid username or password' });
         }
         
-        // Successful login - reset attempts for this IP
         resetLoginAttempts(clientIp);
         req.session.userId = user.id;
         res.sendStatus(200);
     });
 });
 
-// --- CHECK LOGIN BLOCK STATUS (for page load) ---
 app.get('/login-status', (req, res) => {
     const clientIp = getClientIp(req);
     const attemptData = getLoginAttemptData(clientIp);
@@ -2052,7 +2046,7 @@ app.get('/session-user', (req, res) => {
     });
 });
 
-// Batch preference update system
+// Batch preference update system (DECAY-AWARE)
 const preferenceUpdateQueue = new Map();
 let preferenceUpdateTimer = null;
 
@@ -2061,17 +2055,37 @@ function batchUpdatePreferences() {
     
     fs.readFile(preferencesFilePath, 'utf8', (err, data) => {
         let preferencesData = {};
-        if (!err) preferencesData = JSON.parse(data);
+        if (!err) {
+            try {
+                preferencesData = JSON.parse(data);
+            } catch (e) {
+                preferencesData = {};
+            }
+        }
         
         preferenceUpdateQueue.forEach((tags, userId) => {
             if (!preferencesData[userId]) preferencesData[userId] = {};
+            
+            applyDecayAndPrune(preferencesData[userId]);
+            
+            const now = Date.now();
             tags.forEach(tag => {
-                preferencesData[userId][tag] = (preferencesData[userId][tag] || 0) + 1;
+                if (!preferencesData[userId][tag]) {
+                    preferencesData[userId][tag] = { weight: TAG_INCREMENT, lastSeen: now };
+                } else if (typeof preferencesData[userId][tag] === 'number') {
+                    preferencesData[userId][tag] = { 
+                        weight: preferencesData[userId][tag] + TAG_INCREMENT, 
+                        lastSeen: now 
+                    };
+                } else {
+                    preferencesData[userId][tag].weight += TAG_INCREMENT;
+                    preferencesData[userId][tag].lastSeen = now;
+                }
             });
         });
         
-        fs.writeFile(preferencesFilePath, JSON.stringify(preferencesData, null, 2), (err) => {
-            if (err) console.error('Error saving preferences:', err);
+        // Use the mutex queue to prevent EPERM errors
+        safeWritePreferences(preferencesData, () => {
             preferenceUpdateQueue.clear();
         });
     });
@@ -2083,16 +2097,26 @@ app.post('/updatePreferences', (req, res) => {
     if (!userId) return res.status(401).send('User not authenticated');
     
     const videoData = videoCache.get(video);
-    if (!videoData || !videoData.tags) return res.status(404).send('Video tags not found');
+    if (!videoData) return res.status(404).send('Video not found');
 
-    const videoTags = videoData.tags;
+    // Safely get tags and channel, providing empty array if missing
+    const videoTags = videoData.tags || [];
+    const channel = videoData.path ? videoData.path.split('/')[0] : null;
+    
+    const allTags = [...videoTags];
+    if (channel && !allTags.includes(channel)) {
+        allTags.push(channel);
+    }
 
     if (!preferenceUpdateQueue.has(userId)) {
         preferenceUpdateQueue.set(userId, new Set());
     }
     
-    videoTags.forEach(tag => {
-        preferenceUpdateQueue.get(userId).add(tag);
+    allTags.forEach(tag => {
+        const cleanTag = tag.trim();
+        if (cleanTag) {
+            preferenceUpdateQueue.get(userId).add(cleanTag);
+        }
     });
     
     if (preferenceUpdateTimer) clearTimeout(preferenceUpdateTimer);
@@ -2116,20 +2140,22 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
         
         try {
             const preferencesData = JSON.parse(data);
-            const userPreferences = preferencesData[userId] || {};
+            const userPrefs = preferencesData[userId] || {};
 
-            // --- FALLBACK LOGIC: Check if user has preferences ---
-            const hasPreferences = Object.keys(userPreferences).length > 0;
+            applyDecayAndPrune(userPrefs);
+            preferencesData[userId] = userPrefs;
+            safeWritePreferences(preferencesData);
 
-            // If user has NO preferences, return random videos (like guest mode but authenticated)
+            const effectiveWeights = getEffectiveWeights(userPrefs);
+
+            const hasPreferences = Object.keys(effectiveWeights).length > 0;
+
             if (!hasPreferences) {
                 console.log(`User ${userId} has no preferences, returning random videos.`);
                 
-                // Create a shuffled copy of all videos
                 const allVideos = [...videoCache.values()];
                 shuffleArray(allVideos);
 
-                // Paginate the shuffled results
                 const paginatedVideos = allVideos.slice(startIndex, endIndex);
                 const result = getVideoDetails(paginatedVideos);
 
@@ -2142,8 +2168,7 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
                 });
             }
 
-            // --- NORMAL LOGIC: User has preferences ---
-            const sortedTags = Object.entries(userPreferences)
+            const sortedTags = Object.entries(effectiveWeights)
                 .map(([tag, weight]) => ({ tag, weight }))
                 .sort((a, b) => b.weight - a.weight);
             
@@ -2178,14 +2203,14 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
             const resultVideos = [];
             
             if (page === 1) {
-                const topPriorityTag = "Modern Vintage Gamer"; // Example priority tag
+                const topPriorityTag = sortedTags.length > 0 ? sortedTags[0].tag : null;
                 const otherHighPriorityTags = highPriorityTags
                     .map(t => t.tag)
                     .filter(tag => tag !== topPriorityTag);
                 
-                const mvgVideos = videosByTag.get(topPriorityTag) || [];
-                shuffleArray(mvgVideos);
-                resultVideos.push(...mvgVideos.slice(0, 4));
+                const topVideos = videosByTag.get(topPriorityTag) || [];
+                shuffleArray(topVideos);
+                resultVideos.push(...topVideos.slice(0, 4));
                 
                 const otherHighVideos = [];
                 otherHighPriorityTags.forEach(tag => {
@@ -2268,7 +2293,6 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
                 }
             });
 
-            // --- BACKFILL / EMPTY CHECK ---
             if (uniqueVideos.length === 0) {
                 const allVideos = [...videoCache.values()];
                 shuffleArray(allVideos);
@@ -2309,9 +2333,15 @@ app.get('/top-categories', recommendationsLimiter, (req, res) => {
         
         try {
             const preferencesData = JSON.parse(data);
-            const userPreferences = preferencesData[userId] || {};
+            const userPrefs = preferencesData[userId] || {};
             
-            const sortedPreferences = Object.entries(userPreferences)
+            applyDecayAndPrune(userPrefs);
+            preferencesData[userId] = userPrefs;
+            safeWritePreferences(preferencesData);
+            
+            const effectiveWeights = getEffectiveWeights(userPrefs);
+            
+            const sortedPreferences = Object.entries(effectiveWeights)
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 5)
                 .map(entry => entry[0]);
@@ -2350,7 +2380,6 @@ app.get('/channel-playlists/:channel', (req, res) => {
                 }
                 countVideosInPlaylist(itemPath);
                 if (playlistVideos.length > 0) {
-                    // Look up thumbnail from cache instead of doing it on the frontend
                     let thumbnail = null;
                     const cacheKey = `${channel}/${relativePath}`;
                     if (playlistThumbnailCache[cacheKey]) {
@@ -2410,18 +2439,14 @@ app.get('/channel-description/:channel', (req, res) => {
     
     fs.readFile(filePath, 'utf8', (err, data) => {
         if (err) {
-            return res.send(''); // Return empty string if no description exists
+            return res.send('');
         }
         res.send(data);
     });
 });
 
-// ======================================================================
-// USER SEARCH HISTORY SYSTEM (NEW)
-// ======================================================================
 const userSearchHistoryFilePath = path.join(__dirname, 'userSearchHistory.json');
 
-// Ensure file exists
 function ensureUserSearchHistoryFile() {
     if (!fs.existsSync(userSearchHistoryFilePath)) {
         fs.writeFileSync(userSearchHistoryFilePath, JSON.stringify({}));
@@ -2432,7 +2457,6 @@ function ensureUserSearchHistoryFile() {
 }
 ensureUserSearchHistoryFile();
 
-// GET recent search history for logged-in user
 app.get('/user-search-history', (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('Not authenticated');
@@ -2441,7 +2465,6 @@ app.get('/user-search-history', (req, res) => {
         const data = fs.readFileSync(userSearchHistoryFilePath, 'utf8');
         const allHistory = JSON.parse(data);
         
-        // Return the list, defaulting to empty array if none exists
         res.json(allHistory[userId] || []);
     } catch (err) {
         console.error('Error reading search history:', err);
@@ -2449,7 +2472,6 @@ app.get('/user-search-history', (req, res) => {
     }
 });
 
-// POST (Save/Update) a new search query
 app.post('/user-search-history', (req, res) => {
     const { query } = req.body;
     const userId = req.session.userId;
@@ -2461,18 +2483,14 @@ app.post('/user-search-history', (req, res) => {
         const data = fs.readFileSync(userSearchHistoryFilePath, 'utf8');
         const allHistory = JSON.parse(data);
 
-        // Initialize user array if missing
         if (!allHistory[userId]) allHistory[userId] = [];
 
         let userList = allHistory[userId];
 
-        // Remove query if it already exists (to move it to top)
         userList = userList.filter(item => item !== query);
         
-        // Add new query to the beginning
         userList.unshift(query);
         
-        // Keep only the latest 5
         if (userList.length > 5) {
             userList = userList.slice(0, 5);
         }
@@ -2486,7 +2504,6 @@ app.post('/user-search-history', (req, res) => {
         res.status(500).send('Error saving history');
     }
 });
-
 
 app.get('/user-history', (req, res) => {
     const userId = req.session.userId;
@@ -2522,20 +2539,17 @@ app.get('/search-index', (req, res) => {
     res.json({ videos: minimalData });
 });
 
-// --- SHORT LINK API ---
 app.get('/api/shortlink', (req, res) => {
     const video = req.query.video;
-    const playlist = req.query.playlist; // Capture explicitly
+    const playlist = req.query.playlist;
 
     if (!video) return res.status(400).json({ error: 'Missing video parameter' });
 
-    // 1. Get Video Short Code
     const videoCode = shortLinksMap.get(video);
     if (!videoCode) return res.status(404).json({ error: 'Video short link not found' });
 
     let shortPath = `/v/${videoCode}`;
 
-    // 2. Get Playlist Short Code (if provided and valid)
     if (playlist && playlist.trim() !== '') {
         const plCode = getOrCreatePlaylistShortCode(playlist);
         if (plCode) {
@@ -2564,33 +2578,26 @@ app.post('/add-to-history', (req, res) => {
     });
 });
 
-// --- ERROR HANDLING MIDDLEWARE ---
 app.use((err, req, res, next) => {
-    // Log the error for debugging
     console.error('Server error:', err.message || err);
     
-    // Don't try to send a response if headers were already sent
     if (res.headersSent) {
         return;
     }
     
-    // If it's a JSON parse error (corrupted session file)
     if (err instanceof SyntaxError && err.message.includes('JSON')) {
         return res.status(500).send('Session data corrupted. Please refresh.');
     }
     
-    // If it's an EPERM error (file lock conflict from concurrent tabs)
     if (err.code === 'EPERM') {
         return res.status(503).send('Server busy. Please try again.');
     }
     
-    // Default error
     res.status(500).send('Internal server error');
 });
 
-// --- SHARED PLAYLIST ROUTE ---
 app.get('/shared-playlist', (req, res) => {
-    const { id } = req.query; // id = base64 encoded "userId:playlistName"
+    const { id } = req.query;
 
     if (!id) return res.status(400).send('Missing playlist ID');
 
@@ -2600,14 +2607,12 @@ app.get('/shared-playlist', (req, res) => {
 
         if (!userId || !playlistName) return res.status(400).send('Invalid playlist ID');
 
-        // Read playlists file
         const playlistsFilePath = path.join(__dirname, 'user-playlists.json');
         if (!fs.existsSync(playlistsFilePath)) return res.status(404).send('Playlist not found');
 
         const data = fs.readFileSync(playlistsFilePath, 'utf8');
         const allPlaylists = JSON.parse(data);
         
-        // Access specific user's playlist
         const userPlaylists = allPlaylists[userId];
         if (!userPlaylists || !userPlaylists[playlistName]) {
             return res.status(404).send('Playlist not found');
@@ -2615,7 +2620,6 @@ app.get('/shared-playlist', (req, res) => {
 
         const videoPaths = userPlaylists[playlistName];
 
-        // Enrich with video details (similar to /user-playlist-details)
         const validVideos = videoPaths.filter(vPath => videoCache.has(vPath));
         const result = validVideos.map(vPath => {
             const video = videoCache.get(vPath);
