@@ -21,6 +21,7 @@ v4.30
 - Improved createRandomSubcounts.py
   - Fuzzy subcounts are more realistic without changing significant digits anymore
 - Finalized classic video page styling
+- Fixed standard channel video sorting
 
 v4.20
 - New Appearance setting in settings.html

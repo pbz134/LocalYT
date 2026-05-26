@@ -2246,14 +2246,21 @@ function getMimeType(extension) {
 
     function parseEuropeanDate(dateString) {
         if (!dateString || dateString === 'Unknown date') return new Date(0);
-        const parts = dateString.split('.');
+        const parts = dateString.replace(/\r?\n$/, '').trim().split('.');
         if (parts.length === 3) {
             const day = parseInt(parts[0], 10);
             const month = parseInt(parts[1], 10) - 1;
             const year = parseInt(parts[2], 10);
-            return new Date(year, month, day);
+            if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                return new Date(year, month, day);
+            }
         }
-        return new Date(dateString);
+        try {
+            const d = new Date(dateString.trim());
+            return isNaN(d.getTime()) ? new Date(0) : d;
+        } catch(e) {
+            return new Date(0);
+        }
     }
 
     function stripExtension(filename) {
@@ -2838,27 +2845,36 @@ function getMimeType(extension) {
         loadedTabs.add('videos');
         videosContainer.innerHTML = '<div class="loading-spinner visible">' + getLang('Loading videos...', 'Lade Videos...') + '</div>';
 
-        // Fetch BOTH the channel's meta cache AND the global date cache simultaneously
+        // Fetch the channel's meta cache AND the home previews (which contain the true dates)
         Promise.all([
             fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`).then(r => r.ok ? r.json() : {}),
-            fetch(`/video_date_cache.json`).then(r => r.ok ? r.json() : {})
+            fetch(`/channel-home-previews/${encodeURIComponent(channel)}.json`).then(r => r.ok ? r.json() : [])
         ])
-        .then(([metaCache, globalDateCache]) => {
+        .then(([metaCache, previews]) => {
+            // Build a date map from the previews (which have reliably formatted dates)
+            const previewDateMap = {};
+            previews.forEach(p => {
+                if (p.type === 'video') {
+                    previewDateMap[p.path] = p.fileDate ? p.fileDate.replace(/\r?\n$/, '').trim() : '';
+                }
+            });
+
             // Build the video list from the caches
             currentVideos = Object.keys(metaCache).map(path => {
                 const meta = metaCache[path];
                 return {
                     path: path,
                     displayName: meta.displayName || path.split('/').pop(),
-                    // Use the global date cache, fallback to meta cache, then 'Unknown date'
-                    fileDate: globalDateCache[path] || meta.fileDate || 'Unknown date',
+                    // Use the preview dates first, fallback to meta cache, then 'Unknown date'
+                    fileDate: previewDateMap[path] || meta.fileDate || 'Unknown date',
                     viewCount: meta.viewCount || '0',
                     videoLength: meta.videoLength || ''
                 };
             });
 
-            sortVideosArray();
             hasMoreVideos = currentVideos.length > 0;
+            currentSortMode = 'newest';
+            sortVideosArray();
             videosContainer.innerHTML = '';
 
             // Render initial batch
