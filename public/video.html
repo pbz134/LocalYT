@@ -928,11 +928,11 @@
 
         /* View count container for classic mode */
         .view-count-classic {
-            display: none; /* Hidden by default */
+            display: none;
             font-size: 14px;
             color: #aaa;
             font-family: 'RobotoRegular', Arial, sans-serif;
-            order: 0; /* Before like/dislike */
+            order: 0;
             margin-bottom: 4px;
         }
 
@@ -947,7 +947,7 @@
 
         /* --- Search Suggestions Visibility --- */
         .search-suggestions {
-            display: none; /* Hidden by default when input is empty */
+            display: none;
         }
 
         /* Show suggestions only when the search container (input) is focused/active */
@@ -3376,6 +3376,7 @@ function toggleLiveChat() {
 }
 
 // ==============================
+// ==============================
 // Apply Video Page Layout Preference
 // ==============================
 (function applyVideoPageLayout() {
@@ -3501,11 +3502,12 @@ function toggleLiveChat() {
                 padding-bottom: 0;
             }
 
-            /* Divider between Channel Pic area and Save container */
+            /* Divider between Channel Pic area and Action Buttons */
             #classicInfoBoxWrapper #classicActionsWrapper {
                 border-top: 1px solid #3f3f3f;
-                padding-top: 8px;
+                padding-top: 12px; /* Increased padding to accommodate the bar on the border */
                 margin-top: 10px !important;
+                position: relative; /* Context for absolute positioning of like bar */
             }
 
             .channel-info.classic-layout .subscribe-count-wrapper {
@@ -3544,15 +3546,7 @@ function toggleLiveChat() {
                 padding-right: 20px;
             }
 
-            .channel-info.classic-layout #likeDislikeContainer {
-                flex-direction: row;
-                align-items: center;
-                margin-left: 0;
-                order: 3;
-                margin-right: -15px !important;
-            }
-
-            /* Hide the bar container inside the like container since we moved it */
+            /* Hide the original bar container inside the like container since we moved it */
             .channel-info.classic-layout #likeDislikeContainer .like-dislike-bar-container {
                 display: none !important;
             }
@@ -3572,25 +3566,46 @@ function toggleLiveChat() {
                 opacity: 1 !important;
                 visibility: visible !important;
                 margin-right: 0px !important;
-                margin-top: 10px !important;
+                margin-top: 20px !important;
             }
 
-            /* --- LIKE BAR STYLING (Standalone) --- */
+            /* --- LIKE BAR STYLING (On the divider) --- */
             .like-bar-classic-wrapper {
                 display: block !important;
-                order: 1;
+                position: absolute;
+                top: -2px;
+                right: 20px;
                 width: 180px !important;
                 height: 3px !important;
                 background-color: #235cad !important;
                 border-radius: 2px !important;
-                margin-bottom: 4px !important;
                 overflow: hidden;
+                z-index: 2;
+                margin: 0 !important;
             }
             
             .like-bar-classic-wrapper > div {
                 height: 100% !important;
                 background-color: #397ddb !important;
                 border-radius: 2px !important;
+            }
+
+            /* --- LIKE/DISLIKE ICONS (Below the divider, aligned right under bar) --- */
+            .channel-info.classic-layout #likeDislikeContainer {
+                flex-direction: row;
+                align-items: center;
+                margin-left: auto !important;
+                margin-right: 20px !important;
+                margin-top: 4px !important;
+                order: initial;
+            }
+
+            /* --- SHARE & SAVE CONTAINERS (Left side of divider) --- */
+            .channel-info.classic-layout #shareContainer,
+            .channel-info.classic-layout #saveContainer {
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+                order: -1 !important; /* Force to the left side of the flex container */
             }
 
             .channel-info.classic-layout .channel-name:hover {
@@ -3677,8 +3692,8 @@ function toggleLiveChat() {
         actionsWrapper.id = 'classicActionsWrapper';
         const shareContainer = document.getElementById('shareContainer');
         const saveContainer = document.getElementById('saveContainer');
-        const channelLeft = document.querySelector('.channel-left');
 
+        // Add Share/Save first so they appear on the left in the flex container
         if (saveContainer) actionsWrapper.appendChild(saveContainer);
         if (shareContainer) actionsWrapper.appendChild(shareContainer);
 
@@ -3738,17 +3753,17 @@ function toggleLiveChat() {
         if (descEl) descObserver.observe(descEl, { childList: true, characterData: true, subtree: true });
 
         // =============================================
-        // MOVE LIKE BAR TO RIGHT SIDE (Between Count & Buttons)
+        // MOVE LIKE BAR TO DIVIDER & ICONS BELOW IT
         // =============================================
         
         // 1. Get the bar elements
         const likeBar = document.getElementById('likeBar'); // The inner blue bar
         const barContainer = likeBar ? likeBar.parentElement : null; // The grey background container (.like-dislike-bar-container)
-        const channelRight = document.querySelector('.channel-right');
         const likeDislikeContainer = document.getElementById('likeDislikeContainer');
+        const classicActionsWrapper = document.getElementById('classicActionsWrapper'); // The divider container
 
         // 2. Check if we haven't moved it yet (avoid duplicates on re-runs)
-        if (likeBar && barContainer && channelRight && !document.getElementById('likeBarClassicWrapper')) {
+        if (likeBar && barContainer && classicActionsWrapper && !document.getElementById('likeBarClassicWrapper')) {
             
             // Create a new wrapper for styling purposes
             const classicBarWrapper = document.createElement('div');
@@ -3756,21 +3771,18 @@ function toggleLiveChat() {
             classicBarWrapper.className = 'like-bar-classic-wrapper';
 
             // Move the INNER bar into our new wrapper
-            // We move the inner bar because that's where the dynamic width (%) is applied by your JS
             classicBarWrapper.appendChild(likeBar);
 
-            // Insert this new wrapper into .channel-right
-            // We want it specifically AFTER the view count but BEFORE the like/dislike container
-            if (vcEl && vcEl.nextSibling) {
-                // If view count exists and has a next sibling, insert before that sibling
-                channelRight.insertBefore(classicBarWrapper, vcEl.nextSibling);
-            } else if (likeDislikeContainer) {
-                // Fallback: Insert before the button container
-                channelRight.insertBefore(classicBarWrapper, likeDislikeContainer);
-            } else {
-                // Last resort: just append
-                channelRight.appendChild(classicBarWrapper);
-            }
+            // Insert this new wrapper INTO the actions wrapper at the beginning
+            // This places it absolutely positioned on the border-top of the actions wrapper
+            classicActionsWrapper.prepend(classicBarWrapper);
+        }
+
+        // 3. Move the Like/Dislike Icons BELOW the divider (into the actions wrapper, after share/save)
+        if (likeDislikeContainer && classicActionsWrapper && !likeDislikeContainer.dataset.movedToActions) {
+            likeDislikeContainer.dataset.movedToActions = "true";
+            // Append after share/save containers (which are at the start due to prepend/order:-1 logic)
+            classicActionsWrapper.appendChild(likeDislikeContainer);
         }
 
     } else {
@@ -3841,6 +3853,14 @@ function toggleLiveChat() {
             classicWrapper.remove();
         }
         // ---------------------------------------------
+
+        // Restore Like/Dislike Container to channelRight if moved
+        const ldc = document.getElementById('likeDislikeContainer');
+        if (ldc && ldc.dataset.movedToActions) {
+            delete ldc.dataset.movedToActions;
+            const channelRight = document.querySelector('.channel-right');
+            if (channelRight) channelRight.appendChild(ldc);
+        }
 
         // Remove View Count element
         const vc = document.getElementById('viewCountClassic');
