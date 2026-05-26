@@ -86,3 +86,4 @@ What if I only have the video files and no metadata?
 ## TO DO
 - Work on the documentation in the user modal
 - Finish implementing Light Mode
+- Make background boxes optional on all pages
