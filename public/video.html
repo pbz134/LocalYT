@@ -3400,6 +3400,18 @@ function toggleLiveChat() {
     if (layout === 'classic' && channelInfo) {
         channelInfo.classList.add('classic-layout');
         
+        // --- WRAP ELEMENTS IN CLASSIC INFO BOX ---
+        const videoTitle = document.getElementById('currentVideoTitle');
+        const infoBoxWrapper = document.createElement('div');
+        infoBoxWrapper.id = 'classicInfoBoxWrapper';
+        
+        // Insert the wrapper before the title
+        videoTitle.parentNode.insertBefore(infoBoxWrapper, videoTitle);
+        
+        // Move the title and channel info into the wrapper
+        infoBoxWrapper.appendChild(videoTitle);
+        infoBoxWrapper.appendChild(channelInfo);
+
         // --- MOVE SUBSCRIBE BUTTON AND SUB COUNT INTO WRAPPER ---
         const subscribeBtn = document.getElementById('subscribeButton');
         const subCount = document.getElementById('subCount');
@@ -3466,6 +3478,36 @@ function toggleLiveChat() {
                 height: 50px !important;
             }
 
+            /* --- Classic Info Box Wrapper --- */
+            #classicInfoBoxWrapper {
+                background-color: #282828;
+                padding: 10px 15px 5px 15px;
+                margin-top: 10px;
+                border: 1px solid #3f3f3f;
+            }
+
+            #classicInfoBoxWrapper .current-video-title {
+                margin-top: 0;
+                padding-bottom: 0; /* Removed bottom padding */
+                border-bottom: none; /* Removed border */
+                margin-bottom: 10px;
+            }
+
+            #classicInfoBoxWrapper .channel-info.classic-layout {
+                margin-top: 0;
+            }
+
+            #classicInfoBoxWrapper .channel-left {
+                padding-bottom: 0;
+            }
+
+            /* Divider between Channel Pic area and Save container */
+            #classicInfoBoxWrapper #classicActionsWrapper {
+                border-top: 1px solid #3f3f3f;
+                padding-top: 8px;
+                margin-top: 10px !important;
+            }
+
             .channel-info.classic-layout .subscribe-count-wrapper {
                 height: 26px;
                 overflow: visible;
@@ -3486,8 +3528,13 @@ function toggleLiveChat() {
                 flex: 1 1 100% !important; 
                 display: flex !important; 
                 gap: 20px !important; 
-                margin-top: 12px !important; 
                 margin-left: 0 !important;
+                margin-right: 0 !important; 
+                padding-left: 0 !important; 
+                padding-right: 0 !important; 
+                box-sizing: border-box !important; 
+                align-items: center !important;
+                order: 99 !important; /* Force it to the bottom of the flex container */
             }
 
             .channel-info.classic-layout .channel-right {
@@ -3592,8 +3639,24 @@ function toggleLiveChat() {
             }
 
             .channel-info.classic-layout .subscribe-button.subscribed + .sub-count {
-                border-color: darkgray; /* Grey outline when subscribed */
+                border-color: darkgray;
                 color: #888;
+            }
+
+            /* --- Description Toggle Styling for Classic Layout --- */
+            .classic-layout-active .video-description,
+            body[data-video-layout="classic"] .video-description {
+                margin-bottom: 0;
+            }
+
+            .classic-layout-active .description-toggle,
+            body[data-video-layout="classic"] .description-toggle {
+                text-align: center;
+                text-transform: uppercase;
+                background-color: #282828;
+                margin-top: 0;
+                padding: 10px 15px;
+                border-top: 1px solid #555;
             }
         `;
 
@@ -3619,7 +3682,8 @@ function toggleLiveChat() {
         if (saveContainer) actionsWrapper.appendChild(saveContainer);
         if (shareContainer) actionsWrapper.appendChild(shareContainer);
 
-        if (channelLeft) channelLeft.appendChild(actionsWrapper);
+        // Append to channelInfo instead of channelLeft to allow full-width divider
+        if (channelInfo) channelInfo.appendChild(actionsWrapper);
 
         // --- OBSERVE SAVE ICON CHANGES ---
         const saveIconTarget = document.getElementById('saveIcon');
@@ -3715,6 +3779,19 @@ function toggleLiveChat() {
         if (channelInfo) channelInfo.classList.remove('classic-layout');
         document.body.classList.remove('classic-layout-active');
         document.body.removeAttribute('data-video-layout');
+
+        // --- REMOVE CLASSIC INFO BOX WRAPPER ---
+        const infoBoxWrapper = document.getElementById('classicInfoBoxWrapper');
+        if (infoBoxWrapper) {
+            const videoTitle = document.getElementById('currentVideoTitle');
+            const parent = infoBoxWrapper.parentNode;
+            
+            // Move elements back out before removing the wrapper
+            if (videoTitle) parent.insertBefore(videoTitle, infoBoxWrapper);
+            parent.insertBefore(channelInfo, infoBoxWrapper);
+            
+            infoBoxWrapper.remove();
+        }
 
         // Restore Icons
         const likeBtn = document.getElementById('likeButton');

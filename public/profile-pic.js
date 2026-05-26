@@ -287,6 +287,34 @@
                 color: #666666 !important;
             }
 
+            /* Classic Layout Info Box Light Mode */
+            #classicInfoBoxWrapper {
+                background-color: #ffffff !important;
+                border-color: #e0e0e0 !important;
+            }
+
+            #classicInfoBoxWrapper #classicActionsWrapper {
+                border-top-color: #e0e0e0 !important;
+            }
+
+            .channel-name,
+            .classic-channel-name-text {
+                color: #000000 !important;
+            }
+
+            /* Classic Layout Description Box & Toggle Light Mode */
+            body[data-video-layout="classic"] .video-description,
+            .classic-layout-active .video-description {
+                background-color: #ffffff !important;
+            }
+
+            body[data-video-layout="classic"] .description-toggle,
+            .classic-layout-active .description-toggle {
+                background-color: #ffffff !important;
+                border-top-color: #e0e0e0 !important;
+                color: #333333 !important;
+            }
+
             .channel-name,
             .classic-channel-name-text {
                 color: #000000 !important;

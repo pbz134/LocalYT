@@ -20,6 +20,7 @@ v4.30
 - Fixed Autoplay being always active on video.html
 - Improved createRandomSubcounts.py
   - Fuzzy subcounts are more realistic without changing significant digits anymore
+- Finalized classic video page styling
 
 v4.20
 - New Appearance setting in settings.html
