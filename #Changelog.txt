@@ -1,5 +1,8 @@
 +++LocalYT Revamped - Changelog+++
 
+v4.35
+- Changed the homepage videos from 12 to 15 to fill the grid more evenly
+
 v4.30
 - New LYT custom video player
   - You can now choose between the new lightweight LYT player and Fluid Player

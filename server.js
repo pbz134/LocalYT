@@ -198,6 +198,7 @@ app.use('/playlist-descriptions', express.static(path.join(__dirname, 'playlist-
 app.use('/favicon.png', express.static(path.join(__dirname, 'favicon.png')));
 app.use('/playlist_cache.json', express.static(path.join(__dirname, 'playlist_cache.json')));
 app.use('/video_date_cache.json', express.static(path.join(__dirname, 'video_date_cache.json')));
+app.use('/videoresolutions', express.static(path.join(__dirname, 'videoresolutions')));
 
 // --- DISCORD EMBED ROUTE ---
 app.get('/video.html', (req, res) => {
@@ -2268,19 +2269,12 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
                 }
             });
 
-            // --- BACKFILL / EMPTY CHECK ---
-            if (uniqueVideos.length === 0) {
+            // --- BACKFILL ---
+            if (uniqueVideos.length < limit) {
                 const allVideos = [...videoCache.values()];
                 shuffleArray(allVideos);
-                const paginatedVideos = allVideos.slice(startIndex, endIndex);
-                const result = getVideoDetails(paginatedVideos);
-                return res.json({
-                    videos: result,
-                    page: page,
-                    limit: limit,
-                    total: videoArray.length,
-                    hasMore: endIndex < videoArray.length
-                });
+                const backfill = allVideos.filter(v => !seen.has(v.path));
+                uniqueVideos.push(...backfill.slice(0, limit - uniqueVideos.length));
             }
 
             const result = getVideoDetails(uniqueVideos);
@@ -2289,8 +2283,8 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
                 videos: result,
                 page: page,
                 limit: limit,
-                total: videoMap.size,
-                hasMore: endIndex < videoMap.size
+                total: videoArray.length,
+                hasMore: endIndex < videoArray.length
             });
             
         } catch (err) {
