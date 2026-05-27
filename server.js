@@ -1328,6 +1328,92 @@ app.post('/save-preferences', (req, res) => {
     }
 });
 
+// GET TOP 25 TAGS (for first-time preference setup)
+app.get('/api/top-tags', (req, res) => {
+    const tagCounts = {};
+
+    videoArray.forEach(video => {
+        if (video.tags && video.tags.length > 0) {
+            video.tags.forEach(tag => {
+                const cleanTag = tag.trim();
+                if (cleanTag && cleanTag.toLowerCase() !== 'uncategorized') {
+                    tagCounts[cleanTag] = (tagCounts[cleanTag] || 0) + 1;
+                }
+            });
+        }
+    });
+
+    const topTags = Object.entries(tagCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 25)
+        .map(([tag]) => tag);
+
+    res.json(topTags);
+});
+
+// GET SIMILAR TAGS (co-occurrence based — no LLM needed)
+app.post('/api/similar-tags', (req, res) => {
+    const { selectedTags } = req.body;
+    if (!selectedTags || !Array.isArray(selectedTags)) {
+        return res.status(400).json({ error: 'Invalid tags' });
+    }
+
+    const tagCoOccurrence = {};
+    const excludeTags = new Set(selectedTags.map(t => t.trim()));
+
+    selectedTags.forEach(tag => {
+        const cleanTag = tag.trim();
+        const videoPaths = recommendationIndex[cleanTag] || [];
+        videoPaths.forEach(vPath => {
+            const video = videoCache.get(vPath);
+            if (video && video.tags) {
+                video.tags.forEach(vTag => {
+                    const ct = vTag.trim();
+                    if (ct && !excludeTags.has(ct) && ct.toLowerCase() !== 'uncategorized') {
+                        tagCoOccurrence[ct] = (tagCoOccurrence[ct] || 0) + 1;
+                    }
+                });
+            }
+        });
+    });
+
+    const similarTags = Object.entries(tagCoOccurrence)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 25)
+        .map(([tag]) => tag);
+
+    res.json(similarTags);
+});
+
+// SAVE INITIAL PREFERENCES (first-time setup)
+app.post('/api/save-initial-preferences', (req, res) => {
+    const { tags } = req.body;
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+    if (!tags || !Array.isArray(tags)) return res.status(400).send('Invalid tags');
+
+    try {
+        const data = fs.readFileSync(preferencesFilePath, 'utf8');
+        const allPrefs = JSON.parse(data);
+
+        if (!allPrefs[userId]) allPrefs[userId] = {};
+
+        tags.forEach(tag => {
+            allPrefs[userId][tag] = (allPrefs[userId][tag] || 0) + 100;
+        });
+
+        if (preferenceUpdateQueue.has(userId)) {
+            preferenceUpdateQueue.delete(userId);
+        }
+
+        fs.writeFileSync(preferencesFilePath, JSON.stringify(allPrefs, null, 2));
+        res.sendStatus(200);
+    } catch (err) {
+        console.error('Error saving initial preferences:', err);
+        res.status(500).send('Error saving preferences');
+    }
+});
+
 app.get('/videos', (req, res) => {
     const shuffled = [...videoArray];
     shuffleArray(shuffled);
@@ -1982,7 +2068,15 @@ app.post('/login', (req, res) => {
         // Successful login - reset attempts for this IP
         resetLoginAttempts(clientIp);
         req.session.userId = user.id;
-        res.sendStatus(200);
+
+        // Check if user has preferences for first-time setup
+        let hasPreferences = false;
+        try {
+            const prefData = JSON.parse(fs.readFileSync(preferencesFilePath, 'utf8'));
+            hasPreferences = Object.keys(prefData[user.id] || {}).length > 0;
+        } catch (e) {}
+
+        res.json({ success: true, hasPreferences });
     });
 });
 

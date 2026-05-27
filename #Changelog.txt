@@ -3,7 +3,9 @@
 v4.35
 - Changed the homepage videos from 12 to 15 to fill the grid more evenly
 - Unified register.html and login.html styling
-
+- Enhanced login page
+  - First-time users can choose from a variety of tags to customize their initial experience
+ 
 v4.30
 - New LYT custom video player
   - You can now choose between the new lightweight LYT player and Fluid Player

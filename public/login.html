@@ -21,6 +21,7 @@
             width: 200px;
             height: 24px;
             margin-bottom: 20px;
+            transition: opacity 0.4s ease, transform 0.4s ease;
         }
 
         .login-container {
@@ -29,6 +30,7 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             min-width: 300px;
+            transition: opacity 0.4s ease, transform 0.4s ease;
         }
 
         .login-container h2 {
@@ -121,131 +123,477 @@
         .status-message.red {
             color: #ff4444;
         }
+
+        /* ===== PREFERENCE SELECTION ===== */
+
+        .pref-section {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 540px;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+
+        .pref-section.visible {
+            display: flex;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .pref-title {
+            font-size: 21px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 4px;
+            color: #fff;
+            line-height: 1.35;
+        }
+
+        .pref-subtitle {
+            font-size: 14px;
+            color: #777;
+            text-align: center;
+            margin-bottom: 26px;
+        }
+
+        .pref-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px;
+            justify-content: center;
+            margin-bottom: 28px;
+            min-height: 48px;
+            width: 100%;
+        }
+
+        .pref-tag {
+            padding: 8px 17px;
+            border-radius: 8px;
+            background: #252525;
+            border: 1.5px solid #363636;
+            color: #bbb;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            white-space: nowrap;
+            opacity: 0;
+            animation: fadeInUp 0.3s ease forwards;
+        }
+
+        .pref-tag:hover {
+            background: #303030;
+            border-color: #4a4a4a;
+            color: #eee;
+        }
+
+        .pref-tag.selected {
+            background: #ff0000;
+            border-color: #ff0000;
+            color: #fff;
+            box-shadow: 0 0 12px rgba(255, 0, 0, 0.25);
+        }
+
+        .pref-tag.max-reached {
+            opacity: 0.3;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .pref-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            gap: 16px;
+        }
+
+        .pref-counter {
+            font-size: 13px;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        .pref-btn {
+            flex: 1;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            background-color: #ff0000;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            letter-spacing: 0.3px;
+            width: auto;
+        }
+
+        .pref-btn:hover:not(:disabled) {
+            background-color: #cc0000;
+        }
+
+        .pref-btn:disabled {
+            background-color: #2a2a2a;
+            color: #555;
+            cursor: not-allowed;
+        }
+
+        .pref-skip {
+            display: block;
+            text-align: center;
+            margin-top: 16px;
+            color: #555;
+            font-size: 13px;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .pref-skip:hover {
+            color: #999;
+        }
+
+        .pref-loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            color: #555;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        .pref-loading .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #2a2a2a;
+            border-top: 2px solid #ff0000;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .pref-empty {
+            color: #555;
+            font-size: 13px;
+            text-align: center;
+            padding: 16px;
+        }
+
+        .fade-out {
+            opacity: 0 !important;
+            transform: translateY(-8px) !important;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="login-page">
-    <img src="LocalYT-Rev-Files/logo.svg" alt="Logo" class="logo">
-    <div class="login-container">
-        <h2>Login</h2>
-        <form id="loginForm">
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" required>
+    <img src="LocalYT-Rev-Files/logo.svg" alt="Logo" class="logo" id="logo">
+
+    <!-- ===== LOGIN FORM ===== -->
+    <div id="loginSection">
+        <div class="login-container">
+            <h2>Login</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" id="loginButton">Login</button>
+            </form>
+            <div class="user-actions" id="userActions">
+                <a href="register.html">Don't have an account? Register</a>
             </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            <button type="submit" id="loginButton">Login</button>
-        </form>
-        <div class="user-actions" id="userActions">
-            <a href="register.html">Don't have an account? Register</a>
         </div>
     </div>
+
+    <!-- ===== PREFERENCE SELECTION ===== -->
+    <div id="prefSection" class="pref-section">
+
+        <!-- Phase 1 — Top Tags -->
+        <div id="prefPhase1">
+            <h2 class="pref-title">Which type of videos do you like most?</h2>
+            <p class="pref-subtitle">Select up to 5</p>
+            <div class="pref-grid" id="topTagsGrid">
+                <div class="pref-loading">
+                    <div class="spinner"></div>
+                    Loading tags…
+                </div>
+            </div>
+            <div class="pref-footer">
+                <span class="pref-counter" id="prefCounter">0 / 5 selected</span>
+                <button class="pref-btn" id="prefOkBtn" disabled>OK</button>
+            </div>
+            <a href="#" class="pref-skip" id="prefSkip1">Skip for now</a>
+        </div>
+
+        <!-- Phase 2 — Similar Tags -->
+        <div id="prefPhase2" style="display:none;">
+            <h2 class="pref-title">Are there any specific preferences?</h2>
+            <p class="pref-subtitle">Select any that interest you</p>
+            <div class="pref-grid" id="similarTagsGrid">
+                <div class="pref-loading">
+                    <div class="spinner"></div>
+                    Finding recommendations…
+                </div>
+            </div>
+            <div class="pref-footer">
+                <span></span>
+                <button class="pref-btn" id="prefDoneBtn">Done</button>
+            </div>
+            <a href="#" class="pref-skip" id="prefSkip2">Skip for now</a>
+        </div>
+    </div>
+
     <div id="statusMessage" class="status-message"></div>
+
     <script>
-        const loginForm = document.getElementById('loginForm');
-        const loginButton = document.getElementById('loginButton');
-        const usernameInput = document.getElementById('username');
-        const passwordInput = document.getElementById('password');
-        const statusMessage = document.getElementById('statusMessage');
+        // ===== DOM REFERENCES =====
+        const loginForm      = document.getElementById('loginForm');
+        const loginButton    = document.getElementById('loginButton');
+        const usernameInput  = document.getElementById('username');
+        const passwordInput  = document.getElementById('password');
+        const statusMessage  = document.getElementById('statusMessage');
+        const loginSection   = document.getElementById('loginSection');
+        const prefSection    = document.getElementById('prefSection');
 
-        let refreshTimer = null;
+        let refreshTimer      = null;
+        let selectedPhase1    = [];
+        let selectedPhase2    = [];
 
+        // ===== BRUTE-FORCE PROTECTION (unchanged) =====
         function formatTime(ms) {
-            const totalSeconds = Math.ceil(ms / 1000);
-            const minutes = Math.floor(totalSeconds / 60);
-            const seconds = totalSeconds % 60;
-            if (minutes > 0) {
-                return `${minutes} minute(s) and ${seconds} second(s)`;
-            }
-            return `${seconds} second(s)`;
+            const s = Math.ceil(ms / 1000);
+            const m = Math.floor(s / 60);
+            const sec = s % 60;
+            return m > 0 ? `${m} minute(s) and ${sec} second(s)` : `${sec} second(s)`;
         }
-
         function showTempBlock(remainingTime) {
-            loginButton.disabled = true;
-            usernameInput.disabled = true;
-            passwordInput.disabled = true;
+            loginButton.disabled = usernameInput.disabled = passwordInput.disabled = true;
             statusMessage.className = 'status-message yellow';
             statusMessage.style.display = 'block';
             statusMessage.textContent = `Too many failed login attempts. Please try again in ${formatTime(remainingTime)}.`;
-
             if (refreshTimer) clearTimeout(refreshTimer);
-            refreshTimer = setTimeout(() => {
-                window.location.reload();
-            }, remainingTime + 1000);
+            refreshTimer = setTimeout(() => window.location.reload(), remainingTime + 1000);
         }
-
         function showPermBlock() {
-            loginButton.disabled = true;
-            usernameInput.disabled = true;
-            passwordInput.disabled = true;
+            loginButton.disabled = usernameInput.disabled = passwordInput.disabled = true;
             statusMessage.className = 'status-message red';
             statusMessage.style.display = 'block';
             statusMessage.innerHTML = 'You have been permanently blocked for trying to log in too many times.<br>Contact your LocalYT administrator for support.';
         }
+        fetch('/login-status').then(r => r.json()).then(d => {
+            if (d.blocked) d.permanent ? showPermBlock() : showTempBlock(d.remainingTime);
+        }).catch(() => {});
 
-        // Check if IP is blocked on page load
-        fetch('/login-status')
-            .then(response => response.json())
-            .then(data => {
-                if (data.blocked) {
-                    if (data.permanent) {
-                        showPermBlock();
-                    } else {
-                        showTempBlock(data.remainingTime);
-                    }
-                }
-            })
-            .catch(() => {});
-
-        loginForm.addEventListener('submit', function(event) {
-            event.preventDefault();
-
+        // ===== LOGIN HANDLER (modified) =====
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
             const username = usernameInput.value;
             const password = passwordInput.value;
 
             loginButton.disabled = true;
-            loginButton.textContent = 'Logging in...';
+            loginButton.textContent = 'Logging in…';
 
             fetch('/login', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
             })
-            .then(response => {
-                if (response.ok) {
+            .then(r => r.json().then(data => ({ ok: r.ok, data })))
+            .then(({ ok, data }) => {
+                if (!ok) {
+                    if (data.permanent)  { showPermBlock(); return; }
+                    if (data.blocked)    { showTempBlock(data.remainingTime); return; }
+                    loginButton.disabled = false;
+                    loginButton.textContent = 'Login';
+                    alert(data.error || 'Invalid username or password');
+                    return;
+                }
+                // Success
+                if (data.hasPreferences) {
                     window.location.href = 'index.html';
-                    return null;
+                } else {
+                    transitionToPreferences();
                 }
-                return response.json();
             })
-            .then(data => {
-                if (!data) return;
-
-                if (data.permanent) {
-                    showPermBlock();
-                    return;
-                }
-
-                if (data.blocked) {
-                    showTempBlock(data.remainingTime);
-                    return;
-                }
-
-                loginButton.disabled = false;
-                loginButton.textContent = 'Login';
-                alert(data.error || 'Invalid username or password');
-            })
-            .catch(error => {
-                console.error('Error:', error);
+            .catch(() => {
                 loginButton.disabled = false;
                 loginButton.textContent = 'Login';
                 alert('An error occurred. Please try again.');
             });
         });
+
+        // ===== TRANSITION TO PREFERENCE SELECTION =====
+        function transitionToPreferences() {
+            loginSection.classList.add('fade-out');
+            loginSection.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            statusMessage.style.display = 'none';
+
+            setTimeout(() => {
+                loginSection.style.display = 'none';
+                prefSection.classList.add('visible');
+                loadTopTags();
+            }, 420);
+        }
+
+        // ===== PHASE 1 — TOP TAGS =====
+        async function loadTopTags() {
+            try {
+                const tags = await (await fetch('/api/top-tags')).json();
+                const grid = document.getElementById('topTagsGrid');
+                grid.innerHTML = '';
+
+                if (!tags.length) {
+                    grid.innerHTML = '<div class="pref-empty">No tags available yet. You can set preferences later in Settings.</div>';
+                    document.getElementById('prefOkBtn').style.display = 'none';
+                    document.getElementById('prefCounter').style.display = 'none';
+                    return;
+                }
+
+                tags.forEach((tag, i) => {
+                    const el = document.createElement('div');
+                    el.className = 'pref-tag';
+                    el.textContent = tag;
+                    el.style.animationDelay = `${i * 28}ms`;
+                    el.addEventListener('click', () => togglePhase1(el, tag));
+                    grid.appendChild(el);
+                });
+            } catch (err) {
+                document.getElementById('topTagsGrid').innerHTML =
+                    '<div class="pref-empty">Failed to load tags. You can set preferences later.</div>';
+            }
+        }
+
+        function togglePhase1(el, tag) {
+            if (el.classList.contains('selected')) {
+                el.classList.remove('selected');
+                selectedPhase1 = selectedPhase1.filter(t => t !== tag);
+            } else {
+                if (selectedPhase1.length >= 5) return;
+                el.classList.add('selected');
+                selectedPhase1.push(tag);
+            }
+            refreshPhase1UI();
+        }
+
+        function refreshPhase1UI() {
+            document.getElementById('prefCounter').textContent = `${selectedPhase1.length} / 5 selected`;
+            document.getElementById('prefOkBtn').disabled = selectedPhase1.length === 0;
+
+            document.querySelectorAll('#topTagsGrid .pref-tag').forEach(el => {
+                if (!el.classList.contains('selected') && selectedPhase1.length >= 5) {
+                    el.classList.add('max-reached');
+                } else {
+                    el.classList.remove('max-reached');
+                }
+            });
+        }
+
+        document.getElementById('prefOkBtn').addEventListener('click', () => {
+            if (selectedPhase1.length) showPhase2();
+        });
+
+        document.getElementById('prefSkip1').addEventListener('click', e => {
+            e.preventDefault();
+            saveAndRedirect([]);
+        });
+
+        // ===== PHASE 2 — SIMILAR TAGS =====
+        async function showPhase2() {
+            const phase1 = document.getElementById('prefPhase1');
+            phase1.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            phase1.style.opacity = '0';
+            phase1.style.transform = 'translateY(-8px)';
+
+            setTimeout(() => {
+                phase1.style.display = 'none';
+                const phase2 = document.getElementById('prefPhase2');
+                phase2.style.display = 'block';
+                phase2.style.animation = 'fadeInUp 0.4s ease';
+                loadSimilarTags();
+            }, 320);
+        }
+
+        async function loadSimilarTags() {
+            try {
+                const tags = await (await fetch('/api/similar-tags', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ selectedTags: selectedPhase1 })
+                })).json();
+
+                const grid = document.getElementById('similarTagsGrid');
+                grid.innerHTML = '';
+
+                if (!tags.length) {
+                    grid.innerHTML = '<div class="pref-empty">No specific recommendations found. Click Done to continue.</div>';
+                    return;
+                }
+
+                tags.forEach((tag, i) => {
+                    const el = document.createElement('div');
+                    el.className = 'pref-tag';
+                    el.textContent = tag;
+                    el.style.animationDelay = `${i * 28}ms`;
+                    el.addEventListener('click', () => togglePhase2(el, tag));
+                    grid.appendChild(el);
+                });
+            } catch (err) {
+                document.getElementById('similarTagsGrid').innerHTML =
+                    '<div class="pref-empty">Failed to load recommendations. Click Done to continue.</div>';
+            }
+        }
+
+        function togglePhase2(el, tag) {
+            el.classList.toggle('selected');
+            if (el.classList.contains('selected')) {
+                selectedPhase2.push(tag);
+            } else {
+                selectedPhase2 = selectedPhase2.filter(t => t !== tag);
+            }
+        }
+
+        document.getElementById('prefDoneBtn').addEventListener('click', () => {
+            saveAndRedirect([...selectedPhase1, ...selectedPhase2]);
+        });
+
+        document.getElementById('prefSkip2').addEventListener('click', e => {
+            e.preventDefault();
+            saveAndRedirect(selectedPhase1);
+        });
+
+        // ===== SAVE & REDIRECT =====
+        async function saveAndRedirect(tags) {
+            if (tags.length) {
+                try {
+                    await fetch('/api/save-initial-preferences', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tags })
+                    });
+                } catch (err) {
+                    console.error('Error saving preferences:', err);
+                }
+            }
+            window.location.href = 'index.html';
+        }
     </script>
 </body>
 </html>
