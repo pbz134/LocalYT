@@ -13,13 +13,13 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: #0f0f0f;
+            background: var(--main-bg-color);
             color: #fff;
         }
 
         .logo {
-            width: 175px;
-            height: 20px;
+            width: 200px;
+            height: 24px;
             margin-bottom: 20px;
         }
 
@@ -28,6 +28,7 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            min-width: 300px;
         }
 
         .register-container h2 {
@@ -47,7 +48,7 @@
         }
 
         .form-group input {
-            width: 90%; /* Adjusted width */
+            width: 90%;
             padding: 10px;
             font-size: 16px;
             border: 2px solid #444;
@@ -62,6 +63,11 @@
             outline: none;
         }
 
+        .form-group input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         button {
             width: 100%;
             padding: 10px;
@@ -74,13 +80,19 @@
             transition: background-color 0.3s ease;
         }
 
-        button:hover {
+        button:hover:not(:disabled) {
             background-color: #cc0000;
+        }
+
+        button:disabled {
+            background-color: #444;
+            cursor: not-allowed;
         }
 
         .user-actions {
             display: flex;
             gap: 10px;
+            margin-top: 15px;
         }
 
         .user-actions a {
@@ -95,7 +107,7 @@
     </style>
 </head>
 <body class="register-page">
-    <img src="LocalYT-Rev-Files/logo.png" alt="Logo" class="logo">
+    <img src="LocalYT-Rev-Files/logo.svg" alt="Logo" class="logo">
     <div class="register-container">
         <h2>Register</h2>
         <form id="registerForm">

@@ -2,6 +2,7 @@
 
 v4.35
 - Changed the homepage videos from 12 to 15 to fill the grid more evenly
+- Unified register.html and login.html styling
 
 v4.30
 - New LYT custom video player
