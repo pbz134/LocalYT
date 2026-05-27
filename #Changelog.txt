@@ -6,6 +6,7 @@ v4.35
 - Enhanced login page
   - First-time users can choose from a variety of tags to customize their initial experience
 - User playlists now display the manager on the right side of video.html
+- Made createFiledates.py skip already-existing filedate .TXTs to save time
 
 v4.30
 - New LYT custom video player
