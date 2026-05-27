@@ -1763,6 +1763,45 @@ app.get('/user-playlist-details', (req, res) => {
     });
 });
 
+app.get('/user-playlist-videos', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('User not authenticated');
+    const playlistName = req.query.name;
+    if (!playlistName) return res.status(400).send('Playlist name is required');
+    
+    const playlistsFilePath = path.join(__dirname, 'user-playlists.json');
+    fs.readFile(playlistsFilePath, 'utf8', (err, data) => {
+        let allPlaylists = {};
+        if (!err) {
+            try { allPlaylists = JSON.parse(data); } catch (e) {}
+        }
+        const userPlaylists = allPlaylists[userId] || {};
+        const videos = userPlaylists[playlistName];
+        if (!videos) return res.status(404).send('Playlist not found');
+        
+        // Preserve original order (oldest to newest) instead of using getVideoDetails 
+        // which relies on videoCache Map and loses array order
+        const result = videos.map(vPath => {
+            const video = videoCache.get(vPath);
+            if (!video) return null;
+            
+            let viewCount = '0';
+            const viewCountPath = path.join(__dirname, 'viewcounts', `${video.basePath}.txt`);
+            try { if (fs.existsSync(viewCountPath)) viewCount = fs.readFileSync(viewCountPath, 'utf8'); } catch (e) {}
+
+            return {
+                path: video.path,
+                viewCount: viewCount,
+                fileDate: video.fileDate || '',
+                displayName: video.displayName || video.path,
+                tags: video.tags || []
+            };
+        }).filter(Boolean);
+        
+        res.json(result);
+    });
+});
+
 app.post('/create-playlist', (req, res) => {
     const { name } = req.body;
     const userId = req.session.userId;

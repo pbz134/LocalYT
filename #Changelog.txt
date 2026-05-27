@@ -5,7 +5,8 @@ v4.35
 - Unified register.html and login.html styling
 - Enhanced login page
   - First-time users can choose from a variety of tags to customize their initial experience
- 
+- User playlists now display the manager on the right side of video.html
+
 v4.30
 - New LYT custom video player
   - You can now choose between the new lightweight LYT player and Fluid Player

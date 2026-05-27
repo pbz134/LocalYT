@@ -693,7 +693,7 @@ async function loadPlaylists() {
                     const thumbSrc = '/thumbnails/' + encodeURIComponent(vBase) + '.jpg';
                     const channel = video.path.split('/')[0];
                     const chPicSrc = '/channelpic/' + encodeURIComponent(channel) + '.jpg';
-                    const vUrl = 'video.html?src=' + encodeURIComponent(video.path);
+                    const vUrl = 'video.html?src=' + encodeURIComponent(video.path) + '&userplaylist=' + encodeURIComponent(name);
 
                     item.innerHTML = `
                         <button class="remove-video-btn" title="${getLang('Remove', 'Entfernen')}">&times;</button>

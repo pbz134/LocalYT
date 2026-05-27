@@ -1733,6 +1733,7 @@ document.addEventListener('click', function(e) {
             }
     
             const playlistName = urlParams.get('playlist'); // Get playlist name
+            const userPlaylistName = urlParams.get('userplaylist'); // Get user playlist name
             const timestamp = urlParams.get('t');
             const videoPlayer = document.getElementById('videoPlayer');
             const currentVideoTitle = document.getElementById('currentVideoTitle');
@@ -2082,6 +2083,51 @@ document.addEventListener('click', function(e) {
                     .catch(err => console.error("Error loading playlist sidebar", err));
             }
 
+            // 1b. Load User Playlist Videos if userplaylist parameter exists
+            if (userPlaylistName) {
+                const userPlaylistSection = document.createElement('div');
+                userPlaylistSection.className = 'playlist-section';
+                
+                const userPlaylistHeader = document.createElement('div');
+                userPlaylistHeader.className = 'playlist-section-header';
+                userPlaylistHeader.innerHTML = `${safeDecodeURIComponent(userPlaylistName)} <a href="user_playlists.html">${getLang('View Your Playlists', 'Deine Playlisten ansehen')}</a>`;
+                userPlaylistSection.appendChild(userPlaylistHeader);
+            
+                const userPlaylistContainer = document.createElement('div');
+                suggestionsContainer.appendChild(userPlaylistSection);
+            
+                await fetch(`/user-playlist-videos?name=${encodeURIComponent(userPlaylistName)}`)
+                    .then(response => response.json())
+                    .then(videos => {
+                        // Keep original order (oldest to newest) - do NOT sort user playlists
+                        
+                        if (videos.length > 6) {
+                            userPlaylistContainer.className = 'playlist-scroll-container';
+                        }
+                        
+                        userPlaylistSection.appendChild(userPlaylistContainer);
+                
+                        videos.forEach(video => {
+                            const isCurrent = safeDecodeURIComponent(videoSrc) === video.path;
+                            renderSuggestionItem(video, userPlaylistContainer, null, isCurrent, userPlaylistName);
+                            playlistVideoCount++;
+            
+                            if (isCurrent) {
+                                requestAnimationFrame(() => {
+                                    const currentItem = userPlaylistContainer.querySelector('.current-video-item');
+                                    if (currentItem) {
+                                        currentItem.scrollIntoView({ 
+                                            behavior: 'smooth', 
+                                            block: 'center' 
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    })
+                    .catch(err => console.error("Error loading user playlist sidebar", err));
+            }
+
             // 2. Load Standard Recommendations (70% Similar, 30% User Prefs)
             // We request a full page (20), but if we have a playlist, we might want fewer.
             // For now, let's keep the logic simple: append recommendations after playlist.
@@ -2127,7 +2173,7 @@ document.addEventListener('click', function(e) {
                 });
 
             // Helper to render sidebar items
-            function renderSuggestionItem(video, container, playlistParam, isCurrent, isRecommended = false) {
+            function renderSuggestionItem(video, container, playlistParam, isCurrent, userPlaylistParam = null) {
                 const suggestionElement = document.createElement('div');
                 suggestionElement.className = 'suggestion-item' + (isCurrent ? ' current-video-item' : '');
                 
@@ -2135,11 +2181,10 @@ document.addEventListener('click', function(e) {
                 const channel = video.path.split('/')[0];
                 const videoPathWithoutExt = stripExtension(video.path);
                 
-                // Build thumbnail path
                 const suggestionPathParts = video.path.split('/');
                 const suggestionChannel = suggestionPathParts[0];
                 let suggestionThumbnailPath;
-
+            
                 if (suggestionPathParts.length > 2) {
                     const suggestionPlaylist = suggestionPathParts[1];
                     const suggestionVideoName = stripExtension(suggestionPathParts[suggestionPathParts.length - 1]);
@@ -2148,13 +2193,16 @@ document.addEventListener('click', function(e) {
                     const suggestionVideoName = stripExtension(suggestionPathParts[suggestionPathParts.length - 1]);
                     suggestionThumbnailPath = `${encodeURIComponent(suggestionChannel)}/${encodeURIComponent(suggestionVideoName)}.jpg`;
                 }
-
-                // Construct URL, preserving playlist parameter if provided
+            
+                // Construct URL, preserving playlist and userplaylist parameters
                 let videoUrl = `video.html?src=${encodeURIComponent(video.path)}`;
                 if (playlistParam) {
                     videoUrl += `&playlist=${encodeURIComponent(playlistParam)}`;
                 }
-
+                if (userPlaylistParam) {
+                    videoUrl += `&userplaylist=${encodeURIComponent(userPlaylistParam)}`;
+                }
+            
                 suggestionElement.innerHTML = `
                     <div class="thumbnail-container">
                         <img src="/thumbnails-small/${suggestionThumbnailPath}" alt="${suggestionTitle}" class="video-thumbnail">
@@ -2166,26 +2214,23 @@ document.addEventListener('click', function(e) {
                         <div class="view-count">${localStorage.getItem('language') === 'de' ? video.viewCount.replace(/,/g, '.') : video.viewCount} ${getLang('views', 'Aufrufe')}</div>
                     </div>
                 `;
-
+            
                 suggestionElement.dataset.videoPath = video.path;
                 container.appendChild(suggestionElement);
-
+            
                 const thumbLink = suggestionElement.querySelector('.thumbnail-container');
                 const titleLink = suggestionElement.querySelector('.suggestion-title');
-
-                // Left click
+            
                 thumbLink.addEventListener('click', () => { window.location.href = videoUrl; });
                 titleLink.addEventListener('click', () => { window.location.href = videoUrl; });
-
-                // Right click
+            
                 const contextHandler = (e) => {
                     e.preventDefault();
                     window.open(videoUrl, '_blank');
                 };
                 thumbLink.addEventListener('contextmenu', contextHandler);
                 titleLink.addEventListener('contextmenu', contextHandler);
-
-                // Middle click
+            
                 const middleHandler = (e) => {
                     if (e.button === 1) {
                         e.preventDefault();
@@ -2196,8 +2241,7 @@ document.addEventListener('click', function(e) {
                 thumbLink.addEventListener('auxclick', middleHandler);
                 titleLink.addEventListener('mouseup', middleHandler);
                 titleLink.addEventListener('auxclick', middleHandler);
-
-                // Fetch video length
+            
                 const videoFilename = video.path.split('/').pop();
                 const videoNameWithoutExt = stripExtension(videoFilename);
                 fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
@@ -2337,28 +2381,22 @@ document.addEventListener('click', function(e) {
                 try {
                     const autoplaySettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
                     
-                    // Ensure defaults if they are missing
-                    if (autoplaySettings.enabled && !autoplaySettings.nonPlaylistMode && !playlistName) {
+                    if (autoplaySettings.enabled && !autoplaySettings.nonPlaylistMode && !playlistName && !userPlaylistName) {
                          autoplaySettings.nonPlaylistMode = 'first-recommended';
                     }
-            
-                    console.log('[Autoplay/Skip] Settings:', autoplaySettings);
-                    console.log('[Autoplay/Skip] In playlist?', !!playlistName, playlistName);
-                    console.log('[Autoplay/Skip] Is manual skip?', isManualSkip);
-                    
-                    // If autoplay is disabled AND this is not a manual skip, do nothing
+                
                     if (!autoplaySettings.enabled && !isManualSkip) {
-                        console.log('[Autoplay/Skip] Autoplay disabled and not a manual skip. Staying put.');
                         return;
                     }
             
                     if (autoplaySettings.enabled || isManualSkip) {
-                        if (playlistName && (autoplaySettings.playlistNext !== false || isManualSkip)) {
-                            console.log('[Autoplay/Skip] → Next in playlist');
+                        if (userPlaylistName && (autoplaySettings.playlistNext !== false || isManualSkip)) {
+                            await autoplayNextInUserPlaylist();
+                        }
+                        else if (playlistName && (autoplaySettings.playlistNext !== false || isManualSkip)) {
                             await autoplayNextInPlaylist();
                         } 
-                        else if (!playlistName) {
-                            console.log('[Autoplay/Skip] → Non-playlist mode:', autoplaySettings.nonPlaylistMode || 'first-recommended');
+                        else if (!playlistName && !userPlaylistName) {
                             switch (autoplaySettings.nonPlaylistMode || 'first-recommended') {
                                 case 'first-recommended':
                                     await autoplayFirstRecommended();
@@ -2370,11 +2408,8 @@ document.addEventListener('click', function(e) {
                                     await autoplayRandomDatabase();
                                     break;
                                 default:
-                                    console.warn('[Autoplay/Skip] Unknown/Default mode, falling back to first recommended');
                                     await autoplayFirstRecommended();
                             }
-                        } else {
-                            console.log('[Autoplay/Skip] In playlist but playlistNext is disabled');
                         }
                     }
                 } catch (e) {
@@ -2489,6 +2524,26 @@ document.addEventListener('click', function(e) {
                     }
                 } catch (e) {
                     console.error('Error getting next playlist video:', e);
+                }
+            }
+
+            async function autoplayNextInUserPlaylist() {
+                try {
+                    const response = await fetch(`/user-playlist-videos?name=${encodeURIComponent(userPlaylistName)}`);
+                    if (!response.ok) return;
+                    
+                    const videos = await response.json();
+                    // Do not sort - preserve original playlist order (oldest to newest)
+                    
+                    const currentIndex = videos.findIndex(v => safeDecodeURIComponent(v.path) === safeDecodeURIComponent(videoSrc));
+                    
+                    if (currentIndex !== -1 && currentIndex < videos.length - 1) {
+                        const nextVideo = videos[currentIndex + 1];
+                        const nextUrl = `video.html?src=${encodeURIComponent(nextVideo.path)}&userplaylist=${encodeURIComponent(userPlaylistName)}`;
+                        setTimeout(() => { window.location.href = nextUrl; }, 1500);
+                    }
+                } catch (e) {
+                    console.error('Error getting next user playlist video:', e);
                 }
             }
 
@@ -2615,6 +2670,9 @@ document.addEventListener('click', function(e) {
                 let apiUrl = `/api/shortlink?video=${encodeURIComponent(videoSrc)}`;
                 if (playlistName) { 
                     apiUrl += `&playlist=${encodeURIComponent(playlistName)}`;
+                }
+                if (userPlaylistName) {
+                    apiUrl += `&userplaylist=${encodeURIComponent(userPlaylistName)}`;
                 }
                 return apiUrl;
             }
