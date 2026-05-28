@@ -783,8 +783,8 @@
                         z-index: 20;
                         opacity: 0;
                     }
-                    .lyt_seek_left { left: 0; justify-content: flex-start; padding-left: 18%; }
-                    .lyt_seek_right { right: 0; justify-content: flex-end; padding-right: 18%; }
+                    .lyt_seek_left { left: 0; justify-content: flex-start; padding-left: 11%; }
+                    .lyt_seek_right { right: 0; justify-content: flex-end; padding-right: 11%; }
                     .lyt_seek_anim.lyt_seek_show {
                         animation: lyt-seek-fade 0.6s ease-out forwards;
                     }
