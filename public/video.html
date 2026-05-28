@@ -1766,6 +1766,7 @@ document.addEventListener('click', function(e) {
             let likes = 0;
             let dislikes = 0;
             let isLiked = false;
+            let videoNameForSubs = '';
             let isDisliked = false;
             let isSubscribed = false;
             let posterImageUrl = '';
@@ -1785,7 +1786,7 @@ document.addEventListener('click', function(e) {
                 // Add subtitle tracks dynamically (supports multiple languages)
                 // Only displays subtitles that actually exist on the server
                 // Example naming: "video.en-US.vtt", "video.de.vtt", "video.zh-Hans.vtt"
-                const videoNameForSubs = stripExtension(videoSrc.split('/').pop());
+                videoNameForSubs = stripExtension(videoSrc.split('/').pop());
                 
                 // Language name mapping for subtitle labels
                 const languageNames = {
@@ -1805,12 +1806,48 @@ document.addEventListener('click', function(e) {
                     'zh-Hant': 'Chinese (Traditional)'
                 };
 
-                // List of supported language codes to check (includes regional variants)
+                // Append auto-translated labels to the languageNames map
+                Object.assign(languageNames, {
+                    'en-ar': 'Arabic (Auto-translated)', 'en-bn': 'Bengali (Auto-translated)', 
+                    'en-cs': 'Czech (Auto-translated)', 'en-da': 'Danish (Auto-translated)', 
+                    'en-de': 'German (Auto-translated)', 'en-el': 'Greek (Auto-translated)', 
+                    'en-en': 'English (Auto-translated)', 'en-es': 'Spanish (Auto-translated)', 
+                    'en-fa': 'Persian (Auto-translated)', 'en-fil': 'Filipino (Auto-translated)', 
+                    'en-fr': 'French (Auto-translated)', 'en-hi': 'Hindi (Auto-translated)', 
+                    'en-hu': 'Hungarian (Auto-translated)', 'en-id': 'Indonesian (Auto-translated)', 
+                    'en-it': 'Italian (Auto-translated)', 'en-iw': 'Hebrew (Auto-translated)', 
+                    'en-ka': 'Georgian (Auto-translated)', 'en-km': 'Khmer (Auto-translated)', 
+                    'en-ko': 'Korean (Auto-translated)', 'en-ku': 'Kurdish (Auto-translated)', 
+                    'en-la': 'Latin (Auto-translated)', 'en-mn': 'Mongolian (Auto-translated)', 
+                    'en-ms': 'Malay (Auto-translated)', 'en-my': 'Burmese (Auto-translated)', 
+                    'en-ne': 'Nepali (Auto-translated)', 'en-nl': 'Dutch (Auto-translated)', 
+                    'en-no': 'Norwegian (Auto-translated)', 'en-pl': 'Polish (Auto-translated)', 
+                    'en-pt': 'Portuguese (Auto-translated)', 'en-ro': 'Romanian (Auto-translated)', 
+                    'en-ru': 'Russian (Auto-translated)', 'en-sa': 'Sanskrit (Auto-translated)', 
+                    'en-so': 'Somali (Auto-translated)', 'en-sr': 'Serbian (Auto-translated)', 
+                    'en-sv': 'Swedish (Auto-translated)', 'en-th': 'Thai (Auto-translated)', 
+                    'en-tr': 'Turkish (Auto-translated)', 'en-uk': 'Ukrainian (Auto-translated)', 
+                    'en-ur': 'Urdu (Auto-translated)', 'en-vi': 'Vietnamese (Auto-translated)', 
+                    'en-zh-Hans': 'Chinese Simplified (Auto-translated)', 
+                    'en-zh-Hant': 'Chinese Traditional (Auto-translated)', 
+                    'en-zh-TW': 'Chinese Taiwan (Auto-translated)'
+                });
+
+                // List of supported language codes to check (includes regional and auto-translated variants)
                 const supportedLangCodes = [
+                    // Standard
                     'af', 'ar', 'bg', 'bn', 'bs', 'ca', 'cs', 'da', 'de', 'el', 
                     'en', 'en-US', 'en-GB', 'es', 'et', 'fi', 'fr', 'hi', 'it', 'ja', 
                     'ko', 'nl', 'pl', 'pt', 'ro', 'ru', 'sk', 'sq', 'sr', 'sv', 'th', 
-                    'tr', 'uk', 'vi', 'zh-Hans', 'zh-Hant'
+                    'tr', 'uk', 'vi', 'zh-Hans', 'zh-Hant', 'zh-TW',
+                    
+                    // Auto-translated variants (en-XX format)
+                    'en-ar', 'en-bn', 'en-cs', 'en-da', 'en-de', 'en-el', 'en-en',
+                    'en-es', 'en-fa', 'en-fil', 'en-fr', 'en-hi', 'en-hu', 'en-id',
+                    'en-it', 'en-iw', 'en-ka', 'en-km', 'en-ko', 'en-ku', 'en-la',
+                    'en-mn', 'en-ms', 'en-my', 'en-ne', 'en-nl', 'en-no', 'en-pl',
+                    'en-pt', 'en-ro', 'en-ru', 'en-sa', 'en-so', 'en-sr', 'en-sv',
+                    'en-th', 'en-tr', 'en-uk', 'en-ur', 'en-vi', 'en-zh-Hans', 'en-zh-Hant', 'en-zh-TW'
                 ];
 
                 // Store video file name for later use after currentChannel is known
@@ -1820,10 +1857,12 @@ document.addEventListener('click', function(e) {
                 async function loadSubtitleTracks() {
                     if (!subTrackData.channel) return;
                     
-                    const baseSubPath = `/subtitles/${encodeURIComponent(subTrackData.channel)}/${encodeURIComponent(subTrackData.videoFile)}`;
+                    // FIX: Do not encodeURIComponent here, the server expects raw paths with brackets/spaces!
+                    const baseSubPath = `/subtitles/${subTrackData.channel}/${subTrackData.videoFile}`;
                     
                     // Check each language subtitle file and only add if it exists
                     const checkPromises = supportedLangCodes.map(async langCode => {
+                        // FIX: Do not encode the URL, keep it raw for the HEAD request
                         const trackUrl = `${baseSubPath}.${langCode}.vtt`;
                         try {
                             const response = await fetch(trackUrl, { method: 'HEAD' });
@@ -1832,10 +1871,10 @@ document.addEventListener('click', function(e) {
                                 trackElement.kind = 'metadata';  // MUST be 'metadata' for Fluid Player
                                 trackElement.srclang = langCode;
                                 trackElement.label = languageNames[langCode] || langCode;
-                                trackElement.src = trackUrl;
+                                trackElement.src = trackUrl; // Keep raw URL
                                 
-                                // Set English as default subtitle track (checks both 'en' and 'en-US')
-                                if (langCode === 'en' || langCode === 'en-US') {
+                                // Set ONLY English ('en') as default subtitle track
+                                if (langCode === 'en') {
                                     trackElement.default = true;
                                 }
                                 
@@ -1856,7 +1895,7 @@ document.addEventListener('click', function(e) {
                                     defaultTrack.kind = 'metadata';
                                     defaultTrack.srclang = 'en';
                                     defaultTrack.label = 'Subtitles';
-                                    defaultTrack.src = defaultTrackUrl;
+                                    defaultTrack.src = defaultTrackUrl; // Keep raw URL
                                     videoPlayer.appendChild(defaultTrack);
                                 }
                             })
@@ -2318,8 +2357,8 @@ document.addEventListener('click', function(e) {
                         "posterImageSize": "cover",
                         subtitlesOnByDefault: false,
                         "timelinePreview": {
-                            file: `/thumbnails/${encodeURIComponent(currentChannel)}/${encodeURIComponent(getCleanVideoName(videoSrc))}.vtt`,
-                            sprite: `/thumbnails/${encodeURIComponent(currentChannel)}/${encodeURIComponent(getCleanVideoName(videoSrc))}SpriteImg.jpg`,
+                            file: `/thumbnails/${encodeURIComponent(currentChannel)}/${encodeURIComponent(videoNameForSubs)}.vtt`,
+                            sprite: `/thumbnails/${encodeURIComponent(currentChannel)}/${encodeURIComponent(videoNameForSubs)}SpriteImg.jpg`,
                             type: 'VTT'
                         },
                         // PASS THE IMAGE URL HERE

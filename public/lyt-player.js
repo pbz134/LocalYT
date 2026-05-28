@@ -82,6 +82,7 @@
             this.currentSpeed = 1;
             this.subtitlesEnabled = false;
             this.currentTrackIndex = -1;
+            this.lastSelectedTrackIndex = -1;
             this._lastVolume = 0.5;
             this._hideTimer = null;
             this._seeking = false;
@@ -109,7 +110,7 @@
             this._recTriggerTimes = [30, 180];
             
             // Version
-            this.version = 'v2.0.5';
+            this.version = 'v2.1.0';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -697,7 +698,8 @@
                         box-shadow: 0 4px 16px rgba(0,0,0,0.6);
                     }
                     .lyt_popup_menu.lyt_show {
-                        display: block;
+                        display: flex;
+                        flex-direction: column;
                     }
                     
                     /* Main menu content and submenu content wrappers */
@@ -737,9 +739,11 @@
                         padding: 0;
                         min-width: calc(120px * var(--lyt-ui-scale));
                         z-index: 30;
+                        flex: 1 1 auto;
                     }
                     .lyt_popup_submenu.lyt_show {
-                        display: block;
+                        display: flex;
+                        flex-direction: column;
                     }
                     
                     .lyt_submenu_back {
@@ -1155,7 +1159,7 @@
                             <div class="lyt_popup_menu lyt_settings_menu">
                                 <div class="lyt_menu_content">
                                     <div class="lyt_menu_option lyt_opt_speed" data-submenu="speed">Speed</div>
-                                    <div class="lyt_menu_option lyt_opt_subs" data-submenu="subs">Subtitles/CC</div>
+                                    <div class="lyt_menu_option lyt_opt_subs" data-submenu="subtitles">Subtitles/CC</div>
                                     <div class="lyt_menu_option lyt_opt_quality" data-submenu="quality">Quality</div>
                                 </div>
 
@@ -1258,6 +1262,18 @@
             if (tracks && tracks.length > 0) {
                 for (let i = 0; i < tracks.length; i++) {
                     const track = tracks[i];
+                    
+                    // Safely skip Fluid Player tracks without skipping LYT Player tracks.
+                    // Fluid Player tracks use '/videos/' in their src URL, while LYT subs use '/subtitles/'.
+                    // We cannot just skip all 'metadata' tracks because LYT Player also relies on 
+                    // 'metadata' initially to prevent native browser subtitle rendering.
+                    if (track.kind === 'metadata') {
+                        const trackEl = this.video.querySelectorAll('track')[i];
+                        if (trackEl && trackEl.src && trackEl.src.includes('/videos/')) {
+                            continue; 
+                        }
+                    }
+                    
                     const activeClass = this.currentTrackIndex === i ? ' lyt_active' : '';
                     const label = track.label || track.language || ('Track ' + (i + 1));
                     html += `<button class="lyt_menu_option lyt_sub_option${activeClass}" data-track="${i}">${label}</button>`;
@@ -1265,6 +1281,43 @@
             }
             
             this.dom.subtitlesMenu.querySelector('.lyt_menu_content').innerHTML = html;
+        }
+
+        /**
+         * Find the best available subtitle track based on language preference.
+         * Priority: 'en' > 'en-US' > 'de' > first available
+         */
+        getPreferredSubtitleTrack() {
+            const tracks = this.video.textTracks;
+            if (!tracks || tracks.length === 0) return -1;
+            
+            let enIndex = -1;
+            let enUsIndex = -1;
+            let deIndex = -1;
+            let firstValidIndex = -1;
+            
+            for (let i = 0; i < tracks.length; i++) {
+                if (tracks[i].kind === 'metadata') {
+                    const trackEl = this.video.querySelectorAll('track')[i];
+                    if (trackEl && trackEl.src && trackEl.src.includes('/videos/')) {
+                        continue; 
+                    }
+                }
+                
+                // The browser normalizes srclang internally, so "en" stays "en", but "en-US" might become "en-us"
+                const lang = (tracks[i].language || '').toLowerCase();
+                
+                if (firstValidIndex === -1) firstValidIndex = i;
+                if (lang === 'en' && enIndex === -1) enIndex = i;
+                if (lang === 'en-us' && enUsIndex === -1) enUsIndex = i;
+                if (lang === 'de' && deIndex === -1) deIndex = i;
+            }
+            
+            // Return based on priority: 'en' > 'en-us' > 'de' > first available
+            if (enIndex !== -1) return enIndex;
+            if (enUsIndex !== -1) return enUsIndex;
+            if (deIndex !== -1) return deIndex;
+            return firstValidIndex;
         }
 
         buildQualityMenu() {
@@ -1395,13 +1448,16 @@
             // Handle Main Menu Options (Speed/Subs/Quality) -> Open Submenus
             this.dom.settingsMenu.querySelectorAll('[data-submenu]').forEach(option => {
                 option.addEventListener('click', (e) => {
-                    const targetId = e.target.dataset.submenu;
+                    const menuItem = e.target.closest('[data-submenu]');
+                    if (!menuItem) return;
+                    
+                    const targetId = menuItem.dataset.submenu;
                     const submenu = this.dom.settingsMenu.querySelector(`.lyt_${targetId}_menu`);
                     if(submenu) {
                         this.hideMainMenu();
                         submenu.classList.add('lyt_show');
                         
-                        if(targetId === 'subs') this.buildSubtitlesMenu();
+                        if(targetId === 'subtitles') this.buildSubtitlesMenu(); // NOW MATCHES!
                         if(targetId === 'quality') this.buildQualityMenu();
                     }
                 });
@@ -1440,8 +1496,10 @@
                 e.stopPropagation();
                 if (this.currentTrackIndex >= 0) {
                     this.setSubtitleTrack(-1);
-                } else if (this.video.textTracks.length > 0) {
-                    this.setSubtitleTrack(0);
+                } else {
+                    // Re-enable the last manually selected track, OR fall back to preference
+                    const trackToEnable = this.lastSelectedTrackIndex >= 0 ? this.lastSelectedTrackIndex : this.getPreferredSubtitleTrack();
+                    this.setSubtitleTrack(trackToEnable >= 0 ? trackToEnable : 0);
                 }
             });
 
@@ -1823,6 +1881,7 @@
                 menu.classList.add('lyt_show');
                 if(menu === this.dom.settingsMenu) {
                     this.dom.settingsBtn.classList.add('lyt_open');
+                    this.showMainMenu(); // Always reset to main menu when opening settings
                 }
             } else {
                  if(menu === this.dom.settingsMenu) {
@@ -2003,6 +2062,9 @@
                 if (trackElements[trackIndex] && trackElements[trackIndex].kind === 'metadata') {
                     trackElements[trackIndex].kind = 'subtitles';
                 }
+                
+                // Remember this track for the next time C is pressed!
+                this.lastSelectedTrackIndex = trackIndex; // <-- ADD THIS LINE
             }
             
             this.subtitlesEnabled = trackIndex >= 0;
@@ -2175,8 +2237,10 @@
                     e.preventDefault();
                     if (this.currentTrackIndex >= 0) {
                         this.setSubtitleTrack(-1);
-                    } else if (this.video.textTracks.length > 0) {
-                        this.setSubtitleTrack(0);
+                    } else {
+                        // Re-enable the last manually selected track, OR fall back to preference
+                        const trackToEnable = this.lastSelectedTrackIndex >= 0 ? this.lastSelectedTrackIndex : this.getPreferredSubtitleTrack();
+                        this.setSubtitleTrack(trackToEnable >= 0 ? trackToEnable : 0);
                     }
                     break;
                 case 'j':
