@@ -8,6 +8,7 @@ v4.35
 - User playlists now display the manager on the right side of video.html
 - Made createFiledates.py skip already-existing filedate .TXTs to save time
 - Fixed subtitle selector in LYT Player
+- Added an overlay into the video container showing the upcoming Autoplay video
 
 v4.30
 - New LYT custom video player

@@ -1021,6 +1021,117 @@
         -webkit-transition: none !important;
         transition: none !important;
         }
+
+        /* ===== UP NEXT AUTOPLAY OVERLAY ===== */
+        .lyt_upnext_overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 9; /* Behind controls (z-index: 10) but above the video */
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .lyt_upnext_overlay.lyt_upnext_show {
+            display: flex;
+            opacity: 1;
+        }
+        .lyt_upnext_bg {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            filter: brightness(0.25) saturate(0.5);
+            z-index: -1;
+        }
+        .lyt_upnext_countdown {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.25);
+            position: relative;
+            pointer-events: auto;
+            /* Ensure no flex layout interferes */
+            display: block; 
+        }
+        .lyt_upnext_countdown svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+        .lyt_upnext_countdown circle {
+            fill: none;
+            stroke: #fff;
+            stroke-width: 3;
+            /* 
+              r="29" + stroke-width 3 means the edge extends to 30.5. 
+              Shift cx/cy to 30.5 so the stroke's center aligns with the container's 3px border perfectly.
+            */
+            cx: 30.5;
+            cy: 30.5;
+            r: 29;
+            /* 
+              Circumference = 2 * π * 29 ≈ 182.21
+              We use 182.2 for dasharray and dashoffset so it animates a perfect full circle.
+            */
+            stroke-dasharray: 182.2;
+            stroke-dashoffset: 0;
+            transition: stroke-dashoffset 1s linear;
+        }
+        .lyt_upnext_countdown_num {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 28px;
+            font-family: 'Roboto', Arial, sans-serif;
+            font-weight: 500;
+            z-index: 1;
+        }
+        .lyt_upnext_title {
+            color: #fff;
+            font-size: 16px;
+            font-family: 'Roboto', Arial, sans-serif;
+            font-weight: 500;
+            text-align: center;
+            max-width: 80%;
+            line-height: 1.3;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+        }
+        .lyt_upnext_label {
+            color: #aaa;
+            font-size: 12px;
+            font-family: 'Roboto', Arial, sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .lyt_upnext_cancel {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: #fff;
+            padding: 8px 24px;
+            font-size: 13px;
+            font-family: 'Roboto', Arial, sans-serif;
+            font-weight: 500;
+            border-radius: 3px;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .lyt_upnext_cancel:hover {
+            background: rgba(255,255,255,0.25);
+            border-color: rgba(255,255,255,0.5);
+        }
+
     </style>
 </head>
 <body>
@@ -1035,12 +1146,23 @@
     <div class="content-wrapper">
         <div class="video-player-container">
             <div class="video-wrapper paused">
-                <div class="video-stage">
-                    <video id="videoPlayer" controlsList="nodownload nofullscreen noremoteplayback" disablePictureInPicture>
-                        Your browser does not support the video tag.
-                    </video>
-                    <div class="logo-overlay"></div>
+            <div class="video-stage">
+                <video id="videoPlayer" controlsList="nodownload nofullscreen noremoteplayback" disablePictureInPicture>
+                    Your browser does not support the video tag.
+                </video>
+                <div class="logo-overlay"></div>
+                <!-- Up Next Autoplay Overlay -->
+                <div id="upnextOverlay" class="lyt_upnext_overlay">
+                    <div class="lyt_upnext_bg"></div>
+                    <div class="lyt_upnext_label">Up next</div>
+                    <div class="lyt_upnext_countdown">
+                        <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29"/></svg>
+                        <span class="lyt_upnext_countdown_num">5</span>
+                    </div>
+                    <div class="lyt_upnext_title"></div>
+                    <button class="lyt_upnext_cancel">Cancel</button>
                 </div>
+            </div>
                 <div id="currentVideoTitle" class="current-video-title"></div>
                 <div id="channelInfo" class="channel-info">
                     <div class="channel-left">
@@ -2429,26 +2551,39 @@ document.addEventListener('click', function(e) {
                     }
             
                     if (autoplaySettings.enabled || isManualSkip) {
+                        // Resolve the next video
+                        let nextVideoData = null;
+                        
                         if (userPlaylistName && (autoplaySettings.playlistNext !== false || isManualSkip)) {
-                            await autoplayNextInUserPlaylist();
+                            nextVideoData = await getNextInUserPlaylist();
                         }
                         else if (playlistName && (autoplaySettings.playlistNext !== false || isManualSkip)) {
-                            await autoplayNextInPlaylist();
+                            nextVideoData = await getNextInPlaylist();
                         } 
                         else if (!playlistName && !userPlaylistName) {
                             switch (autoplaySettings.nonPlaylistMode || 'first-recommended') {
                                 case 'first-recommended':
-                                    await autoplayFirstRecommended();
+                                    nextVideoData = await getNextFirstRecommended();
                                     break;
                                 case 'random-recommended':
-                                    await autoplayRandomRecommended();
+                                    nextVideoData = await getNextRandomRecommended();
                                     break;
                                 case 'random-database':
-                                    await autoplayRandomDatabase();
+                                    nextVideoData = await getNextRandomDatabase();
                                     break;
                                 default:
-                                    await autoplayFirstRecommended();
+                                    nextVideoData = await getNextFirstRecommended();
                             }
+                        }
+
+                        if (isManualSkip || !autoplaySettings.enabled) {
+                            // Immediate navigation for manual skip
+                            if (nextVideoData) {
+                                window.location.href = nextVideoData.url;
+                            }
+                        } else if (nextVideoData) {
+                            // Show Up Next countdown overlay
+                            showUpNextOverlay(nextVideoData);
                         }
                     }
                 } catch (e) {
@@ -2456,7 +2591,75 @@ document.addEventListener('click', function(e) {
                 }
             }
             
-            // Listen for video end (NOT a manual skip)
+            // ===== UP NEXT OVERLAY LOGIC =====
+            let _upnextTimer = null;
+            let _upnextCountdown = 5;
+
+            function showUpNextOverlay(nextVideoData) {
+                const overlay = document.getElementById('upnextOverlay');
+                if (!overlay) return;
+                
+                // Set background thumbnail
+                const bg = overlay.querySelector('.lyt_upnext_bg');
+                if (bg && nextVideoData.thumbnail) {
+                    bg.style.backgroundImage = `url(${nextVideoData.thumbnail})`;
+                }
+                
+                // Set title
+                const titleEl = overlay.querySelector('.lyt_upnext_title');
+                if (titleEl) {
+                    titleEl.textContent = nextVideoData.title || 'Next video';
+                }
+                
+                // Reset countdown
+                _upnextCountdown = 5;
+                const numEl = overlay.querySelector('.lyt_upnext_countdown_num');
+                const circleEl = overlay.querySelector('.lyt_upnext_countdown circle');
+                
+                if (numEl) numEl.textContent = _upnextCountdown;
+                if (circleEl) {
+                    // Reset animation
+                    circleEl.style.transition = 'none';
+                    circleEl.style.strokeDashoffset = '0';
+                    void circleEl.offsetWidth; // Force reflow
+                    circleEl.style.transition = 'stroke-dashoffset 1s linear';
+                }
+                
+                // Show overlay
+                overlay.classList.add('lyt_upnext_show');
+                
+                // Start countdown
+                clearInterval(_upnextTimer);
+                let elapsed = 0;
+                
+                _upnextTimer = setInterval(() => {
+                    elapsed++;
+                    _upnextCountdown = Math.max(0, 5 - elapsed);
+                    
+                    if (numEl) numEl.textContent = _upnextCountdown;
+                    if (circleEl) circleEl.style.strokeDashoffset = (elapsed / 5) * 182.2;
+                    
+                    if (elapsed >= 5) {
+                        clearInterval(_upnextTimer);
+                        _upnextTimer = null;
+                        window.location.href = nextVideoData.url;
+                    }
+                }, 1000);
+                
+                // Cancel button
+                const cancelBtn = overlay.querySelector('.lyt_upnext_cancel');
+                if (cancelBtn) {
+                    cancelBtn.onclick = () => {
+                        clearInterval(_upnextTimer);
+                        _upnextTimer = null;
+                        overlay.classList.remove('lyt_upnext_show');
+                    };
+                }
+            }
+            
+            // ===== END UP NEXT OVERLAY LOGIC =====
+            
+            // Listen for video end
             videoPlayer.addEventListener('ended', () => handleAutoPlayOrSkip(false));
             
             // Listen for the custom Skip button event from lyt-player.js (IS a manual skip)
@@ -2544,12 +2747,12 @@ document.addEventListener('click', function(e) {
                 }
             });
 
-            // ===== AUTOPLAY HELPER FUNCTIONS =====
+            // ===== AUTOPLAY HELPER FUNCTIONS (return {url, title, thumbnail} or null) =====
             
-            async function autoplayNextInPlaylist() {
+            async function getNextInPlaylist() {
                 try {
                     const response = await fetch(`/playlist-videos/${encodeURIComponent(currentChannel)}/${playlistName}`);
-                    if (!response.ok) return;
+                    if (!response.ok) return null;
                     
                     const videos = await response.json();
                     videos.sort(naturalCompare);
@@ -2558,35 +2761,44 @@ document.addEventListener('click', function(e) {
                     
                     if (currentIndex !== -1 && currentIndex < videos.length - 1) {
                         const nextVideo = videos[currentIndex + 1];
-                        const nextUrl = `video.html?src=${encodeURIComponent(nextVideo.path)}&playlist=${encodeURIComponent(playlistName)}`;
-                        setTimeout(() => { window.location.href = nextUrl; }, 1500);
+                        return {
+                            url: `video.html?src=${encodeURIComponent(nextVideo.path)}&playlist=${encodeURIComponent(playlistName)}`,
+                            title: nextVideo.displayName,
+                            thumbnail: buildThumbnailUrl(nextVideo.path),
+                            path: nextVideo.path
+                        };
                     }
                 } catch (e) {
                     console.error('Error getting next playlist video:', e);
                 }
+                return null;
             }
 
-            async function autoplayNextInUserPlaylist() {
+            async function getNextInUserPlaylist() {
                 try {
                     const response = await fetch(`/user-playlist-videos?name=${encodeURIComponent(userPlaylistName)}`);
-                    if (!response.ok) return;
+                    if (!response.ok) return null;
                     
                     const videos = await response.json();
-                    // Do not sort - preserve original playlist order (oldest to newest)
                     
                     const currentIndex = videos.findIndex(v => safeDecodeURIComponent(v.path) === safeDecodeURIComponent(videoSrc));
                     
                     if (currentIndex !== -1 && currentIndex < videos.length - 1) {
                         const nextVideo = videos[currentIndex + 1];
-                        const nextUrl = `video.html?src=${encodeURIComponent(nextVideo.path)}&userplaylist=${encodeURIComponent(userPlaylistName)}`;
-                        setTimeout(() => { window.location.href = nextUrl; }, 1500);
+                        return {
+                            url: `video.html?src=${encodeURIComponent(nextVideo.path)}&userplaylist=${encodeURIComponent(userPlaylistName)}`,
+                            title: nextVideo.displayName,
+                            thumbnail: buildThumbnailUrl(nextVideo.path),
+                            path: nextVideo.path
+                        };
                     }
                 } catch (e) {
                     console.error('Error getting next user playlist video:', e);
                 }
+                return null;
             }
 
-            async function autoplayFirstRecommended() {
+            async function getNextFirstRecommended() {
                 try {
                     const suggestionItems = document.querySelectorAll('#videoSuggestions .suggestion-item[data-video-path]');
                     const availableItems = Array.from(suggestionItems).filter(
@@ -2595,16 +2807,23 @@ document.addEventListener('click', function(e) {
                     const pool = availableItems.length > 0 ? availableItems : Array.from(suggestionItems);
                     
                     if (pool.length > 0) {
-                        const firstVideo = pool[0].dataset.videoPath;
-                        const nextUrl = `video.html?src=${encodeURIComponent(firstVideo)}`;
-                        setTimeout(() => { window.location.href = nextUrl; }, 1500);
+                        const firstVideo = pool[0];
+                        const path = firstVideo.dataset.videoPath;
+                        const title = firstVideo.querySelector('.suggestion-title')?.textContent || 'Next video';
+                        return {
+                            url: `video.html?src=${encodeURIComponent(path)}`,
+                            title: title,
+                            thumbnail: buildThumbnailUrl(path),
+                            path: path
+                        };
                     }
                 } catch (e) {
                     console.error('[Autoplay] Error in first recommended:', e);
                 }
+                return null;
             }
 
-            async function autoplayRandomRecommended() {
+            async function getNextRandomRecommended() {
                 try {
                     const suggestionItems = document.querySelectorAll('#videoSuggestions .suggestion-item[data-video-path]');
                     const availableItems = Array.from(suggestionItems).filter(
@@ -2613,30 +2832,59 @@ document.addEventListener('click', function(e) {
                     const pool = availableItems.length > 0 ? availableItems : Array.from(suggestionItems);
                     
                     if (pool.length > 0) {
-                        const randomIndex = Math.floor(Math.random() * pool.length);
-                        const randomVideo = pool[randomIndex].dataset.videoPath;
-                        const nextUrl = `video.html?src=${encodeURIComponent(randomVideo)}`;
-                        setTimeout(() => { window.location.href = nextUrl; }, 1500);
+                        const randomItem = pool[Math.floor(Math.random() * pool.length)];
+                        const path = randomItem.dataset.videoPath;
+                        const title = randomItem.querySelector('.suggestion-title')?.textContent || 'Next video';
+                        return {
+                            url: `video.html?src=${encodeURIComponent(path)}`,
+                            title: title,
+                            thumbnail: buildThumbnailUrl(path),
+                            path: path
+                        };
                     }
                 } catch (e) {
                     console.error('[Autoplay] Error in random recommended:', e);
                 }
+                return null;
             }
 
-            async function autoplayRandomDatabase() {
+            async function getNextRandomDatabase() {
                 try {
                     const response = await fetch('/videos?page=1&limit=1&random=true');
-                    if (!response.ok) return;
+                    if (!response.ok) return null;
                     const data = await response.json();
                     const videos = data.videos || [];
                     if (videos.length > 0) {
-                        const randomVideo = videos[0].path;
-                        const nextUrl = `video.html?src=${encodeURIComponent(randomVideo)}`;
-                        setTimeout(() => { window.location.href = nextUrl; }, 1500);
+                        const video = videos[0];
+                        return {
+                            url: `video.html?src=${encodeURIComponent(video.path)}`,
+                            title: video.displayName,
+                            thumbnail: buildThumbnailUrl(video.path),
+                            path: video.path
+                        };
                     }
                 } catch (e) {
                     console.error('[Autoplay] Error in random database:', e);
                 }
+                return null;
+            }
+            
+            // Helper: Build thumbnail URL from video path
+            function buildThumbnailUrl(videoPath) {
+                const pathParts = videoPath.split('/');
+                const channel = pathParts[0];
+                let thumbnailPath;
+                
+                if (pathParts.length > 2) {
+                    const playlist = pathParts[1];
+                    const videoName = stripExtension(pathParts[pathParts.length - 1]);
+                    thumbnailPath = `${encodeURIComponent(channel)}/${encodeURIComponent(playlist)}/${encodeURIComponent(videoName)}.jpg`;
+                } else {
+                    const videoName = stripExtension(pathParts[pathParts.length - 1]);
+                    thumbnailPath = `${encodeURIComponent(channel)}/${encodeURIComponent(videoName)}.jpg`;
+                }
+                
+                return `/thumbnails/${thumbnailPath}`;
             }
 
             // ===== END AUTOPLAY HELPERS =====
