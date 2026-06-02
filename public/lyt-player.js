@@ -110,7 +110,7 @@
             this._recTriggerTimes = [30, 180];
             
             // Version
-            this.version = 'v2.1.0';
+            this.version = 'v2.2.0';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -658,6 +658,15 @@
                         align-items: center;
                         justify-content: flex-end;
                         overflow: visible; 
+                    }
+                    .lyt_volume_bar::before {
+                        content: '';
+                        position: absolute;
+                        top: -10px;
+                        left: 0;
+                        right: 0;
+                        bottom: -10px;
+                        cursor: pointer;
                     }
                     .lyt_volume_dot {
                         width: 13px;

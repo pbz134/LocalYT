@@ -9,6 +9,7 @@ v4.35
 - Made createFiledates.py skip already-existing filedate .TXTs to save time
 - Fixed subtitle selector in LYT Player
 - Added an overlay into the video container showing the upcoming Autoplay video
+- Increased the hitbox of the LYT Player volume slider
 
 v4.30
 - New LYT custom video player
