@@ -866,33 +866,6 @@
                 <div id="titleColorSchemeStatus" class="status-msg"></div>
             </div>
 
-            <!-- Configuration Import/Export Section -->
-            <div class="settings-section">
-                <h2 id="configImportExportHeading">Configuration</h2>
-                
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="configExportLabel">Export settings configuration</div>
-                        <div class="setting-description" id="configExportDesc">Download all current preference settings as a JSON file for backup</div>
-                    </div>
-                    <div class="setting-control">
-                        <button class="btn btn-save" id="exportConfigBtn">Export Config</button>
-                    </div>
-                </div>
-
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="configImportLabel">Import settings configuration</div>
-                        <div class="setting-description" id="configImportDesc">Load preference settings from a previously exported JSON file</div>
-                    </div>
-                    <div class="setting-control">
-                        <label class="btn" for="importConfigInput" style="cursor: pointer; display: inline-block;" id="importConfigLabelBtn">Import Config</label>
-                        <input type="file" id="importConfigInput" accept=".json" style="display: none;">
-                    </div>
-                </div>
-                <div id="configImportExportStatus" class="status-msg"></div>
-            </div>
-
             <!-- Channel Profile Pic in Player Section -->
             <div class="settings-section">
                 <h2 id="playerOverlayHeading">Player Overlays</h2>
@@ -905,6 +878,19 @@
                     <div class="setting-control">
                         <label class="toggle-switch">
                             <input type="checkbox" id="showChannelProfilePic">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div id="showEndScreenGridLabel">Show End Screen Recommendation Grid</div>
+                        <div class="setting-description" id="showEndScreenGridDesc">Display a 4x3 grid of recommended videos when a video ends and autoplay is disabled</div>
+                    </div>
+                    <div class="setting-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="showEndScreenGrid">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -946,11 +932,37 @@
                         </select>
                     </div>
                 </div>
-
                 <div class="inline-form" style="margin-top: 15px;">
                     <button class="btn btn-save" id="savePlayerUIScaleBtn">Save Preference</button>
                 </div>
                 <div id="playerUIScaleStatus" class="status-msg"></div>
+            </div>
+
+            <!-- Configuration Import/Export Section -->
+            <div class="settings-section">
+                <h2 id="configImportExportHeading">Configuration</h2>
+                
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div id="configExportLabel">Export settings configuration</div>
+                        <div class="setting-description" id="configExportDesc">Download all current preference settings as a JSON file for backup</div>
+                    </div>
+                    <div class="setting-control">
+                        <button class="btn btn-save" id="exportConfigBtn">Export Config</button>
+                    </div>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div id="configImportLabel">Import settings configuration</div>
+                        <div class="setting-description" id="configImportDesc">Load preference settings from a previously exported JSON file</div>
+                    </div>
+                    <div class="setting-control">
+                        <label class="btn" for="importConfigInput" style="cursor: pointer; display: inline-block;" id="importConfigLabelBtn">Import Config</label>
+                        <input type="file" id="importConfigInput" accept=".json" style="display: none;">
+                    </div>
+                </div>
+                <div id="configImportExportStatus" class="status-msg"></div>
             </div>
 
         </div>
@@ -1194,6 +1206,8 @@ function applyTranslations() {
     document.getElementById('playerOverlayHeading').textContent = getLang('Player Overlays', 'Player-Overlays');
     document.getElementById('channelProfilePicLabel').textContent = getLang('Show Channel Profile Picture', 'Kanal-Profilbild anzeigen');
     document.getElementById('channelProfilePicDesc').textContent = getLang("Display the channel's profile picture in the bottom-right corner of the video player", 'Zeigt das Profilbild des Kanals in der unteren rechten Ecke des Videoplayers an');
+    document.getElementById('showEndScreenGridLabel').textContent = getLang('Show End Screen Recommendation Grid', 'Empfehlungsraster am Ende anzeigen');
+    document.getElementById('showEndScreenGridDesc').textContent = getLang('Display a 4x3 grid of recommended videos when a video ends and autoplay is disabled', 'Ein 4x3-Raster mit empfohlenen Videos anzeigen, wenn ein Video endet und die automatische Wiedergabe deaktiviert ist');
     document.getElementById('saveChannelProfilePicBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
 }
 
@@ -1759,6 +1773,57 @@ function saveShowChannelProfilePic() {
 }
 
 // ==============================
+// End Screen Recommendation Grid Logic
+// ==============================
+function loadShowEndScreenGrid() {
+    const savedLocal = JSON.parse(localStorage.getItem('showEndScreenGrid') || '{}');
+    const defaultValue = true; // Enabled by default
+    const currentValue = savedLocal.enabled !== undefined ? savedLocal.enabled : defaultValue;
+    
+    document.getElementById('showEndScreenGrid').checked = currentValue;
+
+    fetch('/user-settings')
+        .then(res => {
+            if (!res.ok) throw new Error('Not authenticated');
+            return res.json();
+        })
+        .then(serverSettings => {
+            if (serverSettings && serverSettings.showEndScreenGrid !== undefined) {
+                const serverValue = serverSettings.showEndScreenGrid;
+                document.getElementById('showEndScreenGrid').checked = serverValue;
+                localStorage.setItem('showEndScreenGrid', JSON.stringify({ enabled: serverValue }));
+            }
+        })
+        .catch(err => console.error('Could not load end screen grid setting from server:', err));
+}
+
+function saveShowEndScreenGrid() {
+    const enabled = document.getElementById('showEndScreenGrid').checked;
+    localStorage.setItem('showEndScreenGrid', JSON.stringify({ enabled: enabled }));
+
+    fetch('/user-settings')
+        .then(res => res.json())
+        .then(currentSettings => {
+            const updatedSettings = { ...currentSettings, showEndScreenGrid: enabled };
+            return fetch('/user-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings: updatedSettings })
+            });
+        })
+        .then(res => {
+            if (res.ok) {
+                showStatus('channelProfilePicStatus', getLang('Preference saved!', 'Einstellung gespeichert!'), true);
+            } else {
+                showStatus('channelProfilePicStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
+            }
+        })
+        .catch(() => {
+            showStatus('channelProfilePicStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
+        });
+}
+
+// ==============================
 // Tab Switching
 // ==============================
 const sidebarLinks = document.querySelectorAll('.settings-sidebar a');
@@ -1792,6 +1857,7 @@ sidebarLinks.forEach(link => {
             loadHidePostImages();
             loadTitleColorScheme();
             loadShowChannelProfilePic();
+            loadShowEndScreenGrid();
             loadPlayerUIScale(); 
         }
     });
@@ -1844,7 +1910,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('saveFuzzySubCountBtn')?.addEventListener('click', saveFuzzySubCount);
     document.getElementById('saveHidePostImagesBtn')?.addEventListener('click', saveHidePostImages);
     document.getElementById('saveTitleColorSchemeBtn')?.addEventListener('click', saveTitleColorScheme);
-    document.getElementById('saveChannelProfilePicBtn')?.addEventListener('click', saveShowChannelProfilePic);
+    document.getElementById('saveChannelProfilePicBtn')?.addEventListener('click', () => {
+        saveShowChannelProfilePic();
+        saveShowEndScreenGrid();
+    });
     document.getElementById('savePlayerUIScaleBtn')?.addEventListener('click', savePlayerUIScale);
 
     // Initialize config import/export buttons
@@ -2406,7 +2475,10 @@ function gatherCurrentSettings() {
     // Channel Profile Pic in Player
     config.showChannelProfilePic = document.getElementById('showChannelProfilePic').checked;
 
-    // Player UI Scale (NEW)
+    // End Screen Grid
+    config.showEndScreenGrid = document.getElementById('showEndScreenGrid').checked;
+
+    // Player UI Scale
     config.playerUIScale = parseFloat(document.getElementById('playerUIScale').value);
     
     return config;
@@ -2522,8 +2594,11 @@ function validateConfig(config) {
         return false;
     }
 
-    // Validate boolean settings
     if (config.showChannelProfilePic !== undefined && typeof config.showChannelProfilePic !== 'boolean') {
+        return false;
+    }
+    
+    if (config.showEndScreenGrid !== undefined && typeof config.showEndScreenGrid !== 'boolean') {
         return false;
     }
     
@@ -2619,6 +2694,12 @@ function applyConfiguration(config) {
         localStorage.setItem('showChannelProfilePic', JSON.stringify({ enabled: config.showChannelProfilePic }));
     }
 
+    // Apply End Screen Grid
+    if (config.showEndScreenGrid !== undefined) {
+        document.getElementById('showEndScreenGrid').checked = config.showEndScreenGrid;
+        localStorage.setItem('showEndScreenGrid', JSON.stringify({ enabled: config.showEndScreenGrid }));
+    }
+
     // Apply Player UI Scale
     if (config.playerUIScale !== undefined) {
         document.getElementById('playerUIScale').value = config.playerUIScale;
@@ -2682,6 +2763,10 @@ function saveImportedConfiguration(config) {
             // Save merged settings to server
             if (config.showChannelProfilePic !== undefined) {
                 updatedSettings.showChannelProfilePic = config.showChannelProfilePic;
+            }
+            
+            if (config.showEndScreenGrid !== undefined) {
+                updatedSettings.showEndScreenGrid = config.showEndScreenGrid;
             }
             
             // Save Player UI Scale

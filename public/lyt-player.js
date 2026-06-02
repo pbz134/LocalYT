@@ -108,9 +108,10 @@
             this._recDismissTimer = null;
             this._recThumbVisible = false;
             this._recTriggerTimes = [30, 180];
+            this._endScreenData = null;
             
             // Version
-            this.version = 'v2.2.0';
+            this.version = 'v2.2.5';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -420,6 +421,87 @@
 
                     .lyt_thumb_title:hover {
                         color: #3ea6ff;
+                    }
+
+                    /* ===== END SCREEN GRID ===== */
+                    .lyt_end_screen {
+                        position: absolute;
+                        top: 0; left: 0; right: 0; bottom: 0;
+                        background: rgba(0, 0, 0, 0.85);
+                        z-index: 15;
+                        display: none;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 20px;
+                        box-sizing: border-box;
+                        opacity: 0;
+                        transition: opacity 0.4s ease;
+                    }
+                    .lyt_end_screen.lyt_end_show {
+                        display: flex;
+                        opacity: 1;
+                    }
+                    .lyt_end_grid {
+                        display: grid;
+                        grid-template-columns: repeat(4, 1fr);
+                        grid-template-rows: repeat(3, 1fr);
+                        gap: 8px;
+                        width: 100%;
+                        max-width: 900px;
+                        max-height: 100%;
+                        aspect-ratio: 16 / 9;
+                    }
+                    .lyt_end_item {
+                        position: relative;
+                        overflow: hidden;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        background: #111;
+                        transition: transform 0.15s ease;
+                    }
+                    .lyt_end_item:hover {
+                        z-index: 1;
+                    }
+                    .lyt_end_item img {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                        display: block;
+                    }
+                    .lyt_end_item_title {
+                        position: absolute;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                        background: linear-gradient(transparent, rgba(0,0,0,0.85));
+                        color: #fff;
+                        font-size: 11px;
+                        font-family: 'Roboto', 'Arial', sans-serif;
+                        padding: 12px 6px 4px 6px;
+                        line-height: 1.2;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .lyt_end_close {
+                        position: absolute;
+                        top: 12px;
+                        right: 12px;
+                        background: rgba(0,0,0,0.6);
+                        border: 1px solid rgba(255,255,255,0.3);
+                        color: #fff;
+                        padding: 6px 16px;
+                        font-size: 13px;
+                        font-family: 'Roboto', 'Arial', sans-serif;
+                        font-weight: 500;
+                        border-radius: 3px;
+                        cursor: pointer;
+                        z-index: 2;
+                        transition: background 0.15s;
+                    }
+                    .lyt_end_close:hover {
+                        background: rgba(255,255,255,0.15);
                     }
 
                     /* ===== LYT PLAYER CONTROLS ===== */
@@ -1198,6 +1280,12 @@
 
                 <!-- Channel Profile Picture Overlay -->
                 <img class="lyt_channel_profile_pic" src="" alt="Channel Profile">
+
+                <!-- End Screen Grid -->
+                <div class="lyt_end_screen">
+                    <button class="lyt_end_close">Close</button>
+                    <div class="lyt_end_grid"></div>
+                </div>
             `;
 
             this.wrapper.insertAdjacentHTML('beforeend', controlsHtml);
@@ -1221,6 +1309,11 @@
                 subtitlesMenu: this.wrapper.querySelector('.lyt_subtitles_menu'),
                 subtitlesDisplay: this.wrapper.querySelector('.lyt_subtitles_display'),
                 
+                // End screen
+                endScreen: this.wrapper.querySelector('.lyt_end_screen'),
+                endGrid: this.wrapper.querySelector('.lyt_end_grid'),
+                endClose: this.wrapper.querySelector('.lyt_end_close'),
+
                 // Settings & Menus
                 settingsBtn: this.wrapper.querySelector('.lyt_btn_settings'),
                 settingsMenu: this.wrapper.querySelector('.lyt_settings_menu'),
@@ -1360,7 +1453,6 @@
             this.video.addEventListener('progress', () => this.updateBuffer());
             this.video.addEventListener('waiting', () => this.showLoader(true));
             this.video.addEventListener('playing', () => this.showLoader(false));
-            this.video.addEventListener('ended', () => this.onVideoEnded());
             this.video.addEventListener('volumechange', () => this.updateVolumeIcon());
             this.video.addEventListener('loadedmetadata', () => {
                 this.buildSubtitlesMenu();
@@ -1676,6 +1768,25 @@
                     window.location.href = `video.html?src=${encodeURIComponent(this._recData.path)}`;
                 }
             });
+
+            // ===== END SCREEN EVENT BINDINGS =====
+
+            // End screen close button
+            this.dom.endClose.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.hideEndScreen();
+            });
+
+            // End screen grid item click
+            this.dom.endGrid.addEventListener('click', (e) => {
+                const item = e.target.closest('.lyt_end_item');
+                if (!item) return;
+                e.stopPropagation();
+                const index = parseInt(item.dataset.index);
+                if (this._endScreenData && this._endScreenData[index]) {
+                    window.location.href = `video.html?src=${encodeURIComponent(this._endScreenData[index].path)}`;
+                }
+            });
         }
 
         // ===== RECOMMENDATION SYSTEM METHODS =====
@@ -1821,6 +1932,54 @@
         hideRecommendationThumbnail() {
             this._recThumbVisible = false;
             this.dom.recThumbnail.classList.remove('lyt_rec_thumb_show');
+        }
+
+        /**
+         * Fetch 12 recommended videos for the end screen grid.
+         * Uses a dedicated endpoint to ensure different results from the sidebar.
+         */
+        async fetchEndScreenRecommendations() {
+            const currentPath = this.getCurrentVideoPath();
+            try {
+                const response = await fetch(`/endscreen-recommendations?video=${encodeURIComponent(currentPath || '')}&limit=12`);
+                if (!response.ok) return null;
+                const videos = await response.json();
+                if (!videos || videos.length === 0) return null;
+                return videos;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        /**
+         * Show the 4x3 end screen grid overlay.
+         */
+        async showEndScreen() {
+            const videos = await this.fetchEndScreenRecommendations();
+            if (!videos || videos.length === 0) return;
+
+            this._endScreenData = videos;
+
+            let html = '';
+            videos.forEach((video, index) => {
+                const thumbUrl = this.buildThumbnailUrl(video.path);
+                html += `
+                    <div class="lyt_end_item" data-index="${index}">
+                        <img src="${thumbUrl}" alt="" loading="lazy">
+                        <div class="lyt_end_item_title">${video.displayName || ''}</div>
+                    </div>
+                `;
+            });
+
+            this.dom.endGrid.innerHTML = html;
+            this.dom.endScreen.classList.add('lyt_end_show');
+        }
+
+        /**
+         * Hide the end screen grid overlay.
+         */
+        hideEndScreen() {
+            this.dom.endScreen.classList.remove('lyt_end_show');
         }
 
         // ===== END RECOMMENDATION SYSTEM =====
@@ -2675,6 +2834,9 @@
             this.wrapper.classList.add('lyt_active');
             this.dom.controls.classList.add('lyt_controls_visible');
             this.updatePlayPauseBtn(false);
+
+            // Dispatch ended event for video.html autoplay logic
+            this.video.dispatchEvent(new Event('ended'));
         }
 
         play() { this.video.play(); }

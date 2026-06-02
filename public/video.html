@@ -2547,6 +2547,12 @@ document.addEventListener('click', function(e) {
                     }
                 
                     if (!autoplaySettings.enabled && !isManualSkip) {
+                        // Autoplay is OFF and video ended — show end screen grid if enabled
+                        const endScreenSettings = JSON.parse(localStorage.getItem('showEndScreenGrid') || '{}');
+                        const showGrid = endScreenSettings.enabled !== undefined ? endScreenSettings.enabled : true; // Default true
+                        if (showGrid && myFP && typeof myFP.showEndScreen === 'function') {
+                            myFP.showEndScreen();
+                        }
                         return;
                     }
             
@@ -2659,7 +2665,6 @@ document.addEventListener('click', function(e) {
             
             // ===== END UP NEXT OVERLAY LOGIC =====
             
-            // Listen for video end
             videoPlayer.addEventListener('ended', () => handleAutoPlayOrSkip(false));
             
             // Listen for the custom Skip button event from lyt-player.js (IS a manual skip)
