@@ -163,6 +163,24 @@ const recommendationsLimiter = rateLimit({
     message: 'Too many recommendation requests, please try again later.'
 });
 
+// End screen recommendations - returns 12 different videos from sidebar
+app.get('/endscreen-recommendations', recommendationsLimiter, (req, res) => {
+    const video = req.query.video || '';
+    const limit = parseInt(req.query.limit) || 12;
+    
+    // Get all videos from the cache (NOT getAllVideos which doesn't exist)
+    let videos = [...videoCache.values()].filter(v => v.path !== video);
+    
+    // Shuffle for variety
+    for (let i = videos.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [videos[i], videos[j]] = [videos[j], videos[i]];
+    }
+    
+    // Return with full details (viewCount, displayName, etc.)
+    res.json(getVideoDetails(videos.slice(0, limit)));
+});
+
 // Create sessions directory
 const sessionsDir = path.join(__dirname, 'sessions');
 if (!fs.existsSync(sessionsDir)) {
