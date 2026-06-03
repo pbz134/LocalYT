@@ -12,6 +12,9 @@ v4.35
 - Added a 4x3 grid of recommended videos inside of the player container once the current video has ended and if Autoplay is disabled
   - The grid can be toggled in settings.html
 - Increased the hitbox of the LYT Player volume slider
+- New VTT subtitle fixer
+  - A new script (made by bindestriche) provides much more consistent fixes for VTT file formatting
+- Fixed subtitle paths on video.html when watching a video within a playlist
 
 v4.30
 - New LYT custom video player

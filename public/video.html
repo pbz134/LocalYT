@@ -1979,12 +1979,20 @@ document.addEventListener('click', function(e) {
                 async function loadSubtitleTracks() {
                     if (!subTrackData.channel) return;
                     
-                    // FIX: Do not encodeURIComponent here, the server expects raw paths with brackets/spaces!
-                    const baseSubPath = `/subtitles/${subTrackData.channel}/${subTrackData.videoFile}`;
+                    // FIX 1: Bypass playlist subfolders. Subtitles are stored directly in the channel folder.
+                    // Extract just the raw filename (e.g. "TOMODACHI LIFE # 01 Willkommen auf LPM-World!")
+                    // instead of using the full videoSrc path which includes "Tomodachi Life/".
+                    const videoFileName = subTrackData.videoFile;
+                    
+                    // FIX 2: Do NOT encodeURIComponent the base path yet, otherwise the dot (.) 
+                    // before the language code gets caught by the encoding and breaks the URL.
+                    // We must encode parts individually when building the final URL.
+                    const encodedChannel = encodeURIComponent(subTrackData.channel);
+                    const encodedVideoName = encodeURIComponent(videoFileName);
+                    const baseSubPath = `/subtitles/${encodedChannel}/${encodedVideoName}`;
                     
                     // Check each language subtitle file and only add if it exists
                     const checkPromises = supportedLangCodes.map(async langCode => {
-                        // FIX: Do not encode the URL, keep it raw for the HEAD request
                         const trackUrl = `${baseSubPath}.${langCode}.vtt`;
                         try {
                             const response = await fetch(trackUrl, { method: 'HEAD' });
