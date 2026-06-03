@@ -1,18 +1,44 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: Check if #Setup.env exists
+:: ==============================================================================
+:: Configuration Defaults (All set to yes by default)
+:: ==============================================================================
+set "CHANNEL_PICS=yes"
+set "CHANNEL_SUBS=yes"
+set "RANDOM_SUBCOUNTS=yes"
+set "COMMUNITY_POSTS=yes"
+set "FIX_COMMENTS=yes"
+set "FIX_SUBTITLES=yes"
+set "FIX_UMLAUTS=yes"
+set "CLEAN_FILENAMES=yes"
+set "REMOVE_EMOJIS=yes"
+set "THUMBNAILS=yes"
+set "VIDEO_STATS=yes"
+set "CHANNEL_STATS=yes"
+set "VIDEO_LENGTHS=yes"
+set "VIEW_COUNTS=yes"
+set "SMALL_THUMBNAILS=yes"
 set "LLM_TAGGING=yes"
+set "PLAYLIST_METADATA=yes"
+set "FILENAMES=yes"
+set "FILEDATES=yes"
+set "FIX_DOUBLE_SPACES=yes"
+set "VIDEO_RESOLUTIONS=yes"
+set "HOME_PREVIEWS=yes"
+set "FILEDATE_CACHE=yes"
 set "SEEKBAR_PREVIEWS=yes"
 
+:: ==============================================================================
+:: Load or Ask for Preferences
+:: ==============================================================================
 if exist "#Setup.env" (
     echo Found #Setup.env, loading preferences...
     for /f "tokens=1,* delims==" %%a in (#Setup.env) do (
-        if /i "%%a"=="LLM_TAGGING" set "LLM_TAGGING=%%b"
-        if /i "%%a"=="SEEKBAR_PREVIEWS" set "SEEKBAR_PREVIEWS=%%b"
+        if "%%a" neq "" if "%%b" neq "" set "%%a=%%b"
     )
 ) else (
-    echo #Setup.env not found. Please configure your preferences:
+    echo #Setup.env not found. First-time setup:
     
     :ask_llm
     set /p "llm_choice=Do you want to do the LLM video tagging? (y/n): "
@@ -36,73 +62,123 @@ if exist "#Setup.env" (
         goto ask_seekbar
     )
 
-    :: Save choices to #Setup.env for future runs
-    echo LLM_TAGGING=!LLM_TAGGING!> "#Setup.env"
+    :: Save ALL choices to #Setup.env so the user can modify them later
+    echo CHANNEL_PICS=!CHANNEL_PICS!> "#Setup.env"
+    echo CHANNEL_SUBS=!CHANNEL_SUBS!>> "#Setup.env"
+    echo RANDOM_SUBCOUNTS=!RANDOM_SUBCOUNTS!>> "#Setup.env"
+    echo COMMUNITY_POSTS=!COMMUNITY_POSTS!>> "#Setup.env"
+    echo FIX_COMMENTS=!FIX_COMMENTS!>> "#Setup.env"
+    echo FIX_SUBTITLES=!FIX_SUBTITLES!>> "#Setup.env"
+    echo FIX_UMLAUTS=!FIX_UMLAUTS!>> "#Setup.env"
+    echo CLEAN_FILENAMES=!CLEAN_FILENAMES!>> "#Setup.env"
+    echo REMOVE_EMOJIS=!REMOVE_EMOJIS!>> "#Setup.env"
+    echo THUMBNAILS=!THUMBNAILS!>> "#Setup.env"
+    echo VIDEO_STATS=!VIDEO_STATS!>> "#Setup.env"
+    echo CHANNEL_STATS=!CHANNEL_STATS!>> "#Setup.env"
+    echo VIDEO_LENGTHS=!VIDEO_LENGTHS!>> "#Setup.env"
+    echo VIEW_COUNTS=!VIEW_COUNTS!>> "#Setup.env"
+    echo SMALL_THUMBNAILS=!SMALL_THUMBNAILS!>> "#Setup.env"
+    echo LLM_TAGGING=!LLM_TAGGING!>> "#Setup.env"
+    echo PLAYLIST_METADATA=!PLAYLIST_METADATA!>> "#Setup.env"
+    echo FILENAMES=!FILENAMES!>> "#Setup.env"
+    echo FILEDATES=!FILEDATES!>> "#Setup.env"
+    echo FIX_DOUBLE_SPACES=!FIX_DOUBLE_SPACES!>> "#Setup.env"
+    echo VIDEO_RESOLUTIONS=!VIDEO_RESOLUTIONS!>> "#Setup.env"
+    echo HOME_PREVIEWS=!HOME_PREVIEWS!>> "#Setup.env"
+    echo FILEDATE_CACHE=!FILEDATE_CACHE!>> "#Setup.env"
     echo SEEKBAR_PREVIEWS=!SEEKBAR_PREVIEWS!>> "#Setup.env"
     echo.
-    echo Preferences saved to #Setup.env. You won't be asked again.
+    echo Preferences saved to #Setup.env. You can edit this file manually to change settings.
     echo.
 )
 
-echo Generating missing channel pictures...
-.\venv\python.exe .\LocalYT-Rev-Files\createChannelpics.py
+:: ==============================================================================
+:: Execute Based on Preferences
+:: ==============================================================================
 
-echo Generating missing sub counts...
-.\venv\python.exe .\LocalYT-Rev-Files\createChannelsubs.py
+if /i "!CHANNEL_PICS!"=="yes" (
+    echo Generating missing channel pictures...
+    .\venv\python.exe .\LocalYT-Rev-Files\createChannelpics.py
+) else ( echo Skipping channel pictures... )
 
-echo Randomizing last subcount digits...
-.\venv\python.exe .\LocalYT-Rev-Files\createRandomSubcounts.py
+if /i "!CHANNEL_SUBS!"=="yes" (
+    echo Generating missing sub counts...
+    .\venv\python.exe .\LocalYT-Rev-Files\createChannelsubs.py
+) else ( echo Skipping sub counts... )
 
-echo Organizing Community posts...
-.\venv\python.exe .\LocalYT-Rev-Files\FormatCommunityPosts.py
+if /i "!RANDOM_SUBCOUNTS!"=="yes" (
+    echo Randomizing last subcount digits...
+    .\venv\python.exe .\LocalYT-Rev-Files\createRandomSubcounts.py
+) else ( echo Skipping random subcounts... )
 
-echo Fixing comment underscores...
-.\venv\python.exe .\LocalYT-Rev-Files\FixCommentUnderscores.py
+if /i "!COMMUNITY_POSTS!"=="yes" (
+    echo Organizing Community posts...
+    .\venv\python.exe .\LocalYT-Rev-Files\FormatCommunityPosts.py
+) else ( echo Skipping community posts... )
 
-echo Fixing _NA in subtitle file names...
-.\venv\python.exe .\LocalYT-Rev-Files\FixSubNA.py
+if /i "!FIX_COMMENTS!"=="yes" (
+    echo Fixing comment underscores...
+    .\venv\python.exe .\LocalYT-Rev-Files\FixCommentUnderscores.py
+) else ( echo Skipping comment fixes... )
 
-echo Deduplicating general English and US English subtitles...
-.\venv\python.exe .\LocalYT-Rev-Files\FixEnglishSubDupes.py
+if /i "!FIX_SUBTITLES!"=="yes" (
+    echo Fixing _NA in subtitle file names...
+    .\venv\python.exe .\LocalYT-Rev-Files\FixSubNA.py
+    echo Deduplicating general English and US English subtitles...
+    .\venv\python.exe .\LocalYT-Rev-Files\FixEnglishSubDupes.py
+    echo Fixing auto-generated subtitle structuring...
+    .\venv\python.exe .\LocalYT-Rev-Files\srt_fixer_cli.py -idir subtitles -odir subtitles
+) else ( echo Skipping subtitle fixes... )
 
-echo Fixing auto-generated subtitle structuring...
-.\venv\python.exe .\LocalYT-Rev-Files\srt_fixer_cli.py -idir subtitles -odir subtitles
+if /i "!FIX_UMLAUTS!"=="yes" (
+    echo Fixing umlauts before moving metadata...
+    .\venv\python.exe .\LocalYT-Rev-Files\FixUmlauts.py --apply
+) else ( echo Skipping umlaut fixes... )
 
-echo Fixing umlauts before moving metadata...
-.\venv\python.exe .\LocalYT-Rev-Files\FixUmlauts.py --apply
+if /i "!CLEAN_FILENAMES!"=="yes" (
+    echo Cleaning up file names (making 4k Video Downloader file names compatible with yt-dlp file names)...
+    .\venv\python.exe .\LocalYT-Rev-Files\remove_special_characters.py
+) else ( echo Skipping file name cleanup... )
 
-echo Cleaning up file names (making 4k Video Downloader file names compatible with yt-dlp file names)...
-.\venv\python.exe .\LocalYT-Rev-Files\remove_special_characters.py
+if /i "!REMOVE_EMOJIS!"=="yes" (
+    echo Removing emojis from file names...
+    .\venv\python.exe .\LocalYT-Rev-Files\remove_emojis.py
+) else ( echo Skipping emoji removal... )
 
-echo Removing emojis from file names...
-.\venv\python.exe .\LocalYT-Rev-Files\remove_emojis.py
+if /i "!THUMBNAILS!"=="yes" (
+    echo Generating thumbnails...
+    .\venv\python.exe .\LocalYT-Rev-Files\createThumbnails.py
+) else ( echo Skipping thumbnail generation... )
 
-echo Generating thumbnails...
-.\venv\python.exe .\LocalYT-Rev-Files\createThumbnails.py
+if /i "!VIDEO_STATS!"=="yes" (
+    echo Generating video stats...
+    .\venv\python.exe .\LocalYT-Rev-Files\createVideostats.py
+) else ( echo Skipping video stats... )
 
-echo Generating video stats...
-.\venv\python.exe .\LocalYT-Rev-Files\createVideostats.py
+if /i "!CHANNEL_STATS!"=="yes" (
+    echo Calculating total channel view counts and archived date...
+    .\venv\python.exe .\LocalYT-Rev-Files\createChannelstats.py
+) else ( echo Skipping channel stats... )
 
-echo Calculating total channel view counts and archived date...
-.\venv\python.exe .\LocalYT-Rev-Files\createChannelstats.py
-
-echo Cropping all thumbnails to 16:9...
-.\venv\python.exe .\LocalYT-Rev-Files\CropThumbnails.py
-
-echo Generating videolengths...
-.\venv\python.exe .\LocalYT-Rev-Files\createVideolengths.py
-goto continue
-
-:skipvideolengths
-echo Skipping video length generation...
-goto continue
+if /i "!VIDEO_LENGTHS!"=="yes" (
+    echo Generating videolengths...
+    .\venv\python.exe .\LocalYT-Rev-Files\createVideolengths.py
+    goto continue
+) else ( 
+    echo Skipping video length generation...
+    goto continue
+)
 
 :continue
-echo Generating view counts...
-.\venv\python.exe .\LocalYT-Rev-Files\createviews.py
+if /i "!VIEW_COUNTS!"=="yes" (
+    echo Generating view counts...
+    .\venv\python.exe .\LocalYT-Rev-Files\createviews.py
+) else ( echo Skipping view counts... )
 
-echo Generating small thumbnails...
-.\venv\python.exe .\LocalYT-Rev-Files\createSmallThumbnails.py
+if /i "!SMALL_THUMBNAILS!"=="yes" (
+    echo Generating small thumbnails...
+    .\venv\python.exe .\LocalYT-Rev-Files\createSmallThumbnails.py
+) else ( echo Skipping small thumbnails... )
 
 :: LLM Video Tagging Section
 if /i "!LLM_TAGGING!"=="yes" (
@@ -185,37 +261,50 @@ if /i "!LLM_TAGGING!"=="yes" (
     echo Skipping LLM video tagging...
 )
 
-echo Organizing playlist metadata...
-.\venv\python.exe .\LocalYT-Rev-Files\MovePlaylistMetadata.py
+if /i "!PLAYLIST_METADATA!"=="yes" (
+    echo Organizing playlist metadata...
+    .\venv\python.exe .\LocalYT-Rev-Files\MovePlaylistMetadata.py
+) else ( echo Skipping playlist metadata... )
 
-echo Generating filenames...
-.\venv\python.exe .\LocalYT-Rev-Files\createFilenames.py
+if /i "!FILENAMES!"=="yes" (
+    echo Generating filenames...
+    .\venv\python.exe .\LocalYT-Rev-Files\createFilenames.py
+) else ( echo Skipping filenames... )
 
-echo Fixing umlauts after metadata...
-.\venv\python.exe .\LocalYT-Rev-Files\FixUmlauts.py
+if /i "!FIX_UMLAUTS!"=="yes" (
+    echo Fixing umlauts after metadata...
+    .\venv\python.exe .\LocalYT-Rev-Files\FixUmlauts.py
+) else ( echo Skipping umlaut fixes... )
 
-echo Generating filedates...
-.\venv\python.exe .\LocalYT-Rev-Files\createFiledates.py
+if /i "!FILEDATES!"=="yes" (
+    echo Generating filedates...
+    .\venv\python.exe .\LocalYT-Rev-Files\createFiledates.py
+) else ( echo Skipping filedates... )
 
-echo Removing double spaces...
-.\venv\python.exe .\LocalYT-Rev-Files\FixDoubleSpaces.py
+if /i "!FIX_DOUBLE_SPACES!"=="yes" (
+    echo Removing double spaces...
+    .\venv\python.exe .\LocalYT-Rev-Files\FixDoubleSpaces.py
+) else ( echo Skipping double space fixes... )
 
-echo Generationg video resolution files...
-.\venv\python.exe .\LocalYT-Rev-Files\createVideoresolutions.py
+if /i "!VIDEO_RESOLUTIONS!"=="yes" (
+    echo Generationg video resolution files...
+    .\venv\python.exe .\LocalYT-Rev-Files\createVideoresolutions.py
+) else ( echo Skipping video resolutions... )
 
-echo Generating channel Home page index...
-.\venv\python.exe .\LocalYT-Rev-Files\generate_home_previews.py
+if /i "!HOME_PREVIEWS!"=="yes" (
+    echo Generating channel Home page index...
+    .\venv\python.exe .\LocalYT-Rev-Files\generate_home_previews.py
+) else ( echo Skipping home previews... )
 
-echo Generating filedate cache...
-.\venv\python.exe .\LocalYT-Rev-Files\generate_filedate_cache.py
+if /i "!FILEDATE_CACHE!"=="yes" (
+    echo Generating filedate cache...
+    .\venv\python.exe .\LocalYT-Rev-Files\generate_filedate_cache.py
+) else ( echo Skipping filedate cache... )
 
-:: Seek Bar Previews Section
 if /i "!SEEKBAR_PREVIEWS!"=="yes" (
     echo Generating seek bar previews...
     .\venv\python.exe .\LocalYT-Rev-Files\createSpriteImages.py --workers 1
-) else (
-    echo Skipping seek bar previews...
-)
+) else ( echo Skipping seek bar previews... )
 
 echo.
 echo =============================================================================
