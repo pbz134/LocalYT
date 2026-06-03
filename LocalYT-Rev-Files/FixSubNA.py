@@ -12,7 +12,7 @@ TARGET_STRING = "_NA"
 def remove_na_from_subtitles(subtitles_path, target_str):
     """
     Recursively scans the subtitles folder and removes the target string from file names.
-    Skips renaming if the correctly-named file already exists.
+    Overwrites existing files if the correctly-named file already exists.
     """
     
     # --- PRE-SCAN PHASE ---
@@ -35,7 +35,7 @@ def remove_na_from_subtitles(subtitles_path, target_str):
 
     # --- PROCESSING PHASE ---
     changes_made = 0
-    skipped_duplicates = 0
+    overwritten = 0
     
     print(f"Scanning {total_files} subtitle files...", end="\r")
 
@@ -54,15 +54,13 @@ def remove_na_from_subtitles(subtitles_path, target_str):
             new_filename = file.replace(target_str, "")
             new_path = os.path.join(root, new_filename)
             
-            # CHECK: Does the correct file already exist?
+            # Track if we are overwriting an existing file
             if os.path.exists(new_path):
-                # SKIP silently
-                skipped_duplicates += 1
-                continue
+                overwritten += 1
             
-            # Safe to rename
+            # Overwrite if it exists (os.replace replaces existing files atomically)
             try:
-                os.rename(old_path, new_path)
+                os.replace(old_path, new_path)
                 changes_made += 1
             except OSError as e:
                 # Silently handle errors to maintain clean output
@@ -77,8 +75,8 @@ def remove_na_from_subtitles(subtitles_path, target_str):
     print(f"  Total Files Scanned:  {total_files}")
     print(f"  Files Renamed:        {changes_made}")
     
-    if skipped_duplicates > 0:
-        print(f"  Duplicates Skipped:   {skipped_duplicates}")
+    if overwritten > 0:
+        print(f"  Files Overwritten:    {overwritten}")
 
 if __name__ == "__main__":
     remove_na_from_subtitles(SUBTITLES_DIR, TARGET_STRING)
