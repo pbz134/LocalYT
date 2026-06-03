@@ -906,8 +906,8 @@
                     window.location.href = 'settings.html';
                 }));
 
-                menuInstance.appendChild(createMenuItem('help.svg', getLang('Help', 'Hilfe'), () => {
-                    window.location.href = 'documentation.html';
+                menuInstance.appendChild(createMenuItem('changelog.svg', getLang('Changelog', 'Änderungsprotokoll'), () => {
+                    window.location.href = 'changelog.html';
                 }));
 
                 menuInstance.appendChild(createMenuItem('sourcecode.svg', getLang('Source Code', 'Quellcode'), () => {
@@ -923,8 +923,8 @@
                     window.location.href = '/login.html';
                 }));
 
-                menuInstance.appendChild(createMenuItem('help.svg', getLang('Help', 'Hilfe'), () => {
-                    window.location.href = 'documentation.html';
+                menuInstance.appendChild(createMenuItem('changelog.svg', getLang('Changelog', 'Änderungsprotokoll'), () => {
+                    window.location.href = 'changelog.html';
                 }));
 
                 menuInstance.appendChild(createMenuItem('sourcecode.svg', getLang('Source Code', 'Quellcode'), () => {
