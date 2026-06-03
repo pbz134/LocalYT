@@ -1,6 +1,49 @@
 @echo off
 setlocal enabledelayedexpansion
 
+:: Check if #Setup.env exists
+set "LLM_TAGGING=yes"
+set "SEEKBAR_PREVIEWS=yes"
+
+if exist "#Setup.env" (
+    echo Found #Setup.env, loading preferences...
+    for /f "tokens=1,* delims==" %%a in (#Setup.env) do (
+        if /i "%%a"=="LLM_TAGGING" set "LLM_TAGGING=%%b"
+        if /i "%%a"=="SEEKBAR_PREVIEWS" set "SEEKBAR_PREVIEWS=%%b"
+    )
+) else (
+    echo #Setup.env not found. Please configure your preferences:
+    
+    :ask_llm
+    set /p "llm_choice=Do you want to do the LLM video tagging? (y/n): "
+    if /i "!llm_choice!"=="y" (
+        set "LLM_TAGGING=yes"
+    ) else if /i "!llm_choice!"=="n" (
+        set "LLM_TAGGING=no"
+    ) else (
+        echo Please enter y or n.
+        goto ask_llm
+    )
+
+    :ask_seekbar
+    set /p "seekbar_choice=Do you want to generate seek bar previews? (y/n): "
+    if /i "!seekbar_choice!"=="y" (
+        set "SEEKBAR_PREVIEWS=yes"
+    ) else if /i "!seekbar_choice!"=="n" (
+        set "SEEKBAR_PREVIEWS=no"
+    ) else (
+        echo Please enter y or n.
+        goto ask_seekbar
+    )
+
+    :: Save choices to #Setup.env for future runs
+    echo LLM_TAGGING=!LLM_TAGGING!> "#Setup.env"
+    echo SEEKBAR_PREVIEWS=!SEEKBAR_PREVIEWS!>> "#Setup.env"
+    echo.
+    echo Preferences saved to #Setup.env. You won't be asked again.
+    echo.
+)
+
 echo Generating missing channel pictures...
 .\venv\python.exe .\LocalYT-Rev-Files\createChannelpics.py
 
@@ -61,81 +104,86 @@ echo Generating view counts...
 echo Generating small thumbnails...
 .\venv\python.exe .\LocalYT-Rev-Files\createSmallThumbnails.py
 
-echo running Algorithm setup...
+:: LLM Video Tagging Section
+if /i "!LLM_TAGGING!"=="yes" (
+    echo running Algorithm setup...
 
-REM Step 1: Run create-filename-list.py from Algorithm directory
-cd Algorithm
-.\venv\python.exe create-filename-list.py --untagged
-if errorlevel 1 (
-    echo Error running create-filename-list.py
-    cd ..
-    pause
-    exit /b 1
-)
-
-REM Step 2: Start koboldcpp in the background (from root directory)
-cd ..
-echo Starting koboldcpp-nocuda.exe...
-start "KoboldCPP" /D "Algorithm" koboldcpp-nocuda.exe model.kcpps
-
-REM Step 3: Wait for the model to fully load
-echo Waiting for model to load...
-echo Checking http://localhost:5001/api/v1/model every 2 seconds...
-set max_attempts=300
-set attempt=1
-set model_loaded=0
-set first_success=0
-
-:check_model
-echo Attempt !attempt! of !max_attempts!...
-
-powershell -Command "try { $response = Invoke-WebRequest -Uri 'http://localhost:5001/api/v1/model' -Method GET -TimeoutSec 5; if ($response.StatusCode -eq 200) { $content = $response.Content | ConvertFrom-Json; if ($content.result -and $content.result -ne '') { exit 0 } else { exit 1 } } else { exit 1 } } catch { exit 1 }"
-
-if errorlevel 0 (
-    if !first_success! equ 0 (
-        echo Model endpoint reachable! Waiting additional 10 seconds for complete loading...
-        set first_success=1
-        timeout /t 10 /nobreak >nul
-        goto check_model
-    ) else (
-        set model_loaded=1
-        echo Model is loaded and ready!
-        goto model_ready
+    REM Step 1: Run create-filename-list.py from Algorithm directory
+    cd Algorithm
+    .\venv\python.exe create-filename-list.py --untagged
+    if errorlevel 1 (
+        echo Error running create-filename-list.py
+        cd ..
+        pause
+        exit /b 1
     )
-)
 
-if !attempt! geq !max_attempts! (
-    echo Failed to detect model loading after !max_attempts! attempts (10 minutes).
-    echo Killing koboldcpp process...
-    taskkill /FI "WINDOWTITLE eq KoboldCPP" /F >nul 2>&1
-    pause
-    exit /b 1
-)
-
-if !first_success! equ 0 (
-    echo Model not ready yet, waiting 2 seconds...
-    timeout /t 2 /nobreak >nul
-    set /a attempt+=1
-    goto check_model
-)
-
-:model_ready
-
-REM Step 4: Run analyze.py from Algorithm directory
-cd Algorithm
-.\venv\python.exe analyze.py
-if errorlevel 1 (
-    echo Error running analyze.py
+    REM Step 2: Start koboldcpp in the background (from root directory)
     cd ..
-    REM Continue with cleanup even if analyze.py fails
+    echo Starting koboldcpp-nocuda.exe...
+    start "KoboldCPP" /D "Algorithm" koboldcpp-nocuda.exe model.kcpps
+
+    REM Step 3: Wait for the model to fully load
+    echo Waiting for model to load...
+    echo Checking http://localhost:5001/api/v1/model every 2 seconds...
+    set max_attempts=300
+    set attempt=1
+    set model_loaded=0
+    set first_success=0
+
+    :check_model
+    echo Attempt !attempt! of !max_attempts!...
+
+    powershell -Command "try { $response = Invoke-WebRequest -Uri 'http://localhost:5001/api/v1/model' -Method GET -TimeoutSec 5; if ($response.StatusCode -eq 200) { $content = $response.Content | ConvertFrom-Json; if ($content.result -and $content.result -ne '') { exit 0 } else { exit 1 } } else { exit 1 } } catch { exit 1 }"
+
+    if errorlevel 0 (
+        if !first_success! equ 0 (
+            echo Model endpoint reachable! Waiting additional 10 seconds for complete loading...
+            set first_success=1
+            timeout /t 10 /nobreak >nul
+            goto check_model
+        ) else (
+            set model_loaded=1
+            echo Model is loaded and ready!
+            goto model_ready
+        )
+    )
+
+    if !attempt! geq !max_attempts! (
+        echo Failed to detect model loading after !max_attempts! attempts (10 minutes).
+        echo Killing koboldcpp process...
+        taskkill /FI "WINDOWTITLE eq KoboldCPP" /F >nul 2>&1
+        pause
+        exit /b 1
+    )
+
+    if !first_success! equ 0 (
+        echo Model not ready yet, waiting 2 seconds...
+        timeout /t 2 /nobreak >nul
+        set /a attempt+=1
+        goto check_model
+    )
+
+    :model_ready
+
+    REM Step 4: Run analyze.py from Algorithm directory
+    cd Algorithm
+    .\venv\python.exe analyze.py
+    if errorlevel 1 (
+        echo Error running analyze.py
+        cd ..
+        REM Continue with cleanup even if analyze.py fails
+    )
+
+    REM Step 5: Cleanup - kill koboldcpp
+    cd ..
+    echo Cleaning up...
+    taskkill /F /IM koboldcpp-nocuda.exe >nul 2>&1
+
+    echo Continuing with other tasks...
+) else (
+    echo Skipping LLM video tagging...
 )
-
-REM Step 5: Cleanup - kill koboldcpp
-cd ..
-echo Cleaning up...
-taskkill /F /IM koboldcpp-nocuda.exe >nul 2>&1
-
-echo Continuing with other tasks...
 
 echo Organizing playlist metadata...
 .\venv\python.exe .\LocalYT-Rev-Files\MovePlaylistMetadata.py
@@ -161,8 +209,13 @@ echo Generating channel Home page index...
 echo Generating filedate cache...
 .\venv\python.exe .\LocalYT-Rev-Files\generate_filedate_cache.py
 
-echo Generating seek bar previews...
-.\venv\python.exe .\LocalYT-Rev-Files\createSpriteImages.py --workers 1
+:: Seek Bar Previews Section
+if /i "!SEEKBAR_PREVIEWS!"=="yes" (
+    echo Generating seek bar previews...
+    .\venv\python.exe .\LocalYT-Rev-Files\createSpriteImages.py --workers 1
+) else (
+    echo Skipping seek bar previews...
+)
 
 echo.
 echo =============================================================================
