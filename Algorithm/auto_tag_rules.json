@@ -10,10 +10,10 @@
     {
       "name": "Nikke Rule",
       "match_type": "contains",
-      "match_value": "nikke",
+      "match_value": ["nikke", "rapi", "shift up"],
       "case_sensitive": false,
       "tags": ["Anime", "Goddess of Victory Nikke", "Gaming"]
-    },
+    }
     {
       "name": "Anime AMV Rule",
       "match_type": "contains",
@@ -24,7 +24,7 @@
     {
       "name": "Touhou Rule",
       "match_type": "contains",
-      "match_value": "touhou",
+      "match_value": ["touhou", "reimu", "marisa", "zun"],
       "case_sensitive": false,
       "tags": ["Touhou", "Anime", "Gaming"]
     },
@@ -38,14 +38,14 @@
     {
       "name": "Minecraft Rule",
       "match_type": "contains",
-      "match_value": "minecraft",
+      "match_value": ["minecraft", "creeper", "mob farm"],
       "case_sensitive": false,
       "tags": ["Minecraft", "Gaming"]
     },
     {
       "name": "Horror Game Rule",
       "match_type": "contains",
-      "match_value": "horror",
+      "match_value": ["horror", "slenderman", "slender"],
       "case_sensitive": false,
       "tags": ["Horror", "Gaming"]
     },
@@ -59,7 +59,7 @@
     {
       "name": "VTuber Rule",
       "match_type": "contains",
-      "match_value": "vtuber",
+      "match_value": ["vtuber", "hololive", "gura", "shylily", "kizuna", "pekora", "ironmouse", "houshou", "filian", "suisei", "fubuki", "calliope", "korone"],
       "case_sensitive": false,
       "tags": ["VTuber", "Anime"]
     },
@@ -71,23 +71,16 @@
       "tags": ["Mukbang", "ASMR"]
     },
     {
-      "name": "YTP Rule (English)",
+      "name": "YTP Rule",
       "match_type": "contains",
-      "match_value": "ytp",
-      "case_sensitive": false,
-      "tags": ["YTP", "Meme", "Comedy"]
-    },
-    {
-      "name": "YTP Rule (German)",
-      "match_type": "contains",
-      "match_value": "ytk",
+      "match_value": ["ytp", "ytk"],
       "case_sensitive": false,
       "tags": ["YTP", "Meme", "Comedy"]
     },
     {
       "name": "Genshin Impact Rule",
       "match_type": "contains",
-      "match_value": "Genshin",
+      "match_value": ["Genshin", "Mora", "Lumine", "MiHoYo", "HoYoverse"],
       "case_sensitive": false,
       "tags": ["Genshin Impact", "Gaming"]
     },
@@ -101,14 +94,7 @@
     {
       "name": "GTA Rule",
       "match_type": "contains",
-      "match_value": "gta",
-      "case_sensitive": false,
-      "tags": ["GTA", "Gaming"]
-    },
-    {
-      "name": "Grand Theft Auto Rule",
-      "match_type": "contains",
-      "match_value": "grand theft auto",
+      "match_value": ["gta", "grand theft auto", "san andreas", "chinatown wars", "rockstar games"],
       "case_sensitive": false,
       "tags": ["GTA", "Gaming"]
     },
@@ -136,7 +122,7 @@
     {
       "name": "Nintendo Rule",
       "match_type": "contains",
-      "match_value": "nintendo",
+      "match_value": ["nintendo", "miyamoto"],
       "case_sensitive": false,
       "tags": ["Nintendo", "Gaming"]
     },

@@ -74,36 +74,63 @@ def apply_auto_tag_rules(video_name, rules):
         if not tags:
             continue
         
-        # Prepare strings for matching
+        # --- NEW: Normalize match_value to a list for multi-value matching ---
+        if isinstance(match_value, str):
+            match_values = [match_value]
+        elif isinstance(match_value, list):
+            match_values = match_value
+        else:
+            continue
+        # ---------------------------------------------------------------------
+        
+        # Prepare the video name for matching (do this once per rule, not per value)
         video_name_for_match = video_name if case_sensitive else video_name.lower()
-        match_value_for_match = match_value if case_sensitive else match_value.lower()
         
         matched = False
         
-        if match_type == "contains":
-            matched = match_value_for_match in video_name_for_match
-        
-        elif match_type == "extension":
-            matched = video_name_for_match.endswith(match_value_for_match)
-        
-        elif match_type == "starts_with":
-            matched = video_name_for_match.startswith(match_value_for_match)
-        
-        elif match_type == "ends_with":
-            matched = video_name_for_match.endswith(match_value_for_match)
-        
-        elif match_type == "regex":
-            flags = 0 if case_sensitive else re.IGNORECASE
-            try:
-                matched = bool(re.search(match_value, video_name, flags))
-            except re.error as e:
-                print(f"  Warning: Invalid regex in rule '{rule_name}': {e}")
-                matched = False
-        
-        else:
-            print(f"  Warning: Unknown match_type '{match_type}' in rule '{rule_name}'")
-            continue
-        
+        # --- NEW: Loop through all values in the match_values list ---
+        for current_match_value in match_values:
+            # Skip empty values in the list
+            if not current_match_value:
+                continue
+                
+            match_value_for_match = current_match_value if case_sensitive else current_match_value.lower()
+            
+            if match_type == "contains":
+                if match_value_for_match in video_name_for_match:
+                    matched = True
+                    break  # Found a match, no need to check the rest of the values
+            
+            elif match_type == "extension":
+                if video_name_for_match.endswith(match_value_for_match):
+                    matched = True
+                    break
+            
+            elif match_type == "starts_with":
+                if video_name_for_match.startswith(match_value_for_match):
+                    matched = True
+                    break
+            
+            elif match_type == "ends_with":
+                if video_name_for_match.endswith(match_value_for_match):
+                    matched = True
+                    break
+            
+            elif match_type == "regex":
+                flags = 0 if case_sensitive else re.IGNORECASE
+                try:
+                    if re.search(current_match_value, video_name, flags):
+                        matched = True
+                        break
+                except re.error as e:
+                    print(f"  Warning: Invalid regex in rule '{rule_name}': {e}")
+                    matched = False
+            
+            else:
+                print(f"  Warning: Unknown match_type '{match_type}' in rule '{rule_name}'")
+                continue
+        # -------------------------------------------------------------
+
         if matched:
             return tags, rule_name
     
