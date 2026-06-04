@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Topics - LocalYT</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
+    <!-- Cropper.js -->
+    <link rel="stylesheet" href="cropper.min.css">
+    <script src="cropper.min.js"></script>
+    <style>
+        .edit-topics-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px 20px;
+            margin-left: 250px;
+            margin-top: 80px;
+        }
+        .edit-topics-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+        .edit-topics-subtitle {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        .topics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .topic-card {
+            background: #222;
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            transition: background 0.2s;
+            border: 1px solid #333;
+        }
+        .topic-card:hover {
+            background: #2a2a2a;
+        }
+        .topic-card-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 12px;
+        }
+        .topic-card-pic {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #333;
+            flex-shrink: 0;
+        }
+        .topic-card-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+        .topic-card-meta {
+            color: #888;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+        .topic-card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: background 0.2s, opacity 0.2s;
+        }
+        .btn-primary {
+            background: #3ea6ff;
+            color: #000;
+        }
+        .btn-primary:hover {
+            background: #65b8ff;
+        }
+        .btn-secondary {
+            background: #333;
+            color: #ccc;
+        }
+        .btn-secondary:hover {
+            background: #444;
+        }
+        .btn-danger {
+            background: #cc0000;
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #ff2222;
+        }
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* Add Topic Card */
+        .add-topic-card {
+            background: transparent;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px dashed #444;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 140px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .add-topic-card:hover {
+            border-color: #3ea6ff;
+            background: rgba(62, 166, 255, 0.05);
+        }
+        .add-topic-card .plus-icon {
+            font-size: 36px;
+            color: #555;
+            margin-bottom: 8px;
+        }
+        .add-topic-card .add-text {
+            color: #888;
+            font-size: 14px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.75);
+            z-index: 9999;
+            display: none;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 40px 20px;
+            overflow-y: auto;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-content {
+            background: #1a1a1a;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 700px;
+            width: 100%;
+            color: #ccc;
+            border: 1px solid #333;
+        }
+        .modal-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 24px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            color: #aaa;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group textarea {
+            width: 100%;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #fff;
+            font-size: 14px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3ea6ff;
+        }
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        .form-group .hint {
+            color: #666;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        /* Tag Input */
+        .tag-input-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 8px;
+            min-height: 42px;
+            align-items: center;
+            cursor: text;
+        }
+        .tag-input-wrapper:focus-within {
+            border-color: #3ea6ff;
+        }
+        .tag-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #3ea6ff22;
+            color: #3ea6ff;
+            border: 1px solid #3ea6ff44;
+            border-radius: 14px;
+            padding: 3px 10px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .tag-pill .remove-tag {
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 2px;
+            opacity: 0.7;
+        }
+        .tag-pill .remove-tag:hover {
+            opacity: 1;
+        }
+        .tag-input-field {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 13px;
+            min-width: 80px;
+            flex: 1;
+        }
+        .tag-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .tag-suggestion {
+            background: #333;
+            color: #aaa;
+            border: 1px solid #444;
+            border-radius: 14px;
+            padding: 3px 10px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .tag-suggestion:hover {
+            background: #444;
+            color: #fff;
+            border-color: #666;
+        }
+
+        /* Image Upload Areas */
+        .image-upload-area {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+        .image-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #2a2a2a;
+            border: 2px dashed #444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .image-preview.banner-preview {
+            width: 160px;
+            height: 50px;
+            border-radius: 8px;
+        }
+        .image-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .image-preview .placeholder-text {
+            color: #555;
+            font-size: 10px;
+            text-align: center;
+            padding: 4px;
+        }
+        .image-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        /* Cropper Modal */
+        .cropper-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 10001;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .cropper-modal-overlay.active {
+            display: flex;
+        }
+        .cropper-modal {
+            background: #1a1a1a;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 600px;
+            width: 100%;
+            border: 1px solid #333;
+        }
+        .cropper-modal-title {
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 16px;
+        }
+        .cropper-image-container {
+            width: 100%;
+            max-height: 400px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            background: #000;
+            border-radius: 8px;
+        }
+        .cropper-image-container img {
+            max-width: 100%;
+            display: block;
+        }
+        .cropper-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* Toast notifications */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #3ea6ff;
+            color: #000;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 10002;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            pointer-events: none;
+        }
+        .toast.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .toast.error {
+            background: #cc0000;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <header class="top-bar">
+        <img src="LocalYT-Rev-Files/Logo.svg" alt="Logo" class="logo" id="mainLogo">
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="">
+            <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
+            <div id="searchSuggestions" class="search-suggestions"></div>
+        </div>
+    </header>
+
+    <div class="edit-topics-container">
+        <div class="edit-topics-title" id="pageTitle">Edit Topics</div>
+        <div class="edit-topics-subtitle" id="pageSubtitle">Customize your sidebar by creating up to 4 custom topic channels.</div>
+
+        <div class="topics-grid" id="topicsGrid">
+            <!-- Topic cards will be injected here -->
+        </div>
+    </div>
+
+    <!-- Edit/Create Topic Modal -->
+    <div class="modal-overlay" id="topicModal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">Create Topic</div>
+
+            <!-- Name -->
+            <div class="form-group">
+                <label for="topicName">Name</label>
+                <input type="text" id="topicName" placeholder="My Custom Topic" maxlength="40">
+            </div>
+
+            <!-- Description -->
+            <div class="form-group">
+                <label for="topicDescription">Description</label>
+                <textarea id="topicDescription" placeholder="What is this topic about?" maxlength="500"></textarea>
+            </div>
+
+            <!-- Profile Picture -->
+            <div class="form-group">
+                <label>Profile Picture</label>
+                <div class="image-upload-area">
+                    <div class="image-preview" id="profilePicPreview">
+                        <span class="placeholder-text">No image</span>
+                    </div>
+                    <div class="image-controls">
+                        <button class="btn btn-secondary btn-small" id="uploadProfilePicBtn">Choose Image</button>
+                        <button class="btn btn-secondary btn-small" id="removeProfilePicBtn" style="display:none;">Remove</button>
+                        <input type="file" id="profilePicInput" accept="image/jpeg,image/png,image/webp" style="display:none;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Banner -->
+            <div class="form-group">
+                <label>Banner</label>
+                <div class="image-upload-area">
+                    <div class="image-preview banner-preview" id="bannerPreview">
+                        <span class="placeholder-text">No banner</span>
+                    </div>
+                    <div class="image-controls">
+                        <button class="btn btn-secondary btn-small" id="uploadBannerBtn">Choose Image</button>
+                        <button class="btn btn-secondary btn-small" id="removeBannerBtn" style="display:none;">Remove</button>
+                        <input type="file" id="bannerInput" accept="image/jpeg,image/png,image/webp" style="display:none;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tags -->
+            <div class="form-group">
+                <label>Tags (Videos with ANY of these tags will appear)</label>
+                <div class="tag-input-wrapper" id="tagsWrapper">
+                    <input type="text" class="tag-input-field" id="tagInput" placeholder="Type a tag and press Enter">
+                </div>
+                <div class="tag-suggestions" id="tagSuggestions"></div>
+                <div class="hint">Press Enter or comma to add. Click × to remove.</div>
+            </div>
+
+            <!-- Title Words -->
+            <div class="form-group">
+                <label>Title Words (Videos whose title contains ANY of these words)</label>
+                <div class="tag-input-wrapper" id="titleWordsWrapper">
+                    <input type="text" class="tag-input-field" id="titleWordInput" placeholder="Type a word and press Enter">
+                </div>
+                <div class="hint">Case-insensitive. Words shorter than 3 characters are ignored.</div>
+            </div>
+
+            <!-- Blacklist Tags -->
+            <div class="form-group">
+                <label>Blacklist Tags (Videos with ANY of these tags are excluded)</label>
+                <div class="tag-input-wrapper" id="blacklistTagsWrapper">
+                    <input type="text" class="tag-input-field" id="blacklistTagInput" placeholder="Type a tag and press Enter">
+                </div>
+            </div>
+
+            <!-- Blacklist Words -->
+            <div class="form-group">
+                <label>Blacklist Words (Videos whose title contains ANY of these words are excluded)</label>
+                <div class="tag-input-wrapper" id="blacklistWordsWrapper">
+                    <input type="text" class="tag-input-field" id="blacklistWordInput" placeholder="Type a word and press Enter">
+                </div>
+            </div>
+
+            <!-- Min Duration -->
+            <div class="form-group">
+                <label for="minDuration">Minimum Duration (seconds)</label>
+                <input type="number" id="minDuration" placeholder="0" min="0" value="0">
+                <div class="hint">Only show videos longer than this. 0 = no minimum.</div>
+            </div>
+
+            <!-- Actions -->
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+                <button class="btn btn-secondary" id="cancelTopicBtn">Cancel</button>
+                <button class="btn btn-primary" id="saveTopicBtn">Save Topic</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cropper Modal -->
+    <div class="cropper-modal-overlay" id="cropperModal">
+        <div class="cropper-modal">
+            <div class="cropper-modal-title" id="cropperTitle">Crop Image</div>
+            <div class="cropper-image-container">
+                <img id="cropperImage" src="" alt="Crop preview">
+            </div>
+            <div class="cropper-actions">
+                <button class="btn btn-secondary" id="cropperCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="cropperApplyBtn">Crop & Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+(function() {
+    // ==============================
+    // Utility
+    // ==============================
+    function getLang(en, de) {
+        return localStorage.getItem('language') === 'de' ? de : en;
+    }
+
+    function showToast(message, isError) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = 'toast' + (isError ? ' error' : '');
+        setTimeout(() => toast.classList.add('visible'), 10);
+        setTimeout(() => toast.classList.remove('visible'), 3000);
+    }
+
+    function generateId() {
+        return 'topic_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6);
+    }
+
+    // ==============================
+    // State
+    // ==============================
+    let userTopics = [];
+    let editingTopicId = null; // null = creating new
+    let allAvailableTags = [];
+    let cropperInstance = null;
+    let currentCropperType = null; // 'profilePic' or 'banner'
+    let pendingProfilePicDataUrl = null;
+    let pendingBannerDataUrl = null;
+
+    // Current form state
+    let formTags = [];
+    let formTitleWords = [];
+    let formBlacklistTags = [];
+    let formBlacklistWords = [];
+
+    // ==============================
+    // DOM Elements
+    // ==============================
+    const topicsGrid = document.getElementById('topicsGrid');
+    const topicModal = document.getElementById('topicModal');
+    const cropperModal = document.getElementById('cropperModal');
+
+    // ==============================
+    // Translations
+    // ==============================
+    function updateUITranslations() {
+        document.getElementById('pageTitle').textContent = getLang('Edit Topics', 'Themen bearbeiten');
+        document.getElementById('pageSubtitle').textContent = getLang('Customize your sidebar by creating up to 4 custom topic channels.', 'Passe deine Seitenleiste an, indem du bis zu 4 benutzerdefinierte Themenkanäle erstellst.');
+        document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
+    }
+    updateUITranslations();
+
+    // ==============================
+    // Logo navigation
+    // ==============================
+    const mainLogo = document.getElementById('mainLogo');
+    if (mainLogo) {
+        mainLogo.addEventListener('click', () => window.location.href = 'index.html');
+        mainLogo.style.cursor = 'pointer';
+    }
+
+    // ==============================
+    // Load topics
+    // ==============================
+    function loadTopics() {
+        fetch('/user-topics')
+            .then(r => {
+                if (!r.ok) throw new Error('Not authenticated');
+                return r.json();
+            })
+            .then(topics => {
+                userTopics = topics || [];
+                renderTopicsGrid();
+            })
+            .catch(err => {
+                console.error('Error loading topics:', err);
+                topicsGrid.innerHTML = `<p style="color: #cc0000; grid-column: 1/-1; text-align: center;">${getLang('You must be logged in to edit topics.', 'Du musst angemeldet sein, um Themen zu bearbeiten.')}</p>`;
+            });
+    }
+
+    function loadAllTags() {
+        fetch('/get-all-tags')
+            .then(r => r.ok ? r.json() : [])
+            .then(tags => {
+                allAvailableTags = tags || [];
+            })
+            .catch(() => {});
+    }
+
+    // ==============================
+    // Render Topics Grid
+    // ==============================
+    function renderTopicsGrid() {
+        topicsGrid.innerHTML = '';
+
+        userTopics.forEach(topic => {
+            const card = document.createElement('div');
+            card.className = 'topic-card';
+
+            const tagCount = (topic.tags || []).length;
+            const wordCount = (topic.titleWords || []).length;
+            const desc = topic.description ? topic.description.substring(0, 60) + (topic.description.length > 60 ? '...' : '') : '';
+
+            card.innerHTML = `
+                <div class="topic-card-header">
+                    <img class="topic-card-pic" src="${topic.profilePic || 'LocalYT-Rev-Files/genre_gaming.svg'}" alt="${topic.name}" onerror="this.src='LocalYT-Rev-Files/genre_gaming.svg'">
+                    <div style="min-width:0; flex:1;">
+                        <div class="topic-card-name">${topic.name || getLang('Untitled', 'Unbenannt')}</div>
+                        <div class="topic-card-meta">${tagCount} ${getLang('tags', 'Tags')}, ${wordCount} ${getLang('words', 'Wörter')}</div>
+                        ${desc ? `<div class="topic-card-meta" style="margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${desc}</div>` : ''}
+                    </div>
+                </div>
+                <div class="topic-card-actions">
+                    <button class="btn btn-secondary btn-small edit-topic-btn" data-id="${topic.id}"> ${getLang('Edit', 'Bearbeiten')}</button>
+                    <button class="btn btn-danger btn-small delete-topic-btn" data-id="${topic.id}"> ${getLang('Delete', 'Löschen')}</button>
+                </div>
+            `;
+
+            card.querySelector('.edit-topic-btn').addEventListener('click', () => openEditModal(topic.id));
+            card.querySelector('.delete-topic-btn').addEventListener('click', () => deleteTopic(topic.id));
+
+            topicsGrid.appendChild(card);
+        });
+
+        // Add "New Topic" card
+        if (userTopics.length < 4) {
+            const addCard = document.createElement('div');
+            addCard.className = 'add-topic-card';
+            addCard.innerHTML = `
+                <div class="plus-icon">+</div>
+                <div class="add-text">${getLang('New Topic', 'Neues Thema')}</div>
+            `;
+            addCard.addEventListener('click', () => openCreateModal());
+            topicsGrid.appendChild(addCard);
+        }
+    }
+
+    // ==============================
+    // Modal: Open / Close
+    // ==============================
+    function openCreateModal() {
+        editingTopicId = null;
+        resetForm();
+        document.getElementById('modalTitle').textContent = getLang('Create Topic', 'Thema erstellen');
+        document.getElementById('saveTopicBtn').textContent = getLang('Create Topic', 'Thema erstellen');
+        topicModal.classList.add('active');
+    }
+
+    function openEditModal(topicId) {
+        const topic = userTopics.find(t => t.id === topicId);
+        if (!topic) return;
+
+        editingTopicId = topicId;
+        resetForm();
+
+        document.getElementById('modalTitle').textContent = getLang('Edit Topic', 'Thema bearbeiten');
+        document.getElementById('saveTopicBtn').textContent = getLang('Save Changes', 'Änderungen speichern');
+
+        // Fill form
+        document.getElementById('topicName').value = topic.name || '';
+        document.getElementById('topicDescription').value = topic.description || '';
+        document.getElementById('minDuration').value = topic.minDurationSeconds || 0;
+
+        formTags = [...(topic.tags || [])];
+        formTitleWords = [...(topic.titleWords || [])];
+        formBlacklistTags = [...(topic.blacklistTags || [])];
+        formBlacklistWords = [...(topic.blacklistWords || [])];
+
+        renderTagPills();
+
+        // Images
+        if (topic.profilePic) {
+            setPreviewImage('profilePicPreview', topic.profilePic);
+            document.getElementById('removeProfilePicBtn').style.display = '';
+        }
+        if (topic.banner) {
+            setPreviewImage('bannerPreview', topic.banner);
+            document.getElementById('removeBannerBtn').style.display = '';
+        }
+
+        pendingProfilePicDataUrl = topic.profilePic || null;
+        pendingBannerDataUrl = topic.banner || null;
+
+        topicModal.classList.add('active');
+    }
+
+    function closeModal() {
+        topicModal.classList.remove('active');
+        if (cropperInstance) {
+            cropperInstance.destroy();
+            cropperInstance = null;
+        }
+    }
+
+    function resetForm() {
+        document.getElementById('topicName').value = '';
+        document.getElementById('topicDescription').value = '';
+        document.getElementById('minDuration').value = 0;
+
+        formTags = [];
+        formTitleWords = [];
+        formBlacklistTags = [];
+        formBlacklistWords = [];
+        renderTagPills();
+
+        // Reset image previews
+        const profilePreview = document.getElementById('profilePicPreview');
+        profilePreview.innerHTML = '<span class="placeholder-text">' + getLang('No image', 'Kein Bild') + '</span>';
+        document.getElementById('removeProfilePicBtn').style.display = 'none';
+
+        const bannerPreview = document.getElementById('bannerPreview');
+        bannerPreview.innerHTML = '<span class="placeholder-text">' + getLang('No banner', 'Kein Banner') + '</span>';
+        document.getElementById('removeBannerBtn').style.display = 'none';
+
+        pendingProfilePicDataUrl = null;
+        pendingBannerDataUrl = null;
+
+        // Clear tag suggestions
+        document.getElementById('tagSuggestions').innerHTML = '';
+    }
+
+    function setPreviewImage(previewId, src) {
+        const preview = document.getElementById(previewId);
+        preview.innerHTML = `<img src="${src}" alt="Preview">`;
+    }
+
+    // ==============================
+    // Tag Input System
+    // ==============================
+    function renderTagPills() {
+        renderSingleTagGroup('tagsWrapper', formTags);
+        renderSingleTagGroup('titleWordsWrapper', formTitleWords);
+        renderSingleTagGroup('blacklistTagsWrapper', formBlacklistTags);
+        renderSingleTagGroup('blacklistWordsWrapper', formBlacklistWords);
+    }
+
+    function renderSingleTagGroup(wrapperId, tags) {
+        const wrapper = document.getElementById(wrapperId);
+        const input = wrapper.querySelector('.tag-input-field');
+
+        // Remove existing pills
+        wrapper.querySelectorAll('.tag-pill').forEach(el => el.remove());
+
+        // Add pills before input
+        tags.forEach((tag, index) => {
+            const pill = document.createElement('span');
+            pill.className = 'tag-pill';
+            pill.innerHTML = `${tag}<span class="remove-tag" data-index="${index}">&times;</span>`;
+            pill.querySelector('.remove-tag').addEventListener('click', (e) => {
+                e.stopPropagation();
+                tags.splice(index, 1);
+                renderSingleTagGroup(wrapperId, tags);
+            });
+            wrapper.insertBefore(pill, input);
+        });
+    }
+
+    function setupTagInput(inputId, wrapperId, tagsArray, suggest) {
+        const input = document.getElementById(inputId);
+        const wrapper = document.getElementById(wrapperId);
+
+        // Click wrapper to focus input
+        wrapper.addEventListener('click', () => input.focus());
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                const value = input.value.replace(/,/g, '').trim();
+                if (value && !tagsArray.includes(value)) {
+                    tagsArray.push(value);
+                    renderSingleTagGroup(wrapperId, tagsArray);
+                    input.value = '';
+
+                    if (suggest) showTagSuggestions(tagsArray);
+                }
+            } else if (e.key === 'Backspace' && input.value === '' && tagsArray.length > 0) {
+                tagsArray.pop();
+                renderSingleTagGroup(wrapperId, tagsArray);
+            }
+        });
+
+        input.addEventListener('input', () => {
+            if (suggest) showTagSuggestions(tagsArray);
+        });
+    }
+
+    function showTagSuggestions(currentTags) {
+        const container = document.getElementById('tagSuggestions');
+        const input = document.getElementById('tagInput');
+        const query = input.value.toLowerCase().trim();
+
+        if (!query || query.length < 1) {
+            container.innerHTML = '';
+            return;
+        }
+
+        const currentSet = new Set(currentTags.map(t => t.toLowerCase()));
+        const matches = allAvailableTags
+            .filter(tag => !currentSet.has(tag.toLowerCase()) && tag.toLowerCase().includes(query))
+            .slice(0, 10);
+
+        container.innerHTML = '';
+        matches.forEach(tag => {
+            const pill = document.createElement('span');
+            pill.className = 'tag-suggestion';
+            pill.textContent = tag;
+            pill.addEventListener('click', () => {
+                if (!formTags.includes(tag)) {
+                    formTags.push(tag);
+                    renderSingleTagGroup('tagsWrapper', formTags);
+                }
+                input.value = '';
+                container.innerHTML = '';
+            });
+            container.appendChild(pill);
+        });
+    }
+
+    // Setup all tag inputs
+    setupTagInput('tagInput', 'tagsWrapper', formTags, true);
+    setupTagInput('titleWordInput', 'titleWordsWrapper', formTitleWords, false);
+    setupTagInput('blacklistTagInput', 'blacklistTagsWrapper', formBlacklistTags, false);
+    setupTagInput('blacklistWordInput', 'blacklistWordsWrapper', formBlacklistWords, false);
+
+    // ==============================
+    // Image Upload & Cropper
+    // ==============================
+    function handleImageUpload(file, type) {
+        if (!file) return;
+
+        const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!allowed.includes(file.type)) {
+            showToast(getLang('Only JPEG, PNG, and WebP images are allowed.', 'Nur JPEG-, PNG- und WebP-Bilder sind erlaubt.'), true);
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            showToast(getLang('Image must be under 5MB.', 'Bild muss kleiner als 5MB sein.'), true);
+            return;
+        }
+
+        currentCropperType = type;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = document.getElementById('cropperImage');
+            img.src = e.target.result;
+
+            // Destroy previous cropper
+            if (cropperInstance) {
+                cropperInstance.destroy();
+                cropperInstance = null;
+            }
+
+            document.getElementById('cropperTitle').textContent =
+                type === 'profilePic'
+                    ? getLang('Crop Profile Picture', 'Profilbild zuschneiden')
+                    : getLang('Crop Banner', 'Banner zuschneiden');
+
+            cropperModal.classList.add('active');
+
+            // Wait for image to load before initializing cropper
+            setTimeout(() => {
+                const aspectRatio = type === 'profilePic' ? 1 : 6.038; // ~2560:424
+                cropperInstance = new Cropper(img, {
+                    aspectRatio: aspectRatio,
+                    viewMode: 1,
+                    dragMode: 'move',
+                    autoCropArea: 1.0,
+                    responsive: true,
+                    background: false,
+                });
+            }, 100);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Profile Pic
+    document.getElementById('uploadProfilePicBtn').addEventListener('click', () => {
+        document.getElementById('profilePicInput').click();
+    });
+    document.getElementById('profilePicInput').addEventListener('change', (e) => {
+        if (e.target.files[0]) handleImageUpload(e.target.files[0], 'profilePic');
+    });
+    document.getElementById('removeProfilePicBtn').addEventListener('click', () => {
+        pendingProfilePicDataUrl = null;
+        const preview = document.getElementById('profilePicPreview');
+        preview.innerHTML = '<span class="placeholder-text">' + getLang('No image', 'Kein Bild') + '</span>';
+        document.getElementById('removeProfilePicBtn').style.display = 'none';
+    });
+
+    // Banner
+    document.getElementById('uploadBannerBtn').addEventListener('click', () => {
+        document.getElementById('bannerInput').click();
+    });
+    document.getElementById('bannerInput').addEventListener('change', (e) => {
+        if (e.target.files[0]) handleImageUpload(e.target.files[0], 'banner');
+    });
+    document.getElementById('removeBannerBtn').addEventListener('click', () => {
+        pendingBannerDataUrl = null;
+        const preview = document.getElementById('bannerPreview');
+        preview.innerHTML = '<span class="placeholder-text">' + getLang('No banner', 'Kein Banner') + '</span>';
+        document.getElementById('removeBannerBtn').style.display = 'none';
+    });
+
+    // Cropper Actions
+    document.getElementById('cropperCancelBtn').addEventListener('click', () => {
+        cropperModal.classList.remove('active');
+        if (cropperInstance) {
+            cropperInstance.destroy();
+            cropperInstance = null;
+        }
+    });
+
+    document.getElementById('cropperApplyBtn').addEventListener('click', async () => {
+        if (!cropperInstance) return;
+
+        const canvas = cropperInstance.getCroppedCanvas();
+        if (!canvas) return;
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+
+        if (currentCropperType === 'profilePic') {
+            pendingProfilePicDataUrl = dataUrl;
+            setPreviewImage('profilePicPreview', dataUrl);
+            document.getElementById('removeProfilePicBtn').style.display = '';
+        } else {
+            pendingBannerDataUrl = dataUrl;
+            setPreviewImage('bannerPreview', dataUrl);
+            document.getElementById('removeBannerBtn').style.display = '';
+        }
+
+        cropperModal.classList.remove('active');
+        if (cropperInstance) {
+            cropperInstance.destroy();
+            cropperInstance = null;
+        }
+    });
+
+    // ==============================
+    // Save Topic
+    // ==============================
+    document.getElementById('saveTopicBtn').addEventListener('click', async () => {
+        const name = document.getElementById('topicName').value.trim();
+        if (!name) {
+            showToast(getLang('Please enter a topic name.', 'Bitte gib einen Themennamen ein.'), true);
+            return;
+        }
+
+        const topicData = {
+            id: editingTopicId || generateId(),
+            name: name,
+            description: document.getElementById('topicDescription').value.trim(),
+            tags: [...formTags],
+            titleWords: [...formTitleWords],
+            blacklistTags: [...formBlacklistTags],
+            blacklistWords: [...formBlacklistWords],
+            minDurationSeconds: parseInt(document.getElementById('minDuration').value) || 0,
+            profilePic: null,
+            banner: null
+        };
+
+        // Start with existing image URLs (if editing)
+        const existingTopic = editingTopicId ? userTopics.find(t => t.id === editingTopicId) : null;
+        topicData.profilePic = existingTopic ? existingTopic.profilePic : null;
+        topicData.banner = existingTopic ? existingTopic.banner : null;
+
+        // Show loading
+        const saveBtn = document.getElementById('saveTopicBtn');
+        const originalText = saveBtn.textContent;
+        saveBtn.textContent = getLang('Saving...', 'Speichern...');
+        saveBtn.disabled = true;
+
+        try {
+            // Upload profile pic if changed (client-side cropped Data URL)
+            if (pendingProfilePicDataUrl && pendingProfilePicDataUrl.startsWith('data:')) {
+                const blob = dataUrlToBlob(pendingProfilePicDataUrl);
+
+                const picFormData = new FormData();
+                picFormData.append('image', blob, 'profile.jpg');
+                picFormData.append('topicId', topicData.id);
+                // Send 0 for crop coordinates — server will skip cropping 
+                // since the image is already cropped client-side by Cropper.js
+                picFormData.append('x', '0');
+                picFormData.append('y', '0');
+                picFormData.append('width', '0');
+                picFormData.append('height', '0');
+
+                const picRes = await fetch('/topic-profile-pic', { method: 'POST', body: picFormData });
+                if (picRes.ok) {
+                    const picResult = await picRes.json();
+                    topicData.profilePic = picResult.url;
+                }
+            } else if (pendingProfilePicDataUrl === null && existingTopic && existingTopic.profilePic) {
+                // User removed the pic
+                await fetch('/topic-image', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topicId: topicData.id, type: 'pic' })
+                });
+                topicData.profilePic = null;
+            }
+
+            // Upload banner if changed (client-side cropped Data URL)
+            if (pendingBannerDataUrl && pendingBannerDataUrl.startsWith('data:')) {
+                const blob = dataUrlToBlob(pendingBannerDataUrl);
+
+                const bannerFormData = new FormData();
+                bannerFormData.append('image', blob, 'banner.jpg');
+                bannerFormData.append('topicId', topicData.id);
+                // Send 0 for crop coordinates — server will skip cropping
+                bannerFormData.append('x', '0');
+                bannerFormData.append('y', '0');
+                bannerFormData.append('width', '0');
+                bannerFormData.append('height', '0');
+
+                const bannerRes = await fetch('/topic-banner', { method: 'POST', body: bannerFormData });
+                if (bannerRes.ok) {
+                    const bannerResult = await bannerRes.json();
+                    topicData.banner = bannerResult.url;
+                }
+            } else if (pendingBannerDataUrl === null && existingTopic && existingTopic.banner) {
+                // User removed the banner
+                await fetch('/topic-image', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topicId: topicData.id, type: 'banner' })
+                });
+                topicData.banner = null;
+            }
+
+            // Update local array
+            if (editingTopicId) {
+                const index = userTopics.findIndex(t => t.id === editingTopicId);
+                if (index !== -1) userTopics[index] = topicData;
+            } else {
+                userTopics.push(topicData);
+            }
+
+            // Save to server
+            const saveRes = await fetch('/user-topics', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topics: userTopics })
+            });
+
+            if (!saveRes.ok) {
+                throw new Error(getLang('Failed to save.', 'Speichern fehlgeschlagen.'));
+            }
+
+            showToast(getLang('Topic saved!', 'Thema gespeichert!'));
+            closeModal();
+            renderTopicsGrid();
+
+        } catch (err) {
+            console.error('Error saving topic:', err);
+            showToast(err.message || getLang('Error saving topic.', 'Fehler beim Speichern des Themas.'), true);
+        } finally {
+            saveBtn.textContent = originalText;
+            saveBtn.disabled = false;
+        }
+    });
+
+    // ==============================
+    // Delete Topic
+    // ==============================
+    function deleteTopic(topicId) {
+        const topic = userTopics.find(t => t.id === topicId);
+        if (!topic) return;
+
+        const confirmMsg = getLang(
+            `Delete topic "${topic.name}"? This cannot be undone.`,
+            `Thema "${topic.name}" löschen? Dies kann nicht rückgängig gemacht werden.`
+        );
+        if (!confirm(confirmMsg)) return;
+
+        // Delete images from server
+        fetch('/topic-image', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topicId: topicId, type: 'pic' })
+        }).catch(() => {});
+
+        fetch('/topic-image', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topicId: topicId, type: 'banner' })
+        }).catch(() => {});
+
+        // Remove from array
+        userTopics = userTopics.filter(t => t.id !== topicId);
+
+        // Save updated list
+        fetch('/user-topics', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topics: userTopics })
+        })
+        .then(r => {
+            if (r.ok) {
+                showToast(getLang('Topic deleted.', 'Thema gelöscht.'));
+                renderTopicsGrid();
+            } else {
+                showToast(getLang('Error deleting topic.', 'Fehler beim Löschen des Themas.'), true);
+            }
+        })
+        .catch(() => {
+            showToast(getLang('Error deleting topic.', 'Fehler beim Löschen des Themas.'), true);
+        });
+    }
+
+    // ==============================
+    // Cancel
+    // ==============================
+    document.getElementById('cancelTopicBtn').addEventListener('click', closeModal);
+
+    // Close modal on overlay click
+    topicModal.addEventListener('click', (e) => {
+        if (e.target === topicModal) closeModal();
+    });
+
+    // ==============================
+    // Utility: Data URL helpers
+    // ==============================
+    function dataUrlToBlob(dataUrl) {
+        const parts = dataUrl.split(',');
+        const mime = parts[0].match(/:(.*?);/)[1];
+        const bstr = atob(parts[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new Blob([u8arr], { type: mime });
+    }
+
+    let _dimCache = {};
+
+    // ==============================
+    // Search
+    // ==============================
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
+    });
+    document.getElementById('searchIcon').addEventListener('click', () => {
+        const query = searchInput.value.trim();
+        if (query) window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+        else searchInput.focus();
+    });
+
+    // ==============================
+    // Initialize
+    // ==============================
+    loadTopics();
+    loadAllTags();
+
+})();
+    </script>
+    <script src="search-suggestions.js"></script>
+    <script src="profile-pic.js"></script>
+    <script src="sidebar.js"></script>
+</body>
+</html>

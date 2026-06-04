@@ -212,6 +212,7 @@ app.use('/subtitles', express.static(path.join(__dirname, 'subtitles')));
 app.use('/livechats', express.static(path.join(__dirname, 'livechats')));
 app.use('/channelposts', express.static(path.join(__dirname, 'channelposts')));
 app.use('/user-profiles', express.static(path.join(__dirname, 'user-profiles')));
+app.use('/topic-images', express.static(path.join(__dirname, 'topic-images')));
 app.use('/playlist-descriptions', express.static(path.join(__dirname, 'playlist-descriptions')));
 app.use('/favicon.png', express.static(path.join(__dirname, 'favicon.png')));
 app.use('/playlist_cache.json', express.static(path.join(__dirname, 'playlist_cache.json')));
@@ -456,6 +457,24 @@ function ensureWatchHistoryFile() {
 
 ensurePreferencesFile();
 ensureWatchHistoryFile();
+
+// --- USER TOPICS SYSTEM ---
+const userTopicsFilePath = path.join(__dirname, 'userTopics.json');
+const topicImagesDir = path.join(__dirname, 'topic-images');
+
+if (!fs.existsSync(topicImagesDir)) {
+    fs.mkdirSync(topicImagesDir, { recursive: true });
+}
+
+function ensureUserTopicsFile() {
+    if (!fs.existsSync(userTopicsFilePath)) {
+        fs.writeFileSync(userTopicsFilePath, JSON.stringify({}));
+    } else {
+        const data = fs.readFileSync(userTopicsFilePath, 'utf8');
+        try { JSON.parse(data); } catch (err) { fs.writeFileSync(userTopicsFilePath, JSON.stringify({})); }
+    }
+}
+ensureUserTopicsFile();
 
 // --- PLAYLIST THUMBNAIL CACHE SYSTEM ---
 const playlistCacheFilePath = path.join(__dirname, 'playlist_cache.json');
@@ -873,6 +892,47 @@ function initializePlaylistShortLinks() {
 // Run playlist shortlink initialization
 initializePlaylistShortLinks();
 
+function parseDurationToSecondsServer(durationStr) {
+    if (!durationStr || typeof durationStr !== 'string') return 0;
+    const trimmed = durationStr.trim();
+    if (!trimmed) return 0;
+    const parts = trimmed.split(':');
+    if (parts.length === 3) {
+        return (parseInt(parts[0], 10) || 0) * 3600 + (parseInt(parts[1], 10) || 0) * 60 + (parseInt(parts[2], 10) || 0);
+    } else if (parts.length === 2) {
+        return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+    }
+    return parseInt(parts[0], 10) || 0;
+}
+
+function parseEuropeanDateServer(dateString) {
+    if (!dateString || dateString === 'Unknown date') return new Date(0);
+    const parts = String(dateString).trim().split('.');
+    if (parts.length === 3) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        return new Date(year, month, day);
+    }
+    return new Date(dateString);
+}
+
+function getVideoDurationSeconds(video) {
+    const channel = video.path.split('/')[0];
+    const videoBaseName = video.basePath.split('/').pop();
+    let lengthPath = path.join(__dirname, 'videolengths', channel, `${videoBaseName}.txt`);
+    if (!fs.existsSync(lengthPath)) {
+        lengthPath = path.join(__dirname, 'videolengths', `${video.basePath}.txt`);
+    }
+    if (fs.existsSync(lengthPath)) {
+        try {
+            const lengthStr = fs.readFileSync(lengthPath, 'utf8').trim();
+            return parseDurationToSecondsServer(lengthStr);
+        } catch (e) { return 0; }
+    }
+    return 0;
+}
+
 function getVideoDetails(videoSlice) {
     return videoSlice.map(video => {
         const viewCountPath = path.join(__dirname, 'viewcounts', `${video.basePath}.txt`);
@@ -1206,6 +1266,20 @@ app.post('/delete-account', (req, res) => {
     }
 });
 
+        // Clean up topic images
+        try {
+            const topicsData = JSON.parse(fs.readFileSync(userTopicsFilePath, 'utf8'));
+            const userTopics = topicsData[userId] || [];
+            userTopics.forEach(topic => {
+                const picPath = path.join(topicImagesDir, `${topic.id}_pic.jpg`);
+                const bannerPath = path.join(topicImagesDir, `${topic.id}_banner.jpg`);
+                if (fs.existsSync(picPath)) fs.unlinkSync(picPath);
+                if (fs.existsSync(bannerPath)) fs.unlinkSync(bannerPath);
+            });
+            delete topicsData[userId];
+            fs.writeFileSync(userTopicsFilePath, JSON.stringify(topicsData, null, 2));
+        } catch (e) {}
+
 // --- PROFILE PICTURE ROUTES ---
 
 // Ensure user-profiles directory exists
@@ -1311,6 +1385,263 @@ app.delete('/user-profile-pic', (req, res) => {
         fs.unlinkSync(profilePicPath);
     }
     res.sendStatus(200);
+});
+
+// --- USER TOPICS ROUTES ---
+
+// GET user topics
+app.get('/user-topics', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+
+    try {
+        const data = fs.readFileSync(userTopicsFilePath, 'utf8');
+        const allTopics = JSON.parse(data);
+        res.json(allTopics[userId] || []);
+    } catch (err) {
+        res.status(500).send('Error reading topics');
+    }
+});
+
+// POST save user topics (full replacement, max 4)
+app.post('/user-topics', (req, res) => {
+    const { topics } = req.body;
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+    if (!Array.isArray(topics)) return res.status(400).send('Invalid topics');
+    if (topics.length > 4) return res.status(400).send('Maximum 4 topics allowed');
+
+    try {
+        const data = fs.readFileSync(userTopicsFilePath, 'utf8');
+        const allTopics = JSON.parse(data);
+        allTopics[userId] = topics;
+        fs.writeFileSync(userTopicsFilePath, JSON.stringify(allTopics, null, 2));
+        res.sendStatus(200);
+    } catch (err) {
+        console.error('Error saving topics:', err);
+        res.status(500).send('Error saving topics');
+    }
+});
+
+// POST upload topic profile picture
+app.post('/topic-profile-pic', upload.single('image'), async (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+    if (!req.file) return res.status(400).send('No file uploaded');
+
+    const { topicId, x, y, width, height } = req.body;
+    if (!topicId) {
+        fs.unlink(req.file.path, () => {});
+        return res.status(400).send('Topic ID required');
+    }
+
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedMimes.includes(req.file.mimetype)) {
+        fs.unlink(req.file.path, () => {});
+        return res.status(400).send('Only JPEG, PNG, and WebP images are allowed');
+    }
+
+    if (req.file.size > 5 * 1024 * 1024) {
+        fs.unlink(req.file.path, () => {});
+        return res.status(400).send('Image must be under 5MB');
+    }
+
+    const targetPath = path.join(topicImagesDir, `${topicId}_pic.jpg`);
+
+    try {
+        let sharpInstance = sharp(req.file.path);
+
+        if (x !== undefined && y !== undefined && width && height) {
+            const cropW = parseInt(width);
+            const cropH = parseInt(height);
+            if (cropW > 0 && cropH > 0) {
+                sharpInstance = sharpInstance.extract({
+                    left: parseInt(x), top: parseInt(y),
+                    width: cropW, height: cropH
+                });
+            }
+        }
+
+        await sharpInstance.resize(500, 500).jpeg({ quality: 90 }).toFile(targetPath);
+        fs.unlink(req.file.path, () => {});
+        res.json({ url: `/topic-images/${topicId}_pic.jpg?t=${Date.now()}` });
+    } catch (err) {
+        console.error('Error processing topic profile pic:', err);
+        fs.unlink(req.file.path, () => {});
+        res.status(500).send('Error processing image');
+    }
+});
+
+// POST upload topic banner
+app.post('/topic-banner', upload.single('image'), async (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+    if (!req.file) return res.status(400).send('No file uploaded');
+
+    const { topicId, x, y, width, height } = req.body;
+    if (!topicId) {
+        fs.unlink(req.file.path, () => {});
+        return res.status(400).send('Topic ID required');
+    }
+
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedMimes.includes(req.file.mimetype)) {
+        fs.unlink(req.file.path, () => {});
+        return res.status(400).send('Only JPEG, PNG, and WebP images are allowed');
+    }
+
+    if (req.file.size > 5 * 1024 * 1024) {
+        fs.unlink(req.file.path, () => {});
+        return res.status(400).send('Image must be under 5MB');
+    }
+
+    const targetPath = path.join(topicImagesDir, `${topicId}_banner.jpg`);
+
+    try {
+        let sharpInstance = sharp(req.file.path);
+
+        if (x !== undefined && y !== undefined && width && height) {
+            const cropW = parseInt(width);
+            const cropH = parseInt(height);
+            if (cropW > 0 && cropH > 0) {
+                sharpInstance = sharpInstance.extract({
+                    left: parseInt(x), top: parseInt(y),
+                    width: cropW, height: cropH
+                });
+            }
+        }
+
+        await sharpInstance.resize(2560, 424).jpeg({ quality: 90 }).toFile(targetPath);
+        fs.unlink(req.file.path, () => {});
+        res.json({ url: `/topic-images/${topicId}_banner.jpg?t=${Date.now()}` });
+    } catch (err) {
+        console.error('Error processing topic banner:', err);
+        fs.unlink(req.file.path, () => {});
+        res.status(500).send('Error processing image');
+    }
+});
+
+// DELETE topic image
+app.delete('/topic-image', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+
+    const { topicId, type } = req.body; // type: 'pic' or 'banner'
+    if (!topicId || !type) return res.status(400).send('Missing parameters');
+
+    const suffix = type === 'banner' ? '_banner.jpg' : '_pic.jpg';
+    const imagePath = path.join(topicImagesDir, `${topicId}${suffix}`);
+
+    if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+    }
+    res.sendStatus(200);
+});
+
+// GET videos for a custom topic (server-side filtering + pagination)
+app.get('/topic-videos/:topicId', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+
+    const topicId = req.params.topicId;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const sort = req.query.sort || 'newest';
+
+    let topicConfig = null;
+    try {
+        const data = fs.readFileSync(userTopicsFilePath, 'utf8');
+        const allTopics = JSON.parse(data);
+        const userTopics = allTopics[userId] || [];
+        topicConfig = userTopics.find(t => t.id === topicId);
+    } catch (err) {
+        return res.status(500).send('Error reading topics');
+    }
+
+    if (!topicConfig) return res.status(404).send('Topic not found');
+
+    const tags = topicConfig.tags || [];
+    const titleWords = topicConfig.titleWords || [];
+    const blacklistTags = (topicConfig.blacklistTags || []).map(t => t.toLowerCase().trim());
+    const blacklistWords = (topicConfig.blacklistWords || []).map(w => w.toLowerCase().trim());
+    const minDuration = topicConfig.minDurationSeconds || 0;
+
+    // Filter videos
+    let matchedVideos = videoArray.filter(video => {
+        // Check blacklist tags
+        if (blacklistTags.length > 0 && video.tags && video.tags.length > 0) {
+            const hasBlacklist = video.tags.some(tag =>
+                blacklistTags.includes(tag.toLowerCase().trim())
+            );
+            if (hasBlacklist) return false;
+        }
+
+        // Check blacklist words in title
+        if (blacklistWords.length > 0) {
+            const nameLower = (video.displayName || '').toLowerCase();
+            const hasBlacklistWord = blacklistWords.some(w => w.length > 2 && nameLower.includes(w));
+            if (hasBlacklistWord) return false;
+        }
+
+        // Check positive tags
+        const tagSet = new Set(tags.map(t => t.toLowerCase().trim()));
+        const hasPositiveTag = tags.length > 0 && video.tags && video.tags.some(tag =>
+            tagSet.has(tag.toLowerCase().trim())
+        );
+
+        // Check title words
+        const hasTitleWord = titleWords.length > 0 && titleWords.some(w => {
+            const nameLower = (video.displayName || '').toLowerCase();
+            return w.length > 2 && nameLower.includes(w.toLowerCase());
+        });
+
+        return hasPositiveTag || hasTitleWord;
+    });
+
+    // Apply duration filter
+    if (minDuration > 0) {
+        matchedVideos = matchedVideos.filter(video => {
+            return getVideoDurationSeconds(video) >= minDuration;
+        });
+    }
+
+    // Sort by date
+    matchedVideos.sort((a, b) => {
+        const dateA = parseEuropeanDateServer(a.fileDate);
+        const dateB = parseEuropeanDateServer(b.fileDate);
+        return sort === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+
+    // Paginate
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const pageVideos = matchedVideos.slice(startIndex, endIndex);
+
+    // Build response with video lengths included
+    const videosWithDetails = pageVideos.map(video => {
+        const details = getVideoDetails([video])[0];
+        const duration = getVideoDurationSeconds(video);
+        let videoLength = '';
+        if (duration > 0) {
+            const h = Math.floor(duration / 3600);
+            const m = Math.floor((duration % 3600) / 60);
+            const s = duration % 60;
+            if (h > 0) {
+                videoLength = `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            } else {
+                videoLength = `${m}:${String(s).padStart(2, '0')}`;
+            }
+        }
+        return { ...details, videoLength };
+    });
+
+    res.json({
+        videos: videosWithDetails,
+        page: page,
+        limit: limit,
+        total: matchedVideos.length,
+        hasMore: endIndex < matchedVideos.length
+    });
 });
 
 // GET ALL TAGS (For settings suggestion list)

@@ -27,18 +27,41 @@
 })();
 </script>
     <style>
+        .channel-banner-container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            margin-top: 60px;
+            padding: 0 20px;
+            box-sizing: border-box;
+            display: none;
+        }
+        .channel-banner-container.visible {
+            display: block;
+        }
+        .channel-banner {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
         .channel-header {
             display: flex;
             align-items: center;
             margin: 20px 0;
             margin-left: 230px;
-            margin-top: 90px;
+            margin-top: 20px;
+        }
+        .channel-header.has-banner {
+            margin-top: 10px;
         }
         .channel-pic-large {
             width: 100px;
             height: 100px;
             border-radius: 50%;
             margin-right: 30px;
+            object-fit: cover;
+            background-color: #2a2a2a;
         }
         .channel-name {
             font-size: 20px;
@@ -172,7 +195,7 @@
             color: #888;
             font-size: 12px;
             min-height: 1.2em;
-padding-left: 0 !important;
+            padding-left: 0 !important;
         }
         .thumbnail-container {
             position: relative;
@@ -320,7 +343,6 @@ padding-left: 0 !important;
         }
 
         /* --- FIX: Prevent Middle-Click Autoscroll (Pan Mode) --- */
-        
         .video-item,
         .video-title,
         .video-thumbnail,
@@ -361,9 +383,17 @@ padding-left: 0 !important;
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
     </header>
-    <div class="channel-header">
+
+    <div class="channel-banner-container" id="channelBannerContainer">
+        <img id="channelBanner" class="channel-banner" alt="Banner" loading="lazy">
+    </div>
+
+    <div class="channel-header" id="channelHeader">
         <img id="channelPic" class="channel-pic-large" alt="Genre Picture" loading="lazy">
-        <div id="channelName" class="channel-name"></div>
+        <div>
+            <div id="channelName" class="channel-name"></div>
+            <span class="video-count" id="channelVideoCount"></span>
+        </div>
     </div>
 
     <!-- Tabs -->
@@ -408,36 +438,20 @@ padding-left: 0 !important;
     <script>
 // ======================================================================
 // FIX: Prevent Middle-Click Autoscroll (Pan Mode)
-// Must be defined early to catch events on dynamically loaded content
 // ======================================================================
 document.addEventListener('mousedown', function(e) {
-    if (e.button === 1) { // Middle Mouse Button
+    if (e.button === 1) {
         const target = e.target.closest(
-            'a, ' + 
-            '.video-item, ' + 
-            '.video-title, ' + 
-            '.video-thumbnail, ' + 
-            '.channel-name-link, ' + 
-            '.channel-pic, ' + 
-            '.sort-toggle, ' + 
-            '.tab, ' + 
-            '.share-button, ' + 
-            '.suggestion-item, ' +
-            '#mainLogo'
+            'a, .video-item, .video-title, .video-thumbnail, .channel-name-link, .channel-pic, .sort-toggle, .tab, .share-button, .suggestion-item, #mainLogo'
         );
-        
         if (target) {
             e.preventDefault();
-            
-            // If it's a real anchor tag with an href, manually open it
             if (target.tagName === 'A' && target.href) {
                 window.open(target.href, '_blank');
             }
-            // For custom elements (divs/spans), their existing 'mouseup' or 'auxclick' 
-            // listeners will handle opening the new tab.
         }
     }
-}, true); // Use Capture phase
+}, true);
 
 // Configuration
 const VIDEOS_PER_PAGE = 20;
@@ -453,17 +467,11 @@ function parseDurationToSeconds(durationStr) {
     if (!trimmed) return 0;
     const parts = trimmed.split(':');
     if (parts.length === 3) {
-        const h = parseInt(parts[0], 10) || 0;
-        const m = parseInt(parts[1], 10) || 0;
-        const s = parseInt(parts[2], 10) || 0;
-        return h * 3600 + m * 60 + s;
+        return (parseInt(parts[0], 10) || 0) * 3600 + (parseInt(parts[1], 10) || 0) * 60 + (parseInt(parts[2], 10) || 0);
     } else if (parts.length === 2) {
-        const m = parseInt(parts[0], 10) || 0;
-        const s = parseInt(parts[1], 10) || 0;
-        return m * 60 + s;
-    } else {
-        return parseInt(parts[0], 10) || 0;
+        return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
     }
+    return parseInt(parts[0], 10) || 0;
 }
 
 const GENRE_CONFIG = {
@@ -530,12 +538,7 @@ const GENRE_CONFIG = {
             "Oculus Quest", "Valve Index", "Consoles", "Shortcut", "AMV"
         ],
         negativeTags: [
-            "ASMR",
-            "Movies",
-            "Vlog",
-            "Travel",
-            "Food",
-            "TV Shows"
+            "ASMR", "Movies", "Vlog", "Travel", "Food", "TV Shows"
         ],
         about: "The Gaming Topic channel lists all videos about games and similar things. \nAuto-generated by LocalYT.",
         aboutDe: "Der Gaming-Themenkanal listet alle Videos über Spiele und Ähnliches auf.\nAutomatisch generiert von LocalYT."
@@ -556,14 +559,7 @@ const GENRE_CONFIG = {
             "Hayao Miyazaki", "Makoto Shinkai", "Hideaki Anno", "Satoshi Kon"
         ],
         negativeTags: [
-            "Food",
-            "Sports",
-            "ASMR",
-            "Movies",
-            "Vlog",
-            "Travel",
-            "TV Shows",
-            "Nintendo"
+            "Food", "Sports", "ASMR", "Movies", "Vlog", "Travel", "TV Shows", "Nintendo"
         ],
         about: "The Music Topic channel lists all videos about music and similar things. \nAuto-generated by LocalYT.",
         aboutDe: "Der Musik-Themenkanal listet alle Videos über Musik und Ähnliches auf.\nAutomatisch generiert von LocalYT."
@@ -578,15 +574,7 @@ const GENRE_CONFIG = {
             "Racing", "Motorcycles"
         ],
         negativeTags: [
-            "Food",
-            "ASMR",
-            "Movies",
-            "Vlog",
-            "Travel",
-            "TV Shows",
-            "Anime",
-            "Gaming",
-            "Nintendo"
+            "Food", "ASMR", "Movies", "Vlog", "Travel", "TV Shows", "Anime", "Gaming", "Nintendo"
         ],
         about: "The Sports Topic channel lists all videos about sports and similar things. \nAuto-generated by LocalYT.",
         aboutDe: "Der Sport-Themenkanal listet alle Videos über Sport und Ähnliches auf.\nAutomatisch generiert von LocalYT."
@@ -616,11 +604,7 @@ const GENRE_CONFIG = {
             "Romance", "Fiction", "Non-Fiction", "Biography"
         ],
         negativeTags: [
-            "Food",
-            "ASMR",
-            "Travel",
-            "Gaming",
-            "Nintendo"
+            "Food", "ASMR", "Travel", "Gaming", "Nintendo"
         ],
         minDurationSeconds: 1200,
         about: "The Movies Topic channel lists all videos about movies and similar things. \nAuto-generated by LocalYT.",
@@ -629,10 +613,14 @@ const GENRE_CONFIG = {
 };
 
 const urlParams = new URLSearchParams(window.location.search);
-const genre = urlParams.get('genre') || 'gaming';
-const genreConfig = GENRE_CONFIG[genre];
+const genre = urlParams.get('genre') || '';
+const topicId = urlParams.get('topic') || '';
 
-if (!genreConfig) {
+// Determine mode: topic mode or genre mode
+const isTopicMode = !!topicId;
+const genreConfig = !isTopicMode ? GENRE_CONFIG[genre] : null;
+
+if (!isTopicMode && !genreConfig) {
     window.location.href = 'index.html';
 }
 
@@ -645,19 +633,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.href = 'index.html';
             }
         });
-
         mainLogo.addEventListener('mouseup', (event) => {
             if (event.button === 1) {
                 event.preventDefault();
                 window.open('index.html', '_blank');
             }
         });
-
         mainLogo.addEventListener('contextmenu', (event) => {
             event.preventDefault();
             window.open('index.html', '_blank');
         });
-
         mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
         mainLogo.style.cursor = 'pointer';
     }
@@ -667,6 +652,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const videosContainer = document.getElementById('channelVideosContainer');
     const channelPic = document.getElementById('channelPic');
     const channelName = document.getElementById('channelName');
+    const channelHeader = document.getElementById('channelHeader');
+    const bannerContainer = document.getElementById('channelBannerContainer');
+    const channelBanner = document.getElementById('channelBanner');
     const sortToggle = document.getElementById('sortToggle');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const loadMoreTrigger = document.getElementById('loadMoreTrigger');
@@ -679,21 +667,79 @@ document.addEventListener('DOMContentLoaded', () => {
     let totalVideoCount = 0;
     let isFirstLoadComplete = false;
 
+    // Genre mode state
     let currentFetchOffset = 0;
     let pendingFilteredVideos = [];
 
+    // Topic mode state
+    let topicConfig = null;
+    let topicCurrentPage = 1;
+    let topicTotalCount = 0;
+
     const loadedTabs = new Set();
 
-    const genreDisplayName = getLang(genreConfig.name, genreConfig.nameDe);
+    // =====================================================
+    // Initialize header based on mode
+    // =====================================================
 
-    channelPic.src = `LocalYT-Rev-Files/${genreConfig.svg}`;
-    channelName.textContent = genreDisplayName;
-    document.title = `${genreDisplayName} - LocalYT`;
+    if (isTopicMode) {
+        // Fetch topic config from server
+        videosContainer.innerHTML = '<div class="loading-spinner visible">' + getLang('Loading topic...', 'Thema wird geladen...') + '</div>';
 
-    document.getElementById('channelDescription').textContent = getLang(
-        genreConfig.about,
-        genreConfig.aboutDe || genreConfig.about
-    );
+        fetch('/user-topics')
+            .then(r => {
+                if (!r.ok) throw new Error('Not authenticated');
+                return r.json();
+            })
+            .then(topics => {
+                topicConfig = topics.find(t => t.id === topicId);
+                if (!topicConfig) {
+                    videosContainer.innerHTML = `<p style="color: #888; text-align: center; width: 100%; padding: 60px 20px;">${getLang('Topic not found.', 'Thema nicht gefunden.')}</p>`;
+                    return;
+                }
+                applyTopicConfig();
+                initializeVideoList();
+            })
+            .catch(err => {
+                console.error('Error loading topic:', err);
+                videosContainer.innerHTML = `<p style="color: #888; text-align: center; width: 100%; padding: 60px 20px;">${getLang('Failed to load topic.', 'Thema konnte nicht geladen werden.')}</p>`;
+            });
+    } else {
+        // Genre mode — use hardcoded config
+        const genreDisplayName = getLang(genreConfig.name, genreConfig.nameDe);
+        channelPic.src = `LocalYT-Rev-Files/${genreConfig.svg}`;
+        channelName.textContent = genreDisplayName;
+        document.title = `${genreDisplayName} - LocalYT`;
+        document.getElementById('channelDescription').textContent = getLang(
+            genreConfig.about, genreConfig.aboutDe || genreConfig.about
+        );
+        initializeVideoList();
+    }
+
+    function applyTopicConfig() {
+        if (!topicConfig) return;
+
+        const name = topicConfig.name || getLang('Custom Topic', 'Benutzerdefiniertes Thema');
+        channelName.textContent = name;
+        document.title = `${name} - LocalYT`;
+
+        // Profile pic
+        if (topicConfig.profilePic) {
+            channelPic.src = topicConfig.profilePic;
+        } else {
+            channelPic.src = 'LocalYT-Rev-Files/genre_gaming.svg'; // default fallback
+        }
+
+        // Banner
+        if (topicConfig.banner) {
+            channelBanner.src = topicConfig.banner;
+            bannerContainer.classList.add('visible');
+            channelHeader.classList.add('has-banner');
+        }
+
+        // Description
+        document.getElementById('channelDescription').textContent = topicConfig.description || '';
+    }
 
     function updateUITranslations() {
         document.querySelector('.tab[data-tab="videos"]').textContent = getLang('VIDEOS', 'VIDEOS');
@@ -731,23 +777,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    function parseEuropeanDate(dateString) {
-        if (!dateString || dateString === 'Unknown date') return new Date(0);
-        const parts = dateString.split('.');
-        if (parts.length === 3) {
-            const day = parseInt(parts[0], 10);
-            const month = parseInt(parts[1], 10) - 1;
-            const year = parseInt(parts[2], 10);
-            return new Date(year, month, day);
-        }
-        return new Date(dateString);
-    }
-
     function stripExtension(filename) {
         return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
     }
 
-    function createVideoElement(video) {
+    function createVideoElement(video, includeLength) {
         const videoElement = document.createElement('div');
         videoElement.className = 'video-item';
         const videoTitle = video.displayName;
@@ -758,7 +792,7 @@ document.addEventListener('DOMContentLoaded', () => {
         videoElement.innerHTML = `
             <div class="thumbnail-container">
                 <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
-                <div class="video-length"></div>
+                <div class="video-length">${video.videoLength || ''}</div>
             </div>
             <div class="video-info">
                 <img src="/channelpic/${encodeURIComponent(channel)}.jpg" alt="${channel}" class="channel-pic" loading="lazy">
@@ -812,85 +846,167 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        Promise.all([
-            fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(response => response.ok ? response.text() : '0'),
-            fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoPathWithoutExt.split('/').pop())}.txt`).then(response => response.ok ? response.text() : '')
-        ])
-        .then(([viewCount, videoLength]) => {
-            let formattedViewCount = viewCount;
-            if (!isNaN(viewCount) && viewCount !== '0') {
-                formattedViewCount = parseInt(viewCount).toLocaleString();
+        // If viewCount is already provided (topic mode), use it directly
+        if (video.viewCount !== undefined && video.viewCount !== null && video.viewCount !== '') {
+            let formattedViewCount = video.viewCount;
+            if (!isNaN(video.viewCount) && video.viewCount !== '0') {
+                formattedViewCount = parseInt(video.viewCount).toLocaleString();
             }
 
             const lang = localStorage.getItem('language');
             let viewsText = getLang('views', 'Aufrufe');
-
-            if (lang === 'de') {
-                formattedViewCount = formattedViewCount.replace(/,/g, '.');
-            }
+            if (lang === 'de') formattedViewCount = formattedViewCount.replace(/,/g, '.');
 
             descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${video.fileDate || getLang('Unknown date', 'Unbekanntes Datum')}`;
 
-            if (videoLength) {
-                videoElement.querySelector('.video-length').textContent = videoLength;
+            // Fetch video length only if not provided
+            if (!video.videoLength) {
+                const videoBaseName = videoPathWithoutExt.split('/').pop();
+                fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoBaseName)}.txt`)
+                    .then(r => r.ok ? r.text() : '')
+                    .then(lengthStr => {
+                        if (lengthStr) {
+                            videoElement.querySelector('.video-length').textContent = lengthStr;
+                        }
+                    }).catch(() => {});
             }
-        })
-        .catch(() => {
-            descriptionDiv.textContent = video.fileDate || getLang('Unknown date', 'Unbekanntes Datum');
-        });
+        } else {
+            // Genre mode — fetch viewCount and videoLength separately
+            Promise.all([
+                fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(response => response.ok ? response.text() : '0'),
+                fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoPathWithoutExt.split('/').pop())}.txt`).then(response => response.ok ? response.text() : '')
+            ])
+            .then(([viewCount, videoLength]) => {
+                let formattedViewCount = viewCount;
+                if (!isNaN(viewCount) && viewCount !== '0') {
+                    formattedViewCount = parseInt(viewCount).toLocaleString();
+                }
+
+                const lang = localStorage.getItem('language');
+                let viewsText = getLang('views', 'Aufrufe');
+                if (lang === 'de') formattedViewCount = formattedViewCount.replace(/,/g, '.');
+
+                descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${video.fileDate || getLang('Unknown date', 'Unbekanntes Datum')}`;
+
+                if (videoLength) {
+                    videoElement.querySelector('.video-length').textContent = videoLength;
+                }
+            })
+            .catch(() => {
+                descriptionDiv.textContent = video.fileDate || getLang('Unknown date', 'Unbekanntes Datum');
+            });
+        }
 
         return videoElement;
     }
 
-    async function fetchAndRenderBatch() {
-        const videosToRender = pendingFilteredVideos.splice(0, VIDEOS_PER_PAGE);
-        
-        const videosWithDates = await Promise.all(videosToRender.map(video => {
-            const videoPathWithoutExt = stripExtension(video.path);
-            return fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
-                .then(response => response.ok ? response.text() : 'Unknown date')
-                .then(fileDate => ({
-                    ...video,
-                    fileDate: fileDate.trim() || 'Unknown date'
-                }))
-                .catch(() => ({
-                    ...video,
-                    fileDate: 'Unknown date'
-                }));
-        }));
+    // =====================================================
+    // Topic Mode: Server-side pagination
+    // =====================================================
 
-        const fragment = document.createDocumentFragment();
+    function loadMoreTopicVideos() {
+        if (isLoadingMore || !hasMoreVideos) return;
+        isLoadingMore = true;
+        loadingSpinner.classList.add('visible');
+        noMoreVideos.style.display = 'none';
 
-        for (const video of videosWithDates) {
-            fragment.appendChild(createVideoElement(video));
-        }
+        const sortParam = sortNewestFirst ? 'newest' : 'oldest';
 
-        videosContainer.appendChild(fragment);
-        totalVideoCount += videosWithDates.length;
-        
-        if (!isFirstLoadComplete) {
-            isFirstLoadComplete = true;
-            const initialSpinner = videosContainer.querySelector('.loading-spinner');
-            if (initialSpinner) {
-                initialSpinner.remove();
-            }
-        }
-        
-        let statsVideoCount = totalVideoCount.toLocaleString();
+        fetch(`/topic-videos/${encodeURIComponent(topicId)}?page=${topicCurrentPage}&limit=${VIDEOS_PER_PAGE}&sort=${sortParam}`)
+            .then(r => {
+                if (!r.ok) throw new Error('Failed to fetch topic videos');
+                return r.json();
+            })
+            .then(data => {
+                const videos = data.videos || [];
+                topicTotalCount = data.total || 0;
+                hasMoreVideos = data.hasMore !== false;
+                topicCurrentPage++;
+
+                const fragment = document.createDocumentFragment();
+                for (const video of videos) {
+                    fragment.appendChild(createVideoElement(video, true));
+                }
+                videosContainer.appendChild(fragment);
+
+                totalVideoCount += videos.length;
+
+                if (!isFirstLoadComplete) {
+                    isFirstLoadComplete = true;
+                    const initialSpinner = videosContainer.querySelector('.loading-spinner');
+                    if (initialSpinner) initialSpinner.remove();
+                }
+
+                updateVideoCount();
+
+                if (videos.length === 0 && totalVideoCount === 0) {
+                    noMoreVideos.style.display = 'block';
+                    noMoreVideos.textContent = getLang('No videos found for this topic.', 'Keine Videos für dieses Thema gefunden.');
+                    noMoreVideos.style.fontStyle = 'normal';
+                } else if (!hasMoreVideos) {
+                    noMoreVideos.style.display = 'block';
+                }
+
+                isLoadingMore = false;
+                loadingSpinner.classList.remove('visible');
+            })
+            .catch(error => {
+                console.error('[Topic] Error loading topic videos:', error);
+                isLoadingMore = false;
+                loadingSpinner.classList.remove('visible');
+                if (totalVideoCount === 0) {
+                    videosContainer.innerHTML = `<p style="color: #888; text-align: center; width: 100%; padding: 60px 20px;">${getLang('Failed to load videos.', 'Videos konnten nicht geladen werden.')}</p>`;
+                }
+            });
+    }
+
+    function updateVideoCount() {
+        let count = topicTotalCount > 0 ? topicTotalCount : totalVideoCount;
+        let statsVideoCount = count.toLocaleString();
         if (localStorage.getItem('language') === 'de') {
             statsVideoCount = statsVideoCount.replace(/,/g, '.');
         }
         document.getElementById('statsVideos').textContent = `${statsVideoCount} ${getLang('videos', 'Videos')}`;
+        document.getElementById('channelVideoCount').textContent = `${statsVideoCount} ${getLang('videos', 'Videos')}`;
     }
 
-    function loadMoreVideos() {
+    // =====================================================
+    // Genre Mode: Client-side filtering (existing logic)
+    // =====================================================
+
+    async function fetchAndRenderBatch() {
+        const videosToRender = pendingFilteredVideos.splice(0, VIDEOS_PER_PAGE);
+
+        const videosWithDates = await Promise.all(videosToRender.map(video => {
+            const videoPathWithoutExt = stripExtension(video.path);
+            return fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
+                .then(response => response.ok ? response.text() : 'Unknown date')
+                .then(fileDate => ({ ...video, fileDate: fileDate.trim() || 'Unknown date' }))
+                .catch(() => ({ ...video, fileDate: 'Unknown date' }));
+        }));
+
+        const fragment = document.createDocumentFragment();
+        for (const video of videosWithDates) {
+            fragment.appendChild(createVideoElement(video, false));
+        }
+        videosContainer.appendChild(fragment);
+        totalVideoCount += videosWithDates.length;
+
+        if (!isFirstLoadComplete) {
+            isFirstLoadComplete = true;
+            const initialSpinner = videosContainer.querySelector('.loading-spinner');
+            if (initialSpinner) initialSpinner.remove();
+        }
+
+        updateVideoCount();
+    }
+
+    function loadMoreGenreVideos() {
         if (isLoadingMore || !hasMoreVideos) return;
 
         if (pendingFilteredVideos.length > 0) {
             isLoadingMore = true;
-            fetchAndRenderBatch().then(() => {
-                isLoadingMore = false;
-            });
+            fetchAndRenderBatch().then(() => { isLoadingMore = false; });
             return;
         }
 
@@ -905,7 +1021,7 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .then(data => {
                 const rawBatch = data.videos || [];
-                
+
                 if (rawBatch.length < FETCH_BATCH_SIZE) {
                     hasMoreVideos = false;
                 }
@@ -915,7 +1031,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     hasMoreVideos = false;
                     isLoadingMore = false;
                     loadingSpinner.classList.remove('visible');
-                    
+
                     if (totalVideoCount === 0) {
                         noMoreVideos.style.display = 'block';
                         noMoreVideos.textContent = getLang('No videos found for this genre.', 'Keine Videos für dieses Thema gefunden.');
@@ -935,7 +1051,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 const minDuration = genreConfig.minDurationSeconds || 0;
-                
+
                 if (minDuration > 0 && tagMatches.length > 0) {
                     return filterByDuration(tagMatches, minDuration).then(durationMatches => {
                         pendingFilteredVideos = durationMatches;
@@ -972,69 +1088,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             fetchAndRenderBatch();
         }
-    }
-
-    function setupIntersectionObserver() {
-        if (window.IntersectionObserver) {
-            intersectionObserver = new IntersectionObserver(
-                (entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting && !isLoadingMore) {
-                            loadMoreVideos();
-                        }
-                    });
-                },
-                { root: null, rootMargin: '300px', threshold: 0 }
-            );
-            if (loadMoreTrigger) {
-                intersectionObserver.observe(loadMoreTrigger);
-            }
-        }
-    }
-
-    sortToggle.addEventListener('click', () => {
-        sortNewestFirst = !sortNewestFirst;
-        updateUITranslations();
-        
-        currentFetchOffset = 0;
-        totalVideoCount = 0;
-        pendingFilteredVideos = [];
-        hasMoreVideos = true;
-        isFirstLoadComplete = false;
-        videosContainer.innerHTML = '';
-        loadingSpinner.classList.remove('visible');
-        noMoreVideos.style.display = 'none';
-        
-        document.getElementById('statsVideos').textContent = `0 ${getLang('videos', 'Videos')}`;
-
-        loadMoreVideos();
-    });
-
-    document.getElementById('shareChannelBtn').addEventListener('click', () => {
-        const genreUrl = `${window.location.origin}/genre_channel.html?genre=${genre}`;
-
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(genreUrl).then(() => {
-                const btn = document.getElementById('shareChannelBtn');
-                const originalText = btn.innerHTML;
-                btn.innerHTML = '<img src="LocalYT-Rev-Files/share.svg" alt="Share"> ' + getLang('Copied!', 'Kopiert!');
-                setTimeout(() => { btn.innerHTML = originalText; }, 2000);
-            }).catch(() => {
-                alert(`Genre URL: ${genreUrl}`);
-            });
-        } else {
-            alert(`Genre URL: ${genreUrl}`);
-        }
-    });
-
-    function initializeVideoList() {
-        loadedTabs.add('videos');
-        videosContainer.innerHTML = '<div class="loading-spinner visible">' + getLang('Scanning library...', 'Durchsuche Bibliothek...') + '</div>';
-
-        channelName.innerHTML = genreDisplayName;
-
-        setupIntersectionObserver();
-        loadMoreVideos();
     }
 
     function filterByDuration(videos, minSeconds) {
@@ -1106,7 +1159,88 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    initializeVideoList();
+    // =====================================================
+    // Unified load more
+    // =====================================================
+
+    function loadMoreVideos() {
+        if (isTopicMode) {
+            loadMoreTopicVideos();
+        } else {
+            loadMoreGenreVideos();
+        }
+    }
+
+    function setupIntersectionObserver() {
+        if (window.IntersectionObserver) {
+            intersectionObserver = new IntersectionObserver(
+                (entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting && !isLoadingMore) {
+                            loadMoreVideos();
+                        }
+                    });
+                },
+                { root: null, rootMargin: '300px', threshold: 0 }
+            );
+            if (loadMoreTrigger) {
+                intersectionObserver.observe(loadMoreTrigger);
+            }
+        }
+    }
+
+    sortToggle.addEventListener('click', () => {
+        sortNewestFirst = !sortNewestFirst;
+        updateUITranslations();
+
+        // Reset state
+        totalVideoCount = 0;
+        hasMoreVideos = true;
+        isFirstLoadComplete = false;
+        videosContainer.innerHTML = '';
+        loadingSpinner.classList.remove('visible');
+        noMoreVideos.style.display = 'none';
+
+        if (isTopicMode) {
+            topicCurrentPage = 1;
+            topicTotalCount = 0;
+        } else {
+            currentFetchOffset = 0;
+            pendingFilteredVideos = [];
+        }
+
+        document.getElementById('statsVideos').textContent = `0 ${getLang('videos', 'Videos')}`;
+        document.getElementById('channelVideoCount').textContent = '';
+
+        loadMoreVideos();
+    });
+
+    document.getElementById('shareChannelBtn').addEventListener('click', () => {
+        let shareUrl;
+        if (isTopicMode) {
+            shareUrl = `${window.location.origin}/genre_channel.html?topic=${encodeURIComponent(topicId)}`;
+        } else {
+            shareUrl = `${window.location.origin}/genre_channel.html?genre=${genre}`;
+        }
+
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                const btn = document.getElementById('shareChannelBtn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<img src="LocalYT-Rev-Files/share.svg" alt="Share"> ' + getLang('Copied!', 'Kopiert!');
+                setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+            }).catch(() => { alert(`URL: ${shareUrl}`); });
+        } else {
+            alert(`URL: ${shareUrl}`);
+        }
+    });
+
+    function initializeVideoList() {
+        loadedTabs.add('videos');
+        videosContainer.innerHTML = '<div class="loading-spinner visible">' + getLang('Scanning library...', 'Durchsuche Bibliothek...') + '</div>';
+        setupIntersectionObserver();
+        loadMoreVideos();
+    }
 
     const searchInput = document.getElementById('searchInput');
 
