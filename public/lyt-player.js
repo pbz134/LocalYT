@@ -2391,10 +2391,11 @@
                 setVolume(v);
             };
             
-            const upHandler = (ev) => {
-                document.removeEventListener('mousemove', moveHandler);
-                document.removeEventListener('mouseup', upHandler);
-            };
+const upHandler = (ev) => {
+    document.removeEventListener('mousemove', moveHandler);
+    document.removeEventListener('mouseup', upHandler);
+    this.dom.volumeSliderWrap.classList.remove('lyt_slider_visible');
+};
             
             document.addEventListener('mousemove', moveHandler);
             document.addEventListener('mouseup', upHandler);
