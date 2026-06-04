@@ -1535,6 +1535,139 @@ async function handleCommentLike(buttonElement, commentId) {
     }
 }
 
+function createCommentSortButton() {
+    const header = document.querySelector('.comments-header');
+    if (!header || document.getElementById('commentSortBtn')) return;
+
+    const lang = localStorage.getItem('language');
+    const options = lang === 'de'
+        ? { top: 'Top-Kommentare', newest: 'Neueste Kommentare', oldest: 'Älteste Kommentare' }
+        : { top: 'Top comments', newest: 'Newest comments', oldest: 'Oldest comments' };
+
+    const sortContainer = document.createElement('div');
+    sortContainer.style.cssText = 'position:relative; display:inline-block; margin-left:8px;';
+
+    const btn = document.createElement('button');
+    btn.id = 'commentSortBtn';
+    btn.style.cssText = `
+        background: transparent;
+        color: #aaa;
+        border: 1px solid #555;
+        padding: 4px 12px;
+        font-size: 13px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-family: 'RobotoRegular', Arial, sans-serif;
+        transition: background-color 0.15s, border-color 0.15s;
+    `;
+    btn.innerHTML = `${options.top} <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>`;
+
+    const dropdown = document.createElement('div');
+    dropdown.style.cssText = `
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        margin-top: 4px;
+        background-color: #282828;
+        border: 1px solid #3f3f3f;
+        z-index: 100;
+        min-width: 180px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    `;
+
+    const choices = [
+        { key: 'top', label: options.top },
+        { key: 'newest', label: options.newest },
+        { key: 'oldest', label: options.oldest }
+    ];
+
+    choices.forEach(choice => {
+        const item = document.createElement('div');
+        item.style.cssText = `
+            padding: 8px 14px;
+            font-size: 13px;
+            color: #d2cfcf;
+            cursor: pointer;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            transition: background-color 0.1s;
+        `;
+        item.textContent = choice.label;
+        if (choice.key === 'top') item.style.color = '#fff';
+
+        item.addEventListener('mouseenter', () => { item.style.backgroundColor = '#3f3f3f'; });
+        item.addEventListener('mouseleave', () => { item.style.backgroundColor = 'transparent'; });
+
+        item.addEventListener('click', () => {
+            _lazyCommentsState.sortMode = choice.key;
+            const svgIcon = '<svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>';
+            btn.innerHTML = `${choice.label} ${svgIcon}`;
+            dropdown.querySelectorAll('div').forEach(d => d.style.color = '#d2cfcf');
+            item.style.color = '#fff';
+            dropdown.style.display = 'none';
+            applyCommentSort();
+        });
+
+        dropdown.appendChild(item);
+    });
+
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    });
+
+    document.addEventListener('click', () => { dropdown.style.display = 'none'; });
+
+    sortContainer.appendChild(btn);
+    sortContainer.appendChild(dropdown);
+    header.appendChild(sortContainer);
+}
+
+function applyCommentSort() {
+    const state = _lazyCommentsState;
+    if (!state.allTopLevel || state.allTopLevel.length === 0) return;
+
+    const sortMode = state.sortMode || 'top';
+
+    const pinned = state.allTopLevel.filter(c => c.is_pinned);
+    const unpinned = state.allTopLevel.filter(c => !c.is_pinned);
+
+    if (sortMode === 'top') {
+        unpinned.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    } else if (sortMode === 'newest') {
+        unpinned.sort((a, b) => {
+            const dateA = a.published_at ? new Date(a.published_at) : new Date(0);
+            const dateB = b.published_at ? new Date(b.published_at) : new Date(0);
+            return dateB - dateA;
+        });
+    } else if (sortMode === 'oldest') {
+        unpinned.sort((a, b) => {
+            const dateA = a.published_at ? new Date(a.published_at) : new Date(0);
+            const dateB = b.published_at ? new Date(b.published_at) : new Date(0);
+            return dateA - dateB;
+        });
+    }
+
+    state.allTopLevel = [...pinned, ...unpinned];
+
+    // Re-render from scratch
+    const container = document.getElementById('commentsContainer');
+    if (container) container.innerHTML = '';
+    state.renderedCount = 0;
+    state.loading = false;
+    if (state.observer) {
+        state.observer.disconnect();
+        state.observer = null;
+    }
+    const sentinel = document.getElementById('commentsSentinel');
+    if (sentinel) sentinel.remove();
+
+    renderCommentsBatch();
+}
+
 // ===== COMMENT LAZY-LOADING STATE =====
 let _lazyCommentsState = {
     allTopLevel: [],
@@ -1688,6 +1821,9 @@ function renderComments(comments, channelPicUrl, userCommentLikes = {}) {
 
     container.innerHTML = '';
 
+    // Initialize sort mode if not set
+    if (!_lazyCommentsState.sortMode) _lazyCommentsState.sortMode = 'top';
+
     if (!comments || comments.length === 0) {
         const lang = localStorage.getItem('language');
         if (lang === 'de') {
@@ -1713,12 +1849,14 @@ function renderComments(comments, channelPicUrl, userCommentLikes = {}) {
             countSpanEn.textContent = ' \u2022 0';
             container.innerHTML = '<div class="no-comments">No comments available for this video.</div>';
         }
+        createCommentSortButton();
         return;
     }
 
     const topLevel = comments.filter(c => !c.is_reply);
     const replies = comments.filter(c => c.is_reply);
 
+    // Default sort is by likes (Top comments), pinned first
     topLevel.sort((a, b) => {
         if (a.is_pinned && !b.is_pinned) return -1;
         if (!a.is_pinned && b.is_pinned) return 1;
@@ -1733,6 +1871,9 @@ function renderComments(comments, channelPicUrl, userCommentLikes = {}) {
     _lazyCommentsState.channelPicUrl = channelPicUrl;
     _lazyCommentsState.renderedCount = 0;
     _lazyCommentsState.loading = false;
+
+    // Create the sort button next to the comment count
+    createCommentSortButton();
 
     renderCommentsBatch();
 }

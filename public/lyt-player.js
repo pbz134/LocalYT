@@ -2040,6 +2040,15 @@
             this.wrapper.addEventListener('touchstart', showControls);
             this.video.addEventListener('play', showControls);
             this.video.addEventListener('pause', showControls);
+
+            // Keep UI visible before initial video play
+            if (!this._hasPlayedOnce) {
+                showControls();
+                const onFirstPlay = () => {
+                    this.video.removeEventListener('play', onFirstPlay);
+                };
+                this.video.addEventListener('play', onFirstPlay);
+            }
         }
         
         toggleMenu(menu) {
