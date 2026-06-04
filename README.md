@@ -37,7 +37,8 @@ From then on, I regularly worked on the program to further improve it, and 15 mo
   - Create a local account to track your watch history, liked videos and subscribed channels
   - Add videos to your own custom playlists
   - Resume your session on a different computer
-
+- **Complete customization**
+  - Customize page appearances, layouts, rounded corners or autoplay mechanics
 ---
 
 ## Prerequisites
