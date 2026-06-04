@@ -2311,7 +2311,11 @@ document.addEventListener('click', function(e) {
                     return fetch(descriptionPath);
                 })
                 .then(async response => {
-                    if (!response.ok) return null;
+                    if (!response.ok) {
+                        currentVideoDescription.innerHTML = currentVideoDescription.textContent + 
+                            '<span class="no-description">' + getLang('No description available for this video.', 'Diesem Video wurde keine Beschreibung hinzugefügt.') + '</span>';
+                        return null;
+                    }
                     const description = await response.text();
                     
                     if (description === null) {
