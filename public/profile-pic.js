@@ -790,7 +790,7 @@
         if (logo && !document.getElementById('logo-version')) {
             const versionSpan = document.createElement('span');
             versionSpan.id = 'logo-version';
-            versionSpan.textContent = 'v4.35'; // Current LocalYT version
+            versionSpan.textContent = 'v4.40'; // Current LocalYT version
             
             const isLight = getSetting('appearanceMode', 'dark') === 'light';
             versionSpan.style.color = isLight ? '#999999' : '#c8c8c8';
