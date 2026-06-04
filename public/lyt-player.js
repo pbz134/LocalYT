@@ -2459,6 +2459,7 @@ const upHandler = (ev) => {
                     break;
                 case 'c':
                     e.preventDefault();
+                    if (this.video.textTracks.length === 0) return;
                     if (this.currentTrackIndex >= 0) {
                         this.setSubtitleTrack(-1);
                     } else {
