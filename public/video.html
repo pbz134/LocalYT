@@ -3392,6 +3392,11 @@ async function detectAndStyleLinks(text) {
             videoPlayer.currentTime = seconds;
             videoPlayer.play();
             
+            const videoStage = document.querySelector('.video-stage');
+            const headerHeight = document.querySelector('.top-bar').offsetHeight;
+            const y = videoStage.getBoundingClientRect().top + window.pageYOffset - headerHeight;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+            
             const clickedElement = event.target;
             clickedElement.style.color = '#ff0000';
             setTimeout(() => {
