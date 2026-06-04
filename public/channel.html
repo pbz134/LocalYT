@@ -1357,7 +1357,7 @@ function parseChannelUrl() {
     const raw = new URLSearchParams(window.location.search).get('channel') || '';
     const decoded = decodeURIComponent(raw);
 
-    const validTabs = ['videos', 'playlists', 'about', 'posts'];
+    const validTabs = ['videos', 'playlists', 'about', 'posts', 'search'];
     const tabNames = validTabs.find(t => decoded.endsWith('/' + t));
 
     if (tabNames) {
@@ -1687,6 +1687,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('popstate', (event) => {
         const tabName = event.state?.tab || 'home';
+        const query = event.state?.query || '';
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 
@@ -1697,6 +1698,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!loadedTabs.has(tabName)) {
             loadTabContent(tabName);
+        }
+
+        // Restore channel search state if navigating back to the search tab
+        if (tabName === 'search') {
+            const searchBar = document.querySelector('.tab-search-bar');
+            if (!searchBar.classList.contains('active')) {
+                searchBar.classList.add('active');
+            }
+            if (query) {
+                channelSearchInput.value = query;
+                // Re-trigger search automatically
+                executeChannelSearch(query);
+            }
         }
     });
 
@@ -2910,6 +2924,12 @@ function getMimeType(extension) {
 
     loadHeaderStats();
 
+    // --- MUST BE DECLARED BEFORE INITIAL TAB SETUP ---
+    const channelSearchInput = document.getElementById('channelSearchInput');
+    const channelSearchResults = document.getElementById('channelSearchResults');
+    let channelSearchTimeout = null;
+    // -------------------------------------------------
+
     if (initialTab !== 'home') {
         document.querySelector('.tab[data-tab="home"]').classList.remove('active');
         document.getElementById('homeTab').classList.remove('active');
@@ -2918,16 +2938,148 @@ function getMimeType(extension) {
         if (targetTab) targetTab.classList.add('active');
         if (targetContent) targetContent.classList.add('active');
         loadTabContent(initialTab);
+
+        // Restore channel search query if present on initial load
+        if (initialTab === 'search') {
+            const searchBar = document.querySelector('.tab-search-bar');
+            if (!searchBar.classList.contains('active')) {
+                searchBar.classList.add('active');
+            }
+            const initialQuery = new URLSearchParams(window.location.search).get('q') || '';
+            if (initialQuery) {
+                channelSearchInput.value = initialQuery;
+                // Directly execute the search instead of dispatching an event
+                executeChannelSearch(initialQuery);
+            }
+        }
     } else {
         loadedTabs.add('home');
         loadHomeTab();
     }
 
-    history.replaceState({ tab: initialTab }, '', buildChannelUrl(channel, initialTab));
+    history.replaceState({ tab: initialTab, query: initialTab === 'search' ? (new URLSearchParams(window.location.search).get('q') || '') : '' }, '', buildChannelUrl(channel, initialTab) + (initialTab === 'search' && new URLSearchParams(window.location.search).get('q') ? '&q=' + encodeURIComponent(new URLSearchParams(window.location.search).get('q')) : ''));
 
-    const channelSearchInput = document.getElementById('channelSearchInput');
-    const channelSearchResults = document.getElementById('channelSearchResults');
-    let channelSearchTimeout = null;
+    function executeChannelSearch(query) {
+        if (!query) {
+            switchTab('search');
+            channelSearchResults.innerHTML = '<div class="channel-search-no-results">' + getLang('Type something to search.', 'Bitte etwas eingeben zum Suchen.') + '</div>';
+            return;
+        }
+
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        document.querySelector('.tab[data-tab="search"]').classList.add('active');
+        document.getElementById('searchTab').classList.add('active');
+        document.querySelector('.tab-search-bar').classList.add('active');
+        
+        const searchUrl = buildChannelUrl(channel, 'search') + '&q=' + encodeURIComponent(query);
+        history.pushState({ tab: 'search', query: query }, '', searchUrl);
+        loadedTabs.add('search');
+
+        channelSearchResults.innerHTML = '<div class="tab-loading-placeholder">' + getLang('Searching...', 'Suche...') + '</div>';
+
+        fetch('/search-index')
+            .then(response => response.json())
+            .then(data => {
+                const allVideos = data.videos || [];
+                
+                const results = allVideos.filter(v => 
+                    v.path.startsWith(channel + '/') && 
+                    v.displayName.toLowerCase().includes(query)
+                );
+
+                channelSearchResults.innerHTML = '';
+
+                if (results.length === 0) {
+                    channelSearchResults.innerHTML = '<div class="channel-search-no-results">' + getLang('No videos found.', 'Keine Videos gefunden.') + '</div>';
+                    return;
+                }
+
+                const fragment = document.createDocumentFragment();
+                results.forEach(video => {
+                    const videoElement = document.createElement('div');
+                    videoElement.className = 'video-item';
+                    const videoPathWithoutExt = stripExtension(video.path);
+                    const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
+
+                    videoElement.innerHTML = `
+                        <div class="thumbnail-container">
+                            <img src="${thumbnailSrc}" alt="${video.displayName}" class="video-thumbnail" loading="lazy">
+                            <div class="video-length"></div>
+                        </div>
+                        <div class="video-title" onclick="openVideo('${encodeURIComponent(video.path)}')">${video.displayName}</div>
+                        <div class="video-description">${getLang('Loading views...', 'Aufrufe werden geladen...')}</div>
+                    `;
+
+                    const descriptionDiv = videoElement.querySelector('.video-description');
+
+                    Promise.all([
+                        fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(r => r.ok ? r.text() : '0'),
+                        fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoPathWithoutExt.split('/').pop())}.txt`).then(r => r.ok ? r.text() : ''),
+                        fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(r => r.ok ? r.text() : 'Unknown date')
+                    ])
+                    .then(([viewCount, videoLength, fileDate]) => {
+                        let formattedViewCount = viewCount;
+                        if (!isNaN(viewCount) && viewCount !== '0') {
+                            formattedViewCount = parseInt(viewCount).toLocaleString();
+                        }
+
+                        const lang = localStorage.getItem('language');
+                        let viewsText = getLang('views', 'Aufrufe');
+                        let uploadedText = getLang('Uploaded on', 'Hochgeladen am');
+
+                        if (lang === 'de') {
+                            formattedViewCount = formattedViewCount.replace(/,/g, '.');
+                        }
+
+                        let finalText = `${formattedViewCount} ${viewsText}`;
+                        if (fileDate && fileDate.trim() !== 'Unknown date') {
+                            finalText += ` • ${uploadedText} ${fileDate.trim()}`;
+                        }
+                        descriptionDiv.textContent = finalText;
+                        if (videoLength.trim()) {
+                            videoElement.querySelector('.video-length').textContent = videoLength.trim();
+                        }
+                    })
+                    .catch(() => {
+                        descriptionDiv.textContent = '';
+                    });
+
+                    const videoThumb = videoElement.querySelector('.video-thumbnail');
+                    const videoLink = videoElement.querySelector('.video-title');
+
+                    videoThumb.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
+                    videoThumb.addEventListener('contextmenu', (ev) => {
+                        ev.preventDefault();
+                        window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                    });
+                    videoLink.addEventListener('contextmenu', (ev) => {
+                        ev.preventDefault();
+                        window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                    });
+
+                    const middleHandler = (ev) => {
+                        if (ev.button === 1) {
+                            ev.preventDefault();
+                            window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+                        }
+                    };
+                    videoThumb.addEventListener('mouseup', middleHandler);
+                    videoThumb.addEventListener('auxclick', middleHandler);
+                    videoLink.addEventListener('mouseup', middleHandler);
+                    videoLink.addEventListener('auxclick', middleHandler);
+
+                    fragment.appendChild(videoElement);
+                });
+
+                channelSearchResults.appendChild(fragment);
+            })
+            .catch(error => {
+                console.error('Search error:', error);
+                channelSearchResults.innerHTML = '<div class="channel-search-no-results">Search failed.</div>';
+            });
+    }
 
     document.querySelector('.tab[data-tab="search"]').addEventListener('click', (e) => {
         e.stopPropagation();
@@ -2959,126 +3111,7 @@ function getMimeType(extension) {
         if (e.key === 'Enter') {
             e.preventDefault();
             const query = channelSearchInput.value.trim().toLowerCase();
-            
-            if (!query) {
-                switchTab('search');
-                channelSearchResults.innerHTML = '<div class="channel-search-no-results">' + getLang('Type something to search.', 'Bitte etwas eingeben zum Suchen.') + '</div>';
-                return;
-            }
-
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            
-            document.querySelector('.tab[data-tab="search"]').classList.add('active');
-            document.getElementById('searchTab').classList.add('active');
-            document.querySelector('.tab-search-bar').classList.add('active');
-            
-            history.pushState({ tab: 'search' }, '', buildChannelUrl(channel, 'search'));
-            loadedTabs.add('search');
-
-            channelSearchResults.innerHTML = '<div class="tab-loading-placeholder">' + getLang('Searching...', 'Suche...') + '</div>';
-
-            fetch('/search-index')
-                .then(response => response.json())
-                .then(data => {
-                    const allVideos = data.videos || [];
-                    
-                    const results = allVideos.filter(v => 
-                        v.path.startsWith(channel + '/') && 
-                        v.displayName.toLowerCase().includes(query)
-                    );
-
-                    channelSearchResults.innerHTML = '';
-
-                    if (results.length === 0) {
-                        channelSearchResults.innerHTML = '<div class="channel-search-no-results">' + getLang('No videos found.', 'Keine Videos gefunden.') + '</div>';
-                        return;
-                    }
-
-                    const fragment = document.createDocumentFragment();
-                    results.forEach(video => {
-                        const videoElement = document.createElement('div');
-                        videoElement.className = 'video-item';
-                        const videoPathWithoutExt = stripExtension(video.path);
-                        const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
-
-                        videoElement.innerHTML = `
-                            <div class="thumbnail-container">
-                                <img src="${thumbnailSrc}" alt="${video.displayName}" class="video-thumbnail" loading="lazy">
-                                <div class="video-length"></div>
-                            </div>
-                            <div class="video-title" onclick="openVideo('${encodeURIComponent(video.path)}')">${video.displayName}</div>
-                            <div class="video-description">${getLang('Loading views...', 'Aufrufe werden geladen...')}</div>
-                        `;
-
-                        const descriptionDiv = videoElement.querySelector('.video-description');
-
-                        Promise.all([
-                            fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(r => r.ok ? r.text() : '0'),
-                            fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoPathWithoutExt.split('/').pop())}.txt`).then(r => r.ok ? r.text() : ''),
-                            fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(r => r.ok ? r.text() : 'Unknown date')
-                        ])
-        .then(([viewCount, videoLength, fileDate]) => {
-            let formattedViewCount = viewCount;
-            if (!isNaN(viewCount) && viewCount !== '0') {
-                formattedViewCount = parseInt(viewCount).toLocaleString();
-            }
-
-            const lang = localStorage.getItem('language');
-            let viewsText = getLang('views', 'Aufrufe');
-            let uploadedText = getLang('Uploaded on', 'Hochgeladen am');
-
-            if (lang === 'de') {
-                formattedViewCount = formattedViewCount.replace(/,/g, '.');
-            }
-
-            // ONLY append the upload date if it successfully found one from the server
-            let finalText = `${formattedViewCount} ${viewsText}`;
-            if (fileDate && fileDate.trim() !== 'Unknown date') {
-                finalText += ` • ${uploadedText} ${fileDate.trim()}`;
-            }
-            descriptionDiv.textContent = finalText;
-                            if (videoLength.trim()) {
-                                videoElement.querySelector('.video-length').textContent = videoLength.trim();
-                            }
-                        })
-                        .catch(() => {
-                            descriptionDiv.textContent = '';
-                        });
-
-                        const videoThumb = videoElement.querySelector('.video-thumbnail');
-                        const videoLink = videoElement.querySelector('.video-title');
-
-                        videoThumb.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
-                        videoThumb.addEventListener('contextmenu', (ev) => {
-                            ev.preventDefault();
-                            window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
-                        });
-                        videoLink.addEventListener('contextmenu', (ev) => {
-                            ev.preventDefault();
-                            window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
-                        });
-
-                        const middleHandler = (ev) => {
-                            if (ev.button === 1) {
-                                ev.preventDefault();
-                                window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
-                            }
-                        };
-                        videoThumb.addEventListener('mouseup', middleHandler);
-                        videoThumb.addEventListener('auxclick', middleHandler);
-                        videoLink.addEventListener('mouseup', middleHandler);
-                        videoLink.addEventListener('auxclick', middleHandler);
-
-                        fragment.appendChild(videoElement);
-                    });
-
-                    channelSearchResults.appendChild(fragment);
-                })
-                .catch(error => {
-                    console.error('Search error:', error);
-                    channelSearchResults.innerHTML = '<div class="channel-search-no-results">Search failed.</div>';
-                });
+            executeChannelSearch(query);
         }
     });
 
