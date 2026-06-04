@@ -938,6 +938,29 @@
                 <div id="playerUIScaleStatus" class="status-msg"></div>
             </div>
 
+            <!-- Rounded Corners Section -->
+            <div class="settings-section">
+                <h2 id="roundedCornersHeading">Rounded Corners</h2>
+
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div id="roundedCornersLabel">Rounded corners</div>
+                        <div class="setting-description" id="roundedCornersDesc">Add subtle rounded corners to the video player and video thumbnails</div>
+                    </div>
+                    <div class="setting-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="roundedCorners">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="inline-form" style="margin-top: 15px;">
+                    <button class="btn btn-save" id="saveRoundedCornersBtn">Save Preference</button>
+                </div>
+                <div id="roundedCornersStatus" class="status-msg"></div>
+            </div>
+
             <!-- Configuration Import/Export Section -->
             <div class="settings-section">
                 <h2 id="configImportExportHeading">Configuration</h2>
@@ -1209,6 +1232,12 @@ function applyTranslations() {
     document.getElementById('showEndScreenGridLabel').textContent = getLang('Show End Screen Recommendation Grid', 'Empfehlungsraster am Ende anzeigen');
     document.getElementById('showEndScreenGridDesc').textContent = getLang('Display a 4x3 grid of recommended videos when a video ends and autoplay is disabled', 'Ein 4x3-Raster mit empfohlenen Videos anzeigen, wenn ein Video endet und die automatische Wiedergabe deaktiviert ist');
     document.getElementById('saveChannelProfilePicBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
+
+    // Rounded Corners Translations
+    document.getElementById('roundedCornersHeading').textContent = getLang('Rounded Corners', 'Abgerundete Ecken');
+    document.getElementById('roundedCornersLabel').textContent = getLang('Rounded corners', 'Abgerundete Ecken');
+    document.getElementById('roundedCornersDesc').textContent = getLang('Add subtle rounded corners to the video player and video thumbnails', 'Leicht abgerundete Ecken zum Videoplayer und allen Video-Miniaturansichten hinzufügen');
+    document.getElementById('saveRoundedCornersBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
 }
 
 // ==============================
@@ -1463,6 +1492,57 @@ function savePlayerUIScale() {
         })
         .catch(() => {
             showStatus('playerUIScaleStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
+        });
+}
+
+// ==============================
+// Rounded Corners Logic
+// ==============================
+function loadRoundedCorners() {
+    const savedLocal = JSON.parse(localStorage.getItem('roundedCorners') || '{}');
+    const defaultValue = false;
+    const currentValue = savedLocal.enabled !== undefined ? savedLocal.enabled : defaultValue;
+    
+    document.getElementById('roundedCorners').checked = currentValue;
+
+    fetch('/user-settings')
+        .then(res => {
+            if (!res.ok) throw new Error('Not authenticated');
+            return res.json();
+        })
+        .then(serverSettings => {
+            if (serverSettings && serverSettings.roundedCorners !== undefined) {
+                const serverValue = serverSettings.roundedCorners;
+                document.getElementById('roundedCorners').checked = serverValue;
+                localStorage.setItem('roundedCorners', JSON.stringify({ enabled: serverValue }));
+            }
+        })
+        .catch(err => console.error('Could not load rounded corners setting from server:', err));
+}
+
+function saveRoundedCorners() {
+    const enabled = document.getElementById('roundedCorners').checked;
+    localStorage.setItem('roundedCorners', JSON.stringify({ enabled: enabled }));
+
+    fetch('/user-settings')
+        .then(res => res.json())
+        .then(currentSettings => {
+            const updatedSettings = { ...currentSettings, roundedCorners: enabled };
+            return fetch('/user-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings: updatedSettings })
+            });
+        })
+        .then(res => {
+            if (res.ok) {
+                showStatus('roundedCornersStatus', getLang('Rounded corners preference saved!', 'Einstellung für abgerundete Ecken gespeichert!'), true);
+            } else {
+                showStatus('roundedCornersStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
+            }
+        })
+        .catch(() => {
+            showStatus('roundedCornersStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
         });
 }
 
@@ -1858,7 +1938,8 @@ sidebarLinks.forEach(link => {
             loadTitleColorScheme();
             loadShowChannelProfilePic();
             loadShowEndScreenGrid();
-            loadPlayerUIScale(); 
+            loadPlayerUIScale();
+            loadRoundedCorners(); 
         }
     });
 });
@@ -1915,6 +1996,7 @@ document.addEventListener('DOMContentLoaded', () => {
         saveShowEndScreenGrid();
     });
     document.getElementById('savePlayerUIScaleBtn')?.addEventListener('click', savePlayerUIScale);
+    document.getElementById('saveRoundedCornersBtn')?.addEventListener('click', saveRoundedCorners);
 
     // Initialize config import/export buttons
     initConfigImportExport();
@@ -2480,6 +2562,9 @@ function gatherCurrentSettings() {
 
     // Player UI Scale
     config.playerUIScale = parseFloat(document.getElementById('playerUIScale').value);
+
+    // Rounded Corners
+    config.roundedCorners = document.getElementById('roundedCorners').checked;
     
     return config;
 }
@@ -2611,6 +2696,11 @@ function validateConfig(config) {
     if (config.titleColorScheme && !['white', 'blue'].includes(config.titleColorScheme)) {
         return false;
     }
+
+    // Validate rounded corners
+    if (config.roundedCorners !== undefined && typeof config.roundedCorners !== 'boolean') {
+        return false;
+    }
     
     return true;
 }
@@ -2705,6 +2795,11 @@ function applyConfiguration(config) {
         document.getElementById('playerUIScale').value = config.playerUIScale;
         localStorage.setItem('playerUIScale', JSON.stringify({ scale: config.playerUIScale }));
     }
+    // Apply Rounded Corners
+    if (config.roundedCorners !== undefined) {
+        document.getElementById('roundedCorners').checked = config.roundedCorners;
+        localStorage.setItem('roundedCorners', JSON.stringify({ enabled: config.roundedCorners }));
+    }
 }
 
 function saveImportedConfiguration(config) {
@@ -2758,6 +2853,10 @@ function saveImportedConfiguration(config) {
             
             if (config.titleColorScheme) {
                 updatedSettings.titleColorScheme = config.titleColorScheme;
+            }
+
+            if (config.roundedCorners !== undefined) {
+                updatedSettings.roundedCorners = config.roundedCorners;
             }
 
             // Save merged settings to server
