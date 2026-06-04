@@ -58,7 +58,8 @@ body {
     align-items: center;
     justify-content: center; 
     flex: 1;
-    max-width: 600px;
+    max-width: 500px;
+    left: -80px;
     margin: 0 auto;
     position: relative; 
 }
