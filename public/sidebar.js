@@ -1,5 +1,3 @@
-// sidebar.js
-
 // Inject Sidebar CSS
 const sidebarCSS = document.createElement('style');
 sidebarCSS.id = 'sidebar-styles';
