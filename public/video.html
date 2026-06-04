@@ -1445,7 +1445,7 @@ function renderSingleComment(comment, isReply, channelPicUrl, isCommentLiked = f
     const replyCls = isReply ? ' reply' : '';
     
     // Generate unique ID for each comment
-    const commentId = `${comment.author}-${comment.published_at}-${comment.text.substring(0, 20)}`;
+    const commentId = comment._internalId || `${comment.author}-${comment.published_at}-${comment.text.substring(0, 20)}`;
 
     // Check user preference for commenter avatar style
     const commenterSettings = JSON.parse(localStorage.getItem('commenterProfileStyle') || '{}');
@@ -1684,7 +1684,7 @@ function renderCommentsBatch() {
     const container = document.getElementById('commentsContainer');
     const countEl = document.getElementById('commentsCount');
 
-    const totalCount = state.allTopLevel.length + state.allReplies.length;
+    const totalCount = state.allTopLevel.length;
     countEl.textContent = getLang('Comments', 'Kommentare');
     countEl.style.marginRight = '4px';
     
@@ -1702,7 +1702,7 @@ function renderCommentsBatch() {
     let html = '';
     for (let i = start; i < end; i++) {
         const comment = state.allTopLevel[i];
-        const commentId = `${comment.author}-${comment.published_at}-${comment.text.substring(0, 20)}`;
+        const commentId = comment._internalId; 
         const isLiked = state.userCommentLikes[commentId] === true;
         html += renderSingleComment(comment, false, state.channelPicUrl, isLiked);
     }
@@ -1714,9 +1714,15 @@ function renderCommentsBatch() {
     state.renderedCount = end;
 
     bindCommentTextToggles(container);
+    
+    attachRepliesToRenderedComments();
 
     if (state.renderedCount >= state.allTopLevel.length) {
-        showRepliesSection();
+        // All comments loaded, disconnect observer
+        if (state.observer) {
+            state.observer.disconnect();
+            state.observer = null;
+        }
         return;
     }
 
@@ -1749,43 +1755,57 @@ function ensureObserver() {
     if (sentinel) state.observer.observe(sentinel);
 }
 
-function showRepliesSection() {
+function attachRepliesToRenderedComments() {
     const state = _lazyCommentsState;
     const container = document.getElementById('commentsContainer');
 
-    if (state.allReplies.length > 0) {
-        const repliesSection = document.createElement('div');
-        repliesSection.id = 'repliesSection';
+    // Find all top-level comments currently rendered
+    const renderedComments = container.querySelectorAll('.comment-item:not(.reply)');
 
-        let html = `<button class="replies-toggle" id="repliesToggle">${CHEVRON_SVG} View ${state.allReplies.length} ${state.allReplies.length === 1 ? 'reply' : 'replies'}</button>`;
-        html += `<div class="replies-container collapsed" id="repliesContainer">`;
-        state.allReplies.forEach(r => {
-            const replyId = `${r.author}-${r.published_at}-${r.text.substring(0, 20)}`;
-            const isLiked = state.userCommentLikes[replyId] === true;
-            html += renderSingleComment(r, true, state.channelPicUrl, isLiked);
-        });
-        html += '</div>';
+    renderedComments.forEach((commentEl) => {
+        // Skip if we already attached replies to this comment
+        if (commentEl.nextElementSibling && commentEl.nextElementSibling.classList.contains('replies-section')) return;
 
-        repliesSection.innerHTML = html;
-        container.appendChild(repliesSection);
+        const commentId = safeDecodeURIComponent(commentEl.dataset.commentId);
+        const commentData = state.allTopLevel.find(c => c._internalId === commentId);
 
-        const toggle = document.getElementById('repliesToggle');
-        const repliesBox = document.getElementById('repliesContainer');
-        if (toggle && repliesBox) {
-            toggle.addEventListener('click', function () {
-                const open = this.classList.toggle('open');
-                if (open) {
-                    repliesBox.classList.remove('collapsed');
-                    repliesBox.style.maxHeight = repliesBox.scrollHeight + 'px';
-                    this.innerHTML = CHEVRON_SVG + ' Hide replies';
-                } else {
-                    repliesBox.style.maxHeight = repliesBox.scrollHeight + 'px';
-                    requestAnimationFrame(() => { repliesBox.classList.add('collapsed'); });
-                    this.innerHTML = CHEVRON_SVG + ` View ${state.allReplies.length} ${state.allReplies.length === 1 ? 'reply' : 'replies'}`;
-                }
+        if (commentData && commentData.replies && commentData.replies.length > 0) {
+            const replies = commentData.replies;
+
+            const repliesSection = document.createElement('div');
+            repliesSection.className = 'replies-section';
+            repliesSection.style.marginLeft = '48px';
+
+            let html = `<button class="replies-toggle">${CHEVRON_SVG} ${getLang(`View ${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}`, `${replies.length} ${replies.length === 1 ? 'Antwort' : 'Antworten'} anzeigen`)}</button>`;
+            html += `<div class="replies-container collapsed" style="transition: none;">`;
+            
+            replies.forEach(r => {
+                const isLiked = state.userCommentLikes[r._internalId] === true;
+                html += renderSingleComment(r, true, state.channelPicUrl, isLiked);
             });
+            
+            html += '</div>';
+            repliesSection.innerHTML = html;
+
+            commentEl.insertAdjacentElement('afterend', repliesSection);
+
+            const toggle = repliesSection.querySelector('.replies-toggle');
+            const repliesBox = repliesSection.querySelector('.replies-container');
+            
+            if (toggle && repliesBox) {
+                toggle.addEventListener('click', function () {
+                    const open = this.classList.toggle('open');
+                    if (open) {
+                        repliesBox.classList.remove('collapsed');
+                        this.innerHTML = CHEVRON_SVG + getLang('Hide replies', 'Antworten ausblenden');
+                    } else {
+                        repliesBox.classList.add('collapsed');
+                        this.innerHTML = CHEVRON_SVG + getLang(`View ${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}`, `${replies.length} ${replies.length === 1 ? 'Antwort' : 'Antworten'} anzeigen`);
+                    }
+                });
+            }
         }
-    }
+    });
 
     if (state.observer) {
         state.observer.disconnect();
@@ -1821,7 +1841,6 @@ function renderComments(comments, channelPicUrl, userCommentLikes = {}) {
 
     container.innerHTML = '';
 
-    // Initialize sort mode if not set
     if (!_lazyCommentsState.sortMode) _lazyCommentsState.sortMode = 'top';
 
     if (!comments || comments.length === 0) {
@@ -1853,8 +1872,24 @@ function renderComments(comments, channelPicUrl, userCommentLikes = {}) {
         return;
     }
 
-    const topLevel = comments.filter(c => !c.is_reply);
-    const replies = comments.filter(c => c.is_reply);
+    let idCounter = 0;
+    const topLevel = [];
+    let currentParent = null;
+
+    comments.forEach(c => {
+        // Assign a reliable internal ID to every comment
+        c._internalId = 'cid_' + (idCounter++);
+
+        if (!c.is_reply) {
+            // This is a top-level comment
+            c.replies = [];
+            topLevel.push(c);
+            currentParent = c; // Set it as the active parent for upcoming replies
+        } else if (currentParent) {
+            // This is a reply; attach it to the last top-level comment we saw
+            currentParent.replies.push(c);
+        }
+    });
 
     // Default sort is by likes (Top comments), pinned first
     topLevel.sort((a, b) => {
@@ -1862,17 +1897,14 @@ function renderComments(comments, channelPicUrl, userCommentLikes = {}) {
         if (!a.is_pinned && b.is_pinned) return 1;
         return (b.likes || 0) - (a.likes || 0);
     });
-    replies.sort((a, b) => (b.likes || 0) - (a.likes || 0));
 
-    // Store likes in state so batch renderer can access them
     _lazyCommentsState.userCommentLikes = userCommentLikes;
     _lazyCommentsState.allTopLevel = topLevel;
-    _lazyCommentsState.allReplies = replies;
+    _lazyCommentsState.allReplies = []; // No longer needed globally
     _lazyCommentsState.channelPicUrl = channelPicUrl;
     _lazyCommentsState.renderedCount = 0;
     _lazyCommentsState.loading = false;
 
-    // Create the sort button next to the comment count
     createCommentSortButton();
 
     renderCommentsBatch();
