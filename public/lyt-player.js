@@ -98,7 +98,10 @@
             this._uiScaleStep = 0.1;
             this._uiScaleMin = 0.5;
             this._uiScaleMax = 2.0;
-            
+           
+            // Chapters State
+            this.chapters = [];
+ 
             // Recommendation system state
             this._recTriggered = false;
             this._recShownCount = 0;
@@ -111,7 +114,7 @@
             this._endScreenData = null;
             
             // Version
-            this.version = 'v2.2.5';
+            this.version = 'v2.3.0';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -617,6 +620,15 @@
                     .lyt_progress_container:hover {
                         height: 7px;
                     }
+                    .lyt_chapter_marker {
+                        position: absolute;
+                        top: 0;
+                        bottom: 0;
+                        width: 2px;
+                        background: rgba(0, 0, 0, 0.5);
+                        pointer-events: none;
+                        z-index: 1;
+                    }
                     .lyt_progress_buffered {
                         position: absolute;
                         top: 0; left: 0;
@@ -774,6 +786,27 @@
                         padding: 0 8px 0 4px;
                         letter-spacing: 0.3px;
                         cursor: default;
+                    }
+                    
+                    /* Chapter title display */
+                    .lyt_chapter_title {
+                        color: rgba(255, 255, 255, 0.9);
+                        font-size: calc(var(--lyt-time-font-size) * var(--lyt-ui-scale));
+                        font-family: 'Roboto', 'Arial', sans-serif;
+                        white-space: nowrap;
+                        user-select: none;
+                        padding: 0 4px 0 0;
+                        letter-spacing: 0.3px;
+                        cursor: default;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        min-width: 0;
+                        flex: 0 1 auto;
+                    }
+                    .lyt_chapter_title::before {
+                        content: '•';
+                        margin-right: 6px;
+                        opacity: 0.5;
                     }
                     
                     /* Popup menus */
@@ -1239,6 +1272,7 @@
                             </div>
                             
                             <span class="lyt_time">0:00 / 0:00</span>
+                            <span class="lyt_chapter_title"></span>
                         </div>
 
                         <!-- Right Controls -->
@@ -1305,6 +1339,7 @@
                 volumeDot: this.wrapper.querySelector('.lyt_volume_dot'),     
                 volumeSliderWrap: this.wrapper.querySelector('.lyt_volume_slider_wrap'),
                 timeDisplay: this.wrapper.querySelector('.lyt_time'),
+                chapterTitle: this.wrapper.querySelector('.lyt_chapter_title'),
                 subtitlesBtn: this.wrapper.querySelector('.lyt_btn_subtitles'),
                 subtitlesMenu: this.wrapper.querySelector('.lyt_subtitles_menu'),
                 subtitlesDisplay: this.wrapper.querySelector('.lyt_subtitles_display'),
@@ -1449,7 +1484,10 @@
                 this.showCenterAnimation('play');
             });
             this.video.addEventListener('pause', () => this.updatePlayPauseBtn(false));
-            this.video.addEventListener('timeupdate', () => this.updateTime());
+            this.video.addEventListener('timeupdate', () => {
+                this.updateTime();
+                this.updateChapterTitle();
+            });
             this.video.addEventListener('progress', () => this.updateBuffer());
             this.video.addEventListener('waiting', () => this.showLoader(true));
             this.video.addEventListener('playing', () => this.showLoader(false));
@@ -2384,13 +2422,21 @@
                     break;
                 case 'arrowleft':
                     e.preventDefault();
-                    this.video.currentTime -= 5;
-                    this.showSeekAnimation('left');
+                    if (e.ctrlKey) {
+                        this.jumpToPreviousChapter();
+                    } else {
+                        this.video.currentTime -= 5;
+                        this.showSeekAnimation('left');
+                    }
                     break;
                 case 'arrowright':
                     e.preventDefault();
-                    this.video.currentTime += 5;
-                    this.showSeekAnimation('right');
+                    if (e.ctrlKey) {
+                        this.jumpToNextChapter();
+                    } else {
+                        this.video.currentTime += 5;
+                        this.showSeekAnimation('right');
+                    }
                     break;
                 case 'arrowup':
                     e.preventDefault();
@@ -2943,6 +2989,181 @@
         }
         
         // ===== END PLAYER UI SCALING SYSTEM =====
+
+        // ===== CHAPTER SYSTEM =====
+        
+        /**
+         * Set the video description to parse chapters from.
+         * @param {string} descriptionText - The raw video description text.
+         */
+        setDescription(descriptionText) {
+            this.parseChapters(descriptionText);
+            this.renderChapterMarkers();
+        }
+        
+        /**
+         * Parse chapters from the video description.
+         * Supports both "TEXT TIMESTAMP" and "TIMESTAMP TEXT" formats.
+         * Ignores timestamps that have text on both sides in the same line.
+         */
+        parseChapters(descriptionText) {
+            this.chapters = [];
+            if (!descriptionText || typeof descriptionText !== 'string') return;
+
+            const timestampRegex = /(\d{1,2}:\d{2}(?::\d{2})?)/g;
+            const lines = descriptionText.split('\n');
+
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) continue;
+
+                // Collect all timestamp matches with their positions
+                const matches = [];
+                let match;
+                while ((match = timestampRegex.exec(trimmedLine)) !== null) {
+                    matches.push({ ts: match[0], index: match.index, endIndex: match.index + match[0].length });
+                }
+
+                for (const m of matches) {
+                    const hasTextBefore = trimmedLine.substring(0, m.index).trim().length > 0;
+                    const hasTextAfter = trimmedLine.substring(m.endIndex).trim().length > 0;
+
+                    // Skip if timestamp has text on BOTH sides
+                    if (hasTextBefore && hasTextAfter) continue;
+
+                    const seconds = this.parseTimestamp(m.ts);
+                    if (isNaN(seconds) || seconds < 0) continue;
+
+                    let title = '';
+                    if (hasTextBefore) {
+                        // Format: "TEXT TIMESTAMP"
+                        title = trimmedLine.substring(0, m.index).trim();
+                    } else if (hasTextAfter) {
+                        // Format: "TIMESTAMP TEXT"
+                        title = trimmedLine.substring(m.endIndex).trim();
+                    } else {
+                        // Just a timestamp alone on the line
+                        title = m.ts;
+                    }
+
+                    // Remove common prefix separators (dash, colon, etc.)
+                    title = title.replace(/^[-–—:\s]+/, '').trim();
+                    if (!title) title = m.ts;
+
+                    this.chapters.push({ time: seconds, title: title });
+                }
+            }
+
+            // Sort chapters by time
+            this.chapters.sort((a, b) => a.time - b.time);
+
+            // Remove duplicate timestamps (keep first occurrence)
+            const seen = new Set();
+            this.chapters = this.chapters.filter(ch => {
+                if (seen.has(ch.time)) return false;
+                seen.add(ch.time);
+                return true;
+            });
+        }
+
+        /**
+         * Parse a timestamp string (HH:MM:SS or MM:SS) into seconds.
+         */
+        parseTimestamp(ts) {
+            const parts = ts.split(':').map(Number);
+            if (parts.some(isNaN)) return NaN;
+            if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+            if (parts.length === 2) return parts[0] * 60 + parts[1];
+            return NaN;
+        }
+
+        /**
+         * Render chapter markers on the progress bar.
+         */
+        renderChapterMarkers() {
+            // Remove existing markers
+            this.dom.progressContainer.querySelectorAll('.lyt_chapter_marker').forEach(el => el.remove());
+
+            const duration = this.video.duration;
+            if (!duration || !isFinite(duration) || this.chapters.length === 0) return;
+
+            for (const chapter of this.chapters) {
+                // Skip the 0:00 chapter (no marker needed at the start)
+                if (chapter.time <= 0) continue;
+
+                const percent = (chapter.time / duration) * 100;
+                const marker = document.createElement('div');
+                marker.className = 'lyt_chapter_marker';
+                marker.style.left = `${percent}%`;
+                marker.title = chapter.title;
+                this.dom.progressContainer.appendChild(marker);
+            }
+        }
+
+        /**
+         * Jump to the next chapter from the current playback position.
+         */
+        jumpToNextChapter() {
+            if (this.chapters.length === 0) return;
+            const currentTime = this.video.currentTime;
+            const nextChapter = this.chapters.find(ch => ch.time > currentTime + 0.5);
+            if (nextChapter) {
+                this.video.currentTime = nextChapter.time;
+            }
+        }
+
+        jumpToPreviousChapter() {
+            if (this.chapters.length === 0) return;
+            const currentTime = this.video.currentTime;
+            
+            // Find the current chapter index
+            let currentIndex = -1;
+            for (let i = this.chapters.length - 1; i >= 0; i--) {
+                if (this.chapters[i].time <= currentTime + 0.5) {
+                    currentIndex = i;
+                    break;
+                }
+            }
+
+            if (currentIndex === -1) return;
+
+            // If more than 3 seconds into the current chapter, restart it
+            if (currentTime - this.chapters[currentIndex].time > 3) {
+                this.video.currentTime = this.chapters[currentIndex].time;
+            } else if (currentIndex > 0) {
+                // Jump to the previous chapter
+                this.video.currentTime = this.chapters[currentIndex - 1].time;
+            }
+        }
+        
+        /**
+         * Update the chapter title display based on current playback position.
+         */
+        updateChapterTitle() {
+            if (this.chapters.length === 0) {
+                this.dom.chapterTitle.textContent = '';
+                return;
+            }
+
+            const currentTime = this.video.currentTime;
+            let currentChapter = null;
+
+            // Find the chapter we're currently in
+            for (let i = this.chapters.length - 1; i >= 0; i--) {
+                if (this.chapters[i].time <= currentTime + 0.5) {
+                    currentChapter = this.chapters[i];
+                    break;
+                }
+            }
+
+            if (currentChapter) {
+                this.dom.chapterTitle.textContent = currentChapter.title;
+            } else {
+                this.dom.chapterTitle.textContent = '';
+            }
+        }
+        
+        // ===== END CHAPTER SYSTEM =====
     }
 
     global.LYTPlayer = function(videoId, options) {

@@ -2288,6 +2288,11 @@ document.addEventListener('click', function(e) {
                     } else {
                         const descriptionWithLinks = await detectAndStyleLinks(description);
                         currentVideoDescription.innerHTML = currentVideoDescription.textContent + descriptionWithLinks;
+                        
+                        // Pass description to LYT Player for chapter parsing
+                        if (myFP && typeof myFP.setDescription === 'function') {
+                            myFP.setDescription(description);
+                        }
                     }
                 })
                 .catch(error => {
@@ -2708,6 +2713,13 @@ document.addEventListener('click', function(e) {
                 videoPlayer.controls = true;
             }
 
+            // Re-render chapter markers once video duration is known
+            videoPlayer.addEventListener('loadedmetadata', () => {
+                if (myFP && typeof myFP.renderChapterMarkers === 'function') {
+                    myFP.renderChapterMarkers();
+                }
+            });
+
             // ===== AUTOPLAY / SKIP LOGIC =====
             // Define the handler function OUTSIDE the event listener to avoid nesting errors
             async function handleAutoPlayOrSkip(isManualSkip = false) {
@@ -2854,7 +2866,11 @@ document.addEventListener('click', function(e) {
                 );
                 
                 if (isTyping) return;
-                if (event.ctrlKey || event.metaKey) return;
+                // Only ignore CTRL/META for keys the player doesn't handle with modifiers
+                if (event.ctrlKey || event.metaKey) {
+                    const key = event.key.toLowerCase();
+                    if (key !== 'arrowleft' && key !== 'arrowright') return;
+                }
 
                 const key = event.key.toLowerCase();
 
