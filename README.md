@@ -23,16 +23,16 @@ From then on, I regularly worked on the program to further improve it, and 15 mo
 - **Immersive video watching experience**
   - A minimalistic but stylish UI makes your videos feel more engaging
 - **Easy metadata integration**
-  - Add thumbnails, descriptions, like/dislike values and more to your videos
+  - Add thumbnails, descriptions, subtitles and more to your videos
 - **Multi-page system**
-  - LocalYT comes with a landing page, video player page, channel pages and many more
+  - LocalYT comes with several pages for channels and videos
 - **Video playlists**
-  - Keep your channels more organized by creating playlists with subfolders
+  - Keep your channels more organized by creating playlists from subfolders
   - Video queues next to the player allow you to watch a full playlist at once (see Video Page screenshot below)
 - **Algorithm**
   - Use the power of a Large Language Model (LLM) to tag videos accurately
   - LocalYT analyzes your behavior and shows you more of the videos you like
-  - Configure your algorithm behavior however you like by modifying it on the Settings page
+  - Configure your algorithm behavior however you want by modifying it on the Settings page
 - **Account system**
   - Create a local account to track your watch history, liked videos and subscribed channels
   - Add videos to your own custom playlists
