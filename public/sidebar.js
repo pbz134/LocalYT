@@ -153,7 +153,7 @@ function initSidebar() {
     if (playlistsEl) playlistsEl.textContent = getLang('Playlists', 'Playlisten');
     if (aboutEl) aboutEl.textContent = getLang('About', 'Über');
     if (genreLabelEl) genreLabelEl.textContent = getLang('Topics', 'Themen');
-    if (editTopicsEl) editTopicsEl.lastChild.textContent = getLang('Edit Topics', 'Themen bearbeiten');
+    if (editTopicsEl) editTopicsEl.lastChild.textContent = getLang('Edit Topics', 'Themen bearb.');
 
     // 5. Fetch user's custom topics and replace defaults if found
     fetch('/user-topics')
