@@ -12,7 +12,20 @@ const sharp = require('sharp');
 const upload = multer({ dest: path.join(__dirname, 'temp-uploads') });
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = 3000;
+
+// Suppress harmless Windows EPERM session rename errors thrown by session-file-store
+const originalConsoleError = console.error;
+console.error = function(...args) {
+    const message = args.join(' ');
+    // Hide the specific file-lock errors from session files
+    if (message.includes('EPERM') && message.includes('.session')) {
+        return; // Don't print to CMD
+    }
+    // Allow all other errors to print normally
+    originalConsoleError.apply(console, args);
+};
 
 const tempUploadsDir = path.join(__dirname, 'temp-uploads');
 if (!fs.existsSync(tempUploadsDir)) {
@@ -3042,7 +3055,15 @@ app.post('/add-to-history', (req, res) => {
 
 // --- ERROR HANDLING MIDDLEWARE ---
 app.use((err, req, res, next) => {
-    // Log the error for debugging
+    // Suppress harmless Windows EPERM errors from session-file-store
+    // (This happens when Windows locks the file during concurrent tab requests)
+    if (err.code === 'EPERM' && err.path && err.path.includes('.session')) {
+        // Silently ignore session file lock errors
+        if (res.headersSent) return;
+        return res.status(503).send('Server busy. Please try again.');
+    }
+    
+    // Log all other errors for debugging
     console.error('Server error:', err.message || err);
     
     // Don't try to send a response if headers were already sent
@@ -3055,7 +3076,7 @@ app.use((err, req, res, next) => {
         return res.status(500).send('Session data corrupted. Please refresh.');
     }
     
-    // If it's an EPERM error (file lock conflict from concurrent tabs)
+    // If it's any other EPERM error
     if (err.code === 'EPERM') {
         return res.status(503).send('Server busy. Please try again.');
     }
