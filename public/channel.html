@@ -2878,13 +2878,14 @@ function getMimeType(extension) {
                 const meta = metaCache[path];
                 return {
                     path: path,
+                    type: meta.type || 'video',
                     displayName: meta.displayName || path.split('/').pop(),
                     // Use the preview dates first, fallback to meta cache, then 'Unknown date'
                     fileDate: previewDateMap[path] || meta.fileDate || 'Unknown date',
                     viewCount: meta.viewCount || '0',
                     videoLength: meta.videoLength || ''
                 };
-            });
+            }).filter(video => video.type !== 'playlist' && video.videoLength !== '');
 
             hasMoreVideos = currentVideos.length > 0;
             currentSortMode = 'newest';
