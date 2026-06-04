@@ -635,6 +635,16 @@ def delete_channel(channel_name):
         except Exception as e:
             print(f"  [-] Error deleting from {folder}: {e}")
     
+    # Delete JSON files for the channel in specific cache directories
+    for folder in ['channel-home-meta-cache', 'channel-home-previews']:
+        try:
+            file_path = os.path.join(BASE_DIR, folder, f"{channel_name}.json")
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                print(f"  [+] Deleted file: {folder}/{channel_name}.json")
+        except Exception as e:
+            print(f"  [-] Error deleting {folder}/{channel_name}.json: {e}")
+
     # Remove from cache files
     remove_channel_from_cache('video_cache.json', channel_name)
     remove_channel_from_cache('recommendation_index.json', channel_name)
