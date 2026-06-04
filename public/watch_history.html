@@ -255,6 +255,25 @@ document.addEventListener('DOMContentLoaded', () => {
             container.innerHTML = '<div style="color: white; padding: 20px; text-align: center;">Error loading watch history. Make sure that you are logged in.</div>';
         });
 });
+
+// ==============================
+// Apply Rounded Corners Preference
+// ==============================
+(function applyRoundedCorners() {
+    const setting = JSON.parse(localStorage.getItem('roundedCorners') || '{}');
+    const enabled = setting.enabled || false;
+    
+    if (enabled) {
+        const style = document.createElement('style');
+        style.id = 'rounded-corners-style';
+        style.textContent = `
+            .video-thumbnail {
+                border-radius: 12px !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+})();
     </script>
     
     <!-- External Search Suggestion Script (Handles dropdown logic) -->

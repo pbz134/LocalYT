@@ -756,6 +756,25 @@ async function loadPlaylists() {
         container.innerHTML = '<div class="no-playlists">Error</div>';
     }
 }
+
+// ==============================
+// Apply Rounded Corners Preference
+// ==============================
+(function applyRoundedCorners() {
+    const setting = JSON.parse(localStorage.getItem('roundedCorners') || '{}');
+    const enabled = setting.enabled || false;
+    
+    if (enabled) {
+        const style = document.createElement('style');
+        style.id = 'rounded-corners-style';
+        style.textContent = `
+            .playlist-video-item .video-thumbnail {
+                border-radius: 12px !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+})();
     </script>
     <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>

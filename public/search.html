@@ -6,6 +6,26 @@
     <title>Search Results</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
+<script>
+// ==============================
+// Apply Rounded Corners Preference
+// ==============================
+(function applyRoundedCorners() {
+    const setting = JSON.parse(localStorage.getItem('roundedCorners') || '{}');
+    const enabled = setting.enabled || false;
+    
+    if (enabled) {
+        const style = document.createElement('style');
+        style.id = 'rounded-corners-style';
+        style.textContent = `
+            .video-thumbnail {
+                border-radius: 12px !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+})();
+</script>
     <style>
         .channel-result {
             display: flex;
@@ -58,7 +78,7 @@
             font-size: 14px;
             color: #888;
             margin-top: 5px;
-            margin-left: 40px; /* This aligns with the channel name (30px for channel pic + 10px margin) */
+            margin-left: 40px;
         }
         .clickable-channel-name {
             cursor: pointer;
@@ -93,6 +113,7 @@
             height: 180px;
             object-fit: cover;
             cursor: pointer;
+            border-radius: 0;
         }
         .video-length {
             position: absolute;
@@ -113,10 +134,9 @@
 
         /* --- Search Suggestions Visibility --- */
         .search-suggestions {
-            display: none; /* Hidden by default when input is empty */
+            display: none;
         }
 
-        /* Show suggestions only when the search container (input) is focused/active */
         .search-container:focus-within .search-suggestions {
             display: block;
         }
@@ -136,7 +156,6 @@
             user-select: none;
         }
 
-        /* Ensure cursor looks normal, not like a scroll tool */
         .video-item * {
             cursor: default;
         }
@@ -151,6 +170,270 @@
         #mainLogo {
             cursor: pointer;
         }
+
+        /* ============================================
+           ADVANCED SEARCH FILTERS (YouTube Style)
+           Grey theme, no border-radius
+           ============================================ */
+
+        /* Make the search container expand, pushing the filter toggle to the right */
+        .search-container {
+            flex: 1; 
+        }
+
+        /* Filter Toggle Button - Inside top-bar, next to search icon */
+        .search-filters-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: #272727;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'RobotoRegular', sans-serif;
+            transition: background 0.2s, color 0.2s;
+            user-select: none;
+            height: 20px;
+            flex-shrink: 0;
+            margin-left: 12px; /* Space from search bar */
+            margin-right: 16px; /* Space from the right edge of the top bar */
+            z-index: 101;
+        }
+
+        .search-filters-toggle:hover {
+            background: #3f3f3f;
+            color: #fff;
+        }
+
+        .search-filters-toggle.active {
+            background: #3a3a3a;
+            color: #fff;
+        }
+
+        /* Filter Panel - Fixed overlay from right */
+        .filter-panel {
+            position: fixed;
+            top: 0;
+            right: -450px;
+            width: 420px;
+            height: 100vh;
+            background: #212121;
+            z-index: 10000; /* Above everything including top bar */
+            transition: right 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .filter-panel.open {
+            right: 0;
+        }
+
+        .filter-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 9999; /* Just below panel */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s, visibility 0.25s;
+        }
+
+        .filter-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .filter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 24px;
+            border-bottom: 1px solid #303030;
+            position: sticky;
+            top: 0;
+            background: #212121;
+            z-index: 10;
+        }
+
+        .filter-title {
+            font-size: 18px;
+            font-weight: 500;
+            color: #fff;
+            font-family: 'RobotoRegular', sans-serif;
+            margin: 0;
+        }
+
+        .filter-close-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            font-size: 24px;
+            transition: background 0.2s;
+        }
+
+        .filter-close-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .filter-content {
+            padding: 8px 0;
+        }
+
+        .filter-section {
+            padding: 12px 24px;
+            border-bottom: 1px solid #303030;
+        }
+
+        .filter-section:last-child {
+            border-bottom: none;
+        }
+
+        .filter-section-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            font-family: 'RobotoRegular', sans-serif;
+        }
+
+        /* Filter Options Grid Layout */
+        .filter-options-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .filter-option {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 10px 12px 10px 20px;
+            background: transparent;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: 'RobotoRegular', sans-serif;
+            transition: background 0.15s, color 0.15s;
+            min-height: 10px;
+            user-select: none;
+            position: relative;
+            white-space: nowrap; /* <-- Forces text onto a single line */
+        }
+
+        .filter-option:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #eee;
+        }
+
+        .filter-option.active {
+            background: rgba(255, 255, 255, 0.12);
+            color: #3ea6ff;
+            font-weight: 500;
+        }
+
+        /* Active indicator dot */
+        .filter-option.active::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 6px;
+            height: 6px;
+            background: #3ea6ff;
+        }
+
+        /* Filter footer buttons */
+        .filter-footer {
+            position: sticky;
+            bottom: 0;
+            background: #212121;
+            padding: 16px 24px;
+            border-top: 1px solid #303030;
+            display: flex;
+            gap: 12px;
+        }
+
+        .filter-btn {
+            flex: 1;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-family: 'RobotoRegular', sans-serif;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: none;
+            font-weight: 500;
+        }
+
+        .filter-btn-clear {
+            background: transparent;
+            color: #3ea6ff;
+            border: 1px solid #3ea6ff;
+        }
+
+        .filter-btn-clear:hover {
+            background: rgba(62, 166, 255, 0.1);
+        }
+
+        .filter-btn-apply {
+            background: #3ea6ff;
+            color: #000;
+        }
+
+        .filter-btn-apply:hover {
+            background: #65b8ff;
+        }
+
+        /* Active filters count badge */
+        .filter-count-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+            background: #3ea6ff;
+            color: #000;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .filter-panel {
+                width: 100vw;
+                right: -100vw;
+            }
+            
+            .filter-options-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .search-filters-toggle {
+                padding: 6px 8px;
+                font-size: 13px;
+            }
+            
+            .filter-count-badge {
+                min-width: 16px;
+                height: 16px;
+                font-size: 10px;
+            }
+        }
     </style>
 </head>
 <body class="search-page">
@@ -161,7 +444,77 @@
             <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
+        <!-- Advanced Search Filters Toggle Button — NOW inside top-bar, after search-container -->
+        <div class="search-filters-toggle" id="filterToggle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
+            </svg>
+            <span id="filterToggleText">Filters</span>
+            <span class="filter-count-badge" id="filterCount" style="display: none;">0</span>
+        </div>
     </header>
+
+    <!-- Filter Overlay — OUTSIDE toggle, at body level -->
+    <div class="filter-overlay" id="filterOverlay"></div>
+
+    <!-- Filter Panel — OUTSIDE toggle, at body level -->
+    <div class="filter-panel" id="filterPanel">
+        <div class="filter-header">
+            <h2 class="filter-title">Search Filters</h2>
+            <button class="filter-close-btn" id="filterCloseBtn">&times;</button>
+        </div>
+        
+        <div class="filter-content">
+            <!-- Type Section -->
+            <div class="filter-section">
+                <div class="filter-section-label">Type</div>
+                <div class="filter-options-grid" data-filter-group="type">
+                    <div class="filter-option active" data-value="video">Videos</div>
+                    <div class="filter-option" data-value="channel">Channels</div>
+                    <div class="filter-option" data-value="playlist">Playlists</div>
+                </div>
+            </div>
+
+            <!-- Length Section -->
+            <div class="filter-section">
+                <div class="filter-section-label">Length</div>
+                <div class="filter-options-grid" data-filter-group="length">
+                    <div class="filter-option active" data-value="">Any</div>
+                    <div class="filter-option" data-value="short">&lt; 3 minutes</div>
+                    <div class="filter-option" data-value="medium">3–20 minutes</div>
+                    <div class="filter-option" data-value="long">&gt; 20 minutes</div>
+                </div>
+            </div>
+
+            <!-- Properties Section (Resolution) -->
+            <div class="filter-section">
+                <div class="filter-section-label">Properties</div>
+                <div class="filter-options-grid" data-filter-group="properties">
+                    <div class="filter-option" data-value="4k">4K</div>
+                    <div class="filter-option" data-value="2k">2K</div>
+                    <div class="filter-option" data-value="1080p">HD</div>
+                    <div class="filter-option" data-value="720p">SD</div>
+                    <div class="filter-option" data-value="subtitles">Subtitles/CC</div>
+                </div>
+            </div>
+
+            <!-- File Type Section -->
+            <div class="filter-section">
+                <div class="filter-section-label">File Type</div>
+                <div class="filter-options-grid" data-filter-group="filetype">
+                    <div class="filter-option active" data-value="">Any</div>
+                    <div class="filter-option" data-value="video">Video (mp4, mkv)</div>
+                    <div class="filter-option" data-value="audio">Audio (wav, flac, mp3)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-footer">
+            <button class="filter-btn filter-btn-clear" id="clearFiltersBtn">Clear</button>
+            <button class="filter-btn filter-btn-apply" id="applyFiltersBtn">Apply</button>
+        </div>
+    </div>
+
     <div class="container search-results-container" id="searchResultsContainer">
         <div class="loading-indicator" id="loadingIndicator">Loading search index...</div>
     </div>
@@ -169,10 +522,8 @@
     <script>
 // ======================================================================
 // FIX: Prevent Middle-Click Autoscroll (Pan Mode)
-// Must be defined early to catch events on dynamically loaded content
 // ======================================================================
 document.addEventListener('mousedown', function(e) {
-    // Button 1 = Middle Mouse Button
     if (e.button === 1) {
         const target = e.target.closest(
             'a, ' + 
@@ -189,16 +540,12 @@ document.addEventListener('mousedown', function(e) {
         
         if (target) {
             e.preventDefault();
-            
-            // If it's a real anchor tag with an href, manually open it
             if (target.tagName === 'A' && target.href) {
                 window.open(target.href, '_blank');
             }
-            // For custom elements (divs/spans), their existing 'mouseup' or 'auxclick' 
-            // listeners will handle opening the new tab.
         }
     }
-}, true); // Use Capture phase
+}, true);
 
 // --- Language Helper ---
 function getLang(en, de) {
@@ -228,12 +575,12 @@ document.addEventListener('DOMContentLoaded', () => {
             window.open('index.html', '_blank');
         });
         
-        mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
+        mainLogo.title = "Go to homepage";
         mainLogo.style.cursor = 'pointer';
     }
 });
 
-// Helper function to strip file extension for thumbnail and metadata paths
+// Helper function to strip file extension
 function stripExtension(filename) {
     return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
 }
@@ -257,10 +604,7 @@ const searchState = {
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     
-    // ============================================================
     // Safe URI Decoding
-    // Handles "malformed URI sequence" errors when users search for symbols like %
-    // ============================================================
     let initialQuery = '';
     try {
         initialQuery = decodeURIComponent(urlParams.get('q') || '').trim();
@@ -269,9 +613,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         initialQuery = (urlParams.get('q') || '').trim();
     }
     
-    // ============================================================
     // Save search history to server on page load
-    // ============================================================
     if (initialQuery) {
         fetch('/user-search-history', {
             method: 'POST',
@@ -279,17 +621,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             body: JSON.stringify({ query: initialQuery })
         }).catch(err => console.error("Could not save search history:", err));
     }
-    // ============================================================
 
     const searchInput = document.getElementById('searchInput');
     searchInput.value = initialQuery;
 
-    // Set page title to search term + " - LocalYT"
+    // Set page title
     document.title = initialQuery ? initialQuery + ' - LocalYT' : 'LocalYT';
 
-    // --- UI Translation ---
+    // UI Translation
     document.getElementById('searchInput').placeholder = getLang('Search', 'Suche');
-    document.getElementById('loadingIndicator').textContent = getLang('Loading search index...', 'Lade Suchindex...');;
+    document.getElementById('loadingIndicator').textContent = getLang('Loading search index...', 'Lade Suchindex...');
+    document.getElementById('filterToggleText').textContent = getLang('Filters', 'Filter');
 
     // Initialize Web Worker if available
     if (window.Worker) {
@@ -334,7 +676,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             `<div style="color: white; padding: 20px;">${getLang('Enter a search term above', 'Gib oben einen Suchbegriff ein')}</div>`;
     }
 
-    // --- Search Navigation Logic ---
+    // Search Navigation Logic
     searchInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             const query = searchInput.value.trim();
@@ -407,11 +749,9 @@ function localSearch(query, maxResults = 100) {
         let channelMatchCount = 0;
         let baseScore = 0;
 
-        // Exact full-string match bonuses
         if (lowerTitle === queryLower) baseScore += 100;
         if (lowerChannel === queryLower) baseScore += 80;
 
-        // Strict word boundary matching
         queryTerms.forEach(term => {
             const termRegex = new RegExp(`\\b(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'i');
             
@@ -428,14 +768,13 @@ function localSearch(query, maxResults = 100) {
             }
         });
 
-        // Exponential multiplier for multiple exact word matches
         if (titleMatchCount >= 4) baseScore *= 15;
         else if (titleMatchCount === 3) baseScore *= 8;
         else if (titleMatchCount === 2) baseScore *= 3;
         
         if (channelMatchCount >= 2) baseScore *= 2;
 
-        if (score > 0) {
+        if (baseScore > 0) {
             scoredResults.push({ ...video, score: baseScore });
         }
     }
@@ -509,6 +848,9 @@ function displaySearchResults(results) {
         });
         resultsContainer.appendChild(loadMore);
     }
+
+    // Apply advanced filters after rendering
+    applyMetadataFilters(results);
 }
 
 function createVideoElement(video, container) {
@@ -557,7 +899,6 @@ function createVideoElement(video, container) {
             formattedViewCount = parseInt(viewCount).toLocaleString();
         }
         
-        // Swap comma to dot for German
         if (localStorage.getItem('language') === 'de') {
             formattedViewCount = formattedViewCount.replace(/,/g, '.');
         }
@@ -666,6 +1007,384 @@ function openInNewTab(url) {
 function showError(message) {
     document.getElementById('searchResultsContainer').innerHTML = 
         `<div style="color: white; padding: 20px;">${message}</div>`;
+}
+
+// ======================================================================
+// ADVANCED SEARCH FILTERS SYSTEM
+// ======================================================================
+
+const searchFilters = {
+    type: 'video',
+    length: '',
+    properties: [],
+    filetype: '',
+    panelOpen: false,
+    
+    init() {
+        this.bindEvents();
+        this.loadFromURL();
+    },
+    
+    bindEvents() {
+        document.getElementById('filterToggle').addEventListener('click', () => {
+            this.togglePanel();
+        });
+        
+        document.getElementById('filterCloseBtn').addEventListener('click', () => {
+            this.closePanel();
+        });
+        
+        document.getElementById('filterOverlay').addEventListener('click', () => {
+            this.closePanel();
+        });
+        
+        document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+            this.clearAll();
+        });
+        
+        document.getElementById('applyFiltersBtn').addEventListener('click', () => {
+            this.applyFilters();
+        });
+        
+        // Event delegation for filter options
+        document.querySelectorAll('.filter-options-grid').forEach(grid => {
+            grid.addEventListener('click', (e) => {
+                const option = e.target.closest('.filter-option');
+                if (!option) return;
+                
+                const group = grid.dataset.filterGroup;
+                const value = option.dataset.value;
+                
+                this.handleOptionClick(group, value, option, grid);
+            });
+        });
+        
+        // Keyboard shortcut: Escape to close
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.panelOpen) {
+                this.closePanel();
+            }
+        });
+    },
+    
+    handleOptionClick(group, value, optionElement, grid) {
+        if (group === 'properties') {
+            optionElement.classList.toggle('active');
+            this.updatePropertiesFromUI();
+        } else {
+            grid.querySelectorAll('.filter-option').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            optionElement.classList.add('active');
+            
+            if (group === 'type') this.type = value;
+            if (group === 'length') this.length = value;
+            if (group === 'filetype') this.filetype = value;
+        }
+        
+        this.updateCountBadge();
+    },
+    
+    updatePropertiesFromUI() {
+        this.properties = [];
+        document.querySelectorAll('[data-filter-group="properties"] .filter-option.active').forEach(el => {
+            this.properties.push(el.dataset.value);
+        });
+    },
+    
+    togglePanel() {
+        if (this.panelOpen) {
+            this.closePanel();
+        } else {
+            this.openPanel();
+        }
+    },
+    
+    openPanel() {
+        this.panelOpen = true;
+        document.getElementById('filterPanel').classList.add('open');
+        document.getElementById('filterOverlay').classList.add('visible');
+        document.getElementById('filterToggle').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    },
+    
+    closePanel() {
+        this.panelOpen = false;
+        document.getElementById('filterPanel').classList.remove('open');
+        document.getElementById('filterOverlay').classList.remove('visible');
+        document.getElementById('filterToggle').classList.remove('active');
+        document.body.style.overflow = '';
+    },
+    
+    clearAll() {
+        this.type = 'video';
+        this.length = '';
+        this.properties = [];
+        this.filetype = '';
+        
+        document.querySelectorAll('.filter-option').forEach(opt => {
+            opt.classList.remove('active');
+        });
+        
+        document.querySelector('[data-filter-group="type"] [data-value="video"]').classList.add('active');
+        document.querySelector('[data-filter-group="length"] [data-value=""]').classList.add('active');
+        document.querySelector('[data-filter-group="filetype"] [data-value=""]').classList.add('active');
+        
+        this.updateCountBadge();
+    },
+    
+    applyFilters() {
+        this.closePanel();
+        
+        const url = new URL(window.location);
+        
+        if (this.type && this.type !== 'video') url.searchParams.set('type', this.type);
+        else url.searchParams.delete('type');
+        
+        if (this.length) url.searchParams.set('length', this.length);
+        else url.searchParams.delete('length');
+        
+        if (this.properties.length > 0) url.searchParams.set('properties', this.properties.join(','));
+        else url.searchParams.delete('properties');
+        
+        if (this.filetype) url.searchParams.set('filetype', this.filetype);
+        else url.searchParams.delete('filetype');
+        
+        window.history.replaceState({}, '', url.toString());
+        
+        const currentQuery = document.getElementById('searchInput').value.trim();
+        if (currentQuery) {
+            performSearch(currentQuery);
+        } else {
+            this.displayFilteredResults();
+        }
+    },
+    
+    loadFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        
+        const typeParam = params.get('type');
+        if (typeParam) {
+            this.type = typeParam;
+            const typeEl = document.querySelector(`[data-filter-group="type"] [data-value="${typeParam}"]`);
+            if (typeEl) {
+                document.querySelectorAll('[data-filter-group="type"] .filter-option').forEach(o => o.classList.remove('active'));
+                typeEl.classList.add('active');
+            }
+        }
+        
+        const lengthParam = params.get('length');
+        if (lengthParam) {
+            this.length = lengthParam;
+            const lenEl = document.querySelector(`[data-filter-group="length"] [data-value="${lengthParam}"]`);
+            if (lenEl) {
+                document.querySelectorAll('[data-filter-group="length"] .filter-option').forEach(o => o.classList.remove('active'));
+                lenEl.classList.add('active');
+            }
+        }
+        
+        const propsParam = params.get('properties');
+        if (propsParam) {
+            this.properties = propsParam.split(',');
+            this.properties.forEach(prop => {
+                const propEl = document.querySelector(`[data-filter-group="properties"] [data-value="${prop}"]`);
+                if (propEl) propEl.classList.add('active');
+            });
+        }
+        
+        const fileParam = params.get('filetype');
+        if (fileParam) {
+            this.filetype = fileParam;
+            const fileEl = document.querySelector(`[data-filter-group="filetype"] [data-value="${fileParam}"]`);
+            if (fileEl) {
+                document.querySelectorAll('[data-filter-group="filetype"] .filter-option').forEach(o => o.classList.remove('active'));
+                fileEl.classList.add('active');
+            }
+        }
+        
+        this.updateCountBadge();
+    },
+    
+    updateCountBadge() {
+        let count = 0;
+        if (this.type && this.type !== 'video') count++;
+        if (this.length) count++;
+        if (this.properties.length > 0) count++;
+        if (this.filetype) count++;
+        
+        const badge = document.getElementById('filterCount');
+        if (count > 0) {
+            badge.textContent = count;
+            badge.style.display = 'inline-flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    },
+    
+    filterResults(results) {
+        if (!results || results.length === 0) return results;
+        
+        return results.filter(video => {
+            if (this.filetype) {
+                const ext = video.path.split('.').pop().toLowerCase();
+                const videoExts = ['mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm'];
+                const audioExts = ['wav', 'flac', 'mp3', 'aac', 'ogg'];
+                
+                if (this.filetype === 'video' && !videoExts.includes(ext)) return false;
+                if (this.filetype === 'audio' && !audioExts.includes(ext)) return false;
+            }
+            
+            return true;
+        });
+    },
+    
+    displayFilteredResults() {
+        console.log('Filters applied:', this.toJSON());
+    },
+    
+    toJSON() {
+        return {
+            type: this.type,
+            length: this.length,
+            properties: [...this.properties],
+            filetype: this.filetype
+        };
+    }
+};
+
+// Initialize filters when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    searchFilters.init();
+});
+
+/**
+ * Apply metadata-based filters asynchronously
+ * Now includes RESOLUTION filtering via /videoresolutions/
+ */
+async function applyMetadataFilters(results) {
+    const container = document.getElementById('searchResultsContainer');
+    if (!container) return;
+    
+    const items = container.querySelectorAll('.search-result-item');
+    const channelItems = container.querySelectorAll('.channel-result');
+    
+    // Check if we have any filters that require async operations
+    const hasLengthFilter = !!searchFilters.length;
+    const hasResolutionFilter = searchFilters.properties.some(p => ['4k', '2k', '1080p', '720p'].includes(p));
+    const hasSubtitleFilter = searchFilters.properties.includes('subtitles');
+
+    // Apply filetype filter immediately (synchronous)
+    if (searchFilters.filetype) {
+        items.forEach((item, index) => {
+            if (!results[index]) return;
+            
+            const ext = results[index].path.split('.').pop().toLowerCase();
+            const videoExts = ['mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm'];
+            const audioExts = ['wav', 'flac', 'mp3', 'aac', 'ogg'];
+            
+            let keep = true;
+            if (searchFilters.filetype === 'video' && !videoExts.includes(ext)) keep = false;
+            if (searchFilters.filetype === 'audio' && !audioExts.includes(ext)) keep = false;
+            
+            if (!keep) {
+                item.style.display = 'none';
+                item.dataset.filteredOut = 'true';
+            }
+        });
+        
+        if (searchFilters.type === 'video') {
+            channelItems.forEach(el => el.style.display = 'none');
+        }
+    }
+    
+    // Only proceed if we have async filters (length or resolution)
+    if (!hasLengthFilter && !hasResolutionFilter && !hasSubtitleFilter) return;
+    
+    // Create array of promises for all visible items
+    const filterPromises = Array.from(items).map(async (item, index) => {
+        // Skip if already hidden by filetype filter
+        if (item.style.display === 'none' || !results[index]) return { index, keep: true };
+        
+        const video = results[index];
+        const videoPath = video.path;
+        const basePath = stripExtension(videoPath);
+        
+        const pathParts = basePath.split('/');
+        const channelName = pathParts[0];
+        const videoName = pathParts[pathParts.length - 1];
+        
+        let shouldKeep = true;
+        
+        try {
+            // 1. LENGTH CHECK (if enabled)
+            if (hasLengthFilter) {
+                const lengthResponse = await fetch(`/videolengths/${encodeURIComponent(basePath)}.txt`);
+                const lengthText = lengthResponse.ok ? await lengthResponse.text() : '';
+                const seconds = parseDurationToSeconds(lengthText);
+                
+                if (searchFilters.length === 'short' && seconds >= 180) shouldKeep = false;
+                if (searchFilters.length === 'medium' && (seconds < 180 || seconds > 1200)) shouldKeep = false;
+                if (searchFilters.length === 'long' && seconds <= 1200) shouldKeep = false;
+            }
+            
+            // 2. RESOLUTION CHECK (if enabled)
+            if (shouldKeep && hasResolutionFilter) {
+                const resResponse = await fetch(`/videoresolutions/${encodeURIComponent(basePath)}.txt`);
+                const resolutionText = resResponse.ok ? (await resResponse.text()).trim().toLowerCase() : '';
+                
+                const selectedResolutions = searchFilters.properties.filter(p => ['4k', '2k', '1080p', '720p'].includes(p));
+                
+                if (selectedResolutions.length > 0 && resolutionText) {
+                    const match = selectedResolutions.some(selRes => {
+                        switch(selRes) {
+                            case '4k': return ['4k', '2160p', '3840x2160'].includes(resolutionText);
+                            case '2k': return ['2k', '1440p', '2560x1440', 'qhd'].includes(resolutionText);
+                            case '1080p': return ['1080p', 'hd', '1920x1080', 'fullhd', 'fhd'].includes(resolutionText);
+                            case '720p': return ['720p', 'sd', '1280x720', 'hdready'].includes(resolutionText);
+                            default: return false;
+                        }
+                    });
+                    
+                    if (!match) shouldKeep = false;
+                } else if (selectedResolutions.length > 0 && !resolutionText) {
+                    shouldKeep = false;
+                }
+            }
+            
+        } catch (e) {
+            console.warn(`Error filtering ${videoPath}:`, e);
+        }
+        
+        // Apply visibility
+        if (!shouldKeep) {
+            item.style.display = 'none';
+            item.dataset.filteredOut = 'true';
+        }
+        
+        return { index, keep: shouldKeep };
+    });
+    
+    // Wait for all filters to complete
+    await Promise.all(filterPromises);
+    
+    // Update result count or show "no results" message if all filtered out
+    const visibleItems = container.querySelectorAll('.search-result-item:not([style*="display: none"])');
+    if (visibleItems.length === 0 && items.length > 0) {
+        console.log('All results filtered out by current filter settings');
+    }
+}
+
+function parseDurationToSeconds(durationStr) {
+    if (!durationStr) return 0;
+    
+    const parts = durationStr.trim().split(':').reverse();
+    let seconds = 0;
+    
+    if (parts[0]) seconds += parseInt(parts[0]) || 0;
+    if (parts[1]) seconds += (parseInt(parts[1]) || 0) * 60;
+    if (parts[2]) seconds += (parseInt(parts[2]) || 0) * 3600;
+    
+    return seconds;
 }
     </script>
     <!-- External Search Suggestion Script (Handles dropdown logic) -->

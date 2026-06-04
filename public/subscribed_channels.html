@@ -590,6 +590,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     .catch(() => {});
             });
         }
+
+// ==============================
+// Apply Rounded Corners Preference
+// ==============================
+(function applyRoundedCorners() {
+    const setting = JSON.parse(localStorage.getItem('roundedCorners') || '{}');
+    const enabled = setting.enabled || false;
+    
+    if (enabled) {
+        const style = document.createElement('style');
+        style.id = 'rounded-corners-style';
+        style.textContent = `
+            .thumbnail-container {
+                border-radius: 12px !important;
+                overflow: hidden !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+})();
     </script>
     
     <script src="search-suggestions.js"></script>

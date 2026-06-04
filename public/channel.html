@@ -20,6 +20,35 @@
         }
         document.head.appendChild(script);
     })();
+
+// ==============================
+// Apply Rounded Corners Preference
+// ==============================
+(function applyRoundedCorners() {
+    const setting = JSON.parse(localStorage.getItem('roundedCorners') || '{}');
+    const enabled = setting.enabled || false;
+    
+    if (enabled) {
+        const style = document.createElement('style');
+        style.id = 'rounded-corners-style';
+        style.textContent = `
+            .home-player-wrapper {
+                border-radius: 12px !important;
+                overflow: hidden !important;
+            }
+            .channel-videos .video-thumbnail,
+            .channel-search-results .video-thumbnail,
+            .home-row-wrapper .video-thumbnail,
+            .home-others-grid .video-thumbnail {
+                border-radius: 12px !important;
+            }
+            .playlist-thumbnail {
+                border-radius: 12px !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+})();
     </script>
     <style>
         /* Channel page background wrapper styling */

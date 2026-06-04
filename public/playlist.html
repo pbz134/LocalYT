@@ -6,6 +6,30 @@
     <title>Playlist</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
+    <script>
+    // ==============================
+    // Apply Rounded Corners Preference
+    // ==============================
+    (function applyRoundedCorners() {
+        const setting = JSON.parse(localStorage.getItem('roundedCorners') || '{}');
+        const enabled = setting.enabled || false;
+        
+        if (enabled) {
+            const style = document.createElement('style');
+            style.id = 'rounded-corners-style';
+            style.textContent = `
+                .classic-thumbnail-wrapper {
+                    border-radius: 12px !important;
+                    overflow: hidden !important;
+                }
+                .playlist-videos .video-thumbnail {
+                    border-radius: 12px !important;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    })();
+    </script>
     <style>
         /* Playlist page background wrapper styling (matching channel.html) */
         .playlist-top-section {
@@ -455,6 +479,11 @@
             gap: 4px;
         }
         
+        /* === Rounded Corners Base Rule === */
+        .classic-thumbnail-wrapper {
+            overflow: hidden;
+        }
+
         body.classic-channel .classic-playlist-title {
             font-size: 18px;
             font-weight: bold;

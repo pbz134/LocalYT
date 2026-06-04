@@ -6,6 +6,26 @@
     <title>Liked Videos - LocalYT</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
+    <script>
+// ==============================
+// Apply Rounded Corners Preference
+// ==============================
+(function applyRoundedCorners() {
+    const setting = JSON.parse(localStorage.getItem('roundedCorners') || '{}');
+    const enabled = setting.enabled || false;
+    
+    if (enabled) {
+        const style = document.createElement('style');
+        style.id = 'rounded-corners-style';
+        style.textContent = `
+            .video-item .video-thumbnail {
+                border-radius: 12px !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+})();
+    </script>
     <style>
         .no-videos-message {
             text-align: center;
