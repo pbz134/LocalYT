@@ -62,10 +62,9 @@ sidebarCSS.textContent = `
     }
 
     .sidebar .genre-link img {
-        width: 20px;
-        height: 20px;
+        width: 25px;
+        height: 25px;
         flex-shrink: 0;
-        filter: invert(60%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(60%) contrast(90%);
     }
 
     .openbtn {
@@ -107,16 +106,16 @@ function initSidebar() {
             <div class="genre-label" id="sidebarGenreLabel">Topics</div>
             <div id="sidebarTopicsContainer">
                 <a href="genre_channel.html?genre=gaming" class="genre-link" id="sidebarGaming">
-                    <img src="LocalYT-Rev-Files/genre_gaming.svg" alt="">Gaming
+                    <img src="LocalYT-Rev-Files/genre_gaming.svg" alt="" style="filter: invert(60%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(60%) contrast(90%);">Gaming
                 </a>
                 <a href="genre_channel.html?genre=music" class="genre-link" id="sidebarMusic">
-                    <img src="LocalYT-Rev-Files/genre_music.svg" alt="">Music
+                    <img src="LocalYT-Rev-Files/genre_music.svg" alt="" style="filter: invert(60%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(60%) contrast(90%);">Music
                 </a>
                 <a href="genre_channel.html?genre=sports" class="genre-link" id="sidebarSports">
-                    <img src="LocalYT-Rev-Files/genre_sports.svg" alt="">Sports
+                    <img src="LocalYT-Rev-Files/genre_sports.svg" alt="" style="filter: invert(60%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(60%) contrast(90%);">Sports
                 </a>
                 <a href="genre_channel.html?genre=movies" class="genre-link" id="sidebarMovies">
-                    <img src="LocalYT-Rev-Files/genre_movies.svg" alt="">Movies
+                    <img src="LocalYT-Rev-Files/genre_movies.svg" alt="" style="filter: invert(60%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(60%) contrast(90%);">Movies
                 </a>
             </div>
             <a href="edit_topics.html" class="genre-link" id="sidebarEditTopics" style="display:none; opacity: 0.7; margin-top: 4px;">
@@ -188,8 +187,8 @@ function initSidebar() {
                         img.style.filter = 'invert(60%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(60%) contrast(90%)';
                     }
                     img.alt = '';
-                    img.style.width = '20px';
-                    img.style.height = '20px';
+                    img.style.width = '25px';
+                    img.style.height = '25px';
                     img.style.flexShrink = '0';
 
                     link.appendChild(img);
