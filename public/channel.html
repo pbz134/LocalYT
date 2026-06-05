@@ -1285,6 +1285,7 @@
                         <div class="sort-dropdown-item active" data-sort="newest">Date added (newest)</div>
                         <div class="sort-dropdown-item" data-sort="popular">Most popular</div>
                         <div class="sort-dropdown-item" data-sort="oldest">Date added (oldest)</div>
+                        <div class="sort-dropdown-item" data-sort="longest">Longest</div>
                     </div>
                 </div>
                 <div class="view-dropdown">
@@ -1478,7 +1479,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const sortLabels = {
         newest: getLang('Date added (newest)', 'Hinzugefügt am... (neueste zuerst)'),
         popular: getLang('Most popular', 'Am beliebtesten'),
-        oldest: getLang('Date added (oldest)', 'Hinzugefügt am... (älteste zuerst)')
+        oldest: getLang('Date added (oldest)', 'Hinzugefügt am... (älteste zuerst)'),
+        longest: getLang('Longest', 'Längste')
     };
 
     fetch(`/channelbanner/${encodeURIComponent(channel)}.jpg`, { method: 'HEAD' })
@@ -1540,13 +1542,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const updatedSortLabels = {
             newest: getLang('Date added (newest)', 'Hinzugefügt am... (neueste zuerst)'),
             popular: getLang('Most popular', 'Am beliebtesten'),
-            oldest: getLang('Date added (oldest)', 'Hinzugefügt am... (älteste zuerst)')
+            oldest: getLang('Date added (oldest)', 'Hinzugefügt am... (älteste zuerst)'),
+            longest: getLang('Longest', 'Längste')
         };
 
         document.getElementById('sortToggleLabel').textContent = updatedSortLabels[currentSortMode];
         document.querySelector('.sort-dropdown-item[data-sort="newest"]').textContent = updatedSortLabels.newest;
         document.querySelector('.sort-dropdown-item[data-sort="popular"]').textContent = updatedSortLabels.popular;
         document.querySelector('.sort-dropdown-item[data-sort="oldest"]').textContent = updatedSortLabels.oldest;
+        document.querySelector('.sort-dropdown-item[data-sort="longest"]').textContent = updatedSortLabels.longest;
 
         document.getElementById('viewToggleLabel').textContent = getLang('Grid', 'Raster');
         document.querySelector('.view-dropdown-item[data-view="grid"]').textContent = getLang('Grid', 'Raster');
@@ -1597,7 +1601,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const updatedSortLabels = {
                 newest: getLang('Date added (newest)', 'Hinzugefügt am... (neueste zuerst)'),
                 popular: getLang('Most popular', 'Am beliebtesten'),
-                oldest: getLang('Date added (oldest)', 'Hinzugefügt am... (älteste zuerst)')
+                oldest: getLang('Date added (oldest)', 'Hinzugefügt am... (älteste zuerst)'),
+                longest: getLang('Longest', 'Längste')
             };
             sortToggleLabel.textContent = updatedSortLabels[sortValue];
 
@@ -2340,6 +2345,20 @@ function getMimeType(extension) {
                     const countA = parseInt(String(a.viewCount).replace(/,/g, '')) || 0;
                     const countB = parseInt(String(b.viewCount).replace(/,/g, '')) || 0;
                     return countB - countA;
+                });
+                break;
+            case 'longest':
+                currentVideos.sort((a, b) => {
+                    const parseDuration = (str) => {
+                        if (!str) return 0;
+                        const parts = str.split(':').map(Number);
+                        if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+                        if (parts.length === 2) return parts[0] * 60 + parts[1];
+                        return parts[0] || 0;
+                    };
+                    const lenA = parseDuration(a.videoLength);
+                    const lenB = parseDuration(b.videoLength);
+                    return lenB - lenA;
                 });
                 break;
         }
