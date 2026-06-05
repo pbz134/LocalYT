@@ -203,9 +203,6 @@ echo Removing double spaces...
 echo Generationg video resolution files...
 .\venv\python.exe .\LocalYT-Rev-Files\createVideoresolutions.py
 
-echo Generating channel Home page index...
-.\venv\python.exe .\LocalYT-Rev-Files\generate_home_previews.py
-
 echo Generating filedate cache...
 .\venv\python.exe .\LocalYT-Rev-Files\generate_filedate_cache.py
 
@@ -216,6 +213,9 @@ if /i "!SEEKBAR_PREVIEWS!"=="yes" (
 ) else (
     echo Skipping seek bar previews...
 )
+
+echo Generating channel Home page index...
+.\venv\python.exe .\LocalYT-Rev-Files\generate_home_previews.py
 
 echo.
 echo =============================================================================
