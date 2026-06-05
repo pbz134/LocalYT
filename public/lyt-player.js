@@ -113,8 +113,11 @@
             this._recTriggerTimes = [30, 180];
             this._endScreenData = null;
             
+            // Loop state
+            this.isLooping = false;
+
             // Version
-            this.version = 'v2.3.0';
+            this.version = 'v2.3.5';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -1224,6 +1227,7 @@
                 <div class="lyt_context_menu">
                     <button class="lyt_ctx_item" data-action="copy-url">Copy video URL</button>
                     <button class="lyt_ctx_item" data-action="copy-url-time">Copy video URL at current time</button>
+                    <button class="lyt_ctx_item" data-action="loop">Loop</button>
                     <button class="lyt_ctx_item" data-action="stats">Stats for nerds</button>
                     <div class="lyt_ctx_item lyt_ctx_version">LYT Player ${this.version}</div>
                 </div>
@@ -1657,6 +1661,15 @@
                     this.copyVideoUrl();
                 } else if (action === 'copy-url-time') {
                     this.copyVideoUrlWithTime();
+                } else if (action === 'loop') {
+                    this.isLooping = !this.isLooping;
+                    this.video.loop = this.isLooping;
+                    const loopBtn = this.dom.contextMenu.querySelector('[data-action="loop"]');
+                    if (loopBtn) {
+                        loopBtn.textContent = this.isLooping ? '✓ Loop' : 'Loop';
+                    }
+                    this.showToast(this.isLooping ? 'Loop ON' : 'Loop OFF');
+                    return; // Keep menu open so user can see the toggle state
                 } else if (action === 'stats') {
                     this.toggleStatsOverlay();
                 }
@@ -2888,6 +2901,9 @@ const upHandler = (ev) => {
         }
 
         onVideoEnded() {
+            // If looping is enabled, let the browser's native loop handle it
+            if (this.isLooping) return;
+
             this.wrapper.classList.add('lyt_active');
             this.dom.controls.classList.add('lyt_controls_visible');
             this.updatePlayPauseBtn(false);
