@@ -6,7 +6,7 @@ import signal
 
 # --- PATH CONFIGURATION ---
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CHANNEL_FOLDERS = ['videos', 'subtitles', 'livechats', 'playlist-descriptions', 'channelposts', 'thumbnails', 'thumbnails-small', 'videolengths', 'videostats', 'viewcounts', 'descriptions', 'filedates', 'filenames', 'comments', 'channeldesc', 'channelstats', 'channel-home-meta-cache', 'channel-home-previews']
+CHANNEL_FOLDERS = ['videos', 'subtitles', 'livechats', 'playlist-descriptions', 'channelposts', 'thumbnails', 'thumbnails-small', 'videolengths', 'videoresolutions', 'videostats', 'viewcounts', 'descriptions', 'filedates', 'filenames', 'comments', 'channeldesc', 'channelstats', 'channel-home-meta-cache', 'channel-home-previews']
 CHANNEL_FILES = ['channelbanner', 'channelpic', 'subcount']
 MEDIA_EXTENSIONS = ('.mp4', '.mp3', '.mkv', '.flac', '.wav', '.mp3')
 JSON_FILES = ['users.json', 'userPreferences.json', 'userTopics.json', 'userCommentLikes.json', 'userSearchHistory.json', 'userSettings.json', 'subscriptions.json', 'watchHistory.json', 'likes.json', 'dislikes.json', 'recommendation_index.json', 'video_cache.json', 'login_attempts.json', 'playlist_cache.json']
