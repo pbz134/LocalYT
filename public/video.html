@@ -743,7 +743,6 @@
             padding: 4px 0;
         }
         .comment-item.reply {
-            margin-left: 48px;
             padding: 3px 0 3px 16px;
             border-left: 1px solid #3f3f3f;
         }
@@ -822,7 +821,8 @@
             margin-bottom: 6px;
         }
         .comment-text.collapsed {
-            max-height: 52px;
+            max-height: calc(1.45em * 3);
+            line-height: 1.45;
             overflow: hidden;
             position: relative;
         }
@@ -872,6 +872,12 @@
             width: 14px;
             height: 14px;
             flex-shrink: 0;
+        }
+
+        /* Remove the gradient fade on collapsed comment text */
+        .comment-text.collapsed::after {
+            display: none !important;
+            height: calc(1.45em * 3);
         }
         .no-comments {
             color: #888;
@@ -1807,6 +1813,12 @@ function attachRepliesToRenderedComments() {
         }
     });
 
+    // =======================================================
+    // THIS IS THE CRITICAL ADDITION:
+    // Bind toggle listeners for the newly injected reply items!
+    // =======================================================
+    bindCommentTextToggles(container);
+
     if (state.observer) {
         state.observer.disconnect();
         state.observer = null;
@@ -1818,11 +1830,13 @@ function bindCommentTextToggles(container) {
         if (btn._bound) return;
         btn._bound = true;
         btn.addEventListener('click', function () {
-            const textEl = this.previousElementSibling;
-            if (textEl.classList.contains('collapsed')) {
+            // Find the text element within the same .comment-body container
+            const textEl = this.closest('.comment-body') ? this.closest('.comment-body').querySelector('.comment-text') : null;
+            
+            if (textEl && textEl.classList.contains('collapsed')) {
                 textEl.classList.remove('collapsed');
                 this.textContent = getLang('Show less', 'Weniger anzeigen');
-            } else {
+            } else if (textEl) {
                 textEl.classList.add('collapsed');
                 this.textContent = getLang('Show more', 'Mehr anzeigen');
             }
