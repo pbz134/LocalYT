@@ -54,8 +54,8 @@ def clean_all_files():
     root_dir = script_dir.parent
     
     # Load blacklists
-    remove_chars = load_blacklist(root_dir / "replacebynone_blacklist.txt")
-    space_chars = load_blacklist(root_dir / "replacebyspace_blacklist.txt")
+    remove_chars = load_blacklist(script_dir / "replacebynone_blacklist.txt")
+    space_chars = load_blacklist(script_dir / "replacebyspace_blacklist.txt")
     
     if not remove_chars and not space_chars:
         print("No blacklist characters found.")
