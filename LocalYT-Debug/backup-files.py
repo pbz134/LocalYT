@@ -17,6 +17,7 @@ FILES_TO_BACKUP = [
     "userCommentLikes.json",
     "userSearchHistory.json",
     "userSettings.json",
+    "userTopics.json",
     "users.json",
     "watchHistory.json",
     "likes.json",
@@ -27,7 +28,8 @@ FILES_TO_BACKUP = [
 DIRS_TO_BACKUP = [
     "temp-uploads",
     "sessions",
-    "user-profiles"
+    "user-profiles",
+    "topic-images"
 ]
 
 # Define metadata file extensions to scan for
