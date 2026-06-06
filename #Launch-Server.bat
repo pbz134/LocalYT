@@ -1,6 +1,6 @@
 @echo off
 REM Start the server in a new command prompt window with ASCII art
-start cmd /k "echo. & echo. & echo       :::        ::::::::   ::::::::      :::     :::      :::   ::: ::::::::::: & echo      :+:       :+:    :+: :+:    :+:   :+: :+:   :+:      :+:   :+:     :+: & echo     +:+       +:+    +:+ +:+         +:+   +:+  +:+       +:+ +:+      +:+ & echo    +#+       +#+    +:+ +#+        +#++:++#++: +#+        +#++:       +#+ & echo   +#+       +#+    +#+ +#+        +#+     +#+ +#+         +#+        +#+ & echo  #+#       #+#    #+# #+#    #+# #+#     #+# #+#         #+#        #+# & echo ########## ########   ########  ###     ### ##########  ###        ### & echo. & echo. & echo https://github.com/pbz134/LocalYT & npm start"
+start cmd /k "echo. & echo. & echo       :::        ::::::::   ::::::::      :::     :::     :::   ::: ::::::::::: & echo      :+:       :+:    :+: :+:    :+:   :+: :+:   :+:     :+:   :+:     :+:      & echo     +:+       +:+    +:+ +:+         +:+   +:+  +:+      +:+ +:+      +:+       & echo    +#+       +#+    +:+ +#+        +#++:++#++: +#+       +#++:       +#+        & echo   +#+       +#+    +#+ +#+        +#+     +#+ +#+        +#+        +#+         & echo  #+#       #+#    #+# #+#    #+# #+#     #+# #+#        #+#        #+#          & echo ########## ########   ########  ###     ### ########## ###        ### & echo. & echo. & echo https://github.com/pbz134/LocalYT & npm start"
 
 REM Wait for the server to accept connections (caching/startup)
 echo Waiting for server to start...
