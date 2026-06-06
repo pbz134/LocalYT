@@ -118,6 +118,10 @@
             object-fit: cover;
         }
 
+        .thumbnail-container .video-thumbnail {
+            cursor: pointer;
+        }
+
         .video-length {
             position: absolute;
             bottom: 4px;
@@ -543,16 +547,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
                 const channel = video.path.split('/')[0];
                 const channelPicSrc = `/channelpic/${encodeURIComponent(channel)}.jpg`;
+                const videoUrl = `video.html?src=${encodeURIComponent(video.path)}`;
 
                 el.innerHTML = `
                     <div class="thumbnail-container">
-                        <img src="${thumbnailSrc}" alt="${videoTitle}" loading="lazy">
+                        <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
                         <div class="video-length"></div>
                     </div>
                     <div class="video-info">
                         <img src="${channelPicSrc}" alt="${channel}" class="channel-pic" loading="lazy">
                         <div class="video-details">
-                            <div class="video-title">${videoTitle}</div>
+                            <div class="video-title" onclick="window.location.href='${videoUrl}'">${videoTitle}</div>
                             <div class="channel-name">${channel}</div>
                             <div class="video-description">${localStorage.getItem('language') === 'de' ? video.viewCount.replace(/,/g, '.') : video.viewCount} ${getLang('views', 'Aufrufe')} &bull; ${video.fileDate}</div>
                         </div>
@@ -560,15 +565,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
 
                 const thumbContainer = el.querySelector('.thumbnail-container');
-                thumbContainer.addEventListener('click', () => {
-                    window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
+                thumbContainer.addEventListener('mouseup', (e) => {
+                    // Ignore clicks if they happened on the 3-dot context menu button
+                    if (e.target.closest('.thumbnail-menu-btn')) return; 
+                    
+                    if (e.button === 0) { // Left click
+                        window.location.href = videoUrl;
+                    } else if (e.button === 1) { // Middle click
+                        e.preventDefault();
+                        window.open(videoUrl, '_blank');
+                    }
                 });
                 thumbContainer.style.cursor = 'pointer';
 
                 const titleEl = el.querySelector('.video-title');
-                titleEl.addEventListener('click', () => {
-                    window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
-                });
                 setupVideoLinkEvents(titleEl, video.path);
 
                 const channelEl = el.querySelector('.channel-name');
@@ -615,5 +625,6 @@ document.addEventListener('DOMContentLoaded', () => {
     <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>
     <script src="sidebar.js"></script>
+    <script src="thumbnail-context-menu.js"></script>
 </body>
 </html>
