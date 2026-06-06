@@ -548,7 +548,7 @@
                     }
 
                     .fluid_video_wrapper video[poster] {
-                        object-fit: cover;
+                        object-fit: contain;
                     }
 
                     .video-stage .logo-overlay {
@@ -588,7 +588,7 @@
                         bottom: 0;
                         left: 0;
                         right: 0;
-                        background: linear-gradient(transparent, rgba(0,0,0,0.9));
+                        background: transparent;
                         padding: 22px 12px 4px 12px;
                         opacity: 0;
                         transition: opacity 0.3s ease;
