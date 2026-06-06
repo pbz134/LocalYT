@@ -101,26 +101,73 @@
         .tab-content.active {
             display: block;
         }
+        .sort-options {
+            display: flex;
+            justify-content: flex-end;
+            margin: 0 20px 0 0;
+            margin-bottom: -50px;
+            position: relative;
+            z-index: 10;
+        }
+        .sort-dropdown {
+            position: relative;
+        }
         .sort-toggle {
-            background-color: #333;
-            color: white;
+            background-color: var(--secondary-bg-color, #333);
+            color: var(--input-text-color, white);
             border: none;
             padding: 8px 16px;
-            margin: 0 0 0 230px;
-            border-radius: 20px;
             cursor: pointer;
             font-size: 14px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            transition: background-color 0.2s;
             display: flex;
             align-items: center;
             gap: 8px;
-            transition: background-color 0.2s;
-            margin-bottom: -50px;
         }
         .sort-toggle:hover {
-            background-color: #555;
+            background-color: var(--hover-bg-color, #555);
         }
-        .sort-icon {
-            font-size: 16px;
+        .sort-toggle-arrow {
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid white;
+            transition: transform 0.2s;
+        }
+        .sort-toggle.open .sort-toggle-arrow {
+            transform: rotate(180deg);
+        }
+        .sort-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 4px;
+            background-color: var(--secondary-bg-color, #333);
+            overflow: hidden;
+            min-width: 240px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            z-index: 100;
+        }
+        .sort-dropdown-menu.open {
+            display: block;
+        }
+        .sort-dropdown-item {
+            padding: 10px 16px;
+            color: var(--input-text-color, white);
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            transition: background-color 0.15s;
+            white-space: nowrap;
+        }
+        .sort-dropdown-item:hover {
+            background-color: var(--hover-bg-color, #555);
+        }
+        .sort-dropdown-item.active {
+            color: #fff;
         }
         .videos-wrapper {
             position: relative;
@@ -349,6 +396,7 @@
         .channel-name-link,
         .channel-pic,
         .sort-toggle,
+        .sort-dropdown-item,
         .tab,
         .share-button,
         .suggestion-item,
@@ -366,6 +414,7 @@
         .channel-name-link,
         .channel-pic,
         .sort-toggle,
+        .sort-dropdown-item,
         .tab,
         .share-button,
         .suggestion-item,
@@ -404,9 +453,18 @@
 
     <!-- Videos Tab -->
     <div id="videosTab" class="tab-content active">
-        <button id="sortToggle" class="sort-toggle">
-            <span class="sort-icon">↓</span> Newest First
-        </button>
+        <div class="sort-options">
+            <div class="sort-dropdown">
+                <button class="sort-toggle" id="sortToggle">
+                    <span id="sortToggleLabel">Date added (newest)</span>
+                    <div class="sort-toggle-arrow"></div>
+                </button>
+                <div class="sort-dropdown-menu" id="sortDropdownMenu">
+                    <div class="sort-dropdown-item active" data-sort="newest">Date added (newest)</div>
+                    <div class="sort-dropdown-item" data-sort="oldest">Date added (oldest)</div>
+                </div>
+            </div>
+        </div>
         <div class="container videos-wrapper">
             <div class="channel-videos" id="channelVideosContainer"></div>
             <div id="loadingSpinner" class="loading-spinner">Loading more videos</div>
@@ -442,7 +500,7 @@
 document.addEventListener('mousedown', function(e) {
     if (e.button === 1) {
         const target = e.target.closest(
-            'a, .video-item, .video-title, .video-thumbnail, .channel-name-link, .channel-pic, .sort-toggle, .tab, .share-button, .suggestion-item, #mainLogo'
+            'a, .video-item, .video-title, .video-thumbnail, .channel-name-link, .channel-pic, .sort-toggle, .sort-dropdown-item, .tab, .share-button, .suggestion-item, #mainLogo'
         );
         if (target) {
             e.preventDefault();
@@ -472,6 +530,25 @@ function parseDurationToSeconds(durationStr) {
         return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
     }
     return parseInt(parts[0], 10) || 0;
+}
+
+function parseEuropeanDate(dateString) {
+    if (!dateString || dateString === 'Unknown date') return new Date(0);
+    const parts = dateString.replace(/\r?\n$/, '').trim().split('.');
+    if (parts.length === 3) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+            return new Date(year, month, day);
+        }
+    }
+    try {
+        const d = new Date(dateString.trim());
+        return isNaN(d.getTime()) ? new Date(0) : d;
+    } catch(e) {
+        return new Date(0);
+    }
 }
 
 const GENRE_CONFIG = {
@@ -655,12 +732,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const channelHeader = document.getElementById('channelHeader');
     const bannerContainer = document.getElementById('channelBannerContainer');
     const channelBanner = document.getElementById('channelBanner');
-    const sortToggle = document.getElementById('sortToggle');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const loadMoreTrigger = document.getElementById('loadMoreTrigger');
     const noMoreVideos = document.getElementById('noMoreVideos');
 
-    let sortNewestFirst = true;
+    let currentSortMode = 'newest'; // 'newest', 'oldest'
     let isLoadingMore = false;
     let hasMoreVideos = true;
     let intersectionObserver = null;
@@ -668,8 +744,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let isFirstLoadComplete = false;
 
     // Genre mode state
-    let currentFetchOffset = 0;
-    let pendingFilteredVideos = [];
+    let currentVideos = []; // All filtered videos with metadata
+    let renderedVideoCount = 0;
+    let genreVideosFullyLoaded = false;
 
     // Topic mode state
     let topicConfig = null;
@@ -677,6 +754,125 @@ document.addEventListener('DOMContentLoaded', () => {
     let topicTotalCount = 0;
 
     const loadedTabs = new Set();
+
+    // Sort labels map
+    const sortLabels = {
+        newest: getLang('Date added (newest)', 'Hinzugefügt am... (neueste zuerst)'),
+        oldest: getLang('Date added (oldest)', 'Hinzugefügt am... (älteste zuerst)')
+    };
+
+    // =====================================================
+    // Sort dropdown logic (matching channel.html)
+    // =====================================================
+    const sortToggle = document.getElementById('sortToggle');
+    const sortDropdownMenu = document.getElementById('sortDropdownMenu');
+    const sortToggleLabel = document.getElementById('sortToggleLabel');
+
+    sortToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sortDropdownMenu.classList.toggle('open');
+        sortToggle.classList.toggle('open');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.sort-dropdown')) {
+            sortDropdownMenu.classList.remove('open');
+            sortToggle.classList.remove('open');
+        }
+    });
+
+    document.querySelectorAll('.sort-dropdown-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const sortValue = item.dataset.sort;
+            currentSortMode = sortValue;
+
+            // Update active state in dropdown
+            document.querySelectorAll('.sort-dropdown-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+
+            // Update toggle label
+            sortToggleLabel.textContent = sortLabels[sortValue];
+
+            // Close dropdown
+            sortDropdownMenu.classList.remove('open');
+            sortToggle.classList.remove('open');
+
+            // Re-sort and re-render
+            sortAndRender();
+        });
+    });
+
+    // =====================================================
+    // Sort functions
+    // =====================================================
+
+    function sortVideosArray() {
+        switch (currentSortMode) {
+            case 'newest':
+                currentVideos.sort((a, b) => {
+                    const dateA = parseEuropeanDate(a.fileDate || 'Unknown date').getTime();
+                    const dateB = parseEuropeanDate(b.fileDate || 'Unknown date').getTime();
+                    return dateB - dateA;
+                });
+                break;
+            case 'oldest':
+                currentVideos.sort((a, b) => {
+                    const dateA = parseEuropeanDate(a.fileDate || 'Unknown date').getTime();
+                    const dateB = parseEuropeanDate(b.fileDate || 'Unknown date').getTime();
+                    return dateA - dateB;
+                });
+                break;
+        }
+    }
+
+    async function sortAndRender() {
+        if (isTopicMode) {
+            // Topic mode: reset and re-fetch from server with new sort
+            resetTopicState();
+            loadMoreVideos();
+            return;
+        }
+
+        // Genre mode
+        if (!genreVideosFullyLoaded) {
+            // Videos haven't been fully loaded yet, reload everything
+            videosContainer.innerHTML = '<div class="loading-spinner visible">' + getLang('Scanning library...', 'Durchsuche Bibliothek...') + '</div>';
+            loadAllGenreVideos();
+            return;
+        }
+
+        // Sort and re-render
+        sortVideosArray();
+        renderedVideoCount = 0;
+        videosContainer.innerHTML = '';
+        hasMoreVideos = currentVideos.length > 0;
+        loadingSpinner.classList.remove('visible');
+        noMoreVideos.style.display = 'none';
+        loadMoreFromCurrentArray();
+    }
+
+    function loadMoreFromCurrentArray() {
+        if (renderedVideoCount >= currentVideos.length) {
+            hasMoreVideos = false;
+            noMoreVideos.style.display = 'block';
+            return;
+        }
+
+        const startIndex = renderedVideoCount;
+        const endIndex = Math.min(startIndex + VIDEOS_PER_PAGE, currentVideos.length);
+
+        const fragment = document.createDocumentFragment();
+        for (let i = startIndex; i < endIndex; i++) {
+            fragment.appendChild(createVideoElement(currentVideos[i]));
+        }
+        videosContainer.appendChild(fragment);
+        renderedVideoCount = endIndex;
+
+        if (renderedVideoCount >= currentVideos.length) {
+            hasMoreVideos = false;
+            noMoreVideos.style.display = 'block';
+        }
+    }
 
     // =====================================================
     // Initialize header based on mode
@@ -745,11 +941,15 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('.tab[data-tab="videos"]').textContent = getLang('VIDEOS', 'VIDEOS');
         document.querySelector('.tab[data-tab="about"]').textContent = getLang('ABOUT', 'ÜBER');
 
-        if (sortNewestFirst) {
-            sortToggle.innerHTML = '<span class="sort-icon">↓</span> ' + getLang('Newest First', 'Neueste zuerst');
-        } else {
-            sortToggle.innerHTML = '<span class="sort-icon">↑</span> ' + getLang('Oldest First', 'Älteste zuerst');
-        }
+        // Update sort dropdown labels
+        const updatedSortLabels = {
+            newest: getLang('Date added (newest)', 'Hinzugefügt am... (neueste zuerst)'),
+            oldest: getLang('Date added (oldest)', 'Hinzugefügt am... (älteste zuerst)')
+        };
+
+        sortToggleLabel.textContent = updatedSortLabels[currentSortMode];
+        document.querySelector('.sort-dropdown-item[data-sort="newest"]').textContent = updatedSortLabels.newest;
+        document.querySelector('.sort-dropdown-item[data-sort="oldest"]').textContent = updatedSortLabels.oldest;
 
         document.getElementById('aboutDescriptionHeader').textContent = getLang('Description', 'Beschreibung');
         document.getElementById('aboutStatsHeader').textContent = getLang('Stats', 'Statistiken');
@@ -781,7 +981,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
     }
 
-    function createVideoElement(video, includeLength) {
+    function createVideoElement(video) {
         const videoElement = document.createElement('div');
         videoElement.className = 'video-item';
         const videoTitle = video.displayName;
@@ -846,7 +1046,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // If viewCount is already provided (topic mode), use it directly
+        // If viewCount is already provided (topic mode or pre-fetched), use it directly
         if (video.viewCount !== undefined && video.viewCount !== null && video.viewCount !== '') {
             let formattedViewCount = video.viewCount;
             if (!isNaN(video.viewCount) && video.viewCount !== '0') {
@@ -866,6 +1066,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     .then(r => r.ok ? r.text() : '')
                     .then(lengthStr => {
                         if (lengthStr) {
+                            video.videoLength = lengthStr;
                             videoElement.querySelector('.video-length').textContent = lengthStr;
                         }
                     }).catch(() => {});
@@ -888,8 +1089,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${video.fileDate || getLang('Unknown date', 'Unbekanntes Datum')}`;
 
+                // Store fetched metadata back to the video object
+                video.viewCount = viewCount.trim() || '0';
                 if (videoLength) {
-                    videoElement.querySelector('.video-length').textContent = videoLength;
+                    video.videoLength = videoLength.trim();
+                    videoElement.querySelector('.video-length').textContent = videoLength.trim();
                 }
             })
             .catch(() => {
@@ -910,9 +1114,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingSpinner.classList.add('visible');
         noMoreVideos.style.display = 'none';
 
-        const sortParam = sortNewestFirst ? 'newest' : 'oldest';
-
-        fetch(`/topic-videos/${encodeURIComponent(topicId)}?page=${topicCurrentPage}&limit=${VIDEOS_PER_PAGE}&sort=${sortParam}`)
+        fetch(`/topic-videos/${encodeURIComponent(topicId)}?page=${topicCurrentPage}&limit=${VIDEOS_PER_PAGE}&sort=${currentSortMode}`)
             .then(r => {
                 if (!r.ok) throw new Error('Failed to fetch topic videos');
                 return r.json();
@@ -925,7 +1127,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const fragment = document.createDocumentFragment();
                 for (const video of videos) {
-                    fragment.appendChild(createVideoElement(video, true));
+                    fragment.appendChild(createVideoElement(video));
                 }
                 videosContainer.appendChild(fragment);
 
@@ -960,6 +1162,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
+    function resetTopicState() {
+        topicCurrentPage = 1;
+        topicTotalCount = 0;
+        totalVideoCount = 0;
+        hasMoreVideos = true;
+        isFirstLoadComplete = false;
+        videosContainer.innerHTML = '';
+        loadingSpinner.classList.remove('visible');
+        noMoreVideos.style.display = 'none';
+    }
+
     function updateVideoCount() {
         let count = topicTotalCount > 0 ? topicTotalCount : totalVideoCount;
         let statsVideoCount = count.toLocaleString();
@@ -971,122 +1184,90 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =====================================================
-    // Genre Mode: Client-side filtering (existing logic)
+    // Genre Mode: Collect all videos, then sort and render
     // =====================================================
 
-    async function fetchAndRenderBatch() {
-        const videosToRender = pendingFilteredVideos.splice(0, VIDEOS_PER_PAGE);
+    async function loadAllGenreVideos() {
+        currentVideos = [];
+        genreVideosFullyLoaded = false;
 
-        const videosWithDates = await Promise.all(videosToRender.map(video => {
-            const videoPathWithoutExt = stripExtension(video.path);
-            return fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
-                .then(response => response.ok ? response.text() : 'Unknown date')
-                .then(fileDate => ({ ...video, fileDate: fileDate.trim() || 'Unknown date' }))
-                .catch(() => ({ ...video, fileDate: 'Unknown date' }));
-        }));
+        const genreTags = genreConfig.tags;
+        const genreTagSet = new Set(genreTags.map(t => t.toLowerCase()));
+        const negativeTagSet = new Set((genreConfig.negativeTags || []).map(t => t.toLowerCase()));
 
-        const fragment = document.createDocumentFragment();
-        for (const video of videosWithDates) {
-            fragment.appendChild(createVideoElement(video, false));
+        let offset = 0;
+        let hasMore = true;
+
+        while (hasMore) {
+            try {
+                const response = await fetch(`/search-index?offset=${offset}&limit=${FETCH_BATCH_SIZE}`);
+                if (!response.ok) throw new Error('Failed to fetch');
+                const data = await response.json();
+                const rawBatch = data.videos || [];
+
+                if (rawBatch.length < FETCH_BATCH_SIZE) hasMore = false;
+                offset += rawBatch.length;
+
+                if (rawBatch.length === 0) {
+                    hasMore = false;
+                    break;
+                }
+
+                // Filter by genre tags
+                let filtered = rawBatch.filter(video => filterByTags(video, genreTagSet, negativeTagSet, genreConfig, genreTags));
+
+                // Filter by duration if needed
+                if (genreConfig.minDurationSeconds > 0 && filtered.length > 0) {
+                    filtered = await filterByDuration(filtered, genreConfig.minDurationSeconds);
+                }
+
+                currentVideos.push(...filtered);
+            } catch (error) {
+                console.error('[Genre] Error fetching batch:', error);
+                hasMore = false;
+            }
         }
-        videosContainer.appendChild(fragment);
-        totalVideoCount += videosWithDates.length;
+
+        // Fetch dates for all filtered videos
+        const dateBatchSize = 30;
+        for (let i = 0; i < currentVideos.length; i += dateBatchSize) {
+            const batch = currentVideos.slice(i, i + dateBatchSize);
+            await Promise.all(batch.map(async (video) => {
+                const videoPathWithoutExt = stripExtension(video.path);
+                try {
+                    const date = await fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
+                        .then(r => r.ok ? r.text() : 'Unknown date');
+                    video.fileDate = date.trim() || 'Unknown date';
+                } catch {
+                    video.fileDate = 'Unknown date';
+                }
+            }));
+        }
+
+        genreVideosFullyLoaded = true;
+        totalVideoCount = currentVideos.length;
+        updateVideoCount();
+
+        // Sort and render
+        sortVideosArray();
+        renderedVideoCount = 0;
+        videosContainer.innerHTML = '';
+
+        if (currentVideos.length === 0) {
+            noMoreVideos.style.display = 'block';
+            noMoreVideos.textContent = getLang('No videos found for this genre.', 'Keine Videos für dieses Thema gefunden.');
+            noMoreVideos.style.fontStyle = 'normal';
+        } else {
+            hasMoreVideos = true;
+            loadMoreFromCurrentArray();
+        }
+
+        // Remove initial spinner if present
+        const initialSpinner = videosContainer.querySelector('.loading-spinner');
+        if (initialSpinner) initialSpinner.remove();
 
         if (!isFirstLoadComplete) {
             isFirstLoadComplete = true;
-            const initialSpinner = videosContainer.querySelector('.loading-spinner');
-            if (initialSpinner) initialSpinner.remove();
-        }
-
-        updateVideoCount();
-    }
-
-    function loadMoreGenreVideos() {
-        if (isLoadingMore || !hasMoreVideos) return;
-
-        if (pendingFilteredVideos.length > 0) {
-            isLoadingMore = true;
-            fetchAndRenderBatch().then(() => { isLoadingMore = false; });
-            return;
-        }
-
-        isLoadingMore = true;
-        loadingSpinner.classList.add('visible');
-        noMoreVideos.style.display = 'none';
-
-        fetch(`/search-index?offset=${currentFetchOffset}&limit=${FETCH_BATCH_SIZE}`)
-            .then(response => {
-                if (!response.ok) throw new Error('Failed to fetch search index');
-                return response.json();
-            })
-            .then(data => {
-                const rawBatch = data.videos || [];
-
-                if (rawBatch.length < FETCH_BATCH_SIZE) {
-                    hasMoreVideos = false;
-                }
-                currentFetchOffset += rawBatch.length;
-
-                if (rawBatch.length === 0) {
-                    hasMoreVideos = false;
-                    isLoadingMore = false;
-                    loadingSpinner.classList.remove('visible');
-
-                    if (totalVideoCount === 0) {
-                        noMoreVideos.style.display = 'block';
-                        noMoreVideos.textContent = getLang('No videos found for this genre.', 'Keine Videos für dieses Thema gefunden.');
-                        noMoreVideos.style.fontStyle = 'normal';
-                    } else {
-                        noMoreVideos.style.display = 'block';
-                    }
-                    return;
-                }
-
-                const genreTags = genreConfig.tags;
-                const genreTagSet = new Set(genreTags.map(t => t.toLowerCase()));
-                const negativeTagSet = new Set((genreConfig.negativeTags || []).map(t => t.toLowerCase()));
-
-                let tagMatches = rawBatch.filter(video => {
-                    return filterByTags(video, genreTagSet, negativeTagSet, genreConfig, genreTags);
-                });
-
-                const minDuration = genreConfig.minDurationSeconds || 0;
-
-                if (minDuration > 0 && tagMatches.length > 0) {
-                    return filterByDuration(tagMatches, minDuration).then(durationMatches => {
-                        pendingFilteredVideos = durationMatches;
-                        processFetchedBatch();
-                    });
-                }
-
-                pendingFilteredVideos = tagMatches;
-                processFetchedBatch();
-            })
-            .catch(error => {
-                console.error('[Genre] Error loading genre videos:', error);
-                isLoadingMore = false;
-                loadingSpinner.classList.remove('visible');
-                if (totalVideoCount === 0) {
-                    videosContainer.innerHTML = `<p style="color: #888; text-align: center; width: 100%; padding: 60px 20px;">${getLang('Failed to load videos.', 'Videos konnten nicht geladen werden.')}</p>`;
-                }
-            });
-
-        function processFetchedBatch() {
-            isLoadingMore = false;
-            loadingSpinner.classList.remove('visible');
-
-            if (pendingFilteredVideos.length === 0 && !hasMoreVideos) {
-                if (totalVideoCount === 0) {
-                    noMoreVideos.style.display = 'block';
-                    noMoreVideos.textContent = getLang('No videos found for this genre.', 'Keine Videos für dieses Thema gefunden.');
-                    noMoreVideos.style.fontStyle = 'normal';
-                } else {
-                    noMoreVideos.style.display = 'block';
-                }
-                return;
-            }
-
-            fetchAndRenderBatch();
         }
     }
 
@@ -1167,7 +1348,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isTopicMode) {
             loadMoreTopicVideos();
         } else {
-            loadMoreGenreVideos();
+            if (genreVideosFullyLoaded) {
+                loadMoreFromCurrentArray();
+            } else {
+                loadAllGenreVideos();
+            }
         }
     }
 
@@ -1188,32 +1373,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-
-    sortToggle.addEventListener('click', () => {
-        sortNewestFirst = !sortNewestFirst;
-        updateUITranslations();
-
-        // Reset state
-        totalVideoCount = 0;
-        hasMoreVideos = true;
-        isFirstLoadComplete = false;
-        videosContainer.innerHTML = '';
-        loadingSpinner.classList.remove('visible');
-        noMoreVideos.style.display = 'none';
-
-        if (isTopicMode) {
-            topicCurrentPage = 1;
-            topicTotalCount = 0;
-        } else {
-            currentFetchOffset = 0;
-            pendingFilteredVideos = [];
-        }
-
-        document.getElementById('statsVideos').textContent = `0 ${getLang('videos', 'Videos')}`;
-        document.getElementById('channelVideoCount').textContent = '';
-
-        loadMoreVideos();
-    });
 
     document.getElementById('shareChannelBtn').addEventListener('click', () => {
         let shareUrl;
