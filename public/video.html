@@ -7,6 +7,16 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
 <script>
+// ==============================
+// Apply Touch Device Detection
+// ==============================
+(function detectTouchDevice() {
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        document.documentElement.className += ' touch-device';
+    }
+})();
+</script>
+<script>
     /**
      * Safely decode a URI component.
      * If the string contains malformed sequences like bare '%', 

@@ -469,3 +469,211 @@ img.search-icon {
     flex-shrink: 0;
     margin-right: 50px;
 }
+
+/* --- Mobile Top Bar Adjustments (Touch Devices Only) --- */
+
+.touch-device .top-bar {
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+}
+
+/* Hide the text input on mobile to un-squish the bar */
+.touch-device .search-container input {
+    display: none;
+}
+
+/* Resize the search icon to be a comfortable tap target */
+.touch-device .search-container {
+    flex: 0;
+    max-width: none;
+    position: relative;
+    margin: 0 0 0 auto;
+    left: 0;
+}
+
+.touch-device img.search-icon {
+    width: 30px;
+    height: 30px;
+    padding: 5px;
+    box-sizing: content-box;
+    position: static;
+    right: auto;
+    margin-top: 0;
+}
+
+.touch-device #mainLogo {
+    width: 130px;
+    margin-left: -15px;
+}
+
+.touch-device #logo-version {
+    margin-left: -4px !important;
+}
+
+/* Hide category buttons on mobile to free up space */
+.touch-device .category-container {
+    display: none !important;
+}
+
+.touch-device .search-container img.search-icon {
+    width: 30px;
+    height: 30px;
+    padding: 5px;
+    box-sizing: content-box;
+    position: static !important;
+    right: auto !important;
+    margin-top: 0;
+}
+
+/* Ensure user actions/profile picture stays compact on the right */
+.touch-device .user-actions {
+    margin-left: 0;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+        /* --- Touch Device Search Adjustments --- */
+        .touch-device .search-results-container {
+            padding: 80px 12px 20px !important;
+            align-items: center !important;
+        }
+
+        .touch-device .search-result-item {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            min-height: auto !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin-bottom: 24px !important;
+        }
+
+        .touch-device .search-result-item .thumbnail-container {
+            width: 100% !important;
+        }
+
+        .touch-device .search-result-item .video-thumbnail {
+            width: 100% !important;
+            height: auto !important;
+            aspect-ratio: 16/9 !important;
+        }
+
+        .touch-device .search-result-item .video-info {
+            margin-left: 0 !important;
+            margin-top: 30px !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+
+        .touch-device .search-result-item .video-title {
+            font-size: 13px !important;
+            margin-left: 0 !important;
+            margin-bottom: 6px !important;
+        }
+
+        .touch-device .search-result-item .channel-info {
+            margin-top: 4px !important;
+        }
+
+        .touch-device .search-result-item .channel-info .channel-pic {
+            width: 22px !important;
+            height: 22px !important;
+        }
+
+        .touch-device .search-result-item .channel-info .channel-name {
+            font-size: 12px !important;
+        }
+
+        .touch-device .search-result-item .video-metadata {
+            font-size: 12px !important;
+            margin-left: 0 !important;
+            margin-top: 4px !important;
+        }
+
+        .touch-device .search-result-item .video-length {
+            font-size: 10px !important;
+            padding: 1px 3px !important;
+            bottom: 2px !important;
+            right: 2px !important;
+        }
+
+        /* --- Touch Device Video Page Adjustments (Modern Layout Only) --- */
+        .touch-device .video-player-container {
+            flex-direction: column !important;
+            padding: 70px 0 20px !important;
+        }
+
+        .touch-device .video-wrapper {
+            flex: none !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            padding-right: 0 !important;
+        }
+
+        .touch-device .content-wrapper {
+            margin-left: 0 !important;
+        }
+
+        .touch-device .suggestions-wrapper {
+            width: 100% !important;
+            flex-shrink: 1 !important;
+            margin-top: 15px;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        .touch-device .live-chat-container {
+            width: 100% !important;
+            margin-left: 0 !important;
+        }
+
+        /* Wrap Channel Info and Action Buttons */
+        .touch-device .channel-info:not(.classic-layout) {
+            flex-wrap: wrap !important;
+            gap: 10px !important;
+            padding: 0 10px !important;
+        }
+
+        .touch-device .channel-info:not(.classic-layout) .channel-left {
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+        }
+
+        .touch-device .channel-info:not(.classic-layout) .channel-right {
+            flex-wrap: wrap !important;
+            gap: 10px !important;
+            margin-left: 0 !important;
+            padding-right: 0 !important;
+            justify-content: flex-start !important;
+        }
+
+        .touch-device .channel-info:not(.classic-layout) .like-dislike-container {
+            margin-left: 0 !important;
+        }
+
+        .touch-device .channel-info:not(.classic-layout) .share-container,
+        .touch-device .channel-info:not(.classic-layout) .save-container {
+            margin-left: 0 !important;
+        }
+
+        .touch-device .logo-overlay {
+            top: 70% !important;
+        }
+
+        .touch-device .current-video-title {
+            padding: 0 10px !important;
+            font-size: 15px !important;
+        }
+
+        .touch-device .video-description {
+            margin: 10px 10px 0 !important;
+        }
+
+        .touch-device .description-toggle {
+            padding-left: 10px !important;
+            margin-bottom: 0 !important;
+        }
+
+        .touch-device .comments-section {
+            padding: 0 10px !important;
+        }

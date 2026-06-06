@@ -8,6 +8,15 @@
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
 <script>
 // ==============================
+// Apply Touch Device Detection
+// ==============================
+(function detectTouchDevice() {
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        document.documentElement.className += ' touch-device';
+    }
+})();
+
+// ==============================
 // Apply Rounded Corners Preference
 // ==============================
 (function applyRoundedCorners() {
@@ -63,8 +72,6 @@
             padding: 16px;
         }
 
-        /* Note: The .openbtn styles have been moved into sidebar.js, 
-           but keeping them here won't hurt anything if you prefer to leave them. */
         .openbtn {
             font-size: 20px;
             cursor: pointer;
@@ -126,6 +133,53 @@
         .openbtn {
             cursor: pointer;
         }
+
+        /* --- Mobile Search Overlay --- */
+        .mobile-search-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background-color: var(--main-bg-color);
+            z-index: 1002;
+            align-items: center;
+            padding: 0 10px;
+            box-sizing: border-box;
+            border-bottom: 1px solid #333;
+        }
+
+        .touch-device .mobile-search-overlay {
+            display: none; /* Hidden by default, shown via JS */
+        }
+
+        .mobile-search-overlay.active {
+            display: flex !important;
+        }
+
+        .mobile-search-overlay .mobile-search-input {
+            flex: 1;
+            padding: 10px 15px;
+            font-size: 16px;
+            border: 2px solid #444;
+            background-color: var(--input-bg-color);
+            color: #fff;
+            outline: none;
+        }
+
+        .mobile-search-overlay .mobile-search-input:focus {
+            border-color: #fff;
+        }
+
+        .mobile-search-overlay .mobile-search-close {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            padding: 0 15px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="index-page">
@@ -133,12 +187,20 @@
         <!-- The ☰ toggle button is now injected automatically by sidebar.js -->
         <img src="LocalYT-Rev-Files/Logo.svg" alt="Logo" class="logo" id="mainLogo">
         <div class="category-container" id="categoryContainer"></div>
+        
+        <!-- Main Search Container -->
         <div class="search-container">
             <input type="text" id="searchInput" placeholder="">
             <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
     </header>
+    
+    <!-- Mobile Search Overlay -->
+    <div class="mobile-search-overlay" id="mobileSearchOverlay">
+        <input type="text" class="mobile-search-input" id="mobileSearchInput" placeholder="">
+        <button class="mobile-search-close" id="mobileSearchClose">&times;</button>
+    </div>
     
     <!-- The sidebar div is now injected automatically by sidebar.js -->
     
@@ -176,34 +238,68 @@ function getLang(en, de) {
     return localStorage.getItem('language') === 'de' ? de : en;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const mainLogo = document.getElementById('mainLogo');
-    
-    if (mainLogo) {
-        mainLogo.addEventListener('click', (event) => {
-            if (event.button === 0) {
-                window.location.href = 'index.html';
-            }
-        });
+    document.addEventListener('DOMContentLoaded', () => {
+        const mainLogo = document.getElementById('mainLogo');
         
-        mainLogo.addEventListener('mouseup', (event) => {
-            if (event.button === 1) {
+        if (mainLogo) {
+            mainLogo.addEventListener('click', (event) => {
+                if (event.button === 0) {
+                    window.location.href = 'index.html';
+                }
+            });
+            
+            mainLogo.addEventListener('mouseup', (event) => {
+                if (event.button === 1) {
+                    event.preventDefault();
+                    window.open('index.html', '_blank');
+                }
+            });
+            
+            mainLogo.addEventListener('contextmenu', (event) => {
                 event.preventDefault();
                 window.open('index.html', '_blank');
-            }
-        });
-        
-        mainLogo.addEventListener('contextmenu', (event) => {
-            event.preventDefault();
-            window.open('index.html', '_blank');
-        });
-        
-        mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
-        mainLogo.style.cursor = 'pointer';
-    }
+            });
+            
+            mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
+            mainLogo.style.cursor = 'pointer';
+        }
 
-    document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
-});
+        document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
+
+        // --- Mobile Search Logic ---
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const searchIcon = document.getElementById('searchIcon');
+        const searchInput = document.getElementById('searchInput');
+        const mobileOverlay = document.getElementById('mobileSearchOverlay');
+        const mobileSearchInput = document.getElementById('mobileSearchInput');
+        const mobileSearchClose = document.getElementById('mobileSearchClose');
+
+        if (isTouchDevice && searchIcon && mobileOverlay && mobileSearchInput) {
+            // Tapping the search icon opens the full-width overlay
+            searchIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                mobileOverlay.classList.add('active');
+                mobileSearchInput.placeholder = getLang('Search', 'Suchen');
+                mobileSearchInput.focus();
+            });
+
+            // Close the overlay
+            mobileSearchClose.addEventListener('click', () => {
+                mobileOverlay.classList.remove('active');
+                mobileSearchInput.value = '';
+            });
+
+            // Handle searching from the overlay
+            mobileSearchInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    const query = mobileSearchInput.value.trim();
+                    if (query) {
+                        window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+                    }
+                }
+            });
+        }
+    });
 
 function stripExtension(filename) {
     return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
