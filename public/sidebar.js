@@ -200,6 +200,15 @@ function initSidebar() {
         .catch(() => {
             // Not logged in or error — keep default topics, hide Edit button
         });
+
+    // 6. Prevent middle-clicks from opening sidebar links twice
+    sidebar.addEventListener('auxclick', function(e) {
+        // e.button === 1 is the middle mouse button
+        if (e.button === 1 && e.target.closest('a')) {
+            e.preventDefault();
+        }
+    });
+
 }
 
 // Sidebar Toggle Functions
