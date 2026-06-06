@@ -85,6 +85,6 @@ What if I only have the video files and no metadata?
 ---
 
 ## TO DO
+- Finish implementing mobile support
 - Finish implementing Light Mode
-- Make background boxes optional on all pages
 - Find a way to better manage tons of invidividual video metadata files
