@@ -110,7 +110,7 @@ if /i "!LLM_TAGGING!"=="yes" (
 
     REM Step 1: Run create-filename-list.py from Algorithm directory
     cd Algorithm
-    .\venv\python.exe create-filename-list.py --untagged
+    ..\venv\python.exe create-filename-list.py --untagged
     if errorlevel 1 (
         echo Error running create-filename-list.py
         cd ..
@@ -168,7 +168,7 @@ if /i "!LLM_TAGGING!"=="yes" (
 
     REM Step 4: Run analyze.py from Algorithm directory
     cd Algorithm
-    .\venv\python.exe analyze.py
+    ..\venv\python.exe analyze.py
     if errorlevel 1 (
         echo Error running analyze.py
         cd ..

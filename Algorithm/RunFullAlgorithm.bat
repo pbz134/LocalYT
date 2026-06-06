@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 
 REM Step 1: Run the first Python script
 echo Running create-filename-list.py...
-.\venv\python.exe create-filename-list.py --untagged
+..\venv\python.exe create-filename-list.py --untagged
 if errorlevel 1 (
     echo Error running create-filename-list.py
     pause
@@ -55,7 +55,7 @@ powershell -Command "try { $response = Invoke-WebRequest -Uri 'http://localhost:
 
 REM Step 5: Run the analyze.py script
 echo Running analyze.py...
-.\venv\python.exe analyze.py
+..\venv\python.exe analyze.py
 if errorlevel 1 (
     echo Error running analyze.py
 )
