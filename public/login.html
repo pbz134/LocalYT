@@ -388,7 +388,7 @@
             loginButton.disabled = usernameInput.disabled = passwordInput.disabled = true;
             statusMessage.className = 'status-message yellow';
             statusMessage.style.display = 'block';
-            statusMessage.textContent = `Too many failed login attempts. Please try again in ${formatTime(remainingTime)}.`;
+            statusMessage.innerHTML = `Too many failed login attempts.<br>Please try again in ${formatTime(remainingTime)}.`;
             if (refreshTimer) clearTimeout(refreshTimer);
             refreshTimer = setTimeout(() => window.location.reload(), remainingTime + 1000);
         }
