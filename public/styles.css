@@ -677,3 +677,33 @@ img.search-icon {
         .touch-device .comments-section {
             padding: 0 10px !important;
         }
+
+        .touch-device .video-description {
+            margin-left: -50px !important;
+            margin-top: 5px !important;
+        }
+
+.touch-device .container {
+    padding-top: 130px !important;
+}
+
+
+        /* --- Disable Android WebView Blue Tap Overlay --- */
+        * {
+            -webkit-tap-highlight-color: transparent !important;
+        }
+
+        /* If the blue overlay still appears on specific clickable elements */
+        a, button, div, img, span {
+            -webkit-tap-highlight-color: transparent !important;
+        }
+
+        /* --- Mobile Top Bar Adjustments (Touch Devices Only) --- */
+
+        .touch-device .top-bar {
+            justify-content: flex-start;
+            gap: 10px;
+            padding: 40px 12px;
+            /* Push the top bar down to avoid the Android status bar */
+            padding-top: max(10px, env(safe-area-inset-top));
+        }
