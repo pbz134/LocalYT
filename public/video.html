@@ -1182,6 +1182,11 @@
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
     </header>
+    <!-- Mobile Search Overlay -->
+    <div class="mobile-search-overlay" id="mobileSearchOverlay">
+        <input type="text" class="mobile-search-input" id="mobileSearchInput" placeholder="">
+        <button class="mobile-search-close" id="mobileSearchClose">&times;</button>
+    </div>
     <div class="content-wrapper">
         <div class="video-player-container">
             <div class="video-wrapper paused">
@@ -4551,6 +4556,43 @@ function toggleLiveChat() {
     }
 })();
     </script>
+<script>
+    // --- Mobile Search Logic for Touch Devices ---
+    const isTouchDeviceSearch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    
+    if (isTouchDeviceSearch) {
+        const searchIcon = document.getElementById('searchIcon');
+        const mobileOverlay = document.getElementById('mobileSearchOverlay');
+        const mobileSearchInput = document.getElementById('mobileSearchInput');
+        const mobileSearchClose = document.getElementById('mobileSearchClose');
+
+        if (searchIcon && mobileOverlay && mobileSearchInput) {
+            // Tapping the search icon opens the full-width overlay
+            searchIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                mobileOverlay.classList.add('active');
+                mobileSearchInput.placeholder = 'Search'; // You can use your getLang() here if it's available
+                mobileSearchInput.focus();
+            });
+
+            // Close the overlay
+            mobileSearchClose.addEventListener('click', () => {
+                mobileOverlay.classList.remove('active');
+                mobileSearchInput.value = '';
+            });
+
+            // Handle searching from the overlay
+            mobileSearchInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    const query = mobileSearchInput.value.trim();
+                    if (query) {
+                        window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+                    }
+                }
+            });
+        }
+    }
+</script>
     <script src="profile-pic.js"></script>
     <script src="fluidplayer-custom-stats.js"></script>
     <script src="sidebar.js"></script>

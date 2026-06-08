@@ -470,20 +470,11 @@ img.search-icon {
     margin-right: 50px;
 }
 
-/* --- Mobile Top Bar Adjustments (Touch Devices Only) --- */
-
-.touch-device .top-bar {
-    justify-content: flex-start;
-    gap: 10px;
-    padding: 10px 12px;
-}
-
 /* Hide the text input on mobile to un-squish the bar */
 .touch-device .search-container input {
     display: none;
 }
 
-/* Resize the search icon to be a comfortable tap target */
 .touch-device .search-container {
     flex: 0;
     max-width: none;
@@ -560,19 +551,23 @@ img.search-icon {
 
         .touch-device .search-result-item .video-info {
             margin-left: 0 !important;
-            margin-top: 30px !important;
-            padding: 0 !important;
+            margin-top: 0 !important;
+            padding: 0 !important; /* Strips all padding so children align perfectly */
             width: 100% !important;
+            box-sizing: border-box !important;
         }
 
         .touch-device .search-result-item .video-title {
-            font-size: 13px !important;
             margin-left: 0 !important;
-            margin-bottom: 6px !important;
+            margin-top: 8px !important; 
+            margin-bottom: 4px !important;
+            padding: 0 !important;
         }
 
         .touch-device .search-result-item .channel-info {
+            margin-left: 0 !important;
             margin-top: 4px !important;
+            padding-left: 0 !important;
         }
 
         .touch-device .search-result-item .channel-info .channel-pic {
@@ -587,7 +582,8 @@ img.search-icon {
         .touch-device .search-result-item .video-metadata {
             font-size: 12px !important;
             margin-left: 0 !important;
-            margin-top: 4px !important;
+            margin-top: 8px !important;
+            padding-left: 0 !important;
         }
 
         .touch-device .search-result-item .video-length {
@@ -597,7 +593,6 @@ img.search-icon {
             right: 2px !important;
         }
 
-        /* --- Touch Device Video Page Adjustments (Modern Layout Only) --- */
         .touch-device .video-player-container {
             flex-direction: column !important;
             padding: 70px 0 20px !important;
@@ -665,10 +660,6 @@ img.search-icon {
             font-size: 15px !important;
         }
 
-        .touch-device .video-description {
-            margin: 10px 10px 0 !important;
-        }
-
         .touch-device .description-toggle {
             padding-left: 10px !important;
             margin-bottom: 0 !important;
@@ -679,46 +670,55 @@ img.search-icon {
         }
 
         .touch-device .video-description {
-            margin-left: -50px !important;
-            margin-top: 5px !important;
+            margin: 10px 0 0 0 !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+    padding-left: 0 !important;
         }
 
-/* --- Touch Device Index Page Video Items --- */
-.touch-device .container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 15px;
-    padding: 130px 15px 20px !important;
-    max-width: 100% !important;
-}
+        /* --- Touch Device Index Page Video Items --- */
+        .touch-device .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            padding: 130px 15px 20px !important;
+            max-width: 100% !important;
+        }
 
-.touch-device .video-item {
-    width: auto;
-    margin: 0;
-}
+        .touch-device .video-item {
+            width: auto;
+            margin: 0;
+        }
 
-.touch-device .video-item .video-thumbnail {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 16 / 9;
-}
+        .touch-device .video-item .video-thumbnail {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16 / 9;
+        }
+
+        .touch-device .top-bar {
+            justify-content: flex-start;
+            gap: 10px;
+            padding: 10px 12px;
+            padding-top: max(10px, env(safe-area-inset-top));
+        }
+
+        /* --- Touch Device Scrollable Comments --- */
+        .touch-device .comments-section {
+            max-height: 50vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            border-top: 1px solid #3f3f3f;
+            border-bottom: 1px solid #3f3f3f;
+            margin-top: 15px;
+            padding-bottom: 10px;
+        }
 
         /* --- Disable Android WebView Blue Tap Overlay --- */
         * {
             -webkit-tap-highlight-color: transparent !important;
         }
 
-        /* If the blue overlay still appears on specific clickable elements */
         a, button, div, img, span {
             -webkit-tap-highlight-color: transparent !important;
-        }
-
-        /* --- Mobile Top Bar Adjustments (Touch Devices Only) --- */
-
-        .touch-device .top-bar {
-            justify-content: flex-start;
-            gap: 10px;
-            padding: 40px 12px;
-            /* Push the top bar down to avoid the Android status bar */
-            padding-top: max(10px, env(safe-area-inset-top));
         }
