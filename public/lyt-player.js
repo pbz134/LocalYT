@@ -117,7 +117,7 @@
             this.isLooping = false;
 
             // Version
-            this.version = 'v2.3.5';
+            this.version = 'v2.4.0';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -1567,6 +1567,7 @@
             
             // --- Volume Bar Events (Drag handling) ---
             this.dom.volumeBar.addEventListener('mousedown', (e) => this.handleVolumeDrag(e));
+            this.dom.volumeBar.addEventListener('touchstart', (e) => this.handleVolumeDrag(e), { passive: false });
             
             // Keep volume slider visible while interacting
             this.dom.volumeBar.addEventListener('mousedown', () => {
@@ -1575,6 +1576,7 @@
 
             // Progress Bar seeking
             this.dom.progressContainer.addEventListener('mousedown', (e) => this.handleSeekDrag(e));
+            this.dom.progressContainer.addEventListener('touchstart', (e) => this.handleSeekDrag(e), { passive: false });
             
             // Fullscreen
             this.dom.fullscreenBtn.addEventListener('click', (e) => {
@@ -1649,6 +1651,11 @@
 
             // Context Menu
             this.wrapper.addEventListener('contextmenu', (e) => {
+                // Disable context menu on touch devices (long press)
+                if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                    e.preventDefault();
+                    return;
+                }
                 e.preventDefault();
                 this.showContextMenu(e.clientX, e.clientY);
             });
@@ -2352,31 +2359,40 @@
                 return Math.max(0, Math.min(1, percent));
             };
             
-            const percent = calcPercent(e.clientX);
+            const startX = e.touches ? e.touches[0].clientX : e.clientX;
+            const percent = calcPercent(startX);
             this.dom.progressPlayed.style.width = `${percent * 100}%`;
 
             const moveHandler = (ev) => {
-                const p = calcPercent(ev.clientX);
+                ev.preventDefault(); // Prevent page scrolling while dragging
+                const moveX = ev.touches ? ev.touches[0].clientX : ev.clientX;
+                const p = calcPercent(moveX);
                 this.dom.progressPlayed.style.width = `${p * 100}%`;
             };
             
             const upHandler = (ev) => {
-                const p = calcPercent(ev.clientX);
+                const upX = ev.changedTouches ? ev.changedTouches[0].clientX : ev.clientX;
+                const p = calcPercent(upX);
                 if (this.video.duration) {
                     this.video.currentTime = p * this.video.duration;
                 }
                 document.removeEventListener('mousemove', moveHandler);
                 document.removeEventListener('mouseup', upHandler);
+                document.removeEventListener('touchmove', moveHandler);
+                document.removeEventListener('touchend', upHandler);
                 this._seeking = false;
             };
             
             document.addEventListener('mousemove', moveHandler);
             document.addEventListener('mouseup', upHandler);
+            document.addEventListener('touchmove', moveHandler, { passive: false });
+            document.addEventListener('touchend', upHandler);
         }
 
         handleVolumeDrag(e) {
             e.preventDefault();
             const rect = this.dom.volumeBar.getBoundingClientRect();
+            this.dom.volumeSliderWrap.classList.add('lyt_slider_visible');
             
             const calcVol = (clientX) => {
                 let x = clientX - rect.left;
@@ -2397,22 +2413,29 @@
                 this.updateVolumeIcon();
             };
 
-            const initialVol = calcVol(e.clientX);
+            const startX = e.touches ? e.touches[0].clientX : e.clientX;
+            const initialVol = calcVol(startX);
             setVolume(initialVol);
 
             const moveHandler = (ev) => {
-                const v = calcVol(ev.clientX);
+                ev.preventDefault(); // Prevent page scrolling while dragging
+                const moveX = ev.touches ? ev.touches[0].clientX : ev.clientX;
+                const v = calcVol(moveX);
                 setVolume(v);
             };
             
-const upHandler = (ev) => {
-    document.removeEventListener('mousemove', moveHandler);
-    document.removeEventListener('mouseup', upHandler);
-    this.dom.volumeSliderWrap.classList.remove('lyt_slider_visible');
-};
+            const upHandler = (ev) => {
+                document.removeEventListener('mousemove', moveHandler);
+                document.removeEventListener('mouseup', upHandler);
+                document.removeEventListener('touchmove', moveHandler);
+                document.removeEventListener('touchend', upHandler);
+                this.dom.volumeSliderWrap.classList.remove('lyt_slider_visible');
+            };
             
             document.addEventListener('mousemove', moveHandler);
             document.addEventListener('mouseup', upHandler);
+            document.addEventListener('touchmove', moveHandler, { passive: false });
+            document.addEventListener('touchend', upHandler);
         }
 
         handleKeyboard(e) {
