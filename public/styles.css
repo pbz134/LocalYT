@@ -683,10 +683,25 @@ img.search-icon {
             margin-top: 5px !important;
         }
 
+/* --- Touch Device Index Page Video Items --- */
 .touch-device .container {
-    padding-top: 130px !important;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+    padding: 130px 15px 20px !important;
+    max-width: 100% !important;
 }
 
+.touch-device .video-item {
+    width: auto;
+    margin: 0;
+}
+
+.touch-device .video-item .video-thumbnail {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+}
 
         /* --- Disable Android WebView Blue Tap Overlay --- */
         * {
