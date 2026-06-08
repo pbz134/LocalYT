@@ -1,0 +1,4601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalYT</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
+<script>
+// ==============================
+// Apply Touch Device Detection
+// ==============================
+(function detectTouchDevice() {
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        document.documentElement.className += ' touch-device';
+    }
+})();
+</script>
+<script>
+    /**
+     * Safely decode a URI component.
+     * If the string contains malformed sequences like bare '%', 
+     * returns the original string instead of crashing.
+     */
+    function safeDecodeURIComponent(str) {
+        if (!str) return '';
+        try {
+            return decodeURIComponent(str);
+        } catch (e) {
+            console.warn('[safeDecode] Malformed URI sequence, returning raw:', str);
+            return str;
+        }
+    }
+
+    // Determine which Player script to load based on settings and video file extension
+    (function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        let videoSrc = '';
+        try {
+            videoSrc = safeDecodeURIComponent(urlParams.get('src') || '');
+        } catch (e) {
+            console.warn("Could not decode video src in head, using raw value:", e);
+            videoSrc = urlParams.get('src') || '';
+        }
+        
+        const extension = videoSrc.split('.').pop().toLowerCase();
+        const playerSettings = JSON.parse(localStorage.getItem('videoPlayer') || '{}');
+        const selectedPlayer = playerSettings.player || 'lyt';
+        
+        const scriptsToLoad = [];
+
+        if (selectedPlayer === 'lyt') {
+            scriptsToLoad.push('lyt-player.js');
+        } else {
+            // Fluid Player
+            if (extension === 'mp3') {
+                scriptsToLoad.push('fluidplayer.minMP3MOD.js');
+            } else {
+                scriptsToLoad.push('fluidplayer.min.js');
+            }
+        }
+        
+        scriptsToLoad.forEach(scriptFile => {
+            const script = document.createElement('script');
+            script.src = scriptFile;
+            script.onload = function() {
+                console.log(`Loaded ${scriptFile} for ${extension} files (Player: ${selectedPlayer})`);
+            };
+            document.head.appendChild(script);
+        });
+    })();
+
+// ==============================
+// Apply Rounded Corners Preference
+// ==============================
+(function applyRoundedCorners() {
+    const setting = JSON.parse(localStorage.getItem('roundedCorners') || '{}');
+    const enabled = setting.enabled || false;
+    
+    if (enabled) {
+        const style = document.createElement('style');
+        style.id = 'rounded-corners-style';
+        style.textContent = `
+            .video-stage {
+                border-radius: 12px !important;
+                overflow: hidden !important;
+            }
+            .video-suggestions .thumbnail-container img.video-thumbnail {
+                border-radius: 6px !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+})();
+</script>
+<script src="lyt-player.js"></script>
+    <style>
+        .channel-info {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .channel-left {
+            display: flex;
+            align-items: center;
+        }
+        .channel-right {
+            display: flex;
+            align-items: center;
+            flex-shrink: 1;
+            margin-left: auto;
+            padding-right: 50px;
+        }
+        .channel-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .channel-name {
+            font-size: 13px;
+            font-weight: regular;
+            cursor: pointer;
+            color: #ffffff;
+            margin-top: 0;
+            margin-right: 10px;
+        }
+        .channel-name {
+            font-size: 13px;
+            font-weight: regular;
+            cursor: pointer;
+            color: #ffffff;
+            margin-top: 0;
+            margin-left: 0;
+            margin-bottom: 2px;
+            line-height: 1.2;
+        }
+        .channel-text-group {
+            display: flex;
+            flex-direction: column;
+            margin-right: 10px;
+        }
+        
+        .suggestion-item {
+            display: flex;
+            align-items: flex-start;
+            margin-left: 10px;
+            margin-bottom: -5px;
+        }
+        .suggestion-item img {
+            width: 80px;
+            height: 45px;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .suggestion-info {
+            display: flex;
+            flex-direction: column;
+            width: 200px;
+            margin-top: 0;
+        }
+
+        .suggestion-title {
+            font-size: 12px;
+            cursor: pointer;
+            color: #d2cfcf;
+            margin-bottom: 3px;
+            line-height: 1.2;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .suggestion-channel {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .view-count {
+            font-size: 12px;
+            color: #888;
+            white-space: nowrap;
+        }
+        .video-suggestions .video-thumbnail {
+            cursor: pointer;
+        }
+
+        /* ===== LIVE CHAT STYLES ===== */
+        .live-chat-container {
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            height: 460px; /* Match playlist manager height */
+            max-height: 460px;
+            margin-left: 30px;
+            background-color: #181818;;
+            overflow: hidden;
+            width: 90%; /* Fill the fixed parent width exactly */
+            box-sizing: border-box; /* Include padding/border in width calculation */
+        }
+        
+        .live-chat-header {
+            padding: 10px 15px;
+            background-color: #272727;
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 2;
+        }
+
+        .chat-toggle-btn {
+            background-color: transparent;
+            color: #ccc;
+            border: 1px solid transparent;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+        }
+
+        .live-chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden; /* Prevent horizontal scroll */
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            scrollbar-width: thin;
+            scrollbar-color: #555 #181818;
+            width: 100%; /* Ensure it doesn't expand */
+            box-sizing: border-box;
+        }
+        .live-chat-messages::-webkit-scrollbar { width: 6px; }
+        .live-chat-messages::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+
+        .chat-message {
+            display: flex;
+            flex-direction: column;
+            width: 100%; /* Full width of container */
+            max-width: 100%; /* Don't exceed container */
+            animation: fadeIn 0.3s ease-out forwards;
+            opacity: 0;
+            word-wrap: break-word; /* Break long words */
+            overflow-wrap: break-word; /* Modern property */
+            white-space: pre-wrap; /* Allow line breaks */
+            box-sizing: border-box;
+        }
+
+        .chat-message-meta {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 2px;
+        }
+        .chat-author {
+            font-size: 13px;
+            font-weight: bold;
+            color: #3ea6ff;
+            cursor: default;
+        }
+        .chat-timestamp {
+            font-size: 11px;
+            color: #aaa;
+        }
+        .chat-text {
+            font-size: 14px;
+            color: #eee;
+            line-height: 1.4;
+            word-wrap: break-word;
+            white-space: pre-wrap; /* Enable line breaks for long messages */
+            width: 100%; /* Constrain to parent width */
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; transform: translateY(0); }
+            from { transform: translateY(5px); }
+        }
+
+        /* Playlist Sidebar Styles */
+        .playlist-section {
+            margin-bottom: 0px;
+            border-bottom: 1px solid #3f3f3f;
+            padding-bottom: 0px;
+        }
+        .playlist-section-header {
+            display: flex;
+            justify-content: space-between; /* Pushes the first item left, last item right */
+            align-items: center; /* Vertically centers the text and link */
+            padding: 0 10px 5px 20px;
+            font-size: 14px;
+            color: #fff;
+            font-weight: bold;
+        }
+        .playlist-section-header a {
+            font-size: 12px;
+            color: #aaa;
+            font-weight: normal;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* Scrollable container for large playlists */
+        .playlist-scroll-container {
+            max-height: 460px; /* Approx height of 8 items */
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 5px; /* Prevent scrollbar from covering content */
+        }
+
+        /* Autoplay Toggle in Sidebar */
+        .sidebar-autoplay-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background-color: var(--main-bg-color);
+
+            border-bottom: 1px solid #333;
+        }
+        .sidebar-autoplay-label {
+            font-size: 13px;
+            color: #ccc;
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+        }
+        .sidebar-autoplay-toggle .toggle-switch {
+            flex-shrink: 0;
+        }
+
+        .current-video-item {
+            background-color: #3f3f3f;
+        }
+
+        .content-wrapper {
+            margin-left: 70px;
+        }
+        .video-wrapper {
+            flex: 0 0 70%;
+            width: 100%;
+            max-width: 1800px;
+            min-width: 0;
+            overflow: hidden;
+            padding-right: 0px;
+            position: relative;
+        }
+        .video-stage {
+            position: relative;
+            width: 100%;
+        }
+        .logo-overlay {
+            position: absolute;
+            top: 55%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 75px;
+            height: 150px;
+            background-image: url('LocalYT-Rev-Files/Play-Dark.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            transition: background-image 0.3s ease;
+        }
+        .video-wrapper:hover .logo-overlay {
+            background-image: url('LocalYT-Rev-Files/Play-Light.png');
+        }
+        .video-wrapper.paused {
+            cursor: pointer;
+        }
+        .like-dislike-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-left: 0;
+        }
+        .like-dislike-icons {
+            display: flex;
+            align-items: center;
+        }
+        .like-dislike-icons img {
+            width: 25px;
+            height: 25px;
+            margin-right: 8px;
+            filter: invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%);
+            cursor: pointer;
+        }
+        .like-dislike-icons span {
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            font-size: 14px;
+            color: #aaa;
+            margin-right: 15px;
+        }
+        .like-dislike-bar-container {
+            width: 140px;
+            height: 3px;
+            background-color: #235cad;
+            border-radius: 2px;
+            margin-top: 6px;
+            margin-left: -15px;
+        }
+        .like-bar {
+            height: 100%;
+            background-color: #397ddb;
+            border-radius: 2px;
+        }
+        .share-container {
+            display: flex;
+            align-items: center;
+            margin-left: 25px;
+        }
+        .share-container img {
+            width: 25px;
+            height: 25px;
+            margin-right: 8px;
+            filter: invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%);
+        }
+        .share-container span {
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            font-size: 14px;
+            color: #aaa;
+            margin-right: 25px;
+        }
+        .save-container {
+            display: flex;
+            align-items: center;
+            margin-left: 30px;
+            cursor: pointer;
+        }
+        .save-container img {
+            width: 25px;
+            height: 25px;
+            margin-right: 8px;
+            filter: invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%);
+        }
+        .save-container span {
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        /* Save to Playlist Modal */
+        .save-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+        .save-modal-content {
+            background-color: #1a1a1a;
+            padding: 20px;
+            border-radius: 8px;
+            width: 380px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        .save-modal-content h2 {
+            font-family: 'Kaleko205Round', Arial, sans-serif;
+            color: #fff;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .save-modal-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 22px;
+            font-weight: bold;
+            color: #fff;
+            background: none;
+            border: none;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        .save-modal-close:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .no-playlists-message {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .save-playlist-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #d2cfcf;
+            font-size: 14px;
+            transition: background-color 0.15s;
+        }
+        .save-playlist-item:hover {
+            background-color: #3f3f3f;
+        }
+        .save-playlist-item.already-saved {
+            color: #888;
+            cursor: default;
+        }
+        .save-playlist-item.already-saved:hover {
+            background-color: transparent;
+        }
+        .save-playlist-item .playlist-video-count {
+            color: #666;
+            font-size: 12px;
+            margin-left: 6px;
+        }
+        .save-playlist-item .check-icon {
+            color: #fff;
+            font-size: 18px;
+        }
+        .create-playlist-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #3f3f3f;
+        }
+        .create-playlist-row input {
+            flex: 1;
+            background: var(--main-bg-color);
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 8px 10px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+        }
+        .create-playlist-row input:focus {
+            border-color: #3ea6ff;
+        }
+        .create-playlist-row button {
+            background-color: #cc0000;
+            color: #fff;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            white-space: nowrap;
+        }
+        .create-playlist-row button:hover {
+            background-color: #c40000;
+        }
+        .sub-count {
+            font-size: 12px;
+            color: #888;
+            margin-left: 0;
+            white-space: nowrap;
+            margin-top: 0;
+        }
+        .subscribe-button {
+            margin-left: 15px;
+            margin-right: 15px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            font-size: 12px;
+            color: #fff;
+            background-color: red;
+            border: none;
+        }
+        .subscribe-button.subscribed {
+            background-color: darkgray;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: #1a1a1a;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            position: relative;
+        }
+        .modal-content h2 {
+            font-family: 'Kaleko205Round', Arial, sans-serif;
+            color: #fff;
+            margin-bottom: 20px;
+        }
+        .modal-content button {
+            background-color: red;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .modal-content button:hover {
+            background-color: #c40000;
+        }
+        .modal-close {
+            position: absolute;
+            top: -10px;
+            right: 15px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            width: 10px;
+            height: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .modal-close:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .copy-message {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1a1a1a;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+        .video-description {
+            background-color: #282828;
+            padding: 15px;
+            margin-top: 10px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            font-size: 14px;
+            color: #fff;
+            white-space: pre-line;
+            text-align: left;
+        }
+        .video-description a {
+            color: #3ea6ff;
+            text-decoration: none;
+        }
+
+        .video-description a:hover {
+            text-decoration: underline;
+        }
+            video {
+                width: 100%;
+                height: auto;
+                aspect-ratio: 16 / 9;
+                display: block;
+                border: none;
+            }
+
+        .video-description .mention-link {
+            color: #3ea6ff;
+            cursor: pointer;
+        }
+
+        .video-description .no-description {
+            color: #999;
+            font-style: italic;
+            display: block;
+            margin-top: 10px;
+        }        .video-description.collapsed {
+            max-height: 160px;
+            overflow: hidden;
+            position: relative;
+        }
+        .video-description.collapsed::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 45px;
+            background: linear-gradient(rgba(40, 40, 40, 0), #282828);
+            pointer-events: none;
+        }
+        .description-toggle {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 4px;
+            margin-bottom: 10px;
+            user-select: none;
+        }
+
+
+        /* ===== COMMENTS SECTION ===== */
+        .comments-section {
+            margin-top: 15px;
+            max-width: 100%;
+        }
+        .comments-header {
+            display: flex;
+            align-items: center;
+            padding-bottom: 12px;
+            margin-bottom: 5px;
+        }
+        .comments-count {
+            font-size: 17px;
+            font-weight: regular;
+            color: #fff;
+            margin-right: 4px;
+        }
+        #commentsTotalAmount {
+            font-size: 17px;
+            font-weight: regular;
+            color: #fff;
+            margin-right: 24px;
+        }
+
+        .comment-item {
+            display: flex;
+            margin-bottom: 8px;
+            padding: 4px 0;
+        }
+        .comment-item.reply {
+            padding: 3px 0 3px 16px;
+            border-left: 1px solid #3f3f3f;
+        }
+        .comment-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 14px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 500;
+            user-select: none;
+            object-fit: cover;
+        }
+        .comment-item.reply .comment-avatar {
+            width: 24px;
+            height: 24px;
+            font-size: 11px;
+            margin-right: 12px;
+        }
+        .comment-body {
+            flex: 1;
+            min-width: 0;
+        }
+        .comment-meta {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 4px;
+        }
+        .comment-author {
+            font-size: 13px;
+            font-weight: 500;
+            color: #fff;
+        }
+        .comment-badge {
+            font-size: 11px;
+            padding: 0 6px;
+            border-radius: 3px;
+            line-height: 18px;
+        }
+        .comment-badge.uploader-badge {
+            background-color: #3f3f3f;
+            color: #aaa;
+        }
+        .comment-badge.verified-badge {
+            color: #fff;
+            font-size: 13px;
+            padding: 0 2px;
+        }
+        .comment-pinned-label {
+            font-size: 12px;
+            color: #aaa;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-right: 6px;
+        }
+        .comment-timestamp {
+            font-size: 12px;
+            color: #aaa;
+        }
+        .comment-text {
+            font-size: 14px;
+            color: #e1e1e1;
+            line-height: 1.45;
+            white-space: pre-line;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            margin-bottom: 6px;
+        }
+        .comment-text.collapsed {
+            max-height: calc(1.45em * 3);
+            line-height: 1.45;
+            overflow: hidden;
+            position: relative;
+        }
+        .comment-text.collapsed::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 28px;
+            background: linear-gradient(rgba(15,15,15,0), rgba(15,15,15,1));
+            pointer-events: none;
+        }
+        .comment-toggle-text {
+            color: #3ea6ff;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-bottom: 6px;
+            user-select: none;
+        }
+
+        .comment-actions {
+            display: flex;
+            align-items: center;
+            height: 24px;
+        }
+        .comment-like-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            color: #aaa;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 20px;
+            user-select: none;
+            transition: background-color 0.15s;
+            margin-left: -8px;
+        }
+
+        .comment-like-btn.liked img {
+            filter: invert(49%) sepia(94%) saturate(1748%) hue-rotate(194deg) brightness(97%) contrast(101%);
+        }
+
+        .comment-like-btn svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+        }
+
+        /* Remove the gradient fade on collapsed comment text */
+        .comment-text.collapsed::after {
+            display: none !important;
+            height: calc(1.45em * 3);
+        }
+        .no-comments {
+            color: #888;
+            font-size: 14px;
+            padding: 15px 0;
+        }
+        /* Replies toggle */
+        .replies-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #3ea6ff;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 6px 0;
+            margin-bottom: 6px;
+            user-select: none;
+            background: none;
+            border: none;
+            font-family: inherit;
+        }
+        .replies-toggle:hover {
+            text-decoration: underline;
+        }
+        .replies-toggle svg {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s;
+        }
+        .replies-toggle.open svg {
+            transform: rotate(180deg);
+        }
+        .replies-container {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .replies-container.collapsed {
+            max-height: 0 !important;
+        }
+        @media (max-width: 1200px) {
+            .comment-item.reply {
+                margin-left: 36px;
+            }
+        }
+
+        /* ===== CLASSIC LAYOUT STYLES ===== */
+        .channel-info.classic-layout {
+            flex-wrap: wrap;
+        }
+
+        .channel-info.classic-layout .channel-right {
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+            padding-right: 20px;
+        }
+
+        .channel-info.classic-layout #likeDislikeContainer {
+            flex-direction: row;
+            align-items: center;
+            margin-left: 0;
+            order: 1; /* First item on right */
+        }
+
+        .channel-info.classic-layout #likeDislikeContainer .like-dislike-bar-container {
+            margin-left: 10px;
+            margin-top: 0;
+            width: 100px;
+        }
+
+        .channel-info.classic-layout #shareContainer,
+        .channel-info.classic-layout #saveContainer {
+            margin-left: 0;
+            order: 3; /* After like bar */
+        }
+
+        /* View count container for classic mode */
+        .view-count-classic {
+            display: none;
+            font-size: 14px;
+            color: #aaa;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            order: 0;
+            margin-bottom: 4px;
+        }
+
+        .channel-info.classic-layout .view-count-classic {
+            display: block;
+        }
+
+        /* In modern mode, ensure standard spacing */
+        .channel-info:not(.classic-layout) .channel-right {
+            align-items: center;
+        }
+
+        /* --- Search Suggestions Visibility --- */
+        .search-suggestions {
+            display: none;
+        }
+
+        /* Show suggestions only when the search container (input) is focused/active */
+        .search-container:focus-within .search-suggestions {
+            display: block;
+        }  
+
+        /* Prevent autoscroll cursor on all interactive elements */
+        a, 
+        .suggestion-item, 
+        .suggestion-title, 
+        .thumbnail-container,
+        .channel-name,
+        .logo-overlay,
+        .mention-link,
+        [class*="click"],
+        [onclick] {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+/* 1. Set default cursor only for text/info elements (not thumbnails) */
+.video-suggestions .suggestion-info,
+.video-suggestions .suggestion-channel,
+.video-suggestions .view-count {
+    cursor: default;
+}
+
+/* 2. Set pointer cursor for clickable elements (thumbnails & titles) */
+.video-suggestions .thumbnail-container,
+.video-suggestions .thumbnail-container img,
+.video-suggestions .suggestion-title {
+    cursor: pointer !important;
+} 
+    </style>
+    <style>
+        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container .fluid_controls_progress {
+            height: 7px !important;
+        }
+
+        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container.fluid_slider .fluid_controls_progress .fluid_controls_currentprogress .fluid_controls_currentpos {
+            background-color: inherit !important;
+        }
+
+        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container .fluid_controls_buffered {
+            height: 4px !important;
+        }
+
+        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container .fluid_controls_progress,
+        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container .fluid_controls_progress .fluid_controls_currentprogress {
+            height: 5px !important;
+        }
+
+        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container:hover .fluid_controls_progress,
+        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container:hover .fluid_controls_buffered,
+        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container:hover .fluid_controls_progress_container:hover .fluid_controls_ad_markers_holder {
+            margin-top: 0px !important;
+            height: 5px !important;
+        }
+
+        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container:hover .fluid_controls_progress .fluid_controls_currentprogress {
+            height: 5px !important;
+        }
+        /* Make the dot always visible (opacity 1) */
+        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container.fluid_slider .fluid_controls_progress .fluid_controls_currentprogress .fluid_controls_currentpos {
+            opacity: 1 !important;
+        }
+
+        /* Remove the fade-in transition so it doesn't animate on page load */
+        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container.fluid_slider .fluid_controls_progress .fluid_controls_currentprogress .fluid_controls_currentpos {
+        -webkit-transition: none !important;
+        transition: none !important;
+        }
+
+        /* ===== UP NEXT AUTOPLAY OVERLAY ===== */
+        .lyt_upnext_overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 9; /* Behind controls (z-index: 10) but above the video */
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .lyt_upnext_overlay.lyt_upnext_show {
+            display: flex;
+            opacity: 1;
+        }
+        .lyt_upnext_bg {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            filter: brightness(0.25) saturate(0.5);
+            z-index: -1;
+        }
+        .lyt_upnext_countdown {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.25);
+            position: relative;
+            pointer-events: auto;
+            /* Ensure no flex layout interferes */
+            display: block; 
+        }
+        .lyt_upnext_countdown svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+        .lyt_upnext_countdown circle {
+            fill: none;
+            stroke: #fff;
+            stroke-width: 3;
+            /* 
+              r="29" + stroke-width 3 means the edge extends to 30.5. 
+              Shift cx/cy to 30.5 so the stroke's center aligns with the container's 3px border perfectly.
+            */
+            cx: 30.5;
+            cy: 30.5;
+            r: 29;
+            /* 
+              Circumference = 2 * π * 29 ≈ 182.21
+              We use 182.2 for dasharray and dashoffset so it animates a perfect full circle.
+            */
+            stroke-dasharray: 182.2;
+            stroke-dashoffset: 0;
+            transition: stroke-dashoffset 1s linear;
+        }
+        .lyt_upnext_countdown_num {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 28px;
+            font-family: 'Roboto', Arial, sans-serif;
+            font-weight: 500;
+            z-index: 1;
+        }
+        .lyt_upnext_title {
+            color: #fff;
+            font-size: 16px;
+            font-family: 'Roboto', Arial, sans-serif;
+            font-weight: 500;
+            text-align: center;
+            max-width: 80%;
+            line-height: 1.3;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+        }
+        .lyt_upnext_label {
+            color: #aaa;
+            font-size: 12px;
+            font-family: 'Roboto', Arial, sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .lyt_upnext_cancel {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: #fff;
+            padding: 8px 24px;
+            font-size: 13px;
+            font-family: 'Roboto', Arial, sans-serif;
+            font-weight: 500;
+            border-radius: 3px;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .lyt_upnext_cancel:hover {
+            background: rgba(255,255,255,0.25);
+            border-color: rgba(255,255,255,0.5);
+        }
+
+    </style>
+</head>
+<body>
+    <header class="top-bar">
+        <img src="LocalYT-Rev-Files/Logo.svg" alt="Logo" class="logo" id="mainLogo">
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search" data-de-placeholder="Suchen">
+            <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
+            <div id="searchSuggestions" class="search-suggestions"></div>
+        </div>
+    </header>
+    <!-- Mobile Search Overlay -->
+    <div class="mobile-search-overlay" id="mobileSearchOverlay">
+        <input type="text" class="mobile-search-input" id="mobileSearchInput" placeholder="">
+        <button class="mobile-search-close" id="mobileSearchClose">&times;</button>
+    </div>
+    <div class="content-wrapper">
+        <div class="video-player-container">
+            <div class="video-wrapper paused">
+            <div class="video-stage">
+                <video id="videoPlayer" controlsList="nodownload nofullscreen noremoteplayback" disablePictureInPicture>
+                    Your browser does not support the video tag.
+                </video>
+                <div class="logo-overlay"></div>
+                <!-- Up Next Autoplay Overlay -->
+                <div id="upnextOverlay" class="lyt_upnext_overlay">
+                    <div class="lyt_upnext_bg"></div>
+                    <div class="lyt_upnext_label">Up next</div>
+                    <div class="lyt_upnext_countdown">
+                        <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29"/></svg>
+                        <span class="lyt_upnext_countdown_num">5</span>
+                    </div>
+                    <div class="lyt_upnext_title"></div>
+                    <button class="lyt_upnext_cancel">Cancel</button>
+                </div>
+            </div>
+                <div id="currentVideoTitle" class="current-video-title"></div>
+                <div id="channelInfo" class="channel-info">
+                    <div class="channel-left">
+                        <img id="channelPic" class="channel-pic" alt="Channel Picture">
+                        <div class="channel-text-group">
+                            <div id="channelName" class="channel-name" onclick="openChannelPage()"></div>
+                            <div id="subCount" class="sub-count"></div>
+                        </div>
+                        <button id="subscribeButton" class="subscribe-button">Subscribe</button>
+                    </div>
+                    <div class="channel-right">
+                        <div id="likeDislikeContainer" class="like-dislike-container">
+                            <div class="like-dislike-icons">
+                                <img id="likeButton" src="LocalYT-Rev-Files/like.svg" alt="Like">
+                                <span id="likeCount"></span>
+                                <img id="dislikeButton" src="LocalYT-Rev-Files/dislike.svg" alt="Dislike">
+                                <span id="dislikeCount"></span>
+                            </div>
+                            <div class="like-dislike-bar-container">
+                                <div id="likeBar" class="like-bar"></div>
+                            </div>
+                        </div>
+                        <div id="shareContainer" class="share-container">
+                            <img src="LocalYT-Rev-Files/Share.svg" alt="Share">
+                            <span>Share</span>
+                        </div>
+                        <div id="saveContainer" class="save-container">
+                            <img id="saveIcon" src="LocalYT-Rev-Files/save.svg" alt="Save">
+                            <span>Save</span>
+                        </div>
+                    </div>
+                </div>
+        <div id="currentVideoDescription" class="video-description"></div>
+        <div id="descriptionToggle" class="description-toggle" style="display:none;">Show more</div>
+                <div id="commentsSection" class="comments-section">
+                    <div class="comments-header">
+                        <span id="commentsCount" class="comments-count">Comments</span>
+                    </div>
+                    <div class="comments-divider"></div>
+                    <div id="commentsContainer"></div>
+                </div>
+            </div>
+            <div class="suggestions-wrapper">
+                <!-- Toggle Button (Only visible if chat is available) -->
+                <div id="chatToggleContainer" style="display:none; text-align:right; margin-bottom: 5px;">
+                    <button id="chatToggleBtn" class="chat-toggle-btn" onclick="toggleLiveChat()">
+                        Show Live Chat
+                    </button>
+                </div>
+
+                <!-- Live Chat Container -->
+                <div id="liveChatContainer" class="live-chat-container">
+                    <div class="live-chat-header">
+                        <span>Live Chat</span>
+                        <div style="font-size:11px;font-weight:normal;color:#aaa;">Replay</div>
+                    </div>
+                    <div id="liveChatMessages" class="live-chat-messages"></div>
+                </div>
+
+                <div id="videoSuggestions" class="video-suggestions"></div>
+            </div>
+        </div>
+    </div>
+    <div id="shareModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="document.getElementById('shareModal').style.display='none'">&times;</button>
+            <h2>Share Video</h2>
+            <button id="copyWithTimestamp">Copy Link + Timestamp</button>
+            <button id="copyWithoutTimestamp">Copy Link</button>
+        </div>
+    </div>
+    <div id="copyMessage" class="copy-message">
+        Video URL copied to clipboard!
+    </div>
+    <div id="saveMessage" class="copy-message">
+        Saved to playlist
+    </div>
+    <div id="saveModal" class="save-modal">
+        <div class="save-modal-content">
+            <button class="save-modal-close" id="saveModalClose">&times;</button>
+            <h2>Save to Playlist</h2>
+            <p id="noPlaylistsMessage" class="no-playlists-message" style="display:none;">No playlists yet. Create one below.</p>
+            <div id="savePlaylistList"></div>
+            <div class="create-playlist-row">
+                <input type="text" id="newPlaylistName" placeholder="New playlist name" maxlength="100">
+                <button id="createPlaylistBtn">Create</button>
+            </div>
+        </div>
+    </div>
+    <script>
+// Natural sorting function for videos with numbers in titles
+function naturalCompare(a, b) {
+    // Helper function to extract numbers from video titles
+    const extractNumbers = (str) => {
+        return (str.match(/\d+/g) || []).map(num => parseInt(num, 10));
+    };
+
+    const numsA = extractNumbers(a.displayName);
+    const numsB = extractNumbers(b.displayName);
+
+    // Compare number by number
+    for (let i = 0; i < Math.max(numsA.length, numsB.length); i++) {
+        const numA = i < numsA.length ? numsA[i] : 0;
+        const numB = i < numsB.length ? numsB[i] : 0;
+        
+        if (numA !== numB) {
+            return numA - numB;
+        }
+    }
+    
+    // If all numbers match, fall back to string comparison
+    return a.displayName.localeCompare(b.displayName);
+}
+
+    // --- Language Helper ---
+    function getLang(en, de) {
+        return localStorage.getItem('language') === 'de' ? de : en;
+    }
+
+// Handle logo clicks
+document.addEventListener('DOMContentLoaded', () => {
+    const mainLogo = document.getElementById('mainLogo');
+    
+    if (mainLogo) {
+        mainLogo.addEventListener('click', (event) => {
+            if (event.button === 0) { // Left click
+                window.location.href = 'index.html';
+            }
+        });
+        
+        mainLogo.addEventListener('mouseup', (event) => {
+            if (event.button === 1) { // Middle click
+                event.preventDefault();
+                window.open('index.html', '_blank');
+            }
+        });
+        
+        mainLogo.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            window.open('index.html', '_blank');
+        });
+        
+        mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
+        
+        mainLogo.style.cursor = 'pointer';
+    }
+});
+
+        // Helper function to strip file extension for thumbnail and metadata paths
+        function stripExtension(filename) {
+            return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+        }
+
+        // Helper function to get video file extension
+        function getVideoExtension(path) {
+            const match = path.match(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i);
+            return match ? match[1] : 'mp4';
+        }
+
+        // Helper function to get MIME type based on extension
+        function getMimeType(extension) {
+            const mimeTypes = {
+                'mp4': 'video/mp4',
+                'mkv': 'video/x-matroska',
+                'avi': 'video/x-msvideo',
+                'mov': 'video/quicktime',
+                'wmv': 'video/x-ms-wmv',
+                'flv': 'video/x-flv',
+                'webm': 'video/webm',
+                'mp3': 'audio/mp3'
+            };
+            return mimeTypes[extension.toLowerCase()] || 'video/mp4';
+        }
+
+// ===== COMMENT HELPERS =====
+function getAvatarColor(name) {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = ((hash % 360) + 360) % 360;
+    return `hsl(${hue}, 45%, 38%)`;
+}
+
+function formatRelativeTime(dateStr) {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+    const now = new Date();
+    const diffMs = now - date;
+    const sec = Math.floor(diffMs / 1000);
+    const min = Math.floor(sec / 60);
+    const hr  = Math.floor(min / 60);
+    const day = Math.floor(hr / 24);
+    const wk  = Math.floor(day / 7);
+    const mo  = Math.floor(day / 30);
+    const yr  = Math.floor(day / 365);
+
+    // Check language
+    const lang = localStorage.getItem('language');
+    const isDe = lang === 'de';
+
+    if (sec < 60) return isDe ? 'gerade eben' : 'just now';
+    if (min < 60) {
+        if (isDe) return `vor ${min} ${min === 1 ? 'Minute' : 'Minuten'}`;
+        return min + (min === 1 ? ' minute ago' : ' minutes ago');
+    }
+    if (hr < 24) {
+        if (isDe) return `vor ${hr} ${hr === 1 ? 'Stunde' : 'Stunden'}`;
+        return hr + (hr === 1 ? ' hour ago' : ' hours ago');
+    }
+    if (day < 7) {
+        if (isDe) return `vor ${day} ${day === 1 ? 'Tag' : 'Tagen'}`;
+        return day + (day === 1 ? ' day ago' : ' days ago');
+    }
+    if (wk < 5) {
+        if (isDe) return `vor ${wk} ${wk === 1 ? 'Woche' : 'Wochen'}`;
+        return wk + (wk === 1 ? ' week ago' : ' weeks ago');
+    }
+    if (mo < 12) {
+        if (isDe) return `vor ${mo} ${mo === 1 ? 'Monat' : 'Monaten'}`;
+        return mo + (mo === 1 ? ' month ago' : ' months ago');
+    }
+    if (isDe) return `vor ${yr} ${yr === 1 ? 'Jahr' : 'Jahren'}`;
+    return yr + (yr === 1 ? ' year ago' : ' years ago');
+}
+
+function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+
+const LIKE_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.77 11h-4.23l1.52-4.94C16.38 5.03 15.54 4 14.38 4c-.58 0-1.14.24-1.52.65L7 11H1v10h6l11.77-10zM7 20H2v-8h5v8zm8.63-15.34c.15-.51-.25-.66-.56-.66-.31 0-.6.15-.84.41L7.62 11h6.01l1.52-4.94L21 11h-2l-7 10h2l7-10z"/></svg>';
+const CHEVRON_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>';
+
+function processCommentText(text) {
+    let escaped = escapeHtml(text);
+
+    const urlRegex = /(https?:\/\/[^\s<]+)/g;
+    escaped = escaped.replace(urlRegex, function(url) {
+        return '<a href="' + url + '" target="_blank" style="color: #3ea6ff; text-decoration: none;">' + url + '</a>';
+    });
+
+    const timestampRegex = /(\b\d{1,2}:\d{2}(?::\d{2})?\b)/g;
+    escaped = escaped.replace(timestampRegex, function(timestamp) {
+        return '<a href="#" onclick="seekToTimestamp(\'' + timestamp + '\'); return false;" style="color: #3ea6ff; text-decoration: none;">' + timestamp + '</a>';
+    });
+
+    return escaped;
+}
+
+function renderSingleComment(comment, isReply, channelPicUrl, isCommentLiked = false) {
+    const initial = comment.author.replace('@', '').charAt(0).toUpperCase();
+    const bg = getAvatarColor(comment.author);
+    const isLong = comment.text && comment.text.length > 180;
+    const replyCls = isReply ? ' reply' : '';
+    
+    // Generate unique ID for each comment
+    const commentId = comment._internalId || `${comment.author}-${comment.published_at}-${comment.text.substring(0, 20)}`;
+
+    // Check user preference for commenter avatar style
+    const commenterSettings = JSON.parse(localStorage.getItem('commenterProfileStyle') || '{}');
+    const commenterStyle = commenterSettings.style || 'modern';
+
+    let avatarHtml;
+    if (comment.is_uploader && channelPicUrl) {
+        avatarHtml = `<img class="comment-avatar" src="${channelPicUrl}" alt="" style="object-fit: cover;">`;
+    } else if (commenterStyle === 'classic') {
+        avatarHtml = `<img class="comment-avatar" src="/LocalYT-Rev-Files/commenter-profile-placeholder.png" alt="" style="object-fit: cover;">`;
+    } else {
+        avatarHtml = `<div class="comment-avatar" style="background:${bg}">${initial}</div>`;
+    }
+
+    let badges = '';
+    if (comment.is_pinned) badges += '<span class="comment-pinned-label">📌 Pinned</span>';
+    if (comment.is_uploader) badges += '<span class="comment-badge uploader-badge">Uploader</span>';
+    if (comment.is_verified) badges += '<span class="comment-badge verified-badge">✓</span>';
+
+    // Determine styles
+    const likedClass = isCommentLiked ? ' liked' : '';
+    
+    const imgFilter = isCommentLiked 
+        ? 'invert(49%) sepia(94%) saturate(1748%) hue-rotate(194deg) brightness(97%) contrast(101%)' 
+        : 'invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%)';
+
+    return `<div class="comment-item${replyCls}" data-comment-id="${encodeURIComponent(commentId)}">
+        ${avatarHtml}
+        <div class="comment-body">
+            <div class="comment-meta">
+                <span class="comment-author">${escapeHtml(comment.author.replace('@', ''))}</span>${badges}
+                <span class="comment-timestamp">${formatRelativeTime(comment.published_at)}</span>
+            </div>
+            <div class="comment-text${isLong ? ' collapsed' : ''}">${processCommentText(comment.text)}</div>
+            ${isLong ? `<div class="comment-toggle-text" data-action="expand">${getLang('Show more', 'Mehr anzeigen')}</div>` : ''}
+            <div class="comment-actions">
+                <div class="comment-like-btn${likedClass}" onclick="handleCommentLike(this, '${encodeURIComponent(commentId)}')">
+                    <!-- USING IMG TAG (Matches Reference Code) -->
+                    <img src="LocalYT-Rev-Files/like.svg" alt="" style="width:14px;height:14px;filter:${imgFilter};flex-shrink:0;cursor:pointer;">
+                    <span>${comment.likes || 0}</span>
+                </div>
+            </div>
+        </div>
+    </div>`;
+}
+
+// Handle comment like button clicks
+async function handleCommentLike(buttonElement, commentId) {
+    try {
+        const response = await fetch('/like-comment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ commentId: safeDecodeURIComponent(commentId) })
+        });
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                alert('Please log in to like comments.');
+                return;
+            }
+            throw new Error('Failed to update like');
+        }
+        
+        const data = await response.json();
+        
+        // Get the IMG element (not SVG)
+        const img = buttonElement.querySelector('img');
+        
+        // Update UI immediately
+        if (data.isLiked) {
+            buttonElement.classList.add('liked');
+            // Apply Blue Filter
+            img.style.filter = 'invert(49%) sepia(94%) saturate(1748%) hue-rotate(194deg) brightness(97%) contrast(101%)';
+            
+            const span = buttonElement.querySelector('span');
+            span.textContent = parseInt(span.textContent || 0) + 1;
+        } else {
+            buttonElement.classList.remove('liked');
+            // Apply Grey Filter (Default)
+            img.style.filter = 'invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%)';
+            
+            const span = buttonElement.querySelector('span');
+            span.textContent = Math.max(0, parseInt(span.textContent || 0) - 1);
+        }
+    } catch (error) {
+        console.error('Error liking comment:', error);
+    }
+}
+
+function createCommentSortButton() {
+    const header = document.querySelector('.comments-header');
+    if (!header || document.getElementById('commentSortBtn')) return;
+
+    const lang = localStorage.getItem('language');
+    const options = lang === 'de'
+        ? { top: 'Top-Kommentare', newest: 'Neueste Kommentare', oldest: 'Älteste Kommentare' }
+        : { top: 'Top comments', newest: 'Newest comments', oldest: 'Oldest comments' };
+
+    const sortContainer = document.createElement('div');
+    sortContainer.style.cssText = 'position:relative; display:inline-block; margin-left:8px;';
+
+    const btn = document.createElement('button');
+    btn.id = 'commentSortBtn';
+    btn.style.cssText = `
+        background: transparent;
+        color: #aaa;
+        border: 1px solid #555;
+        padding: 4px 12px;
+        font-size: 13px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-family: 'RobotoRegular', Arial, sans-serif;
+        transition: background-color 0.15s, border-color 0.15s;
+    `;
+    btn.innerHTML = `${options.top} <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>`;
+
+    const dropdown = document.createElement('div');
+    dropdown.style.cssText = `
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        margin-top: 4px;
+        background-color: #282828;
+        border: 1px solid #3f3f3f;
+        z-index: 100;
+        min-width: 180px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    `;
+
+    const choices = [
+        { key: 'top', label: options.top },
+        { key: 'newest', label: options.newest },
+        { key: 'oldest', label: options.oldest }
+    ];
+
+    choices.forEach(choice => {
+        const item = document.createElement('div');
+        item.style.cssText = `
+            padding: 8px 14px;
+            font-size: 13px;
+            color: #d2cfcf;
+            cursor: pointer;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            transition: background-color 0.1s;
+        `;
+        item.textContent = choice.label;
+        if (choice.key === 'top') item.style.color = '#fff';
+
+        item.addEventListener('mouseenter', () => { item.style.backgroundColor = '#3f3f3f'; });
+        item.addEventListener('mouseleave', () => { item.style.backgroundColor = 'transparent'; });
+
+        item.addEventListener('click', () => {
+            _lazyCommentsState.sortMode = choice.key;
+            const svgIcon = '<svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>';
+            btn.innerHTML = `${choice.label} ${svgIcon}`;
+            dropdown.querySelectorAll('div').forEach(d => d.style.color = '#d2cfcf');
+            item.style.color = '#fff';
+            dropdown.style.display = 'none';
+            applyCommentSort();
+        });
+
+        dropdown.appendChild(item);
+    });
+
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    });
+
+    document.addEventListener('click', () => { dropdown.style.display = 'none'; });
+
+    sortContainer.appendChild(btn);
+    sortContainer.appendChild(dropdown);
+    header.appendChild(sortContainer);
+}
+
+function applyCommentSort() {
+    const state = _lazyCommentsState;
+    if (!state.allTopLevel || state.allTopLevel.length === 0) return;
+
+    const sortMode = state.sortMode || 'top';
+
+    const pinned = state.allTopLevel.filter(c => c.is_pinned);
+    const unpinned = state.allTopLevel.filter(c => !c.is_pinned);
+
+    if (sortMode === 'top') {
+        unpinned.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    } else if (sortMode === 'newest') {
+        unpinned.sort((a, b) => {
+            const dateA = a.published_at ? new Date(a.published_at) : new Date(0);
+            const dateB = b.published_at ? new Date(b.published_at) : new Date(0);
+            return dateB - dateA;
+        });
+    } else if (sortMode === 'oldest') {
+        unpinned.sort((a, b) => {
+            const dateA = a.published_at ? new Date(a.published_at) : new Date(0);
+            const dateB = b.published_at ? new Date(b.published_at) : new Date(0);
+            return dateA - dateB;
+        });
+    }
+
+    state.allTopLevel = [...pinned, ...unpinned];
+
+    // Re-render from scratch
+    const container = document.getElementById('commentsContainer');
+    if (container) container.innerHTML = '';
+    state.renderedCount = 0;
+    state.loading = false;
+    if (state.observer) {
+        state.observer.disconnect();
+        state.observer = null;
+    }
+    const sentinel = document.getElementById('commentsSentinel');
+    if (sentinel) sentinel.remove();
+
+    renderCommentsBatch();
+}
+
+// ===== COMMENT LAZY-LOADING STATE =====
+let _lazyCommentsState = {
+    allTopLevel: [],
+    allReplies: [],
+    channelPicUrl: '',
+    renderedCount: 0,
+    batchSize: 30,
+    observer: null,
+    loading: false
+};
+
+function renderCommentsBatch() {
+    const state = _lazyCommentsState;
+    const container = document.getElementById('commentsContainer');
+    const countEl = document.getElementById('commentsCount');
+
+    const totalCount = state.allTopLevel.length;
+    countEl.textContent = getLang('Comments', 'Kommentare');
+    countEl.style.marginRight = '4px';
+    
+    let countSpan = document.getElementById('commentsTotalAmount');
+    if (!countSpan) {
+        countSpan = document.createElement('span');
+        countSpan.id = 'commentsTotalAmount';
+        countEl.parentNode.insertBefore(countSpan, countEl.nextSibling);
+    }
+    countSpan.textContent = ' \u2022 ' + totalCount.toLocaleString();
+
+    const start = state.renderedCount;
+    const end = Math.min(start + state.batchSize, state.allTopLevel.length);
+
+    let html = '';
+    for (let i = start; i < end; i++) {
+        const comment = state.allTopLevel[i];
+        const commentId = comment._internalId; 
+        const isLiked = state.userCommentLikes[commentId] === true;
+        html += renderSingleComment(comment, false, state.channelPicUrl, isLiked);
+    }
+
+    const sentinel = document.getElementById('commentsSentinel');
+    if (sentinel) sentinel.remove();
+    container.insertAdjacentHTML('beforeend', html);
+
+    state.renderedCount = end;
+
+    bindCommentTextToggles(container);
+    
+    attachRepliesToRenderedComments();
+
+    if (state.renderedCount >= state.allTopLevel.length) {
+        // All comments loaded, disconnect observer
+        if (state.observer) {
+            state.observer.disconnect();
+            state.observer = null;
+        }
+        return;
+    }
+
+    ensureSentinel(container);
+    ensureObserver();
+}
+
+function ensureSentinel(container) {
+    const sentinel = document.createElement('div');
+    sentinel.id = 'commentsSentinel';
+    sentinel.style.height = '1px';
+    container.appendChild(sentinel);
+}
+
+function ensureObserver() {
+    const state = _lazyCommentsState;
+    if (state.observer) state.observer.disconnect();
+
+    state.observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && !state.loading && state.renderedCount < state.allTopLevel.length) {
+            state.loading = true;
+            requestAnimationFrame(() => {
+                renderCommentsBatch();
+                state.loading = false;
+            });
+        }
+    }, { rootMargin: '200px' });
+
+    const sentinel = document.getElementById('commentsSentinel');
+    if (sentinel) state.observer.observe(sentinel);
+}
+
+function attachRepliesToRenderedComments() {
+    const state = _lazyCommentsState;
+    const container = document.getElementById('commentsContainer');
+
+    // Find all top-level comments currently rendered
+    const renderedComments = container.querySelectorAll('.comment-item:not(.reply)');
+
+    renderedComments.forEach((commentEl) => {
+        // Skip if we already attached replies to this comment
+        if (commentEl.nextElementSibling && commentEl.nextElementSibling.classList.contains('replies-section')) return;
+
+        const commentId = safeDecodeURIComponent(commentEl.dataset.commentId);
+        const commentData = state.allTopLevel.find(c => c._internalId === commentId);
+
+        if (commentData && commentData.replies && commentData.replies.length > 0) {
+            const replies = commentData.replies;
+
+            const repliesSection = document.createElement('div');
+            repliesSection.className = 'replies-section';
+            repliesSection.style.marginLeft = '48px';
+
+            let html = `<button class="replies-toggle">${CHEVRON_SVG} ${getLang(`View ${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}`, `${replies.length} ${replies.length === 1 ? 'Antwort' : 'Antworten'} anzeigen`)}</button>`;
+            html += `<div class="replies-container collapsed" style="transition: none;">`;
+            
+            replies.forEach(r => {
+                const isLiked = state.userCommentLikes[r._internalId] === true;
+                html += renderSingleComment(r, true, state.channelPicUrl, isLiked);
+            });
+            
+            html += '</div>';
+            repliesSection.innerHTML = html;
+
+            commentEl.insertAdjacentElement('afterend', repliesSection);
+
+            const toggle = repliesSection.querySelector('.replies-toggle');
+            const repliesBox = repliesSection.querySelector('.replies-container');
+            
+            if (toggle && repliesBox) {
+                toggle.addEventListener('click', function () {
+                    const open = this.classList.toggle('open');
+                    if (open) {
+                        repliesBox.classList.remove('collapsed');
+                        this.innerHTML = CHEVRON_SVG + getLang('Hide replies', 'Antworten ausblenden');
+                    } else {
+                        repliesBox.classList.add('collapsed');
+                        this.innerHTML = CHEVRON_SVG + getLang(`View ${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}`, `${replies.length} ${replies.length === 1 ? 'Antwort' : 'Antworten'} anzeigen`);
+                    }
+                });
+            }
+        }
+    });
+
+    // =======================================================
+    // THIS IS THE CRITICAL ADDITION:
+    // Bind toggle listeners for the newly injected reply items!
+    // =======================================================
+    bindCommentTextToggles(container);
+
+    if (state.observer) {
+        state.observer.disconnect();
+        state.observer = null;
+    }
+}
+
+function bindCommentTextToggles(container) {
+    container.querySelectorAll('[data-action="expand"]').forEach(btn => {
+        if (btn._bound) return;
+        btn._bound = true;
+        btn.addEventListener('click', function () {
+            // Find the text element within the same .comment-body container
+            const textEl = this.closest('.comment-body') ? this.closest('.comment-body').querySelector('.comment-text') : null;
+            
+            if (textEl && textEl.classList.contains('collapsed')) {
+                textEl.classList.remove('collapsed');
+                this.textContent = getLang('Show less', 'Weniger anzeigen');
+            } else if (textEl) {
+                textEl.classList.add('collapsed');
+                this.textContent = getLang('Show more', 'Mehr anzeigen');
+            }
+        });
+    });
+}
+
+function renderComments(comments, channelPicUrl, userCommentLikes = {}) {
+    const container = document.getElementById('commentsContainer');
+    const countEl = document.getElementById('commentsCount');
+
+    if (_lazyCommentsState.observer) {
+        _lazyCommentsState.observer.disconnect();
+        _lazyCommentsState.observer = null;
+    }
+
+    container.innerHTML = '';
+
+    if (!_lazyCommentsState.sortMode) _lazyCommentsState.sortMode = 'top';
+
+    if (!comments || comments.length === 0) {
+        const lang = localStorage.getItem('language');
+        if (lang === 'de') {
+            countEl.textContent = 'Kommentare';
+            countEl.style.marginRight = '4px';
+            let countSpanDe = document.getElementById('commentsTotalAmount');
+            if (!countSpanDe) {
+                countSpanDe = document.createElement('span');
+                countSpanDe.id = 'commentsTotalAmount';
+                countEl.parentNode.insertBefore(countSpanDe, countEl.nextSibling);
+            }
+            countSpanDe.textContent = ' \u2022 0';
+            container.innerHTML = '<div class="no-comments">Keine Kommentare für dieses Video vorhanden.</div>';
+        } else {
+            countEl.textContent = 'Comments';
+            countEl.style.marginRight = '4px';
+            let countSpanEn = document.getElementById('commentsTotalAmount');
+            if (!countSpanEn) {
+                countSpanEn = document.createElement('span');
+                countSpanEn.id = 'commentsTotalAmount';
+                countEl.parentNode.insertBefore(countSpanEn, countEl.nextSibling);
+            }
+            countSpanEn.textContent = ' \u2022 0';
+            container.innerHTML = '<div class="no-comments">No comments available for this video.</div>';
+        }
+        createCommentSortButton();
+        return;
+    }
+
+    let idCounter = 0;
+    const topLevel = [];
+    let currentParent = null;
+
+    comments.forEach(c => {
+        // Assign a reliable internal ID to every comment
+        c._internalId = 'cid_' + (idCounter++);
+
+        if (!c.is_reply) {
+            // This is a top-level comment
+            c.replies = [];
+            topLevel.push(c);
+            currentParent = c; // Set it as the active parent for upcoming replies
+        } else if (currentParent) {
+            // This is a reply; attach it to the last top-level comment we saw
+            currentParent.replies.push(c);
+        }
+    });
+
+    // Default sort is by likes (Top comments), pinned first
+    topLevel.sort((a, b) => {
+        if (a.is_pinned && !b.is_pinned) return -1;
+        if (!a.is_pinned && b.is_pinned) return 1;
+        return (b.likes || 0) - (a.likes || 0);
+    });
+
+    _lazyCommentsState.userCommentLikes = userCommentLikes;
+    _lazyCommentsState.allTopLevel = topLevel;
+    _lazyCommentsState.allReplies = []; // No longer needed globally
+    _lazyCommentsState.channelPicUrl = channelPicUrl;
+    _lazyCommentsState.renderedCount = 0;
+    _lazyCommentsState.loading = false;
+
+    createCommentSortButton();
+
+    renderCommentsBatch();
+}
+
+async function loadComments(videoSrc, channelPicUrl) {
+    try {
+        // Fetch comments and user's liked comments in parallel
+        const [commentsRes, likesRes] = await Promise.all([
+            fetch('/api/comments?video=' + encodeURIComponent(videoSrc)),
+            fetch('/user-comment-likes')
+        ]);
+        
+        if (!commentsRes.ok) return renderComments([], channelPicUrl);
+        const comments = await commentsRes.json();
+        
+        // Parse user likes (returns {} if not logged in or error)
+        let userCommentLikes = {};
+        if (likesRes.ok) {
+            userCommentLikes = await likesRes.json();
+        }
+        
+        renderComments(comments, channelPicUrl, userCommentLikes);
+    } catch (e) {
+        console.error('Error loading comments:', e);
+        renderComments([], channelPicUrl);
+    }
+}
+
+        // Function to open the current channel in a new tab with middle click
+        function setupChannelNameWheelClick() {
+            const channelNameElement = document.getElementById('channelName');
+            if (!channelNameElement) return;
+
+            // Middle click (mouse wheel)
+            channelNameElement.addEventListener('mouseup', (event) => {
+                if (event.button === 1) {
+                    event.preventDefault();
+                    const channel = channelNameElement.textContent;
+                    window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
+                }
+            });
+
+            // Auxclick (middle click fallback for some browsers)
+            channelNameElement.addEventListener('auxclick', (event) => {
+                if (event.button === 1) {
+                    event.preventDefault();
+                    const channel = channelNameElement.textContent;
+                    window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
+                }
+            });
+
+            // Right click
+            channelNameElement.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+                const channel = channelNameElement.textContent;
+                window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
+            });
+        }
+
+        // Function to generate suggested videos JSON for FluidPlayer
+        async function generateSuggestedVideos(currentVideoSrc) {
+            try {
+                const response = await fetch('/recommendations?page=1&limit=12');
+                if (!response.ok) return []; // Gracefully handle 401 or errors
+                
+                const data = await response.json();
+                const videos = data.videos || [];
+                
+                const suggestedVideos = videos.map((video, index) => {
+                    const channel = video.path.split('/')[0];
+                    const videoPathWithoutExt = stripExtension(video.path);
+                    
+                    return {
+                        id: index,
+                        sources: [
+                            {
+                                url: `/videos/${encodeURIComponent(video.path)}`,
+                                mimeType: getMimeType(getVideoExtension(video.path)),
+                                resolution: "720p"
+                            }
+                        ],
+                        thumbnailUrl: `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`,
+                        title: video.displayName,
+                        configUrl: window.location.href
+                    };
+                });
+                
+                return suggestedVideos;
+            } catch (error) {
+                console.error('Error generating suggested videos:', error);
+                return [];
+            }
+        }
+
+function checkDescriptionCollapse() {
+    const desc = document.getElementById('currentVideoDescription');
+    const toggle = document.getElementById('descriptionToggle');
+
+    desc.style.maxHeight = 'none';
+    desc.classList.remove('collapsed');
+
+    const lineHeight = parseFloat(getComputedStyle(desc).lineHeight) || 20;
+    const targetHeight = lineHeight * 8;
+
+    if (desc.scrollHeight > targetHeight) {
+        desc.style.maxHeight = targetHeight + 'px';
+        desc.classList.add('collapsed');
+        toggle.style.display = 'block';
+        toggle.textContent = getLang('Show more', 'Mehr anzeigen');
+    } else {
+        desc.style.maxHeight = '';
+        desc.classList.remove('collapsed');
+        toggle.style.display = 'none';
+    }
+}
+
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'descriptionToggle') {
+        const desc = document.getElementById('currentVideoDescription');
+        if (desc.classList.contains('collapsed')) {
+            desc.classList.remove('collapsed');
+            desc.style.maxHeight = desc.scrollHeight + 'px';
+            e.target.textContent = getLang('Show less', 'Weniger anzeigen');
+        } else {
+            desc.classList.add('collapsed');
+            const lineHeight = parseFloat(getComputedStyle(desc).lineHeight) || 20;
+            desc.style.maxHeight = (lineHeight * 8) + 'px';
+            e.target.textContent = getLang('Show more', 'Mehr anzeigen');
+        }
+    }
+});
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+
+            // Safe URI decoding to handle special characters like % in filenames
+            let videoSrc = '';
+            try {
+                videoSrc = safeDecodeURIComponent(urlParams.get('src') || '');  // ← fixed spelling
+            } catch (e) {
+                console.warn("Could not decode video src in body, using raw value:", e);
+                videoSrc = urlParams.get('src') || '';
+            }
+    
+            const playlistName = urlParams.get('playlist'); // Get playlist name
+            const userPlaylistName = urlParams.get('userplaylist'); // Get user playlist name
+            const timestamp = urlParams.get('t');
+            const videoPlayer = document.getElementById('videoPlayer');
+            const currentVideoTitle = document.getElementById('currentVideoTitle');
+            const currentVideoDescription = document.getElementById('currentVideoDescription');
+            const channelPic = document.getElementById('channelPic');
+            const channelName = document.getElementById('channelName');
+            const subCount = document.getElementById('subCount');
+            const subscribeButton = document.getElementById('subscribeButton');
+            const logoOverlay = document.querySelector('.logo-overlay');
+            const videoWrapper = document.querySelector('.video-wrapper');
+            const likeDislikeContainer = document.getElementById('likeDislikeContainer');
+            const likeButton = document.getElementById('likeButton');
+            const dislikeButton = document.getElementById('dislikeButton');
+            const likeCount = document.getElementById('likeCount');
+            const dislikeCount = document.getElementById('dislikeCount');
+            const likeBar = document.getElementById('likeBar');
+            const shareContainer = document.getElementById('shareContainer');
+            const shareModal = document.getElementById('shareModal');
+            const copyWithTimestamp = document.getElementById('copyWithTimestamp');
+            const copyWithoutTimestamp = document.getElementById('copyWithoutTimestamp');
+            const copyMessage = document.getElementById('copyMessage');
+            const suggestionsContainer = document.getElementById('videoSuggestions');
+
+            // --- Translate Search Bar ---
+            const searchInputEl = document.getElementById('searchInput');
+            if (searchInputEl) {
+                searchInputEl.placeholder = getLang('Search', 'Suchen');
+            }
+
+            let likes = 0;
+            let dislikes = 0;
+            let isLiked = false;
+            let videoNameForSubs = '';
+            let isDisliked = false;
+            let isSubscribed = false;
+            let posterImageUrl = '';
+            let currentChannel = '';
+
+            if (videoSrc) {
+                const videoExtension = getVideoExtension(videoSrc);
+                const mimeType = getMimeType(videoExtension);
+                
+                videoPlayer.innerHTML = '';
+                
+                const sourceElement = document.createElement('source');
+                sourceElement.src = `/videos/${encodeURIComponent(videoSrc)}`;
+                sourceElement.type = mimeType;
+                videoPlayer.appendChild(sourceElement);
+
+                // Add subtitle tracks dynamically (supports multiple languages)
+                // Only displays subtitles that actually exist on the server
+                // Example naming: "video.en-US.vtt", "video.de.vtt", "video.zh-Hans.vtt"
+                videoNameForSubs = stripExtension(videoSrc.split('/').pop());
+                
+                // Language name mapping for subtitle labels
+                const languageNames = {
+                    'af': 'Afrikaans', 'ar': 'Arabic', 'bg': 'Bulgarian', 'bn': 'Bengali',
+                    'bs': 'Bosnian', 'ca': 'Catalan', 'cs': 'Czech', 'da': 'Danish',
+                    'de': 'German', 'el': 'Greek', 
+                    'en': 'English', 
+                    'en-US': 'English (US)', 
+                    'en-GB': 'English (UK)', 
+                    'es': 'Spanish',
+                    'et': 'Estonian', 'fi': 'Finnish', 'fr': 'French', 'hi': 'Hindi',
+                    'it': 'Italian', 'ja': 'Japanese', 'ko': 'Korean', 'nl': 'Dutch',
+                    'pl': 'Polish', 'pt': 'Portuguese', 'ro': 'Romanian', 'ru': 'Russian',
+                    'sk': 'Slovak', 'sq': 'Albanian', 'sr': 'Serbian', 'sv': 'Swedish',
+                    'th': 'Thai', 'tr': 'Turkish', 'uk': 'Ukrainian', 'vi': 'Vietnamese',
+                    'zh-Hans': 'Chinese (Simplified)', 
+                    'zh-Hant': 'Chinese (Traditional)'
+                };
+
+                // Append auto-translated labels to the languageNames map
+                Object.assign(languageNames, {
+                    'en-ar': 'Arabic (Auto-translated)', 'en-bn': 'Bengali (Auto-translated)', 
+                    'en-cs': 'Czech (Auto-translated)', 'en-da': 'Danish (Auto-translated)', 
+                    'en-de': 'German (Auto-translated)', 'en-el': 'Greek (Auto-translated)', 
+                    'en-en': 'English (Auto-translated)', 'en-es': 'Spanish (Auto-translated)', 
+                    'en-fa': 'Persian (Auto-translated)', 'en-fil': 'Filipino (Auto-translated)', 
+                    'en-fr': 'French (Auto-translated)', 'en-hi': 'Hindi (Auto-translated)', 
+                    'en-hu': 'Hungarian (Auto-translated)', 'en-id': 'Indonesian (Auto-translated)', 
+                    'en-it': 'Italian (Auto-translated)', 'en-iw': 'Hebrew (Auto-translated)', 
+                    'en-ka': 'Georgian (Auto-translated)', 'en-km': 'Khmer (Auto-translated)', 
+                    'en-ko': 'Korean (Auto-translated)', 'en-ku': 'Kurdish (Auto-translated)', 
+                    'en-la': 'Latin (Auto-translated)', 'en-mn': 'Mongolian (Auto-translated)', 
+                    'en-ms': 'Malay (Auto-translated)', 'en-my': 'Burmese (Auto-translated)', 
+                    'en-ne': 'Nepali (Auto-translated)', 'en-nl': 'Dutch (Auto-translated)', 
+                    'en-no': 'Norwegian (Auto-translated)', 'en-pl': 'Polish (Auto-translated)', 
+                    'en-pt': 'Portuguese (Auto-translated)', 'en-ro': 'Romanian (Auto-translated)', 
+                    'en-ru': 'Russian (Auto-translated)', 'en-sa': 'Sanskrit (Auto-translated)', 
+                    'en-so': 'Somali (Auto-translated)', 'en-sr': 'Serbian (Auto-translated)', 
+                    'en-sv': 'Swedish (Auto-translated)', 'en-th': 'Thai (Auto-translated)', 
+                    'en-tr': 'Turkish (Auto-translated)', 'en-uk': 'Ukrainian (Auto-translated)', 
+                    'en-ur': 'Urdu (Auto-translated)', 'en-vi': 'Vietnamese (Auto-translated)', 
+                    'en-zh-Hans': 'Chinese Simplified (Auto-translated)', 
+                    'en-zh-Hant': 'Chinese Traditional (Auto-translated)', 
+                    'en-zh-TW': 'Chinese Taiwan (Auto-translated)'
+                });
+
+                // List of supported language codes to check (includes regional and auto-translated variants)
+                const supportedLangCodes = [
+                    // Standard
+                    'af', 'ar', 'bg', 'bn', 'bs', 'ca', 'cs', 'da', 'de', 'el', 
+                    'en', 'en-US', 'en-GB', 'es', 'et', 'fi', 'fr', 'hi', 'it', 'ja', 
+                    'ko', 'nl', 'pl', 'pt', 'ro', 'ru', 'sk', 'sq', 'sr', 'sv', 'th', 
+                    'tr', 'uk', 'vi', 'zh-Hans', 'zh-Hant', 'zh-TW',
+                    
+                    // Auto-translated variants (en-XX format)
+                    'en-ar', 'en-bn', 'en-cs', 'en-da', 'en-de', 'en-el', 'en-en',
+                    'en-es', 'en-fa', 'en-fil', 'en-fr', 'en-hi', 'en-hu', 'en-id',
+                    'en-it', 'en-iw', 'en-ka', 'en-km', 'en-ko', 'en-ku', 'en-la',
+                    'en-mn', 'en-ms', 'en-my', 'en-ne', 'en-nl', 'en-no', 'en-pl',
+                    'en-pt', 'en-ro', 'en-ru', 'en-sa', 'en-so', 'en-sr', 'en-sv',
+                    'en-th', 'en-tr', 'en-uk', 'en-ur', 'en-vi', 'en-zh-Hans', 'en-zh-Hant', 'en-zh-TW'
+                ];
+
+                // Store video file name for later use after currentChannel is known
+                let subTrackData = { channel: '', videoFile: videoNameForSubs };
+
+                // Function to load subtitle tracks (called after currentChannel is set)
+                async function loadSubtitleTracks() {
+                    if (!subTrackData.channel) return;
+                    
+                    // FIX 1: Bypass playlist subfolders. Subtitles are stored directly in the channel folder.
+                    // Extract just the raw filename (e.g. "TOMODACHI LIFE # 01 Willkommen auf LPM-World!")
+                    // instead of using the full videoSrc path which includes "Tomodachi Life/".
+                    const videoFileName = subTrackData.videoFile;
+                    
+                    // FIX 2: Do NOT encodeURIComponent the base path yet, otherwise the dot (.) 
+                    // before the language code gets caught by the encoding and breaks the URL.
+                    // We must encode parts individually when building the final URL.
+                    const encodedChannel = encodeURIComponent(subTrackData.channel);
+                    const encodedVideoName = encodeURIComponent(videoFileName);
+                    const baseSubPath = `/subtitles/${encodedChannel}/${encodedVideoName}`;
+                    
+                    // Check each language subtitle file and only add if it exists
+                    const checkPromises = supportedLangCodes.map(async langCode => {
+                        const trackUrl = `${baseSubPath}.${langCode}.vtt`;
+                        try {
+                            const response = await fetch(trackUrl, { method: 'HEAD' });
+                            if (response.ok) {
+                                const trackElement = document.createElement('track');
+                                trackElement.kind = 'metadata';  // MUST be 'metadata' for Fluid Player
+                                trackElement.srclang = langCode;
+                                trackElement.label = languageNames[langCode] || langCode;
+                                trackElement.src = trackUrl; // Keep raw URL
+                                
+                                // Set ONLY English ('en') as default subtitle track
+                                if (langCode === 'en') {
+                                    trackElement.default = true;
+                                }
+                                
+                                videoPlayer.appendChild(trackElement);
+                            }
+                        } catch (error) {
+                            // Subtitle file doesn't exist or error checking, skip it
+                        }
+                    });
+
+                    // Also check for default .vtt file (no language code) for backwards compatibility
+                    const defaultTrackUrl = `${baseSubPath}.vtt`;
+                    checkPromises.push(
+                        fetch(defaultTrackUrl, { method: 'HEAD' })
+                            .then(response => {
+                                if (response.ok) {
+                                    const defaultTrack = document.createElement('track');
+                                    defaultTrack.kind = 'metadata';
+                                    defaultTrack.srclang = 'en';
+                                    defaultTrack.label = 'Subtitles';
+                                    defaultTrack.src = defaultTrackUrl; // Keep raw URL
+                                    videoPlayer.appendChild(defaultTrack);
+                                }
+                            })
+                            .catch(() => {})
+                    );
+
+                    await Promise.all(checkPromises);
+                }
+
+                const videoPathWithoutExt = stripExtension(videoSrc);
+                fetch(`/filenames/${encodeURIComponent(videoPathWithoutExt)}.txt`)
+                    .then(response => response.text())
+                    .then(displayName => {
+                        currentVideoTitle.textContent = displayName;
+                        document.title = `${displayName} - LocalYT`;
+                    })
+                    .catch(error => console.error('Error fetching display name:', error));
+
+                const pathParts = videoSrc.split('/');
+                currentChannel = pathParts[0];
+
+                // Load subtitle tracks now that we know the channel
+                subTrackData.channel = currentChannel;
+                loadSubtitleTracks();
+
+                // Check if there's a playlist subfolder
+                let thumbnailPath;
+                if (pathParts.length > 2) {
+                    // Video is in a playlist subfolder: channel/playlist/video.mp4
+                    const playlist = pathParts[1];
+                    const videoNameWithoutExt = stripExtension(pathParts[pathParts.length - 1]);
+                    thumbnailPath = `${encodeURIComponent(currentChannel)}/${encodeURIComponent(playlist)}/${encodeURIComponent(videoNameWithoutExt)}.jpg`;
+                } else {
+                    // Video is directly in channel root: channel/video.mp4
+                    const videoNameWithoutExt = stripExtension(pathParts[pathParts.length - 1]);
+                    thumbnailPath = `${encodeURIComponent(currentChannel)}/${encodeURIComponent(videoNameWithoutExt)}.jpg`;
+                }
+
+                posterImageUrl = `/thumbnails/${thumbnailPath}`;
+
+                channelPic.src = `/channelpic/${encodeURIComponent(currentChannel)}.jpg`;
+                channelName.textContent = currentChannel;
+
+                function getSubcountEndpoint() {
+                    const fuzzySetting = JSON.parse(localStorage.getItem('fuzzySubCount') || '{}');
+                    if (fuzzySetting.enabled) {
+                        return `/subcount/fuzzy/${encodeURIComponent(currentChannel)}`;
+                    }
+                    return `/subcount/${encodeURIComponent(currentChannel)}`;
+                }
+
+                fetch(getSubcountEndpoint())
+                    .then(response => response.text())
+                    .then(subCountText => {
+                        const subsWord = getLang('subscribers', 'Abonnenten');
+                        subCount.textContent = `${localStorage.getItem('language') === 'de' ? subCountText.replace(/,/g, '.') : subCountText} ${subsWord}`;
+                        // Setup wheel click after channel name is definitely set
+                        setupChannelNameWheelClick(); 
+                    })
+                    .catch(error => {
+                        console.error('Error fetching subscriber count:', error);
+                        // Setup wheel click even if sub count fails
+                        setupChannelNameWheelClick();
+                    });
+
+
+            Promise.all([
+                fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(response => response.text()),
+                fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(response => response.text())
+            ])
+                .then(([viewCount, fileDate]) => {
+                    // Use language helper for "views" and "Uploaded on"
+                    const viewsText = getLang('views', 'Aufrufe');
+                    const uploadedText = getLang('Uploaded on', 'Hochgeladen am');
+                    
+                    // Format view count: replace commas with dots for German
+                    let formattedViews = viewCount.trim();
+                    if (localStorage.getItem('language') === 'de') {
+                        formattedViews = formattedViews.replace(/,/g, '.');
+                    }
+
+                    currentVideoDescription.textContent = `${formattedViews} ${viewsText} - ${uploadedText} ${fileDate.trim()}\n\n`;
+                    
+                    // Logic for description filename (from previous fix)
+                    const cleanDescName = videoSrc.split('/').pop().replace(/\.(mp4|mkv|avi|mov|webm|mp3)$/i, '');
+                    const descriptionPath = `/descriptions/${encodeURIComponent(currentChannel)}/${encodeURIComponent(cleanDescName)}.txt`;
+                    return fetch(descriptionPath);
+                })
+                .then(async response => {
+                    if (!response.ok) {
+                        currentVideoDescription.innerHTML = currentVideoDescription.textContent + 
+                            '<span class="no-description">' + getLang('No description available for this video.', 'Diesem Video wurde keine Beschreibung hinzugefügt.') + '</span>';
+                        return null;
+                    }
+                    const description = await response.text();
+                    
+                    if (description === null) {
+                        currentVideoDescription.innerHTML = currentVideoDescription.textContent + 
+                            '<span class="no-description">' + getLang('No description available for this video.', 'Diesem Video wurde keine Beschreibung hinzugefügt.') + '</span>'
+                    } else {
+                        const descriptionWithLinks = await detectAndStyleLinks(description);
+                        currentVideoDescription.innerHTML = currentVideoDescription.textContent + descriptionWithLinks;
+                        
+                        // Pass description to LYT Player for chapter parsing
+                        if (myFP && typeof myFP.setDescription === 'function') {
+                            myFP.setDescription(description);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.log('No description found for this video');
+                    currentVideoDescription.innerHTML = currentVideoDescription.textContent + 
+                        '<span class="no-description">No description available for this video.</span>';
+                })
+                .then(() => {
+                    checkDescriptionCollapse();
+                });
+
+                // 1. Get just the filename (removing subfolders like "Shortcut Collections")
+                const statsFileName = videoSrc.split('/').pop().replace(/\.(mp4|mkv|avi|mov|wmv|flv|webm)$/i, '');
+
+                // 2. Construct the path: videostats/ChannelName/Filename.txt
+                fetch(`/videostats/${encodeURIComponent(currentChannel)}/${encodeURIComponent(statsFileName)}.txt`)
+                    .then(response => response.text())
+                    .then(data => {
+                        [likes, dislikes] = data.split(',').map(Number);
+                        updateLikeDislikeUI();
+                    })
+                    .catch(error => console.error('Error fetching like/dislike counts:', error));
+
+                fetch('/user-likes')
+                    .then(response => response.ok ? response.json() : {})
+                    .then(userLikes => {
+                        isLiked = userLikes[videoSrc] || false;
+                        updateLikeDislikeUI();
+                    })
+                    .catch(error => console.error('Error fetching user likes:', error));
+
+                fetch('/user-dislikes')
+                    .then(response => response.ok ? response.json() : {})
+                    .then(userDislikes => {
+                        isDisliked = userDislikes[videoSrc] || false;
+                        updateLikeDislikeUI();
+                    })
+                    .catch(error => console.error('Error fetching user dislikes:', error));
+
+                fetch(`/user-subscriptions/${encodeURIComponent(currentChannel)}`)
+                    .then(response => response.ok ? response.json() : {})
+                    .then(userSubscriptions => {
+                        isSubscribed = userSubscriptions[currentChannel] || false;
+                        updateSubscribeButton();
+                    })
+                    .catch(error => console.error('Error fetching user subscriptions:', error));
+
+                // Tags are now only added when the user spends at least 20 seconds on the page
+                setTimeout(() => {
+                    fetch('/updatePreferences', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ video: videoSrc })
+                    });
+                }, 20000);
+
+                fetch('/add-to-history', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ video: videoSrc })
+                });
+            }
+
+            // Load comments for this video
+            const channelPicUrl = `/channelpic/${encodeURIComponent(currentChannel)}.jpg`;
+            loadComments(videoSrc, channelPicUrl);
+
+            // --- Initialize Live Chat ---
+            // Pass videoSrc so it can find the corresponding JSON
+            initLiveChat(videoSrc, playlistName);
+
+            // --- Sidebar Logic ---
+            
+            // Create autoplay toggle at top of sidebar
+            createSidebarAutoplayToggle(suggestionsContainer, playlistName);
+            
+            // 1. Load Playlist Videos if playlist parameter exists
+            let playlistVideoCount = 0;
+            if (playlistName && currentChannel) {
+                const playlistSection = document.createElement('div');
+                playlistSection.className = 'playlist-section';
+                
+                const playlistHeader = document.createElement('div');
+                playlistHeader.className = 'playlist-section-header';
+                playlistHeader.innerHTML = `${safeDecodeURIComponent(playlistName)} <a href="playlist.html?channel=${encodeURIComponent(currentChannel)}&playlist=${playlistName}">${getLang('View Full Playlist', 'Komplette Playlist ansehen')}</a>`
+                playlistSection.appendChild(playlistHeader);
+
+                // Container for the videos (will be scrollable if > 8 videos)
+                const playlistContainer = document.createElement('div');
+                
+                suggestionsContainer.appendChild(playlistSection);
+
+                await fetch(`/playlist-videos/${encodeURIComponent(currentChannel)}/${playlistName}`)
+                    .then(response => response.json())
+                    .then(videos => {
+                        // ADD THIS LINE RIGHT HERE to sort the videos:
+                        videos.sort(naturalCompare);
+                        
+                        // If more than 6 videos, make the container scrollable
+                        if (videos.length > 6) {
+                            playlistContainer.className = 'playlist-scroll-container';
+                        }
+                        
+                        playlistSection.appendChild(playlistContainer);
+                
+                        videos.forEach(video => {
+                            // Highlight current video
+                            const isCurrent = safeDecodeURIComponent(videoSrc) === video.path;
+                            renderSuggestionItem(video, playlistContainer, playlistName, isCurrent);
+                            playlistVideoCount++;
+
+                            // Auto-focus on the currently playing video in the sidebar (runs once on load)
+                            if (isCurrent) {
+                                requestAnimationFrame(() => {
+                                    const currentItem = playlistContainer.querySelector('.current-video-item');
+                                    if (currentItem) {
+                                        currentItem.scrollIntoView({ 
+                                            behavior: 'smooth', 
+                                            block: 'center' 
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    })
+                    .catch(err => console.error("Error loading playlist sidebar", err));
+            }
+
+            // 1b. Load User Playlist Videos if userplaylist parameter exists
+            if (userPlaylistName) {
+                const userPlaylistSection = document.createElement('div');
+                userPlaylistSection.className = 'playlist-section';
+                
+                const userPlaylistHeader = document.createElement('div');
+                userPlaylistHeader.className = 'playlist-section-header';
+                userPlaylistHeader.innerHTML = `${safeDecodeURIComponent(userPlaylistName)} <a href="user_playlists.html">${getLang('View Your Playlists', 'Deine Playlisten ansehen')}</a>`;
+                userPlaylistSection.appendChild(userPlaylistHeader);
+            
+                const userPlaylistContainer = document.createElement('div');
+                suggestionsContainer.appendChild(userPlaylistSection);
+            
+                await fetch(`/user-playlist-videos?name=${encodeURIComponent(userPlaylistName)}`)
+                    .then(response => response.json())
+                    .then(videos => {
+                        // Keep original order (oldest to newest) - do NOT sort user playlists
+                        
+                        if (videos.length > 6) {
+                            userPlaylistContainer.className = 'playlist-scroll-container';
+                        }
+                        
+                        userPlaylistSection.appendChild(userPlaylistContainer);
+                
+                        videos.forEach(video => {
+                            const isCurrent = safeDecodeURIComponent(videoSrc) === video.path;
+                            renderSuggestionItem(video, userPlaylistContainer, null, isCurrent, userPlaylistName);
+                            playlistVideoCount++;
+            
+                            if (isCurrent) {
+                                requestAnimationFrame(() => {
+                                    const currentItem = userPlaylistContainer.querySelector('.current-video-item');
+                                    if (currentItem) {
+                                        currentItem.scrollIntoView({ 
+                                            behavior: 'smooth', 
+                                            block: 'center' 
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    })
+                    .catch(err => console.error("Error loading user playlist sidebar", err));
+            }
+
+            // 2. Load Standard Recommendations (70% Similar, 30% User Prefs)
+            // We request a full page (20), but if we have a playlist, we might want fewer.
+            // For now, let's keep the logic simple: append recommendations after playlist.
+            
+            // Calculate how many recommendations to fetch to fill the sidebar reasonably
+            // If playlist is huge (scrollable), we might not need many, but let's fetch a standard amount
+            // to populate below the fold.
+            const recLimit = 20; 
+            
+            // Use the new specific endpoint for sidebar
+            fetch(`/sidebar-recommendations?video=${encodeURIComponent(videoSrc)}&limit=${recLimit}`)
+                .then(response => {
+                    if (!response.ok) throw new Error("Sidebar recommendations failed");
+                    return response.json();
+                })
+                .then(videos => {
+                    
+                    // Add a header if we also have a playlist
+                    if (playlistName && videos.length > 0) {
+                        const recHeader = document.createElement('div');
+                        recHeader.className = 'playlist-section-header';
+                        recHeader.style.paddingTop = '10px';
+                        recHeader.style.paddingLeft = '20px';
+                        recHeader.textContent = getLang('Recommended', 'Empfohlen');
+                        suggestionsContainer.appendChild(recHeader);
+                    }
+
+                    videos.forEach(video => {
+                        renderSuggestionItem(video, suggestionsContainer, null, false);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading sidebar recommendations:', error);
+                    // Fallback to random videos if the new endpoint fails
+                    fetch('/videos?page=1&limit=10')
+                        .then(response => response.json())
+                        .then(data => {
+                            const videos = data.videos || [];
+                            videos.forEach(video => {
+                                renderSuggestionItem(video, suggestionsContainer, null, false);
+                            });
+                        });
+                });
+
+            // Helper to render sidebar items
+            function renderSuggestionItem(video, container, playlistParam, isCurrent, userPlaylistParam = null) {
+                const suggestionElement = document.createElement('div');
+                suggestionElement.className = 'suggestion-item' + (isCurrent ? ' current-video-item' : '');
+                
+                const suggestionTitle = video.displayName;
+                const channel = video.path.split('/')[0];
+                const videoPathWithoutExt = stripExtension(video.path);
+                
+                const suggestionPathParts = video.path.split('/');
+                const suggestionChannel = suggestionPathParts[0];
+                let suggestionThumbnailPath;
+            
+                if (suggestionPathParts.length > 2) {
+                    const suggestionPlaylist = suggestionPathParts[1];
+                    const suggestionVideoName = stripExtension(suggestionPathParts[suggestionPathParts.length - 1]);
+                    suggestionThumbnailPath = `${encodeURIComponent(suggestionChannel)}/${encodeURIComponent(suggestionPlaylist)}/${encodeURIComponent(suggestionVideoName)}.jpg`;
+                } else {
+                    const suggestionVideoName = stripExtension(suggestionPathParts[suggestionPathParts.length - 1]);
+                    suggestionThumbnailPath = `${encodeURIComponent(suggestionChannel)}/${encodeURIComponent(suggestionVideoName)}.jpg`;
+                }
+            
+                // Construct URL, preserving playlist and userplaylist parameters
+                let videoUrl = `video.html?src=${encodeURIComponent(video.path)}`;
+                if (playlistParam) {
+                    videoUrl += `&playlist=${encodeURIComponent(playlistParam)}`;
+                }
+                if (userPlaylistParam) {
+                    videoUrl += `&userplaylist=${encodeURIComponent(userPlaylistParam)}`;
+                }
+            
+                suggestionElement.innerHTML = `
+                    <div class="thumbnail-container">
+                        <img src="/thumbnails-small/${suggestionThumbnailPath}" alt="${suggestionTitle}" class="video-thumbnail">
+                        <div class="video-length"></div>
+                    </div>
+                    <div class="suggestion-info">
+                        <div class="suggestion-title">${suggestionTitle}</div>
+                        <div class="suggestion-channel">${channel}</div>
+                        <div class="view-count">${localStorage.getItem('language') === 'de' ? video.viewCount.replace(/,/g, '.') : video.viewCount} ${getLang('views', 'Aufrufe')}</div>
+                    </div>
+                `;
+            
+                suggestionElement.dataset.videoPath = video.path;
+                container.appendChild(suggestionElement);
+            
+                const thumbLink = suggestionElement.querySelector('.thumbnail-container');
+                const titleLink = suggestionElement.querySelector('.suggestion-title');
+            
+                thumbLink.addEventListener('click', () => { window.location.href = videoUrl; });
+                titleLink.addEventListener('click', () => { window.location.href = videoUrl; });
+            
+                const contextHandler = (e) => {
+                    e.preventDefault();
+                    window.open(videoUrl, '_blank');
+                };
+                thumbLink.addEventListener('contextmenu', contextHandler);
+                titleLink.addEventListener('contextmenu', contextHandler);
+            
+                const middleHandler = (e) => {
+                    if (e.button === 1) {
+                        e.preventDefault();
+                        window.open(videoUrl, '_blank');
+                    }
+                };
+                thumbLink.addEventListener('mouseup', middleHandler);
+                thumbLink.addEventListener('auxclick', middleHandler);
+                titleLink.addEventListener('mouseup', middleHandler);
+                titleLink.addEventListener('auxclick', middleHandler);
+            
+                const videoFilename = video.path.split('/').pop();
+                const videoNameWithoutExt = stripExtension(videoFilename);
+                fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
+                    .then(response => response.text())
+                    .then(length => {
+                        suggestionElement.querySelector('.video-length').textContent = length;
+                    })
+                    .catch(error => {});
+            }
+
+            // --- End Sidebar Logic ---
+
+            const suggestedVideos = await generateSuggestedVideos(videoSrc);
+            
+            const suggestedVideosJson = JSON.stringify(suggestedVideos);
+            const suggestedVideosBlob = new Blob([suggestedVideosJson], { type: 'application/json' });
+            const suggestedVideosUrl = URL.createObjectURL(suggestedVideosBlob);
+
+            // Get the video title for Player
+            const videoTitle = currentVideoTitle ? currentVideoTitle.textContent : '';
+
+            // 1. Helper to clean the filename (remove special chars) to match Python output
+            function getCleanVideoName(src) {
+                let name = src.split('/').pop(); 
+                name = stripExtension(name);
+                // 1. Remove special characters ()![]#
+                name = name.replace(/[^\w\s.-]/g, '');
+                // 2. Replace dots (.) with spaces (to match Python logic)
+                name = name.replace(/\./g, ' ');
+                // 3. Clean up double spaces
+                name = name.replace(/\s+/g, ' ').trim();
+                return name;
+            }
+
+            // Helper function to slugify filenames (must match Python logic)
+            function slugify(filename) {
+                return filename.replace(/[^\w\s-]/g, '').trim();
+            }
+
+            // Check player preference setting
+            const playerSettings = JSON.parse(localStorage.getItem('videoPlayer') || '{}');
+            const selectedPlayer = playerSettings.player || 'lyt';
+
+            // --- CHECK CHANNEL PROFILE PIC SETTING ---
+            const profilePicSetting = JSON.parse(localStorage.getItem('showChannelProfilePic') || '{}');
+            let channelProfilePicUrl = null;
+            
+            if (profilePicSetting.enabled && currentChannel) {
+                channelProfilePicUrl = `/channelpic/${encodeURIComponent(currentChannel)}.jpg`;
+            }
+            // ------------------------------------------------
+
+            if (selectedPlayer === 'lyt' && typeof LYTPlayer === 'function') {
+                // Initialize LYT Player
+                var myFP = LYTPlayer('videoPlayer', {
+                    "layoutControls": {
+                        "title": videoTitle,
+                        "subtitlesEnabled": true,
+                        "controlBar": {
+                            "autoHideTimeout": 3,
+                            "animated": true,
+                            "autoHide": true
+                        },
+                        "htmlOnPauseBlock": { "html": null, "height": null, "width": null },
+                        "autoPlay": false,
+                        "mute": false,
+                        "allowTheatre": true,
+                        "playPauseAnimation": true,
+                        "playbackRateEnabled": true,
+                        "allowDownload": false,
+                        "playButtonShowing": false,
+                        "fillToContainer": true,
+                        "posterImage": posterImageUrl,
+                        "posterImageSize": "cover",
+                        subtitlesOnByDefault: false,
+                        "timelinePreview": {
+                            file: `/thumbnails/${encodeURIComponent(currentChannel)}/${encodeURIComponent(videoNameForSubs)}.vtt`,
+                            sprite: `/thumbnails/${encodeURIComponent(currentChannel)}/${encodeURIComponent(videoNameForSubs)}SpriteImg.jpg`,
+                            type: 'VTT'
+                        },
+                        // PASS THE IMAGE URL HERE
+                        "channelProfilePic": channelProfilePicUrl 
+                    },
+                    "vastOptions": {
+                        "adList": [],
+                        "adCTAText": false,
+                        "adCTATextPosition": ""
+                    }
+                });
+            } else if (typeof fluidPlayer === 'function') {
+                // Initialize Fluid Player (Normal or MP3 mod)
+                var myFP = fluidPlayer(
+                    'videoPlayer', {
+                        "layoutControls": {
+                            "title": videoTitle,
+                            "subtitlesEnabled": true,
+                            "controlBar": {
+                                "autoHideTimeout": 3,
+                                "animated": true,
+                                "autoHide": true
+                            },
+                            "htmlOnPauseBlock": { "html": null, "height": null, "width": null },
+                            "autoPlay": false,
+                            "mute": false,
+                            "allowTheatre": true,
+                            "playPauseAnimation": true,
+                            "playbackRateEnabled": true,
+                            "allowDownload": false,
+                            "playButtonShowing": false,
+                            "fillToContainer": true,
+                            "posterImage": posterImageUrl,
+                            "posterImageSize": "cover",
+                            subtitlesOnByDefault: false,
+                            "timelinePreview": {
+                                file: `/thumbnails/${encodeURIComponent(currentChannel)}/${encodeURIComponent(getCleanVideoName(videoSrc))}.vtt`,
+                                sprite: `/thumbnails/${encodeURIComponent(currentChannel)}/${encodeURIComponent(getCleanVideoName(videoSrc))}SpriteImg.jpg`,
+                                type: 'VTT'
+                            }
+                        },
+                        "vastOptions": {
+                            "adList": [],
+                            "adCTAText": false,
+                            "adCTATextPosition": ""
+                        }
+                    }
+                );
+            } else {
+                console.warn('No compatible video player library found. Falling back to native controls.');
+                var myFP = null;
+                videoPlayer.removeAttribute('controlsList');
+                videoPlayer.controls = true;
+            }
+
+            // Re-render chapter markers once video duration is known
+            videoPlayer.addEventListener('loadedmetadata', () => {
+                if (myFP && typeof myFP.renderChapterMarkers === 'function') {
+                    myFP.renderChapterMarkers();
+                }
+            });
+
+            // ===== AUTOPLAY / SKIP LOGIC =====
+            // Define the handler function OUTSIDE the event listener to avoid nesting errors
+            async function handleAutoPlayOrSkip(isManualSkip = false) {
+                try {
+                    const autoplaySettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
+                    
+                    if (autoplaySettings.enabled && !autoplaySettings.nonPlaylistMode && !playlistName && !userPlaylistName) {
+                         autoplaySettings.nonPlaylistMode = 'first-recommended';
+                    }
+                
+                    if (!autoplaySettings.enabled && !isManualSkip) {
+                        // Autoplay is OFF and video ended — show end screen grid if enabled
+                        const endScreenSettings = JSON.parse(localStorage.getItem('showEndScreenGrid') || '{}');
+                        const showGrid = endScreenSettings.enabled !== undefined ? endScreenSettings.enabled : true; // Default true
+                        if (showGrid && myFP && typeof myFP.showEndScreen === 'function') {
+                            myFP.showEndScreen();
+                        }
+                        return;
+                    }
+            
+                    if (autoplaySettings.enabled || isManualSkip) {
+                        // Resolve the next video
+                        let nextVideoData = null;
+                        
+                        if (userPlaylistName && (autoplaySettings.playlistNext !== false || isManualSkip)) {
+                            nextVideoData = await getNextInUserPlaylist();
+                        }
+                        else if (playlistName && (autoplaySettings.playlistNext !== false || isManualSkip)) {
+                            nextVideoData = await getNextInPlaylist();
+                        } 
+                        else if (!playlistName && !userPlaylistName) {
+                            switch (autoplaySettings.nonPlaylistMode || 'first-recommended') {
+                                case 'first-recommended':
+                                    nextVideoData = await getNextFirstRecommended();
+                                    break;
+                                case 'random-recommended':
+                                    nextVideoData = await getNextRandomRecommended();
+                                    break;
+                                case 'random-database':
+                                    nextVideoData = await getNextRandomDatabase();
+                                    break;
+                                default:
+                                    nextVideoData = await getNextFirstRecommended();
+                            }
+                        }
+
+                        if (isManualSkip || !autoplaySettings.enabled) {
+                            // Immediate navigation for manual skip
+                            if (nextVideoData) {
+                                window.location.href = nextVideoData.url;
+                            }
+                        } else if (nextVideoData) {
+                            // Show Up Next countdown overlay
+                            showUpNextOverlay(nextVideoData);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Autoplay/Skip error:', e);
+                }
+            }
+            
+            // ===== UP NEXT OVERLAY LOGIC =====
+            let _upnextTimer = null;
+            let _upnextCountdown = 5;
+
+            function showUpNextOverlay(nextVideoData) {
+                const overlay = document.getElementById('upnextOverlay');
+                if (!overlay) return;
+                
+                // Set background thumbnail
+                const bg = overlay.querySelector('.lyt_upnext_bg');
+                if (bg && nextVideoData.thumbnail) {
+                    bg.style.backgroundImage = `url(${nextVideoData.thumbnail})`;
+                }
+                
+                // Set title
+                const titleEl = overlay.querySelector('.lyt_upnext_title');
+                if (titleEl) {
+                    titleEl.textContent = nextVideoData.title || 'Next video';
+                }
+                
+                // Reset countdown
+                _upnextCountdown = 5;
+                const numEl = overlay.querySelector('.lyt_upnext_countdown_num');
+                const circleEl = overlay.querySelector('.lyt_upnext_countdown circle');
+                
+                if (numEl) numEl.textContent = _upnextCountdown;
+                if (circleEl) {
+                    // Reset animation
+                    circleEl.style.transition = 'none';
+                    circleEl.style.strokeDashoffset = '0';
+                    void circleEl.offsetWidth; // Force reflow
+                    circleEl.style.transition = 'stroke-dashoffset 1s linear';
+                }
+                
+                // Show overlay
+                overlay.classList.add('lyt_upnext_show');
+                
+                // Start countdown
+                clearInterval(_upnextTimer);
+                let elapsed = 0;
+                
+                _upnextTimer = setInterval(() => {
+                    elapsed++;
+                    _upnextCountdown = Math.max(0, 5 - elapsed);
+                    
+                    if (numEl) numEl.textContent = _upnextCountdown;
+                    if (circleEl) circleEl.style.strokeDashoffset = (elapsed / 5) * 182.2;
+                    
+                    if (elapsed >= 5) {
+                        clearInterval(_upnextTimer);
+                        _upnextTimer = null;
+                        window.location.href = nextVideoData.url;
+                    }
+                }, 1000);
+                
+                // Cancel button
+                const cancelBtn = overlay.querySelector('.lyt_upnext_cancel');
+                if (cancelBtn) {
+                    cancelBtn.onclick = () => {
+                        clearInterval(_upnextTimer);
+                        _upnextTimer = null;
+                        overlay.classList.remove('lyt_upnext_show');
+                    };
+                }
+            }
+            
+            // ===== END UP NEXT OVERLAY LOGIC =====
+            
+            videoPlayer.addEventListener('ended', () => handleAutoPlayOrSkip(false));
+            
+            // Listen for the custom Skip button event from lyt-player.js (IS a manual skip)
+            videoPlayer.addEventListener('lyt-skip', () => handleAutoPlayOrSkip(true));
+
+            document.addEventListener('keydown', (event) => {
+                const activeElement = document.activeElement;
+                
+                // 1. Ignore if typing
+                const isTyping = activeElement && (
+                    activeElement.id === 'searchInput' || 
+                    activeElement.tagName === 'INPUT' || 
+                    activeElement.tagName === 'TEXTAREA' ||
+                    activeElement.isContentEditable
+                );
+                
+                if (isTyping) return;
+                // Only ignore CTRL/META for keys the player doesn't handle with modifiers
+                if (event.ctrlKey || event.metaKey) {
+                    const key = event.key.toLowerCase();
+                    if (key !== 'arrowleft' && key !== 'arrowright') return;
+                }
+
+                const key = event.key.toLowerCase();
+
+                switch (key) {
+                    case ' ': // Spacebar
+                    case 'k':
+                        // 2. UNIVERSAL FIX: 
+                        // If myFP exists (it could be LYT or Fluid), assume the player 
+                        // is handling the keypress. We just prevent scrolling and stop.
+                        if (myFP) {
+                            event.preventDefault(); // Prevent page scroll
+                            return; // Exit - Let the player script do the work!
+                        }
+
+                        // 3. FALLBACK: Only run this if NO player loaded (Native HTML5)
+                        event.preventDefault();
+                        if (videoPlayer) {
+                            videoPlayer.paused ? videoPlayer.play() : videoPlayer.pause();
+                        }
+                        break;
+                    
+                    case 'arrowleft':
+                    case 'arrowright':
+                        event.preventDefault(); // Prevent page scroll either way
+                        if (myFP) {
+                            return; // LYT Player handles seeking — don't double-seek!
+                        }
+                        // Fallback: Only run this if NO player loaded (Native HTML5)
+                        if(videoPlayer) {
+                            videoPlayer.currentTime += (key === 'arrowleft') ? -5 : 5;
+                        }
+                        break;
+                    case 'arrowup':
+                        event.preventDefault();
+                        if(videoPlayer) videoPlayer.volume = Math.min(1, videoPlayer.volume + 0.1);
+                        break;
+                    case 'arrowdown':
+                        event.preventDefault();
+                        if(videoPlayer) videoPlayer.volume = Math.max(0, videoPlayer.volume - 0.1);
+                        break;
+                    case 'f':
+                        event.preventDefault();
+                        // Note: We allow video.html to handle Fullscreen because 
+                        // sometimes player fullscreen implementations differ or we want custom behavior.
+                        if (myFP && typeof myFP.toggleFullScreen === 'function') {
+                            myFP.toggleFullScreen();
+                        } else if (videoPlayer) {
+                            document.fullscreenElement ? document.exitFullscreen() : videoPlayer.requestFullscreen();
+                        }
+                        break;
+                    case ',':
+                        event.preventDefault();
+                        if(videoPlayer) videoPlayer.currentTime -= 1 / 30;
+                        break;
+                    case '.':
+                        event.preventDefault();
+                        if(videoPlayer) videoPlayer.currentTime += 1 / 30;
+                        break;
+                    case ';':
+                        event.preventDefault();
+                        if(videoPlayer) videoPlayer.playbackRate = Math.max(0.25, videoPlayer.playbackRate - 0.25);
+                        break;
+                    case ':':
+                        event.preventDefault();
+                        if(videoPlayer) videoPlayer.playbackRate = Math.min(4, videoPlayer.playbackRate + 0.25);
+                        break;
+                }
+            });
+
+            // ===== AUTOPLAY HELPER FUNCTIONS (return {url, title, thumbnail} or null) =====
+            
+            async function getNextInPlaylist() {
+                try {
+                    const response = await fetch(`/playlist-videos/${encodeURIComponent(currentChannel)}/${playlistName}`);
+                    if (!response.ok) return null;
+                    
+                    const videos = await response.json();
+                    videos.sort(naturalCompare);
+                    
+                    const currentIndex = videos.findIndex(v => safeDecodeURIComponent(v.path) === safeDecodeURIComponent(videoSrc));
+                    
+                    if (currentIndex !== -1 && currentIndex < videos.length - 1) {
+                        const nextVideo = videos[currentIndex + 1];
+                        return {
+                            url: `video.html?src=${encodeURIComponent(nextVideo.path)}&playlist=${encodeURIComponent(playlistName)}`,
+                            title: nextVideo.displayName,
+                            thumbnail: buildThumbnailUrl(nextVideo.path),
+                            path: nextVideo.path
+                        };
+                    }
+                } catch (e) {
+                    console.error('Error getting next playlist video:', e);
+                }
+                return null;
+            }
+
+            async function getNextInUserPlaylist() {
+                try {
+                    const response = await fetch(`/user-playlist-videos?name=${encodeURIComponent(userPlaylistName)}`);
+                    if (!response.ok) return null;
+                    
+                    const videos = await response.json();
+                    
+                    const currentIndex = videos.findIndex(v => safeDecodeURIComponent(v.path) === safeDecodeURIComponent(videoSrc));
+                    
+                    if (currentIndex !== -1 && currentIndex < videos.length - 1) {
+                        const nextVideo = videos[currentIndex + 1];
+                        return {
+                            url: `video.html?src=${encodeURIComponent(nextVideo.path)}&userplaylist=${encodeURIComponent(userPlaylistName)}`,
+                            title: nextVideo.displayName,
+                            thumbnail: buildThumbnailUrl(nextVideo.path),
+                            path: nextVideo.path
+                        };
+                    }
+                } catch (e) {
+                    console.error('Error getting next user playlist video:', e);
+                }
+                return null;
+            }
+
+            async function getNextFirstRecommended() {
+                try {
+                    const suggestionItems = document.querySelectorAll('#videoSuggestions .suggestion-item[data-video-path]');
+                    const availableItems = Array.from(suggestionItems).filter(
+                        item => !item.classList.contains('current-video-item')
+                    );
+                    const pool = availableItems.length > 0 ? availableItems : Array.from(suggestionItems);
+                    
+                    if (pool.length > 0) {
+                        const firstVideo = pool[0];
+                        const path = firstVideo.dataset.videoPath;
+                        const title = firstVideo.querySelector('.suggestion-title')?.textContent || 'Next video';
+                        return {
+                            url: `video.html?src=${encodeURIComponent(path)}`,
+                            title: title,
+                            thumbnail: buildThumbnailUrl(path),
+                            path: path
+                        };
+                    }
+                } catch (e) {
+                    console.error('[Autoplay] Error in first recommended:', e);
+                }
+                return null;
+            }
+
+            async function getNextRandomRecommended() {
+                try {
+                    const suggestionItems = document.querySelectorAll('#videoSuggestions .suggestion-item[data-video-path]');
+                    const availableItems = Array.from(suggestionItems).filter(
+                        item => !item.classList.contains('current-video-item')
+                    );
+                    const pool = availableItems.length > 0 ? availableItems : Array.from(suggestionItems);
+                    
+                    if (pool.length > 0) {
+                        const randomItem = pool[Math.floor(Math.random() * pool.length)];
+                        const path = randomItem.dataset.videoPath;
+                        const title = randomItem.querySelector('.suggestion-title')?.textContent || 'Next video';
+                        return {
+                            url: `video.html?src=${encodeURIComponent(path)}`,
+                            title: title,
+                            thumbnail: buildThumbnailUrl(path),
+                            path: path
+                        };
+                    }
+                } catch (e) {
+                    console.error('[Autoplay] Error in random recommended:', e);
+                }
+                return null;
+            }
+
+            async function getNextRandomDatabase() {
+                try {
+                    const response = await fetch('/videos?page=1&limit=1&random=true');
+                    if (!response.ok) return null;
+                    const data = await response.json();
+                    const videos = data.videos || [];
+                    if (videos.length > 0) {
+                        const video = videos[0];
+                        return {
+                            url: `video.html?src=${encodeURIComponent(video.path)}`,
+                            title: video.displayName,
+                            thumbnail: buildThumbnailUrl(video.path),
+                            path: video.path
+                        };
+                    }
+                } catch (e) {
+                    console.error('[Autoplay] Error in random database:', e);
+                }
+                return null;
+            }
+            
+            // Helper: Build thumbnail URL from video path
+            function buildThumbnailUrl(videoPath) {
+                const pathParts = videoPath.split('/');
+                const channel = pathParts[0];
+                let thumbnailPath;
+                
+                if (pathParts.length > 2) {
+                    const playlist = pathParts[1];
+                    const videoName = stripExtension(pathParts[pathParts.length - 1]);
+                    thumbnailPath = `${encodeURIComponent(channel)}/${encodeURIComponent(playlist)}/${encodeURIComponent(videoName)}.jpg`;
+                } else {
+                    const videoName = stripExtension(pathParts[pathParts.length - 1]);
+                    thumbnailPath = `${encodeURIComponent(channel)}/${encodeURIComponent(videoName)}.jpg`;
+                }
+                
+                return `/thumbnails/${thumbnailPath}`;
+            }
+
+            // ===== END AUTOPLAY HELPERS =====
+
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', () => {
+                const query = searchInput.value.toLowerCase();
+                if (query.length < 2) {
+                    document.getElementById('searchSuggestions').innerHTML = '';
+                    return;
+                }
+                
+                fetch('/search-index')
+                    .then(response => response.json())
+                    .then(data => {
+                        const videos = data.videos || [];
+                        const suggestions = videos
+                            .filter(video => video.displayName.toLowerCase().includes(query))
+                            .slice(0, 5);
+
+                        const suggestionsContainer = document.getElementById('searchSuggestions');
+                        suggestionsContainer.innerHTML = '';
+                        suggestions.forEach(video => {
+                            const suggestionElement = document.createElement('div');
+                            suggestionElement.className = 'suggestion-item';
+                            suggestionElement.textContent = video.displayName;
+                            suggestionElement.onclick = () => {
+                                window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
+                            };
+                            suggestionsContainer.appendChild(suggestionElement);
+                        });
+                    });
+            });
+
+            searchInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
+                }
+            });
+
+            document.getElementById('searchIcon').addEventListener('click', () => {
+                const query = searchInput.value.trim();
+                if (query) {
+                    window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+                } else {
+                    searchInput.focus();
+                }
+            });
+
+            videoPlayer.addEventListener('play', () => {
+                logoOverlay.style.display = 'none';
+                videoWrapper.classList.remove('paused');
+            });
+
+            videoPlayer.addEventListener('pause', () => {
+                videoWrapper.classList.add('paused');
+            });
+
+            logoOverlay.addEventListener('click', () => {
+                videoPlayer.play();
+                logoOverlay.style.display = 'none';
+                videoWrapper.classList.remove('paused');
+            });
+
+            shareContainer.addEventListener('click', () => {
+                shareModal.style.display = 'flex';
+            });
+
+            function getShortLinkApiUrl() {
+                let apiUrl = `/api/shortlink?video=${encodeURIComponent(videoSrc)}`;
+                if (playlistName) { 
+                    apiUrl += `&playlist=${encodeURIComponent(playlistName)}`;
+                }
+                if (userPlaylistName) {
+                    apiUrl += `&userplaylist=${encodeURIComponent(userPlaylistName)}`;
+                }
+                return apiUrl;
+            }
+
+            copyWithTimestamp.addEventListener('click', async () => {
+                const currentTime = Math.floor(videoPlayer.currentTime);
+                try {
+                    const response = await fetch(getShortLinkApiUrl()); 
+                    if (response.ok) {
+                        const data = await response.json();
+                        const finalUrl = new URL(window.location.origin + data.shortPath);
+                        finalUrl.searchParams.set('t', currentTime);
+                        copyToClipboard(finalUrl.toString());
+                    } else {
+                        copyToClipboard(`${window.location.origin}/video.html?src=${encodeURIComponent(videoSrc)}&t=${currentTime}`);
+                    }
+                } catch (e) {
+                    copyToClipboard(`${window.location.origin}/video.html?src=${encodeURIComponent(videoSrc)}&t=${currentTime}`);
+                }
+                shareModal.style.display = 'none';
+            });
+
+            copyWithoutTimestamp.addEventListener('click', async () => {
+                try {
+                    const response = await fetch(getShortLinkApiUrl());
+                    if (response.ok) {
+                        const data = await response.json();
+                        copyToClipboard(`${window.location.origin}${data.shortPath}`);
+                    } else {
+                        copyToClipboard(`${window.location.origin}/video.html?src=${encodeURIComponent(videoSrc)}`);
+                    }
+                } catch (e) {
+                    copyToClipboard(`${window.location.origin}/video.html?src=${encodeURIComponent(videoSrc)}`);
+                }
+                shareModal.style.display = 'none';
+            });
+
+            subscribeButton.addEventListener('click', () => {
+                isSubscribed = !isSubscribed;
+                updateSubscribeButton();
+
+                fetch('/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ channel: currentChannel, isSubscribed })
+                });
+            });
+
+            function updateLikeDislikeUI() {
+                likeCount.textContent = likes;
+                dislikeCount.textContent = dislikes;
+                
+                const totalReactions = likes + dislikes;
+                let likePercentage = 0;
+                if (totalReactions > 0) {
+                    likePercentage = (likes / totalReactions) * 100;
+                }
+                likeBar.style.width = `${likePercentage}%`;
+
+                if (isLiked) {
+                    likeButton.style.filter = 'invert(21%) sepia(93%) saturate(7454%) hue-rotate(203deg) brightness(100%) contrast(109%)';
+                } else {
+                    likeButton.style.filter = 'invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%)';
+                }
+
+                if (isDisliked) {
+                    dislikeButton.style.filter = 'invert(21%) sepia(93%) saturate(7454%) hue-rotate(203deg) brightness(100%) contrast(109%)';
+                } else {
+                    dislikeButton.style.filter = 'invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%)';
+                }
+            }
+
+            likeButton.addEventListener('click', () => {
+                isLiked = !isLiked;
+                if (isLiked) {
+                    likes += 1;
+                    if (isDisliked) {
+                        dislikes -= 1;
+                        isDisliked = false;
+                    }
+                } else {
+                    likes -= 1;
+                }
+                updateLikeDislikeUI();
+
+                fetch('/like', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ video: videoSrc, isLiked })
+                });
+            });
+
+            dislikeButton.addEventListener('click', () => {
+                isDisliked = !isDisliked;
+                if (isDisliked) {
+                    dislikes += 1;
+                    if (isLiked) {
+                        likes -= 1;
+                        isLiked = false;
+                    }
+                } else {
+                    dislikes -= 1;
+                }
+                updateLikeDislikeUI();
+
+                fetch('/dislike', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ video: videoSrc, isDisliked })
+                });
+            });
+
+            function updateSubscribeButton() {
+                if (isSubscribed) {
+                    subscribeButton.textContent = getLang('Subscribed', 'Abonniert');
+                    subscribeButton.classList.add('subscribed');
+                } else {
+                    subscribeButton.textContent = getLang('Subscribe', 'Abonnieren');
+                    subscribeButton.classList.remove('subscribed');
+                }
+            }
+
+            function copyToClipboard(text) {
+                const tempInput = document.createElement('input');
+                tempInput.value = text;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                showCopyMessage();
+            }
+            
+            function showCopyMessage() {
+                copyMessage.style.display = 'block';
+                setTimeout(() => {
+                    copyMessage.style.display = 'none';
+                }, 2000);
+            }
+
+            function showSaveMessage() {
+                const saveMsg = document.getElementById('saveMessage');
+                saveMsg.textContent = getLang('Saved to playlist', 'Zur Playlist hinzugefügt');
+                saveMsg.style.display = 'block';
+                setTimeout(() => {
+                    saveMsg.style.display = 'none';
+                }, 2000);
+            }
+
+            // ===== SAVE TO PLAYLIST =====
+            const saveModalEl = document.getElementById('saveModal');
+            const saveModalCloseBtn = document.getElementById('saveModalClose');
+            const savePlaylistListEl = document.getElementById('savePlaylistList');
+            const noPlaylistsMsg = document.getElementById('noPlaylistsMessage');
+            const newPlaylistNameInput = document.getElementById('newPlaylistName');
+            const createPlaylistBtn = document.getElementById('createPlaylistBtn');
+
+            saveContainer.addEventListener('click', async () => {
+                try {
+                    const response = await fetch('/user-playlists');
+                    if (!response.ok) {
+                        alert('Please log in to save videos to playlists.');
+                        return;
+                    }
+                    const playlists = await response.json();
+                    renderSaveModal(playlists);
+                    newPlaylistNameInput.value = '';
+                    saveModalEl.style.display = 'flex';
+                } catch (e) {
+                    console.error('Error loading playlists:', e);
+                }
+            });
+
+            function renderSaveModal(playlists) {
+                savePlaylistListEl.innerHTML = '';
+                const playlistNames = Object.keys(playlists);
+
+                if (playlistNames.length === 0) {
+                    noPlaylistsMsg.style.display = 'block';
+                } else {
+                    noPlaylistsMsg.style.display = 'none';
+                    playlistNames.forEach(name => {
+                        const item = document.createElement('div');
+                        item.className = 'save-playlist-item';
+                        const videoCount = playlists[name].length;
+                        const isAlreadySaved = playlists[name].includes(videoSrc);
+
+                        if (isAlreadySaved) {
+                            item.classList.add('already-saved');
+                            item.innerHTML = '<span>' + escapeHtml(name) + '<span class="playlist-video-count">' + videoCount + ' videos</span></span><span class="check-icon">✓</span>';
+                        } else {
+                            item.innerHTML = '<span>' + escapeHtml(name) + '<span class="playlist-video-count">' + videoCount + ' videos</span></span>';
+                            item.addEventListener('click', () => saveToPlaylist(name));
+                        }
+                        savePlaylistListEl.appendChild(item);
+                    });
+                }
+            }
+
+            async function saveToPlaylist(pName) {
+                try {
+                    const response = await fetch('/save-to-playlist', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ playlist: pName, video: videoSrc })
+                    });
+                    if (response.status === 409) return;
+                    if (!response.ok) {
+                        alert('Error saving to playlist.');
+                        return;
+                    }
+                    saveModalEl.style.display = 'none';
+                    document.getElementById('saveIcon').src = 'LocalYT-Rev-Files/saved.svg';
+                    document.getElementById('saveContainer').querySelector('span').textContent = getLang('Saved', 'Gespeichert');
+                    showSaveMessage();
+                } catch (e) {
+                    console.error('Error saving to playlist:', e);
+                }
+            }
+
+            async function createAndSavePlaylist() {
+                const name = newPlaylistNameInput.value.trim();
+                if (!name) return;
+                try {
+                    const createResponse = await fetch('/create-playlist', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name })
+                    });
+                    if (createResponse.status === 409) {
+                        alert('A playlist with this name already exists.');
+                        return;
+                    }
+                    if (!createResponse.ok) {
+                        alert('Error creating playlist.');
+                        return;
+                    }
+                    newPlaylistNameInput.value = '';
+                    const playlistsResponse = await fetch('/user-playlists');
+                    const playlists = await playlistsResponse.json();
+                    renderSaveModal(playlists);
+                    await saveToPlaylist(name);
+                } catch (e) {
+                    console.error('Error creating playlist:', e);
+                }
+            }
+
+            createPlaylistBtn.addEventListener('click', createAndSavePlaylist);
+            newPlaylistNameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') createAndSavePlaylist();
+            });
+
+            saveModalCloseBtn.addEventListener('click', () => {
+                saveModalEl.style.display = 'none';
+            });
+            saveModalEl.addEventListener('click', (e) => {
+                if (e.target === saveModalEl) saveModalEl.style.display = 'none';
+            });
+
+            // ===== END OF SAVE TO PLAYLIST BLOCK =====
+
+            // Update save icon based on whether video is in a playlist
+            fetch('/user-playlists')
+                .then(r => r.ok ? r.json() : {})
+                .then(playlists => {
+                    const inPlaylist = Object.values(playlists).some(videos => videos.includes(videoSrc));
+                    document.getElementById('saveIcon').src = inPlaylist ? 'LocalYT-Rev-Files/saved.svg' : 'LocalYT-Rev-Files/save.svg';
+                    document.getElementById('saveContainer').querySelector('span').textContent = inPlaylist ? getLang('Saved', 'Gespeichert') : getLang('Save', 'Speichern');
+                })
+                .catch(() => {});
+
+            if (timestamp) {
+                videoPlayer.currentTime = parseInt(timestamp, 10);
+            }
+            }); // End of 'ended' event listener
+
+
+        function openVideo(videoSrc) {
+            window.location.href = `video.html?src=${videoSrc}`;
+        }
+
+        function openChannelPage() {
+            const channel = document.getElementById('channelName').textContent;
+            window.location.href = `channel.html?channel=${encodeURIComponent(channel)}`;
+        }
+
+async function detectAndStyleLinks(text) {
+    const urlRegex = /(https?:\/\/[^\s<]+)/g;
+    const timestampRegex = /(\b\d{1,2}:\d{2}(?::\d{2})?\b)/g;
+    const mentionRegex = /@(\w+)/g;
+
+    // 1. Handle URLs
+    let processedText = text.replace(urlRegex, function(url) {
+        return '<a href="' + url + '" target="_blank" style="color: #3ea6ff; text-decoration: none;">' + url + '</a>';
+    });
+
+    // 2. Handle Timestamps
+    processedText = processedText.replace(timestampRegex, function(timestamp) {
+        const seconds = convertTimestampToSeconds(timestamp);
+        return '<a href="#" onclick="seekToTimestamp(\'' + timestamp + '\'); return false;" style="color: #3ea6ff; text-decoration: none;">' + timestamp + '</a>';
+    });
+
+    // 3. Handle @Mentions (Check if Channel Image Exists)
+    const mentions = [];
+    let match;
+    while ((match = mentionRegex.exec(processedText)) !== null) {
+        if (!mentions.includes(match[1])) {
+            mentions.push(match[1]);
+        }
+    }
+
+    if (mentions.length > 0) {
+        const checkPromises = mentions.map(channelName => {
+            return fetch(`/channelpic/${encodeURIComponent(channelName)}.jpg`, { method: 'HEAD' })
+                .then(res => ({ name: channelName, exists: res.ok }))
+                .catch(() => ({ name: channelName, exists: false }));
+        });
+
+        try {
+            const results = await Promise.all(checkPromises);
+            const existingChannels = results.filter(r => r.exists).map(r => r.name);
+            
+            let idCounter = 0;
+            
+            processedText = processedText.replace(mentionRegex, function(fullMatch, channelName) {
+                if (existingChannels.includes(channelName)) {
+                    const uniqueId = `mention-${idCounter++}`;
+                    const encodedChannel = encodeURIComponent(channelName);
+                    
+                    // Return span with ID so we can attach event listeners immediately after
+                    return `<span id="${uniqueId}" class="mention-link" data-channel="${encodedChannel}">${fullMatch}</span>`;
+                }
+                return fullMatch;
+            });
+            
+            // Attach event listeners to the newly created spans after they are in the DOM
+            // We use a small timeout to ensure the DOM has been updated if this is used immediately
+            setTimeout(() => {
+                existingChannels.forEach((channelName, index) => {
+                    const el = document.getElementById(`mention-${index}`);
+                    if (el) {
+                        const url = `channel.html?channel=${el.dataset.channel}`;
+                        
+                        // Left click (default behavior handled by CSS/onclick logic if needed, 
+                        // but here we specifically handle wheel and right click as requested)
+                        
+                        el.addEventListener('mouseup', (e) => {
+                            if (e.button === 1) { // Middle Click
+                                e.preventDefault();
+                                window.open(url, '_blank');
+                            }
+                        });
+                        
+                        el.addEventListener('auxclick', (e) => {
+                            if (e.button === 1) { // Middle Click Fallback
+                                e.preventDefault();
+                                window.open(url, '_blank');
+                            }
+                        });
+
+                        el.addEventListener('contextmenu', (e) => { // Right Click
+                            e.preventDefault();
+                            window.open(url, '_blank');
+                        });
+                        
+                        // Ensure left click also works to navigate
+                        el.addEventListener('click', () => {
+                             window.location.href = url;
+                        });
+                    }
+                });
+            }, 0);
+
+        } catch (e) {
+            console.log('Could not verify mentions:', e);
+        }
+    }
+
+    return processedText;
+}
+
+        function convertTimestampToSeconds(timestamp) {
+            const parts = timestamp.split(':').map(part => parseInt(part, 10));
+            if (parts.length === 3) {
+                return parts[0] * 3600 + parts[1] * 60 + parts[2];
+            } else if (parts.length === 2) {
+                return parts[0] * 60 + parts[1];
+            }
+            return 0;
+        }
+
+        function seekToTimestamp(timestamp) {
+            const videoPlayer = document.getElementById('videoPlayer');
+            const seconds = convertTimestampToSeconds(timestamp);
+            videoPlayer.currentTime = seconds;
+            videoPlayer.play();
+            
+            const videoStage = document.querySelector('.video-stage');
+            const headerHeight = document.querySelector('.top-bar').offsetHeight;
+            const y = videoStage.getBoundingClientRect().top + window.pageYOffset - headerHeight;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+            
+            const clickedElement = event.target;
+            clickedElement.style.color = '#ff0000';
+            setTimeout(() => {
+                clickedElement.style.color = '#3ea6ff';
+            }, 1000);
+        }
+
+        // --- Language Check on Load ---
+        // This ensures translations apply AFTER video.html has created all the buttons
+        document.addEventListener('DOMContentLoaded', () => {
+            // Small timeout ensures dynamic content (like sidebar) is rendered
+            setTimeout(() => {
+                if (typeof applyLanguage === 'function') {
+                    applyLanguage();
+                }
+            }, 100);
+        });
+
+function createSidebarAutoplayToggle(container, playlistName) {
+    const toggleDiv = document.createElement('div');
+    toggleDiv.className = 'sidebar-autoplay-toggle';
+    
+    const label = document.createElement('label');
+    label.className = 'sidebar-autoplay-label';
+    label.textContent = getLang('Autoplay', 'Automatische Wiedergabe');
+    
+    const switchLabel = document.createElement('label');
+    switchLabel.className = 'toggle-switch';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = 'sidebarAutoplayCheckbox';
+    
+    const slider = document.createElement('span');
+    slider.className = 'toggle-slider';
+    
+    switchLabel.appendChild(checkbox);
+    switchLabel.appendChild(slider);
+    
+    toggleDiv.appendChild(label);
+    toggleDiv.appendChild(switchLabel);
+    
+    // Insert at the top of the suggestions container
+    container.insertBefore(toggleDiv, container.firstChild);
+    
+    // Load current state from localStorage
+    let currentSettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
+    
+    // Apply defaults ONLY if properties don't exist yet (first time ever)
+    if (currentSettings.enabled === undefined) currentSettings.enabled = false;
+    if (currentSettings.playlistNext === undefined) currentSettings.playlistNext = true;
+    if (currentSettings.nonPlaylistMode === undefined) currentSettings.nonPlaylistMode = 'first-recommended';
+    
+    // Set initial checkbox state
+    checkbox.checked = currentSettings.enabled;
+    
+    // Handle toggle changes - ONLY switches enabled on/off, preserves mode!
+    checkbox.addEventListener('change', () => {
+        // Re-read to ensure we have absolute latest (in case settings page was open in another tab)
+        currentSettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
+        
+        // Re-apply defaults if somehow missing
+        if (currentSettings.nonPlaylistMode === undefined) currentSettings.nonPlaylistMode = 'first-recommended';
+        if (currentSettings.playlistNext === undefined) currentSettings.playlistNext = true;
+        
+        // Simply flip the enabled flag - DO NOT touch nonPlaylistMode or playlistNext!
+        currentSettings.enabled = checkbox.checked;
+        
+        // Save immediately
+        localStorage.setItem('autoplaySettings', JSON.stringify(currentSettings));
+        
+        console.log('[Sidebar Toggle] Autoplay ' + (checkbox.checked ? 'ENABLED' : 'DISABLED') + 
+                    '. Mode preserved: ' + currentSettings.nonPlaylistMode);
+    });
+    
+    // Allow clicking the text label to toggle as well
+    label.addEventListener('click', () => {
+        checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event('change'));
+    });
+}
+
+
+// Prevent middle-click autoscroll (pan mode) on all interactive elements
+document.addEventListener('mousedown', function(e) {
+    // Button 1 = Middle mouse button (wheel click)
+    if (e.button === 1) {
+        // Check if clicking on a link or any of our custom clickable elements
+        const target = e.target.closest('a, .suggestion-item, .suggestion-title, .thumbnail-container, .channel-name, .logo-overlay, .mention-link, [data-video-path]');
+        
+        if (target) {
+            e.preventDefault();
+            
+            // If it's an anchor tag with href, manually open in new tab to ensure it works
+            // (since we prevented default behavior)
+            if (target.tagName === 'A' && target.href) {
+                window.open(target.href, '_blank');
+            }
+            // For other elements, their existing 'mouseup'/'auxclick' handlers will handle the new tab
+        }
+    }
+}, true); // Use capture phase to catch it before the browser's autoscroll kicks in
+
+// Also disable context menu autoscroll for right-click (optional)
+document.addEventListener('mousedown', function(e) {
+    if (e.button === 2) { // Right click
+        const target = e.target.closest('.suggestion-item, .suggestion-title, .thumbnail-container, .channel-name');
+        if (target) {
+            e.preventDefault();
+        }
+    }
+}, true);
+
+// ===== LIVE CHAT INTEGRATION LOGIC =====
+
+let liveChatData = []; // Stores parsed chat messages
+let processedIndices = new Set(); // Tracks displayed messages
+let chatTimer = null;
+
+async function initLiveChat(videoSrc, playlistName) {
+    if (!videoSrc) return;
+
+    try {
+        const parts = videoSrc.split('/');
+        const channel = parts[0];
+        
+        const rawVideoName = parts[parts.length - 1]; 
+        let videoName = stripExtension(rawVideoName);
+
+        let encodedName = encodeURIComponent(videoName);
+        
+        // 2. Double-check specific problematic chars often missed or mishandled
+        // (This creates a "safe" string that definitely looks like a URI component)
+        encodedName = encodedName.replace(/'/g, "%27")
+                                 .replace(/\(/g, "%28")
+                                 .replace(/\)/g, "%29")
+                                 .replace(/!/g, "%21")
+                                 .replace(/,/g, "%2C");
+        
+        const chatUrl = `/livechats/${encodeURIComponent(channel)}/${encodedName}.json`;
+        
+        console.log(`[LiveChat] Attempting to fetch: ${chatUrl}`);
+
+        const response = await fetch(chatUrl);
+        
+        if (!response.ok) return; 
+        
+        liveChatData = await response.json();
+        
+        if (liveChatData && liveChatData.length > 0) {
+            console.log(`[LiveChat] Loaded ${liveChatData.length} messages.`);
+            
+            document.getElementById('chatToggleContainer').style.display = 'block';
+            setupChatSync();
+        }
+    } catch (err) {
+        console.log("[LiveChat] No chat file available.", err);
+    }
+}
+
+function setupChatSync() {
+    const videoPlayer = document.getElementById('videoPlayer');
+    
+    // Clear chat on seek to allow re-displaying context around new time
+    videoPlayer.addEventListener('seeking', () => {
+        clearChatMessages();
+        // Small delay to ensure currentTime is updated
+        setTimeout(syncChat, 100);
+    });
+
+    videoPlayer.addEventListener('timeupdate', () => {
+        syncChat();
+    });
+    
+    videoPlayer.addEventListener('pause', () => {
+        if(chatTimer) cancelAnimationFrame(chatTimer);
+    });
+}
+
+let isChatSyncing = false; // Prevent overlapping syncs
+let lastSyncedIndex = -1; // Track the last processed message index to avoid duplicates
+let isSeeking = false; // Flag to detect when user has jumped in timeline
+
+function syncChat() {
+    // Prevent flicker: if already syncing, skip this frame
+    if (isChatSyncing) return;
+    
+    // Check if chat container is visible before syncing
+    const chatContainer = document.getElementById('liveChatContainer');
+    if (!chatContainer.style.display || chatContainer.style.display === 'none') return;
+
+    const videoPlayer = document.getElementById('videoPlayer');
+    const currentMs = videoPlayer.currentTime * 1000;
+    const container = document.getElementById('liveChatMessages');
+    
+    let addedCount = 0;
+    const maxPerFrame = 50; // Allow bulk load for seeking, but limit total display
+    
+    // DETECT SEEK: If current time is before the timestamp of the last displayed message,
+    // user has jumped backwards. If gap is > 2sec forward, likely a jump too.
+    if (lastSyncedIndex >= 0 && lastSyncedIndex < liveChatData.length) {
+        const lastMsgTime = liveChatData[lastSyncedIndex].offsetMs;
+        const timeDiff = currentMs - lastMsgTime;
+        
+        // If we went back more than 2 seconds, or jumped ahead more than 5 seconds, treat as seek
+        if (currentMs < lastMsgTime - 2000) {
+            console.log(`[Chat] Seek detected! Clearing and reloading from ${formatTime(currentMs)}`);
+            clearChatMessages();
+            isSeeking = true;
+        }
+    }
+    
+    // Determine starting index
+    let startIndex;
+    if (isSeeking || lastSyncedIndex === -1) {
+        // For seeks: Binary search or linear scan to find starting point
+        // Find the first message that falls within our 50-message window before current time
+        startIndex = findStartIndexForTime(currentMs);
+        isSeeking = false; // Reset flag after handling seek
+    } else {
+        // Normal playback: continue from where we left off
+        startIndex = Math.max(0, lastSyncedIndex + 1);
+    }
+    
+    for (let i = startIndex; i < liveChatData.length; i++) {
+        const msg = liveChatData[i];
+
+        // If message offset is in the future, stop
+        if (msg.offsetMs > currentMs) break;
+
+        // Add this message
+        addChatMessageToDOM(msg.author, msg.message);
+        processedIndices.add(i);
+        lastSyncedIndex = i; // Update our position
+        addedCount++;
+        
+        if (addedCount >= maxPerFrame) break;
+    }
+    
+    // Enforce 50-message limit by removing oldest (only needed during initial bulk load)
+    while (container.children.length > 50) {
+        container.removeChild(container.firstChild);
+        // Remove oldest tracked index to keep in sync
+        if (processedIndices.size > 0) {
+            const oldestIndex = Math.min(...processedIndices);
+            processedIndices.delete(oldestIndex);
+            // Update lastSyncedIndex if we removed something after it (shouldn't happen but safety)
+            if (oldestIndex <= lastSyncedIndex && processedIndices.size > 0) {
+                // Keep lastSyncedIndex pointing to newest
+            }
+        }
+    }
+    
+    // Auto-scroll to bottom
+    if (addedCount > 0 || (container.scrollHeight - container.scrollTop - container.clientHeight < 100)) {
+        container.scrollTop = container.scrollHeight;
+    }
+}
+
+// Helper: Find the best starting index to show ~50 messages leading up to currentTime
+function findStartIndexForTime(currentMs) {
+    // First, find how many messages exist up to this point
+    let countUpToNow = 0;
+    for (let i = 0; i < liveChatData.length; i++) {
+        if (liveChatData[i].offsetMs <= currentMs) {
+            countUpToNow++;
+        } else {
+            break;
+        }
+    }
+    
+    // We want the latest 50 messages (or fewer if not enough history)
+    // So start from (countUpToNow - 50), minimum 0
+    return Math.max(0, countUpToNow - 50);
+}
+
+function formatTime(ms) {
+    const seconds = Math.floor(ms / 1000);
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+}
+
+function clearChatMessages() {
+    const container = document.getElementById('liveChatMessages');
+    container.innerHTML = '';
+    processedIndices.clear();
+    lastSyncedIndex = -1; // Reset position when clearing (seeking)
+}
+
+// Override the video player's seeking event to ensure we catch all seeks
+document.addEventListener('DOMContentLoaded', () => {
+    const videoPlayer = document.getElementById('videoPlayer');
+    if (videoPlayer) {
+        videoPlayer.addEventListener('seeking', () => {
+            // Mark as seeking so next syncChat() will handle it
+            isSeeking = true;
+            // Small delay to ensure currentTime is updated before we process
+            setTimeout(() => {
+                if (isChatSyncing) return; // Don't interrupt ongoing sync
+                syncChat();
+            }, 50);
+        });
+    }
+});
+
+function appendChatMessage(author, message) {
+    // This function is called externally for real-time simulation
+    const container = document.getElementById('liveChatMessages');
+    
+    // Limit to latest 50 messages (remove oldest)
+    while (container.children.length >= 50) {
+        container.removeChild(container.firstChild);
+        if (processedIndices.size > 0) {
+            const oldestIndex = Math.min(...processedIndices);
+            processedIndices.delete(oldestIndex);
+        }
+    }
+    
+    addChatMessageToDOM(author, message);
+    container.scrollTop = container.scrollHeight;
+}
+
+function addChatMessageToDOM(author, message) {
+    const container = document.getElementById('liveChatMessages');
+    const div = document.createElement('div');
+    div.className = 'chat-message';
+    
+    const safeAuthor = author.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const safeMessage = message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    div.innerHTML = `
+        <div class="chat-message-meta">
+            <span class="chat-author">${safeAuthor}</span>
+        </div>
+        <div class="chat-text">${safeMessage}</div>
+    `;
+    container.appendChild(div);
+}
+
+function toggleLiveChat() {
+    const chatContainer = document.getElementById('liveChatContainer');
+    const suggestionsContainer = document.getElementById('videoSuggestions');
+    const btn = document.getElementById('chatToggleBtn');
+
+    if (chatContainer.style.display === 'flex') {
+        // Switch back to Playlist/Suggestions
+        chatContainer.style.display = 'none';
+        suggestionsContainer.style.display = 'block';
+        btn.classList.remove('active');
+        btn.innerHTML = 'Show Live Chat';
+    } else {
+        // Switch to Chat
+        chatContainer.style.display = 'flex';
+        suggestionsContainer.style.display = 'none';
+        btn.classList.add('active');
+        btn.innerHTML = 'Show Sidebar';
+        
+        // Force a sync immediately to fill visible messages
+        clearChatMessages();
+        syncChat();
+    }
+}
+
+// ==============================
+// ==============================
+// Apply Video Page Layout Preference
+// ==============================
+(function applyVideoPageLayout() {
+    const setting = JSON.parse(localStorage.getItem('videoPageLayout') || '{}');
+    const layout = setting.layout || 'modern';
+    const channelInfo = document.getElementById('channelInfo');
+    
+    // Create or get the style element for classic layout rules
+    let classicStyleEl = document.getElementById('classic-layout-styles');
+    if (!classicStyleEl) {
+        classicStyleEl = document.createElement('style');
+        classicStyleEl.id = 'classic-layout-styles';
+        document.head.appendChild(classicStyleEl);
+    }
+    
+    // Helper: Updates Save Icon based on current mode
+    const updateSaveIconSrc = () => {  };
+
+    // Helper to clean up wrapper when switching modes
+    const cleanupWrapper = () => {  };
+
+    if (layout === 'classic' && channelInfo) {
+        channelInfo.classList.add('classic-layout');
+        
+        // --- WRAP ELEMENTS IN CLASSIC INFO BOX ---
+        const videoTitle = document.getElementById('currentVideoTitle');
+        const infoBoxWrapper = document.createElement('div');
+        infoBoxWrapper.id = 'classicInfoBoxWrapper';
+        
+        // Insert the wrapper before the title
+        videoTitle.parentNode.insertBefore(infoBoxWrapper, videoTitle);
+        
+        // Move the title and channel info into the wrapper
+        infoBoxWrapper.appendChild(videoTitle);
+        infoBoxWrapper.appendChild(channelInfo);
+
+        // --- MOVE SUBSCRIBE BUTTON AND SUB COUNT INTO WRAPPER ---
+        const subscribeBtn = document.getElementById('subscribeButton');
+        const subCount = document.getElementById('subCount');
+        const channelTextGroup = document.querySelector('.channel-text-group');
+        
+        if (subscribeBtn && subCount && channelTextGroup) {
+            let wrapper = document.getElementById('subscribeCountWrapper');
+            if (!wrapper) {
+                wrapper = document.createElement('div');
+                wrapper.id = 'subscribeCountWrapper';
+                wrapper.className = 'subscribe-count-wrapper';
+                channelTextGroup.appendChild(wrapper);
+            }
+            // Append button first, then count to the right
+            wrapper.appendChild(subscribeBtn);
+            wrapper.appendChild(subCount);
+            
+            // Strip "subscribers" text for classic layout (keep just the number)
+            // Use a MutationObserver because the sub count text loads asynchronously
+            const classicSubCountObserver = new MutationObserver(() => {
+                const currentText = subCount.textContent.trim();
+                if (currentText && !subCount.dataset.fullText) {
+                    subCount.dataset.fullText = currentText;
+                }
+                if (currentText.includes(' ')) {
+                    subCount.textContent = currentText.split(' ')[0];
+                }
+            });
+            classicSubCountObserver.observe(subCount, { childList: true, characterData: true, subtree: true });
+            // Also run immediately in case it's already loaded
+            classicSubCountObserver.takeRecords();
+            const currentText = subCount.textContent.trim();
+            if (currentText && !subCount.dataset.fullText) {
+                subCount.dataset.fullText = currentText;
+            }
+            if (currentText.includes(' ')) {
+                subCount.textContent = currentText.split(' ')[0];
+            }
+            }
+
+        // Inject Classic CSS
+        classicStyleEl.textContent = `
+            /* Square Comment Avatars */
+            .classic-layout-active .comment-avatar,
+            body[data-video-layout="classic"] .comment-avatar {
+                border-radius: 0 !important;
+                width: 40px !important;
+                height: 40px !important;
+                margin-top: 6px;
+            }
+            
+            .classic-layout-active .comment-item.reply .comment-avatar,
+            body[data-video-layout="classic"] .comment-item.reply .comment-avatar {
+                border-radius: 0 !important;
+                width: 24px !important;
+                height: 24px !important;
+                margin-top: 4px;
+            }
+
+            /* Square Channel Pic */
+            .channel-info.classic-layout .channel-pic {
+                border-radius: 0 !important;
+                width: 50px !important;
+                height: 50px !important;
+            }
+
+            /* --- Classic Info Box Wrapper --- */
+            #classicInfoBoxWrapper {
+                background-color: #282828;
+                padding: 10px 15px 5px 15px;
+                margin-top: 10px;
+                border: 1px solid #3f3f3f;
+            }
+
+            #classicInfoBoxWrapper .current-video-title {
+                margin-top: 0;
+                padding-bottom: 0; /* Removed bottom padding */
+                border-bottom: none; /* Removed border */
+                margin-bottom: 10px;
+            }
+
+            #classicInfoBoxWrapper .channel-info.classic-layout {
+                margin-top: 0;
+            }
+
+            #classicInfoBoxWrapper .channel-left {
+                padding-bottom: 0;
+            }
+
+            /* Divider between Channel Pic area and Action Buttons */
+            #classicInfoBoxWrapper #classicActionsWrapper {
+                border-top: 1px solid #3f3f3f;
+                padding-top: 12px; /* Increased padding to accommodate the bar on the border */
+                margin-top: 10px !important;
+                position: relative; /* Context for absolute positioning of like bar */
+            }
+
+            .channel-info.classic-layout .subscribe-count-wrapper {
+                height: 26px;
+                overflow: visible;
+            }
+
+            /* Channel Info Rearrangement */
+            .channel-info.classic-layout {
+                flex-wrap: wrap;
+            }
+
+            .channel-info.classic-layout .channel-left {
+                flex-wrap: wrap; 
+                align-items: center;
+                width: auto; 
+            }
+
+            #classicActionsWrapper {
+                flex: 1 1 100% !important; 
+                display: flex !important; 
+                gap: 20px !important; 
+                margin-left: 0 !important;
+                margin-right: 0 !important; 
+                padding-left: 0 !important; 
+                padding-right: 0 !important; 
+                box-sizing: border-box !important; 
+                align-items: center !important;
+                order: 99 !important; /* Force it to the bottom of the flex container */
+            }
+
+            .channel-info.classic-layout .channel-right {
+                flex-direction: column;
+                align-items: flex-end;
+                gap: 6px;
+                padding-right: 20px;
+            }
+
+            /* Hide the original bar container inside the like container since we moved it */
+            .channel-info.classic-layout #likeDislikeContainer .like-dislike-bar-container {
+                display: none !important;
+            }
+
+            /* --- VIEW COUNT STYLING --- */
+            .view-count-classic {
+                display: inline-block !important;
+                font-size: 22px !important;
+                color: #aaa !important;
+                font-family: 'RobotoRegular', Arial, sans-serif !important;
+                
+                order: 0;
+                width: auto !important;
+                text-align: right !important;
+                margin-bottom: 0px !important;
+                padding: 0 !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                margin-right: 0px !important;
+                margin-top: 20px !important;
+            }
+
+            /* --- LIKE BAR STYLING (On the divider) --- */
+            .like-bar-classic-wrapper {
+                display: block !important;
+                position: absolute;
+                top: -2px;
+                right: 20px;
+                width: 180px !important;
+                height: 3px !important;
+                background-color: #235cad !important;
+                border-radius: 2px !important;
+                overflow: hidden;
+                z-index: 2;
+                margin: 0 !important;
+            }
+            
+            .like-bar-classic-wrapper > div {
+                height: 100% !important;
+                background-color: #397ddb !important;
+                border-radius: 2px !important;
+            }
+
+            /* --- LIKE/DISLIKE ICONS (Below the divider, aligned right under bar) --- */
+            .channel-info.classic-layout #likeDislikeContainer {
+                flex-direction: row;
+                align-items: center;
+                margin-left: auto !important;
+                margin-right: 20px !important;
+                margin-top: 4px !important;
+                order: initial;
+            }
+
+            /* --- SHARE & SAVE CONTAINERS (Left side of divider) --- */
+            .channel-info.classic-layout #shareContainer,
+            .channel-info.classic-layout #saveContainer {
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+                order: -1 !important; /* Force to the left side of the flex container */
+            }
+
+            .channel-info.classic-layout .channel-name:hover {
+                text-decoration: underline !important;
+            }
+
+            /* --- Subscribe and Sub-Count Wrapper for Classic Mode --- */
+            .subscribe-count-wrapper {
+                display: flex;
+                align-items: stretch;
+                margin-top: 4px;
+                height: 22px;
+                border-radius: 0;
+                overflow: hidden;
+            }
+
+            .channel-info.classic-layout .subscribe-button {
+                margin: 0 !important;
+                padding: 0 10px;
+                height: 100%;
+                border-radius: 0;
+                border-right: 1px solid rgba(0,0,0,0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 12px;
+                cursor: pointer;
+                background-color: #e62117;
+            }
+
+            .channel-info.classic-layout .sub-count {
+                display: flex !important;
+                align-items: center;
+                background-color: #fafafa !important;
+                padding: 0px 12px;
+                height: 24px;
+                align-self: center;
+                background-color: var(--secondary-bg-color, #333) !important;
+                border: 1px solid #666;
+                border-left: none;
+                color: #fff;
+                font-size: 12px;
+                font-family: 'RobotoRegular', Arial, sans-serif;
+                white-space: nowrap;
+                margin: 0 !important;
+            }
+
+            .channel-info.classic-layout .subscribe-button.subscribed + .sub-count {
+                border-color: darkgray;
+                color: #888;
+            }
+
+            /* --- Description Toggle Styling for Classic Layout --- */
+            .classic-layout-active .video-description,
+            body[data-video-layout="classic"] .video-description {
+                margin-bottom: 0;
+            }
+
+            .classic-layout-active .description-toggle,
+            body[data-video-layout="classic"] .description-toggle {
+                text-align: center;
+                text-transform: uppercase;
+                background-color: #282828;
+                margin-top: 0;
+                padding: 10px 15px;
+                border-top: 1px solid #555;
+            }
+        `;
+
+        document.body.classList.add('classic-layout-active');
+        document.body.setAttribute('data-video-layout', 'classic');
+
+        // --- SWAP ICONS ---
+        const likeBtn = document.getElementById('likeButton');
+        const dislikeBtn = document.getElementById('dislikeButton');
+        
+        if (likeBtn && likeBtn.src.includes('like.svg')) likeBtn.src = 'LocalYT-Rev-Files/like_classic.svg';
+        if (dislikeBtn && dislikeBtn.src.includes('dislike.svg')) dislikeBtn.src = 'LocalYT-Rev-Files/dislike_classic.svg';
+        updateSaveIconSrc();
+
+        // --- MOVE SHARE & SAVE TO LEFT SIDE ---
+        cleanupWrapper();
+        const actionsWrapper = document.createElement('div');
+        actionsWrapper.id = 'classicActionsWrapper';
+        const shareContainer = document.getElementById('shareContainer');
+        const saveContainer = document.getElementById('saveContainer');
+
+        // Add Share/Save first so they appear on the left in the flex container
+        if (saveContainer) actionsWrapper.appendChild(saveContainer);
+        if (shareContainer) actionsWrapper.appendChild(shareContainer);
+
+        // Append to channelInfo instead of channelLeft to allow full-width divider
+        if (channelInfo) channelInfo.appendChild(actionsWrapper);
+
+        // --- OBSERVE SAVE ICON CHANGES ---
+        const saveIconTarget = document.getElementById('saveIcon');
+        if (saveIconTarget) {
+            const saveObserver = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
+                        const newSrc = saveIconTarget.src;
+                        if (newSrc.includes('saved.svg') || newSrc.includes('save.svg')) {
+                            saveIconTarget.src = newSrc.includes('saved') 
+                                ? 'LocalYT-Rev-Files/saved_classic.svg' 
+                                : 'LocalYT-Rev-Files/save_classic.svg';
+                        }
+                    }
+                });
+            });
+            saveObserver.observe(saveIconTarget, { attributes: true });
+        }
+        
+        // =============================================
+        // VIEW COUNT LOGIC
+        // =============================================
+        let vcEl = document.getElementById('viewCountClassic');
+        if (!vcEl) {
+            vcEl = document.createElement('div');
+            vcEl.id = 'viewCountClassic';
+            vcEl.className = 'view-count-classic';
+            vcEl.style.cssText = `display:inline-block!important;font-size:20px;color:#aaa;text-align:right;margin-bottom:8px;opacity:1!important;visibility:visible!important;margin-right:-10px;`;
+            
+            const channelRight = document.querySelector('.channel-right');
+            if (channelRight) channelRight.insertBefore(vcEl, channelRight.firstChild);
+            else {
+                const ldc = document.getElementById('likeDislikeContainer');
+                if (ldc) ldc.parentNode.insertBefore(vcEl, ldc);
+            }
+        }
+
+        const processViewCount = () => {
+            const desc = document.getElementById('currentVideoDescription');
+            if (!desc || !vcEl) return;
+            const text = desc.textContent;
+            const match = text.match(/^([\d.,]+)\s*(views|Aufrufe)\s*-\s*/);
+            if (match) {
+                vcEl.textContent = match[0].replace(/\s*-\s*$/, '').trim();
+                desc.textContent = text.replace(match[0], '');
+                if (typeof checkDescriptionCollapse === 'function') checkDescriptionCollapse();
+            }
+        };
+        setTimeout(processViewCount, 50);
+        const descObserver = new MutationObserver(processViewCount);
+        const descEl = document.getElementById('currentVideoDescription');
+        if (descEl) descObserver.observe(descEl, { childList: true, characterData: true, subtree: true });
+
+        // =============================================
+        // MOVE LIKE BAR TO DIVIDER & ICONS BELOW IT
+        // =============================================
+        
+        // 1. Get the bar elements
+        const likeBar = document.getElementById('likeBar'); // The inner blue bar
+        const barContainer = likeBar ? likeBar.parentElement : null; // The grey background container (.like-dislike-bar-container)
+        const likeDislikeContainer = document.getElementById('likeDislikeContainer');
+        const classicActionsWrapper = document.getElementById('classicActionsWrapper'); // The divider container
+
+        // 2. Check if we haven't moved it yet (avoid duplicates on re-runs)
+        if (likeBar && barContainer && classicActionsWrapper && !document.getElementById('likeBarClassicWrapper')) {
+            
+            // Create a new wrapper for styling purposes
+            const classicBarWrapper = document.createElement('div');
+            classicBarWrapper.id = 'likeBarClassicWrapper';
+            classicBarWrapper.className = 'like-bar-classic-wrapper';
+
+            // Move the INNER bar into our new wrapper
+            classicBarWrapper.appendChild(likeBar);
+
+            // Insert this new wrapper INTO the actions wrapper at the beginning
+            // This places it absolutely positioned on the border-top of the actions wrapper
+            classicActionsWrapper.prepend(classicBarWrapper);
+        }
+
+        // 3. Move the Like/Dislike Icons BELOW the divider (into the actions wrapper, after share/save)
+        if (likeDislikeContainer && classicActionsWrapper && !likeDislikeContainer.dataset.movedToActions) {
+            likeDislikeContainer.dataset.movedToActions = "true";
+            // Append after share/save containers (which are at the start due to prepend/order:-1 logic)
+            classicActionsWrapper.appendChild(likeDislikeContainer);
+        }
+
+    } else {
+        // Modern mode: Clean up
+        classicStyleEl.textContent = '';
+        if (channelInfo) channelInfo.classList.remove('classic-layout');
+        document.body.classList.remove('classic-layout-active');
+        document.body.removeAttribute('data-video-layout');
+
+        // --- REMOVE CLASSIC INFO BOX WRAPPER ---
+        const infoBoxWrapper = document.getElementById('classicInfoBoxWrapper');
+        if (infoBoxWrapper) {
+            const videoTitle = document.getElementById('currentVideoTitle');
+            const parent = infoBoxWrapper.parentNode;
+            
+            // Move elements back out before removing the wrapper
+            if (videoTitle) parent.insertBefore(videoTitle, infoBoxWrapper);
+            parent.insertBefore(channelInfo, infoBoxWrapper);
+            
+            infoBoxWrapper.remove();
+        }
+
+        // Restore Icons
+        const likeBtn = document.getElementById('likeButton');
+        const dislikeBtn = document.getElementById('dislikeButton');
+        if (likeBtn && likeBtn.src.includes('like_classic.svg')) likeBtn.src = 'LocalYT-Rev-Files/like.svg';
+        if (dislikeBtn && dislikeBtn.src.includes('dislike_classic.svg')) dislikeBtn.src = 'LocalYT-Rev-Files/dislike.svg';
+        updateSaveIconSrc();
+
+        cleanupWrapper(); 
+        
+        // --- RESTORE SUBSCRIBE BUTTON AND SUB COUNT TO ORIGINAL POSITIONS ---
+        const wrapper = document.getElementById('subscribeCountWrapper');
+        const subscribeBtn = document.getElementById('subscribeButton');
+        const subCount = document.getElementById('subCount');
+        const channelTextGroup = document.querySelector('.channel-text-group');
+        const channelLeftRestore = document.querySelector('.channel-left');
+        
+        if (wrapper) {
+            // Restore full "subscribers" text
+            if (subCount && subCount.dataset.fullText) {
+                subCount.textContent = subCount.dataset.fullText;
+                delete subCount.dataset.fullText;
+            }
+            // Move subCount back to channel-text-group
+            if (subCount && channelTextGroup) {
+                channelTextGroup.appendChild(subCount);
+            }
+            // Move subscribeBtn back to channel-left
+            if (subscribeBtn && channelLeftRestore) {
+                channelLeftRestore.appendChild(subscribeBtn);
+            }
+            // Remove the temporary wrapper
+            wrapper.remove();
+        }
+
+        // --- RESTORE LIKE BAR TO ORIGINAL POSITION ---
+        const classicWrapper = document.getElementById('likeBarClassicWrapper');
+        if (classicWrapper) {
+            const likeBar = classicWrapper.querySelector('#likeBar'); // Get the inner bar back
+            const originalContainer = document.querySelector('.like-dislike-bar-container');
+            
+            if (likeBar && originalContainer) {
+                // Put the bar back inside its original grey container
+                originalContainer.appendChild(likeBar);
+            }
+            // Remove our temporary wrapper
+            classicWrapper.remove();
+        }
+        // ---------------------------------------------
+
+        // Restore Like/Dislike Container to channelRight if moved
+        const ldc = document.getElementById('likeDislikeContainer');
+        if (ldc && ldc.dataset.movedToActions) {
+            delete ldc.dataset.movedToActions;
+            const channelRight = document.querySelector('.channel-right');
+            if (channelRight) channelRight.appendChild(ldc);
+        }
+
+        // Remove View Count element
+        const vc = document.getElementById('viewCountClassic');
+        if (vc) vc.remove();
+    }
+})();
+
+// ==============================
+// Apply Title Color Scheme Preference (Blue Text)
+// ==============================
+(function applyTitleColorScheme() {
+    const setting = JSON.parse(localStorage.getItem('titleColorScheme') || '{}');
+    
+    function applyBlueText() {
+        const existingStyle = document.getElementById('title-color-scheme-blue');
+        if (existingStyle) existingStyle.remove();
+        
+        if (setting.scheme === 'blue') {
+            const style = document.createElement('style');
+            style.id = 'title-color-scheme-blue';
+            
+            style.textContent = `
+                html body .comment-author.blue-text {
+                    color: #128ee9 !important;
+                }
+                
+                html body .comment-author.blue-text:hover {
+                    text-decoration: underline !important;
+                    cursor: pointer !important;
+                }
+                
+                html body .suggestion-title.blue-text:hover {
+                    color: #3ea6ff !important;
+                }
+                
+                html body .channel-name.blue-text:hover {
+                    text-decoration: underline !important;
+                }
+            `;
+            
+            document.head.appendChild(style);
+            
+            // Add class to existing elements
+            document.querySelectorAll('.comment-author, .suggestion-title, .channel-name').forEach(el => {
+                el.classList.add('blue-text');
+            });
+            
+            // Watch for dynamically loaded comments and sidebar items
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === 1) {
+                            if (node.matches && (
+                                node.matches('.comment-author') || 
+                                node.matches('.suggestion-title') || 
+                                node.matches('.channel-name')
+                            )) {
+                                node.classList.add('blue-text');
+                            }
+                            
+                            if (node.querySelectorAll) {
+                                node.querySelectorAll('.comment-author, .suggestion-title, .channel-name').forEach(el => {
+                                    el.classList.add('blue-text');
+                                });
+                            }
+                        }
+                    });
+                });
+            });
+            
+            observer.observe(document.body, { childList: true, subtree: true });
+        } else {
+            document.querySelectorAll('.comment-author.blue-text, .suggestion-title.blue-text, .channel-name.blue-text').forEach(el => el.classList.remove('blue-text'));
+        }
+    }
+
+    // Apply immediately
+    applyBlueText();
+    
+    // Re-apply after profile-pic.js Light Mode runs
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => setTimeout(applyBlueText, 100));
+    } else {
+        setTimeout(applyBlueText, 100);
+    }
+})();
+    </script>
+<script>
+    // --- Mobile Search Logic for Touch Devices ---
+    const isTouchDeviceSearch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    
+    if (isTouchDeviceSearch) {
+        const searchIcon = document.getElementById('searchIcon');
+        const mobileOverlay = document.getElementById('mobileSearchOverlay');
+        const mobileSearchInput = document.getElementById('mobileSearchInput');
+        const mobileSearchClose = document.getElementById('mobileSearchClose');
+
+        if (searchIcon && mobileOverlay && mobileSearchInput) {
+            // Tapping the search icon opens the full-width overlay
+            searchIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                mobileOverlay.classList.add('active');
+                mobileSearchInput.placeholder = 'Search'; // You can use your getLang() here if it's available
+                mobileSearchInput.focus();
+            });
+
+            // Close the overlay
+            mobileSearchClose.addEventListener('click', () => {
+                mobileOverlay.classList.remove('active');
+                mobileSearchInput.value = '';
+            });
+
+            // Handle searching from the overlay
+            mobileSearchInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    const query = mobileSearchInput.value.trim();
+                    if (query) {
+                        window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+                    }
+                }
+            });
+        }
+    }
+</script>
+    <script src="profile-pic.js"></script>
+    <script src="fluidplayer-custom-stats.js"></script>
+    <script src="sidebar.js"></script>
+    <script src="thumbnail-context-menu.js"></script>
+</body>
+</html>

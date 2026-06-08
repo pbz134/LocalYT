@@ -1,0 +1,724 @@
+:root {
+    --main-bg-color: #0f0f0f;
+    --secondary-bg-color: #212121;
+    --input-bg-color: #1a1a1a;
+    --button-bg-color: #0f0f0f;
+}
+
+@font-face {
+    font-family: 'RobotoRegular';
+    src: url('/LocalYT-Rev-Files/Roboto-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'RobotoThin';
+    src: url('/LocalYT-Rev-Files/Roboto-Thin.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Kaleko205Round';
+    src: url('/LocalYT-Rev-Files/Kaleko 205 Round W01 Bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+}
+
+body {
+    font-family: 'RobotoRegular', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--main-bg-color);
+    color: #fff;
+}
+
+.top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background-color: var(--main-bg-color);
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.logo {
+    width: 160px;
+    height: auto;
+    cursor: pointer;
+}
+
+.search-container {
+    display: flex;
+    align-items: center;
+    justify-content: center; 
+    flex: 1;
+    max-width: 500px;
+    left: -80px;
+    margin: 0 auto;
+    position: relative; 
+}
+
+.top-bar input {
+    width: 100%;
+    padding: 10px 50px 10px 15px;
+    font-size: 16px;
+    border: 2px solid #444;
+    background-color: var(--input-bg-color);
+    color: #fff;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+    transition: border-color 0.3s ease;
+}
+
+.top-bar input:focus {
+    border-color: #fff;
+    outline: none;
+}
+
+.search-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: var(--input-bg-color);
+    border: 1px solid #444;
+    max-height: 260px;
+    overflow-y: auto;
+    z-index: 1001;
+}
+
+.suggestion-item {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    padding: 80px 20px 20px;
+    margin: 0 auto;
+    max-width: calc(100% - 40px);
+}
+
+.video-thumbnail {
+    width: 100%;
+    height: 180px;
+    display: block;
+    transition: transform 0.2s ease;
+    cursor: pointer;
+}
+
+.video-item {
+    margin: 0 10px 5px 10px;
+    background: transparent;
+    overflow: hidden;
+    width: 320px;
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+.video-item video {
+    width: 100%;
+    height: auto;
+    display: block;
+    border: none;
+    pointer-events: none;
+}
+
+.video-info {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px;
+    text-align: left;
+}
+
+.video-details {
+    display: flex;
+    flex-direction: column;
+    margin-left: 10px;
+}
+
+.video-title {
+    font-weight: bold;
+    font-family: 'RobotoRegular', sans-serif;
+    cursor: pointer;
+    color: #d2cfcf;
+    text-decoration: none;
+    transition: text-decoration 0.2s ease;
+    font-size: 14px;
+}
+
+.channel-name {
+    font-size: 12px;
+    font-weight: light;
+    margin-top: 5px;
+    cursor: pointer;
+    color: #aaa;
+    transition: color 0.3s ease;
+}
+
+.channel-name:hover {
+    color: #ffffff;
+}
+
+.video-description {
+    font-family: 'RobotoRegular', sans-serif;
+    font-size: 12px;
+    color: #888;
+    margin-top: 5px;
+    padding-left: 48px;
+}
+
+.video-player-container {
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+    padding: 80px 0px 20px;
+    background-color: var(--main-bg-color);
+    color: #fff;
+}
+
+.video-wrapper {
+    flex: 0 0 70%;
+    padding-right: 0px;
+    position: relative;
+}
+
+.current-video-title {
+    padding: 0px;
+    text-align: left;
+    font-weight: bold;
+    font-family: 'RobotoRegular', sans-serif;
+    margin-top: 13px;
+    color: #d2cfcf;
+    font-size: 16px;
+}
+
+.suggestions-wrapper {
+    background-color: var(--main-bg-color);
+    padding: 0px;
+    border-radius: 8px;
+    width: 380px;
+    flex-shrink: 0; /* Prevent flexbox from resizing this container */
+    min-width: 0;
+}
+
+.video-suggestions {
+    display: flex;
+    flex-direction: column;
+}
+
+.suggestion-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 0px;
+}
+
+.suggestion-item img.video-thumbnail {
+    width: 135px;
+    height: 72px;
+    display: block;
+    border-radius: 0px;
+}
+
+.suggestion-title {
+    text-align: left;
+    font-weight: regular;
+    font-family: 'RobotoRegular', sans-serif;
+    cursor: pointer;
+    color: #ffffff;
+    text-decoration: none;
+    transition: text-decoration 0.2s ease;
+    font-size: 14px;
+}
+
+.search-results-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 80px 20px 20px;
+}
+
+.search-result-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+    width: 70%;
+    background: var(--main-bg-color);
+    border-radius: 0px;
+    overflow: hidden;
+    transition: transform 0.2s ease;
+}
+
+.search-result-item .video-thumbnail {
+    width: 280px;
+    height: 160px;
+    display: block;
+    margin-right: 20px;
+}
+
+.search-result-item .video-title {
+    flex: 1;
+    padding: 10px;
+    text-align: left;
+    font-weight: normal;
+    font-family: 'RobotoRegular', sans-serif;
+    cursor: pointer;
+    color: #ffffff;
+    text-decoration: none;
+    transition: text-decoration 0.2s ease;
+    font-size: 16px;
+    margin-top: -80px;
+}
+
+.index-page .video-description {
+    margin-left: -50px;
+    max-width: calc(100% + 50px);
+}
+
+.search-page .video-description {
+    margin-left: 0;
+    max-width: 100%;
+}
+
+.search-result-item .video-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px;
+}
+
+.search-result-item .video-info .video-title {
+    margin-bottom: 5px;
+}
+
+.current-video-description {
+    font-family: 'RobotoRegular', sans-serif;
+    font-size: 15px;
+    color: #888;
+    margin-top: 20px;
+}
+
+.suggestion-item .channel-name {
+    font-size: 12px;
+    color: #888;
+    margin-left: 10px;
+    cursor: pointer;
+}
+
+.channel-info {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.channel-pic {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.thumbnail-container {
+    position: relative;
+    display: inline-block;
+}
+
+.video-length {
+    position: absolute;
+    bottom: 2px;
+    right: 12px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    padding: 2px 4px;
+    font-size: 10px;
+}
+
+.like-dislike-container {
+    display: flex;
+    align-items: center;
+    margin-left: 600px;
+}
+
+.like-dislike-container img {
+    width: 25px;
+    height: 25px;
+    margin-right: 8px;
+    filter: invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%);
+    cursor: pointer;
+}
+
+.like-dislike-container span {
+    font-family: 'Kaleko205Round', Arial, sans-serif;
+    font-size: 14px;
+    color: #aaa;
+    margin-right: 20px;
+}
+
+.share-container img {
+    width: 25px;
+    height: 25px;
+    margin-right: 8px;
+    filter: invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%);
+}
+
+.share-container span {
+    font-family: 'Kaleko205Round', Arial, sans-serif;
+    font-size: 14px;
+    color: #aaa;
+}
+
+.subscribe-button {
+    padding: 5px 10px;
+    cursor: pointer;
+    font-family: 'RobotoRegular', Arial, sans-serif;
+    font-size: 12px;
+    color: #888;
+    background-color: red;
+    border: none;
+}
+
+.subscribe-button.subscribed {
+    background-color: lightgray;
+}
+
+.categories-container {
+    width: 200px;
+    float: left;
+    margin-right: 20px;
+}
+
+.category-item {
+    padding: 10px;
+    border: 1px solid #ccc;
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+.category-item:hover {
+    background-color: #f0f0f0;
+}
+
+/* --- Search icon --- */
+.search-icon {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 44px;
+    object-fit: contain;
+    padding: 10px;
+    box-sizing: border-box;
+    cursor: pointer;
+    background-color: transparent;
+    border: none;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+img.search-icon {
+    filter: invert(100%);
+    -webkit-user-drag: none;
+    user-select: none;
+}
+
+.search-container:focus-within .search-icon {
+    border-color: #fff;
+}
+/* --- End search icon --- */
+
+/* --- Logo Container Logic --- */
+#mainLogo {
+    display: block;
+    /* Ensure no extra margins break the inline look */
+    margin: 0; 
+}
+
+#logo-version {
+    /* Prevents the version text from wrapping to the next line on small screens */
+    white-space: nowrap;
+    
+    /* Aligns text vertically with the logo image */
+    line-height: 1;
+    
+    /* Cursor pointer so it looks clickable like the logo */
+    cursor: pointer;
+}
+/* --- End Logo Container Logic --- */
+
+/* --- Profile Picture --- */
+.header-profile-pic {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    cursor: pointer;
+    transition: opacity 0.2s ease, box-shadow 0.2s ease;
+    flex-shrink: 0;
+}
+
+.user-actions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-right: 50px;
+}
+
+/* Hide the text input on mobile to un-squish the bar */
+.touch-device .search-container input {
+    display: none;
+}
+
+.touch-device .search-container {
+    flex: 0;
+    max-width: none;
+    position: relative;
+    margin: 0 0 0 auto;
+    left: 0;
+}
+
+.touch-device img.search-icon {
+    width: 30px;
+    height: 30px;
+    padding: 5px;
+    box-sizing: content-box;
+    position: static;
+    right: auto;
+    margin-top: 0;
+}
+
+.touch-device #mainLogo {
+    width: 130px;
+    margin-left: -15px;
+}
+
+.touch-device #logo-version {
+    margin-left: -4px !important;
+}
+
+/* Hide category buttons on mobile to free up space */
+.touch-device .category-container {
+    display: none !important;
+}
+
+.touch-device .search-container img.search-icon {
+    width: 30px;
+    height: 30px;
+    padding: 5px;
+    box-sizing: content-box;
+    position: static !important;
+    right: auto !important;
+    margin-top: 0;
+}
+
+/* Ensure user actions/profile picture stays compact on the right */
+.touch-device .user-actions {
+    margin-left: 0;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+        /* --- Touch Device Search Adjustments --- */
+        .touch-device .search-results-container {
+            padding: 80px 12px 20px !important;
+            align-items: center !important;
+        }
+
+        .touch-device .search-result-item {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            min-height: auto !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin-bottom: 24px !important;
+        }
+
+        .touch-device .search-result-item .thumbnail-container {
+            width: 100% !important;
+        }
+
+        .touch-device .search-result-item .video-thumbnail {
+            width: 100% !important;
+            height: auto !important;
+            aspect-ratio: 16/9 !important;
+        }
+
+        .touch-device .search-result-item .video-info {
+            margin-left: 0 !important;
+            margin-top: 0 !important;
+            padding: 0 !important; /* Strips all padding so children align perfectly */
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        .touch-device .search-result-item .video-title {
+            margin-left: 0 !important;
+            margin-top: 8px !important; 
+            margin-bottom: 4px !important;
+            padding: 0 !important;
+        }
+
+        .touch-device .search-result-item .channel-info {
+            margin-left: 0 !important;
+            margin-top: 4px !important;
+            padding-left: 0 !important;
+        }
+
+        .touch-device .search-result-item .channel-info .channel-pic {
+            width: 22px !important;
+            height: 22px !important;
+        }
+
+        .touch-device .search-result-item .channel-info .channel-name {
+            font-size: 12px !important;
+        }
+
+        .touch-device .search-result-item .video-metadata {
+            font-size: 12px !important;
+            margin-left: 0 !important;
+            margin-top: 8px !important;
+            padding-left: 0 !important;
+        }
+
+        .touch-device .search-result-item .video-length {
+            font-size: 10px !important;
+            padding: 1px 3px !important;
+            bottom: 2px !important;
+            right: 2px !important;
+        }
+
+        .touch-device .video-player-container {
+            flex-direction: column !important;
+            padding: 70px 0 20px !important;
+        }
+
+        .touch-device .video-wrapper {
+            flex: none !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            padding-right: 0 !important;
+        }
+
+        .touch-device .content-wrapper {
+            margin-left: 0 !important;
+        }
+
+        .touch-device .suggestions-wrapper {
+            width: 100% !important;
+            flex-shrink: 1 !important;
+            margin-top: 15px;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        .touch-device .live-chat-container {
+            width: 100% !important;
+            margin-left: 0 !important;
+        }
+
+        /* Wrap Channel Info and Action Buttons */
+        .touch-device .channel-info:not(.classic-layout) {
+            flex-wrap: wrap !important;
+            gap: 10px !important;
+            padding: 0 10px !important;
+        }
+
+        .touch-device .channel-info:not(.classic-layout) .channel-left {
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+        }
+
+        .touch-device .channel-info:not(.classic-layout) .channel-right {
+            flex-wrap: wrap !important;
+            gap: 10px !important;
+            margin-left: 0 !important;
+            padding-right: 0 !important;
+            justify-content: flex-start !important;
+        }
+
+        .touch-device .channel-info:not(.classic-layout) .like-dislike-container {
+            margin-left: 0 !important;
+        }
+
+        .touch-device .channel-info:not(.classic-layout) .share-container,
+        .touch-device .channel-info:not(.classic-layout) .save-container {
+            margin-left: 0 !important;
+        }
+
+        .touch-device .logo-overlay {
+            top: 70% !important;
+        }
+
+        .touch-device .current-video-title {
+            padding: 0 10px !important;
+            font-size: 15px !important;
+        }
+
+        .touch-device .description-toggle {
+            padding-left: 10px !important;
+            margin-bottom: 0 !important;
+        }
+
+        .touch-device .comments-section {
+            padding: 0 10px !important;
+        }
+
+        .touch-device .video-description {
+            margin: 10px 0 0 0 !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+    padding-left: 0 !important;
+        }
+
+        /* --- Touch Device Index Page Video Items --- */
+        .touch-device .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            padding: 130px 15px 20px !important;
+            max-width: 100% !important;
+        }
+
+        .touch-device .video-item {
+            width: auto;
+            margin: 0;
+        }
+
+        .touch-device .video-item .video-thumbnail {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16 / 9;
+        }
+
+        .touch-device .top-bar {
+            justify-content: flex-start;
+            gap: 10px;
+            padding: 10px 12px;
+            padding-top: max(10px, env(safe-area-inset-top));
+        }
+
+        /* --- Touch Device Scrollable Comments --- */
+        .touch-device .comments-section {
+            max-height: 50vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            border-top: 1px solid #3f3f3f;
+            border-bottom: 1px solid #3f3f3f;
+            margin-top: 15px;
+            padding-bottom: 10px;
+        }
+
+        /* --- Disable Android WebView Blue Tap Overlay --- */
+        * {
+            -webkit-tap-highlight-color: transparent !important;
+        }
+
+        a, button, div, img, span {
+            -webkit-tap-highlight-color: transparent !important;
+        }
