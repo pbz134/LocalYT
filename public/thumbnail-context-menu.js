@@ -264,6 +264,7 @@
     const DOTS_SVG = `<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>`;
     const SAVE_SVG = `<svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2zm0 15l-5-2.18L7 18V5h10v13z"/></svg>`;
     const SHARE_SVG = `<svg viewBox="0 0 24 24"><path d="M14 9V3L22 12 14 21v-6c-5 0-8.5 1.5-11 5 1-5 4-10 11-11z"/></svg>`;
+    const CLOCK_SVG = `<svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg>`;
 
     // ==============================
     // GLOBAL MODALS & TOAST
@@ -394,7 +395,16 @@
         const menu = document.createElement('div');
         menu.className = 'thumbnail-context-menu';
 
-        // Add to Playlist Item
+        // 1. Add to Watch Later Item (Top Position)
+        const watchLaterItem = document.createElement('div');
+        watchLaterItem.className = 'thumbnail-context-menu-item';
+        watchLaterItem.innerHTML = `${CLOCK_SVG} <span>${getLang('Add to Watch later', 'Zu "Später ansehen" hinzufügen')}</span>`;
+        watchLaterItem.addEventListener('click', (e) => {
+            e.stopPropagation();
+            saveToWatchLater(videoPath);
+        });
+
+        // 2. Add to Playlist Item
         const addPlaylistItem = document.createElement('div');
         addPlaylistItem.className = 'thumbnail-context-menu-item';
         addPlaylistItem.innerHTML = `${SAVE_SVG} <span>${getLang('Add to playlist', 'Zur Playlist hinzufügen')}</span>`;
@@ -403,7 +413,7 @@
             openSaveModal(videoPath);
         });
 
-        // Share Item
+        // 3. Share Item
         const shareItem = document.createElement('div');
         shareItem.className = 'thumbnail-context-menu-item';
         shareItem.innerHTML = `${SHARE_SVG} <span>${getLang('Share', 'Teilen')}</span>`;
@@ -412,8 +422,11 @@
             openShareModal(videoPath);
         });
 
+        // Append in order: Watch Later, Playlist, Share
+        menu.appendChild(watchLaterItem);
         menu.appendChild(addPlaylistItem);
         menu.appendChild(shareItem);
+        
         document.body.appendChild(menu);
         activeContextMenu = menu;
 
@@ -610,6 +623,55 @@
             showToast(getLang('Saved to playlist', 'Zur Playlist hinzugefügt'));
         } catch (e) {
             console.error('Error saving to playlist:', e);
+        }
+    }
+
+    async function saveToWatchLater(videoPath) {
+        closeContextMenu();
+        const watchLaterName = getLang('Watch later', 'Später ansehen');
+
+        try {
+            // 1. Try to save directly (fast path if playlist already exists)
+            let saveRes = await fetch('/save-to-playlist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ playlist: watchLaterName, video: videoPath })
+            });
+
+            // 2. If the playlist doesn't exist yet, create it and try saving again
+            if (saveRes.status === 404) {
+                const createRes = await fetch('/create-playlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: watchLaterName })
+                });
+
+                if (!createRes.ok && createRes.status !== 409) {
+                    alert(getLang('Error creating Watch later playlist.', 'Fehler beim Erstellen der "Später ansehen" Playlist.'));
+                    return;
+                }
+
+                saveRes = await fetch('/save-to-playlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ playlist: watchLaterName, video: videoPath })
+                });
+            }
+
+            if (saveRes.status === 409) {
+                showToast(getLang('Already in Watch later', 'Bereits in "Später ansehen"'));
+                return;
+            }
+            
+            if (!saveRes.ok) {
+                alert(getLang('Error saving to Watch later.', 'Fehler beim Speichern in "Später ansehen".'));
+                return;
+            }
+
+            showToast(getLang('Saved to Watch later', 'Zu "Später ansehen" hinzugefügt'));
+
+        } catch (e) {
+            console.error('Error saving to Watch later:', e);
         }
     }
 

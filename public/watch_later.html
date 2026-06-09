@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch Later - LocalYT</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
+    <script>
+    // ==============================
+    // Apply Rounded Corners Preference
+    // ==============================
+    (function applyRoundedCorners() {
+        const setting = JSON.parse(localStorage.getItem('roundedCorners') || '{}');
+        const enabled = setting.enabled || false;
+        
+        if (enabled) {
+            const style = document.createElement('style');
+            style.id = 'rounded-corners-style';
+            style.textContent = `
+                .classic-thumbnail-wrapper {
+                    border-radius: 12px !important;
+                    overflow: hidden !important;
+                }
+                .playlist-videos .video-thumbnail {
+                    border-radius: 12px !important;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    })();
+    </script>
+    <style>
+        /* Playlist page background wrapper styling */
+        .playlist-content-section {
+            background-color: var(--secondary-bg-color, #1e1e1e);
+            width: 100%;
+            max-width: 1170px;
+            margin: 80px auto 0 auto;
+            padding-bottom: 20px;
+            min-height: 400px;
+        }
+
+        /* Playlist Specific Styles */
+        .playlist-header {
+            max-width: 1170px;
+            box-sizing: border-box;
+        }
+        .playlist-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 10px;
+            transition: color 0.2s, text-decoration 0.2s;
+        }
+        .playlist-info {
+            color: #888;
+            font-size: 14px;
+            display: inline-block;
+            margin-right: 0;
+        }
+        .playlist-duration {
+            color: #888;
+            font-size: 14px;
+            display: inline-block;
+        }
+        .playlist-info::after {
+            content: " • ";
+            margin: 0 4px;
+        }
+
+        /* Sort and View Options */
+        .sort-options {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin: 0 20px 0 0;
+            position: relative;
+            z-index: 10;
+        }
+        .sort-dropdown, .view-dropdown {
+            position: relative;
+        }
+        .sort-toggle, .view-toggle {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sort-toggle:hover, .view-toggle:hover {
+            background-color: #555;
+        }
+        .sort-toggle-arrow, .view-toggle-arrow {
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid white;
+            transition: transform 0.2s;
+        }
+        .sort-toggle.open .sort-toggle-arrow, .view-toggle.open .view-toggle-arrow {
+            transform: rotate(180deg);
+        }
+        .sort-dropdown-menu, .view-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 4px;
+            background-color: #333;
+            overflow: hidden;
+            min-width: 240px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            z-index: 100;
+        }
+        .view-dropdown-menu {
+            min-width: 140px;
+        }
+        .sort-dropdown-menu.open, .view-dropdown-menu.open {
+            display: block;
+        }
+        .sort-dropdown-item, .view-dropdown-item {
+            padding: 10px 16px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            transition: background-color 0.15s;
+            white-space: nowrap;
+        }
+        .sort-dropdown-item:hover, .view-dropdown-item:hover {
+            background-color: #555;
+        }
+        .sort-dropdown-item.active, .view-dropdown-item.active {
+            color: #fff;
+        }
+
+        /* Video Grid/List Container */
+        .videos-wrapper {
+            position: relative;
+            min-height: 400px;
+        }
+        
+        /* Default Grid View */
+        .playlist-videos {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            padding: 10px 20px 20px 20px;
+        }
+        
+        /* List View Styles */
+        .playlist-videos.list-view {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            padding: 20px;
+        }
+        .playlist-videos.list-view .video-thumbnail {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16 / 9;
+            object-fit: cover;
+        }
+        .playlist-videos.list-view .video-item {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            width: 100%;
+            max-width: 800px;
+            margin: 8px auto;
+            gap: 0 16px;
+            text-align: left;
+        }
+        .playlist-videos.list-view .thumbnail-container {
+            grid-row: 1;
+        }
+        .playlist-videos.list-view .video-details-wrapper {
+            grid-row: 1;
+            grid-column: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .playlist-videos.list-view .video-title {
+            padding: 0;
+            margin-left: 0;
+            font-size: 16px;
+        }
+        .playlist-videos.list-view .video-description {
+            padding: 0;
+            margin-left: 0;
+            margin-top: 4px;
+        }
+        .playlist-videos.list-view .video-length {
+            bottom: 4px;
+            right: 4px;
+        }
+
+        /* CLASSIC + LIST-VIEW COMBINED OVERRIDES */
+        body.classic-channel .playlist-videos.list-view .video-item {
+            grid-template-columns: 168px 1fr;
+            gap: 4px 12px;
+            max-width: 100%;
+            margin: 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #3f3f3f;
+            background: transparent;
+            align-items: start;
+        }
+        body.classic-channel .playlist-videos.list-view .video-details-wrapper {
+            justify-content: flex-start;
+        }
+        body.classic-channel .playlist-videos.list-view .thumbnail-container {
+            width: 168px;
+            flex-shrink: 0;
+        }
+        body.classic-channel .playlist-videos.list-view .video-thumbnail {
+            width: 168px;
+            height: 94px;
+            aspect-ratio: 16 / 9;
+        }
+        body.classic-channel .playlist-videos.list-view .video-length {
+            bottom: 2px;
+            right: 2px;
+            font-size: 11px;
+            padding: 1px 4px;
+        }
+        body.classic-channel .playlist-videos.list-view .video-title {
+            padding: 0;
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            min-height: 39px;
+        }
+        body.classic-channel .playlist-videos.list-view .video-description {
+            padding: 0;
+            margin: 0;
+            font-size: 12px;
+            color: #888;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4;
+        }
+
+        .video-item {
+            margin: 10px;
+            background: var(--secondary-bg-color, #1e1e1e);
+            overflow: hidden;
+            width: 300px;
+            text-align: center;
+            transition: transform 0.2s ease;
+            box-sizing: border-box;
+        }
+        .video-thumbnail {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16 / 9;
+            object-fit: cover;
+            display: block;
+            cursor: pointer;
+            background-color: var(--main-bg-color, #2a2a2a);
+        }
+        .video-title {
+            padding: 10px 10px 2px 10px;
+            text-align: left;
+            font-weight: bold;
+            font-family: 'RobotoRegular', sans-serif;
+            cursor: pointer;
+            color: #d2cfcf;
+            margin-bottom: -5px;
+            font-size: 14px;
+            line-height: 1.3em;
+            max-height: 2.6em;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            transition: color 0.2s, text-decoration 0.2s;
+        }
+        .video-description {
+            text-align: left;
+            padding: 0 10px 10px;
+            color: #888;
+            font-size: 14px;
+        }
+        .thumbnail-container {
+            position: relative;
+        }
+        .video-length {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        /* Remove Video Button */
+        .video-item .remove-video-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(0, 0, 0, 0.75);
+            color: #fff;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s, background 0.15s;
+            z-index: 5;
+        }
+        .video-item:hover .remove-video-btn {
+            opacity: 1;
+        }
+        .remove-video-btn:hover {
+            background: #ff4444;
+        }
+
+        /* CLASSIC PLAYLIST STYLING */
+        body.classic-channel .playlist-content-section {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 40px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        body.classic-channel .playlist-header {
+            display: none;
+        }
+        body.classic-channel .sort-options {
+            position: static;
+            width: 100%;
+            justify-content: flex-start;
+        }
+        
+        /* Left Sidebar - Main Thumbnail & Info */
+        body.classic-channel .classic-playlist-sidebar {
+            flex: 0 0 320px;
+            max-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        body.classic-channel .classic-thumbnail-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background-color: #333;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        body.classic-channel .classic-thumbnail-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        body.classic-channel .classic-play-all-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        body.classic-channel .classic-play-all-overlay:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+        body.classic-channel .classic-play-icon {
+            width: 0; 
+            height: 0; 
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+            border-left: 10px solid white;
+        }
+        body.classic-channel .classic-info-container {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .classic-thumbnail-wrapper {
+            overflow: hidden;
+        }
+        body.classic-channel .classic-playlist-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+            line-height: 1.3;
+            word-wrap: break-word;
+        }
+        body.classic-channel .classic-playlist-meta {
+            font-size: 13px;
+            color: #888;
+            line-height: 1.4;
+        }
+        body.classic-channel .classic-channel-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 8px;
+            padding-top: 4px;
+        }
+        body.classic-channel .classic-channel-thumb {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            object-fit: cover;
+            background-color: #333;
+        }
+        body.classic-channel .classic-channel-name-text {
+            font-size: 13px;
+            color: #fff;
+            font-weight: normal;
+        }
+        body.classic-channel .videos-wrapper {
+            width: 100%;
+        }
+
+        /* Classic Mode Video Items */
+        body.classic-channel .playlist-videos {
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            width: 100%;
+        }
+        body.classic-channel .video-item {
+            display: grid;
+            grid-template-columns: 168px 1fr;
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #3f3f3f;
+            background: transparent;
+            gap: 12px;
+            align-items: start;
+        }
+        body.classic-channel .video-item:last-child {
+            border-bottom: none;
+        }
+        body.classic-channel .thumbnail-container {
+            width: 168px;
+            flex-shrink: 0;
+        }
+        body.classic-channel .video-details-wrapper {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        body.classic-channel .video-thumbnail {
+            width: 168px;
+            height: 94px;
+            aspect-ratio: 16 / 9;
+        }
+        body.classic-channel .video-length {
+            bottom: 2px;
+            right: 2px;
+            font-size: 11px;
+            padding: 1px 4px;
+        }
+        body.classic-channel .video-title {
+            padding: 0;
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.4;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            min-height: 39px;
+            display: -webkit-box;
+        }
+        body.classic-channel .video-description {
+            padding: 0;
+            margin: 0;
+            font-size: 12px;
+            color: #888;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4;
+            display: -webkit-box;
+        }
+
+        /* No videos message */
+        .no-videos-message {
+            color: #888;
+            font-size: 16px;
+            text-align: center;
+            padding: 60px 20px;
+            width: 100%;
+        }
+
+        /* --- Search Suggestions Visibility --- */
+        .search-suggestions {
+            display: none;
+        }
+        .search-container:focus-within .search-suggestions {
+            display: block;
+        }
+
+        @media (max-width: 900px) {
+            body.classic-channel .playlist-content-section {
+                flex-direction: column;
+            }
+            body.classic-channel .classic-playlist-sidebar {
+                max-width: 100%;
+                flex: none;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="top-bar">
+        <img src="LocalYT-Rev-Files/Logo.svg" alt="Logo" class="logo" id="mainLogo">
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="">
+            <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
+            <div id="searchSuggestions" class="search-suggestions"></div>
+        </div>
+    </header>
+
+    <!-- CONTENT SECTION ONLY -->
+    <div class="playlist-content-section">
+        <!-- Standard Header (Hidden in Classic Mode) -->
+        <div class="playlist-header">
+            <div class="playlist-title" id="playlistTitle"></div>
+            <div class="playlist-info" id="playlistInfo"></div>
+            <div class="playlist-duration" id="playlistDuration"></div>
+        </div>
+
+        <!-- CLASSIC MODE SIDEBAR (Only visible when classic-channel class is active) -->
+        <div class="classic-playlist-sidebar" id="classicSidebar" style="display: none;">
+            <div class="classic-thumbnail-wrapper" id="classicThumbnailWrapper">
+                <img id="classicMainThumbnail" alt="Playlist thumbnail">
+                <div class="classic-play-all-overlay" id="playAllOverlay">
+                    <div class="classic-play-icon"></div>
+                    <span>PLAY ALL</span>
+                </div>
+            </div>
+            <div class="classic-info-container">
+                <div class="classic-playlist-title" id="classicTitle"></div>
+                <div class="classic-playlist-meta" id="classicMeta"></div>
+                <div class="classic-channel-row">
+                    <img id="classicUserThumb" class="classic-channel-thumb" alt="">
+                    <span id="classicUserNameText" class="classic-channel-name-text"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Video List Container -->
+        <div class="classic-video-list-container">
+            <!-- Sort and View Toggles -->
+            <div class="sort-options">
+            <div class="sort-dropdown">
+                    <button class="sort-toggle" id="sortToggle">
+                        <span id="sortToggleLabel">Added first</span>
+                        <div class="sort-toggle-arrow"></div>
+                    </button>
+                    <div class="sort-dropdown-menu" id="sortDropdownMenu">
+                        <div class="sort-dropdown-item" data-sort="alphabetical">Alphabetical</div>
+                        <div class="sort-dropdown-item" data-sort="longest">Longest</div>
+                        <div class="sort-dropdown-item active" data-sort="addedFirst">Added first</div>
+                        <div class="sort-dropdown-item" data-sort="addedLast">Added last</div>
+                    </div>
+                </div>
+                <div class="view-dropdown">
+                    <button class="view-toggle" id="viewToggle">
+                        <span id="viewToggleLabel">Grid</span>
+                        <div class="view-toggle-arrow"></div>
+                    </button>
+                    <div class="view-dropdown-menu" id="viewDropdownMenu">
+                        <div class="view-dropdown-item active" data-view="grid">Grid</div>
+                        <div class="view-dropdown-item" data-view="list">List</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container videos-wrapper">
+                <div class="playlist-videos" id="playlistVideosContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+// --- Language Helper ---
+function getLang(en, de) {
+    return localStorage.getItem('language') === 'de' ? de : en;
+}
+
+const WATCH_LATER_NAME = getLang('Watch later', 'Später ansehen');
+
+const DEFAULT_USER_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23333' width='100' height='100'/%3E%3Ccircle cx='50' cy='38' r='20' fill='%23666'/%3E%3Cellipse cx='50' cy='85' rx='35' ry='25' fill='%23666'/%3E%3C/svg%3E";
+
+function parseEuropeanDate(dateString) {
+    if (!dateString || dateString === 'Unknown date') return new Date(0);
+    const parts = dateString.split('.');
+    if (parts.length === 3) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        return new Date(year, month, day);
+    }
+    return new Date(dateString);
+}
+
+function naturalCompare(a, b) {
+    const extractNumbers = (str) => {
+        return (str.match(/\d+/g) || []).map(num => parseInt(num, 10));
+    };
+    const numsA = extractNumbers(a.displayName);
+    const numsB = extractNumbers(b.displayName);
+    for (let i = 0; i < Math.max(numsA.length, numsB.length); i++) {
+        const numA = i < numsA.length ? numsA[i] : 0;
+        const numB = i < numsB.length ? numsB[i] : 0;
+        if (numA !== numB) return numA - numB;
+    }
+    return a.displayName.localeCompare(b.displayName);
+}
+
+function parseDurationString(durationStr) {
+    if (!durationStr) return 0;
+    const parts = durationStr.split(':').map(Number);
+    let seconds = 0;
+    if (parts.length === 3) seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+    else if (parts.length === 2) seconds = parts[0] * 60 + parts[1];
+    return seconds;
+}
+
+function formatTotalDuration(totalSeconds) {
+    const h = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+    const s = (totalSeconds % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
+}
+
+function stripExtension(filename) {
+    return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+}
+
+// ============================
+// GLOBAL STATE
+// ============================
+let allVideosData = [];
+let currentUserPicUrl = DEFAULT_USER_AVATAR;
+let currentUserName = '';
+let currentSortMode = 'addedFirst';
+let currentViewMode = 'grid';
+let isClassicMode = false;
+
+// ============================
+// INIT
+// ============================
+document.addEventListener('DOMContentLoaded', () => {
+    // Apply legacy channel page style if preferred
+    const channelPageStylePref = JSON.parse(localStorage.getItem('channelPageStyle') || '{}');
+    if (channelPageStylePref.style === 'legacy' || channelPageStylePref.style === 'classic') {
+        document.body.classList.add('classic-channel');
+        isClassicMode = true;
+        const sidebar = document.getElementById('classicSidebar');
+        if (sidebar) sidebar.style.display = 'flex';
+    }
+
+    // Logo
+    const mainLogo = document.getElementById('mainLogo');
+    if (mainLogo) {
+        mainLogo.addEventListener('click', () => window.location.href = 'index.html');
+        mainLogo.addEventListener('mouseup', (e) => { if (e.button === 1) { e.preventDefault(); window.open('index.html', '_blank'); } });
+        mainLogo.addEventListener('contextmenu', (e) => { e.preventDefault(); window.open('index.html', '_blank'); });
+        mainLogo.style.cursor = 'pointer';
+    }
+
+    // Search
+    const searchInput = document.getElementById('searchInput');
+    searchInput.placeholder = getLang('Search', 'Suchen');
+    searchInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
+    });
+    document.getElementById('searchIcon').addEventListener('click', () => {
+        const query = searchInput.value.trim();
+        if (query) window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+        else searchInput.focus();
+    });
+
+    // Sort Dropdown Labels
+    const sortLabels = {
+        'alphabetical': getLang('Alphabetical', 'Alphabetisch'),
+        'longest': getLang('Longest', 'Längste'),
+        'addedFirst': getLang('Added first', 'Zuerst hinzugefügt'),
+        'addedLast': getLang('Added last', 'Zuletzt hinzugefügt')
+    };
+    sortToggleLabel.textContent = sortLabels[currentSortMode];
+    document.querySelector('.sort-dropdown-item[data-sort="alphabetical"]').textContent = sortLabels['alphabetical'];
+    document.querySelector('.sort-dropdown-item[data-sort="longest"]').textContent = sortLabels['longest'];
+    document.querySelector('.sort-dropdown-item[data-sort="addedFirst"]').textContent = sortLabels['addedFirst'];
+    document.querySelector('.sort-dropdown-item[data-sort="addedLast"]').textContent = sortLabels['addedLast'];
+
+    // Set initial active state for sort dropdown based on default mode
+    document.querySelectorAll('.sort-dropdown-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.sort === currentSortMode) item.classList.add('active');
+    });
+
+    sortToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sortDropdownMenu.classList.toggle('open');
+        sortToggle.classList.toggle('open');
+    });
+
+    // View Dropdown
+    const viewToggle = document.getElementById('viewToggle');
+    const viewDropdownMenu = document.getElementById('viewDropdownMenu');
+    const viewToggleLabel = document.getElementById('viewToggleLabel');
+    const playlistVideosContainer = document.getElementById('playlistVideosContainer');
+    
+    const savedPlaylistLayout = JSON.parse(localStorage.getItem('playlistPageLayout') || '{}');
+    if (savedPlaylistLayout.view) currentViewMode = savedPlaylistLayout.view;
+    
+    // Lock to List in Classic mode
+    if (isClassicMode) currentViewMode = 'list';
+
+    viewToggleLabel.textContent = getLang(currentViewMode === 'grid' ? 'Grid' : 'List', currentViewMode === 'grid' ? 'Raster' : 'Liste');
+    document.querySelector('.view-dropdown-item[data-view="grid"]').textContent = getLang('Grid', 'Raster');
+    document.querySelector('.view-dropdown-item[data-view="list"]').textContent = getLang('List', 'Liste');
+
+    if (isClassicMode) {
+        document.querySelector('.view-dropdown-item[data-view="grid"]').style.display = 'none';
+    }
+
+    document.querySelectorAll('.view-dropdown-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.view === currentViewMode) item.classList.add('active');
+    });
+
+    if (currentViewMode === 'list') playlistVideosContainer.classList.add('list-view');
+    else playlistVideosContainer.classList.remove('list-view');
+
+    viewToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        viewDropdownMenu.classList.toggle('open');
+        viewToggle.classList.toggle('open');
+    });
+
+    document.querySelectorAll('.view-dropdown-item').forEach(item => {
+        item.addEventListener('click', () => {
+            if (isClassicMode && item.dataset.view === 'grid') return;
+            const viewValue = item.dataset.view;
+            currentViewMode = viewValue;
+            localStorage.setItem('playlistPageLayout', JSON.stringify({ view: viewValue }));
+            document.querySelectorAll('.view-dropdown-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            viewToggleLabel.textContent = getLang(viewValue === 'grid' ? 'Grid' : 'List', viewValue === 'grid' ? 'Raster' : 'Liste');
+            viewDropdownMenu.classList.remove('open');
+            viewToggle.classList.remove('open');
+            if (viewValue === 'list') playlistVideosContainer.classList.add('list-view');
+            else playlistVideosContainer.classList.remove('list-view');
+        });
+    });
+
+    // Close dropdowns on outside click
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.sort-dropdown')) {
+            sortDropdownMenu.classList.remove('open');
+            sortToggle.classList.remove('open');
+        }
+        if (!e.target.closest('.view-dropdown')) {
+            viewDropdownMenu.classList.remove('open');
+            viewToggle.classList.remove('open');
+        }
+    });
+
+    // Sort click handlers
+    document.querySelectorAll('.sort-dropdown-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const sortValue = item.dataset.sort;
+            currentSortMode = sortValue;
+            document.querySelectorAll('.sort-dropdown-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            sortToggleLabel.textContent = sortLabels[sortValue];
+            sortDropdownMenu.classList.remove('open');
+            sortToggle.classList.remove('open');
+            applySortAndRender();
+        });
+    });
+
+    // Load User Info & Videos
+    loadUserInfo().then(() => {
+        loadPlaylistVideos();
+    });
+});
+
+// ============================
+// USER INFO
+// ============================
+async function loadUserInfo() {
+    try {
+        const sessionRes = await fetch('/session-user');
+        if (!sessionRes.ok) return;
+        const userData = await sessionRes.json();
+        currentUserName = userData.username || getLang('User', 'Benutzer');
+
+        // Profile Pic
+        const picRes = await fetch('/user-profile-pic');
+        if (picRes.ok) {
+            const picData = await picRes.json();
+            if (picData.hasCustomPic && picData.picUrl) {
+                currentUserPicUrl = picData.picUrl;
+            }
+        }
+
+        // Set Classic Sidebar
+        const classicUserThumb = document.getElementById('classicUserThumb');
+        const classicUserNameText = document.getElementById('classicUserNameText');
+        if (classicUserThumb) classicUserThumb.src = currentUserPicUrl;
+        if (classicUserNameText) classicUserNameText.textContent = currentUserName;
+
+    } catch (e) {
+        console.error('Error loading user info:', e);
+    }
+}
+
+// ============================
+// PLAYLIST VIDEOS
+// ============================
+async function loadPlaylistVideos() {
+    const videosContainer = document.getElementById('playlistVideosContainer');
+    const playlistTitleEl = document.getElementById('playlistTitle');
+    const playlistInfoEl = document.getElementById('playlistInfo');
+    const playlistDurationEl = document.getElementById('playlistDuration');
+
+    playlistTitleEl.textContent = WATCH_LATER_NAME;
+    document.title = `${WATCH_LATER_NAME} - LocalYT`;
+
+    try {
+        const response = await fetch(`/user-playlist-videos?name=${encodeURIComponent(WATCH_LATER_NAME)}`);
+        
+        if (response.status === 404) {
+            allVideosData = [];
+        } else if (response.status === 401) {
+            videosContainer.innerHTML = `<p class="no-videos-message">${getLang('Please log in.', 'Bitte melde dich an.')}</p>`;
+            return;
+        } else if (!response.ok) {
+            throw new Error('Failed to load');
+        } else {
+            allVideosData = await response.json();
+        }
+
+        // Save the original array index (which represents the order they were added)
+        allVideosData.forEach((video, index) => {
+            video._addedIndex = index;
+        });
+
+        if (allVideosData.length === 0) {
+            videosContainer.innerHTML = `<p class="no-videos-message">${getLang('No videos in Watch later.', 'Keine Videos in "Später ansehen".')}</p>`;
+            playlistInfoEl.textContent = `0 ${getLang('videos', 'Videos')}`;
+            return;
+        }
+
+        playlistInfoEl.textContent = `${allVideosData.length} ${getLang('videos', 'Videos')}`;
+
+        // Calculate total duration
+        let totalSeconds = 0;
+        const durationPromises = allVideosData.map(video => {
+            const channel = video.path.split('/')[0];
+            const vName = stripExtension(video.path.split('/').pop());
+            return fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(vName)}.txt`)
+                .then(r => r.text())
+                .then(len => {
+                    const secs = parseDurationString(len.trim());
+                    totalSeconds += secs;
+                    video._length = len.trim();
+                    video._durationSecs = secs;
+                    playlistDurationEl.textContent = `${getLang('Total duration', 'Gesamtdauer')}: ${formatTotalDuration(totalSeconds)}`;
+                })
+                .catch(() => { video._length = ''; video._durationSecs = 0; });
+        });
+
+        // Start rendering immediately, update lengths as they load
+        applySortAndRender();
+        
+        // Wait for all durations, then re-render with correct lengths
+        await Promise.all(durationPromises);
+        applySortAndRender();
+
+        // Setup Classic Sidebar
+        if (isClassicMode) {
+            setupClassicSidebar(allVideosData);
+        }
+
+    } catch (e) {
+        console.error('Error fetching Watch later videos:', e);
+        videosContainer.innerHTML = `<p class="no-videos-message">${getLang('Error loading videos', 'Fehler beim Laden der Videos')}</p>`;
+    }
+}
+
+function applySortAndRender() {
+    let sortedVideos = [...allVideosData];
+    
+    if (currentSortMode === 'alphabetical') {
+        sortedVideos.sort(naturalCompare);
+    } else if (currentSortMode === 'longest') {
+        sortedVideos.sort((a, b) => {
+            const parseDuration = (str) => {
+                if (!str) return 0;
+                const parts = str.split(':').map(Number);
+                if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+                if (parts.length === 2) return parts[0] * 60 + parts[1];
+                return parts[0] || 0;
+            };
+            const lenA = parseDuration(a._length);
+            const lenB = parseDuration(b._length);
+            return lenB - lenA;
+        });
+    } else if (currentSortMode === 'addedFirst') {
+        // The server preserves the array in the order videos were added.
+        // 0 index was added first, so we keep it ascending (default).
+        sortedVideos.sort((a, b) => a._addedIndex - b._addedIndex);
+    } else if (currentSortMode === 'addedLast') {
+        // Added last means reverse order (highest index first)
+        sortedVideos.sort((a, b) => b._addedIndex - a._addedIndex);
+    }
+
+    renderVideos(sortedVideos);
+}
+
+function renderVideos(videos) {
+    const videosContainer = document.getElementById('playlistVideosContainer');
+    videosContainer.innerHTML = '';
+
+    if (videos.length === 0) {
+        videosContainer.innerHTML = `<p class="no-videos-message">${getLang('No videos in Watch later.', 'Keine Videos in "Später ansehen".')}</p>`;
+        return;
+    }
+
+    videos.forEach(video => {
+        const videoElement = document.createElement('div');
+        videoElement.className = 'video-item';
+        const videoTitle = video.displayName || video.path;
+        const videoPathWithoutExt = stripExtension(video.path);
+        const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
+        const channel = video.path.split('/')[0];
+
+        let rawViews = (video.viewCount || "0").replace(/,/g, '');
+        let formattedViewCount = parseInt(rawViews).toLocaleString('en-US');
+        if (localStorage.getItem('language') === 'de') {
+            formattedViewCount = formattedViewCount.replace(/,/g, '.');
+        }
+
+        const descriptionText = isClassicMode 
+            ? `${getLang('by', 'von')} ${channel}&nbsp;&nbsp;${formattedViewCount} ${getLang('views', 'Aufrufe')}`
+            : `${formattedViewCount} ${getLang('views', 'Aufrufe')} • ${getLang('Uploaded on', 'Hochgeladen am')} ${video.fileDate}`;
+
+        videoElement.setAttribute('data-video-path', encodeURIComponent(videoPathWithoutExt));
+        videoElement.dataset.fullPath = video.path;
+
+        videoElement.innerHTML = `
+            <div class="thumbnail-container">
+                <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
+                <div class="video-length">${video._length || ''}</div>
+                <button class="remove-video-btn" title="${getLang('Remove', 'Entfernen')}">&times;</button>
+            </div>
+            <div class="video-details-wrapper">
+                <div class="video-title">${videoTitle}</div>
+                <div class="video-description">${descriptionText}</div>
+            </div>
+        `;
+        
+        videosContainer.appendChild(videoElement);
+
+        // Video click handlers
+        const videoThumb = videoElement.querySelector('.video-thumbnail');
+        const videoLink = videoElement.querySelector('.video-title');
+        const videoUrl = `video.html?src=${encodeURIComponent(video.path)}&userplaylist=${encodeURIComponent(WATCH_LATER_NAME)}`;
+
+        const openHandler = () => { window.location.href = videoUrl; };
+        videoThumb.addEventListener('click', openHandler);
+        videoLink.addEventListener('click', openHandler);
+
+        const handleMiddleClick = (e) => { if (e.button === 1) { e.preventDefault(); window.open(videoUrl, '_blank'); } };
+        videoThumb.addEventListener('mouseup', handleMiddleClick);
+        videoThumb.addEventListener('auxclick', handleMiddleClick);
+        videoLink.addEventListener('mouseup', handleMiddleClick);
+        videoLink.addEventListener('auxclick', handleMiddleClick);
+
+        const handleRightClick = (e) => { e.preventDefault(); window.open(videoUrl, '_blank'); };
+        videoThumb.addEventListener('contextmenu', handleRightClick);
+        videoLink.addEventListener('contextmenu', handleRightClick);
+
+        // Remove button handler
+        videoElement.querySelector('.remove-video-btn').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            try {
+                const res = await fetch('/remove-from-playlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ playlist: WATCH_LATER_NAME, video: video.path })
+                });
+                if (res.ok) {
+                    videoElement.style.opacity = '0';
+                    videoElement.style.transition = 'opacity 0.3s';
+                    setTimeout(() => {
+                        allVideosData = allVideosData.filter(v => v.path !== video.path);
+                        applySortAndRender();
+                        // Update metadata
+                        document.getElementById('playlistInfo').textContent = `${allVideosData.length} ${getLang('videos', 'Videos')}`;
+                        if (allVideosData.length === 0) {
+                            document.getElementById('playlistDuration').textContent = '';
+                        }
+                    }, 300);
+                }
+            } catch (err) {
+                console.error('Error removing video:', err);
+            }
+        });
+    });
+}
+
+// ============================
+// CLASSIC SIDEBAR
+// ============================
+function setupClassicSidebar(videos) {
+    const classicTitle = document.getElementById('classicTitle');
+    const classicMeta = document.getElementById('classicMeta');
+    const classicThumbnail = document.getElementById('classicMainThumbnail');
+    const playAllOverlay = document.getElementById('playAllOverlay');
+
+    if (!classicTitle) return;
+
+    classicTitle.textContent = WATCH_LATER_NAME;
+
+    // Calculate meta info
+    let totalViews = 0;
+    videos.forEach(v => {
+        const count = parseInt(String(v.viewCount || '0').replace(/,/g, ''));
+        totalViews += isNaN(count) ? 0 : count;
+    });
+    const formattedViews = totalViews.toLocaleString();
+    if (localStorage.getItem('language') === 'de') {
+        formattedViews.replace(/,/g, '.');
+    }
+
+    let totalSecs = 0;
+    videos.forEach(v => { totalSecs += (v._durationSecs || 0); });
+
+    classicMeta.innerHTML = `
+        ${videos.length} ${getLang('videos', 'Videos')} • ${formattedViews} ${getLang('views', 'Aufrufe')}<br>
+        ${getLang('Total duration', 'Gesamtdauer')}: ${formatTotalDuration(totalSecs)}
+    `;
+
+    // Set thumbnail
+    if (videos.length > 0) {
+        const firstVideoPathWithoutExt = stripExtension(videos[0].path);
+        classicThumbnail.src = `/thumbnails/${encodeURIComponent(firstVideoPathWithoutExt)}.jpg`;
+    } else {
+        classicThumbnail.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90"%3E%3Crect fill="%23333" width="160" height="90"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%23666" font-family="sans-serif"%3ENo Image%3C/text%3E%3C/svg%3E';
+    }
+
+    // Play All
+    if (playAllOverlay && videos.length > 0) {
+        playAllOverlay.addEventListener('click', () => {
+            window.location.href = `video.html?src=${encodeURIComponent(videos[0].path)}&userplaylist=${encodeURIComponent(WATCH_LATER_NAME)}`;
+        });
+    }
+    
+    // Translate "PLAY ALL"
+    const playAllSpan = playAllOverlay?.querySelector('span');
+    if (playAllSpan) playAllSpan.textContent = getLang('PLAY ALL', 'ALLE WIEDERGEBEN');
+}
+    </script>
+    <script src="search-suggestions.js"></script>
+    <script src="profile-pic.js"></script>
+    <script>
+    (function applyTitleColorScheme() {
+        const setting = JSON.parse(localStorage.getItem('titleColorScheme') || '{}');
+        if (setting.scheme === 'blue') {
+            const style = document.createElement('style');
+            style.id = 'title-color-scheme-blue';
+            style.textContent = `
+                .video-title,
+                .playlist-title,
+                .classic-playlist-title {
+                    color: #128ee9 !important;
+                }
+                .video-title:hover,
+                .playlist-title:hover,
+                .classic-playlist-title:hover {
+                    text-decoration: underline !important;
+                    cursor: pointer !important;
+                }
+            `;
+            document.head.appendChild(style);
+        } else {
+            const existingStyle = document.getElementById('title-color-scheme-blue');
+            if (existingStyle) existingStyle.remove();
+        }
+    })();
+    </script>
+    <script src="sidebar.js?v=2"></script>
+    <script src="thumbnail-context-menu.js"></script>
+</body>
+</html>
