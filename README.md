@@ -88,4 +88,3 @@ What if I only have the video files and no metadata?
 - Finish implementing mobile support
 - Finish implementing Light Mode
 - Find a way to better manage tons of invidividual video metadata files
-- Add Discord RPC
