@@ -116,8 +116,8 @@
             // Loop state
             this.isLooping = false;
 
-            // Version
-            this.version = 'v2.4.0';
+            // Current LYT Player version
+            this.version = 'v2.4.5';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -1210,6 +1210,40 @@
                         0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
                         20% { opacity: 1; }
                         100% { transform: translate(-50%, -50%) scale(1.1); opacity: 0; }
+                    }
+
+                    /* Chapter Skip Overlay */
+                    .lyt_chapter_skip_overlay {
+                        position: absolute;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        background: rgba(0, 0, 0, 0.7);
+                        color: #fff;
+                        font-family: 'Roboto', 'Arial', sans-serif;
+                        font-size: calc(var(--lyt-title-font-size) * var(--lyt-ui-scale));
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        z-index: 20;
+                        opacity: 0;
+                        visibility: hidden;
+                        transition: opacity 0.2s ease, visibility 0.2s ease;
+                        pointer-events: none;
+                        max-width: 40%;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+                    .lyt_chapter_skip_overlay.lyt_chapter_skip_show {
+                        opacity: 1;
+                        visibility: visible;
+                    }
+                    .lyt_chapter_skip_right {
+                        right: 12px;
+                        text-align: right;
+                    }
+                    .lyt_chapter_skip_left {
+                        left: 12px;
+                        text-align: left;
                     }
 
                 </style>
@@ -2462,6 +2496,7 @@
                     e.preventDefault();
                     if (e.ctrlKey) {
                         this.jumpToPreviousChapter();
+                        this.showChapterSkipOverlay('left');
                     } else {
                         this.video.currentTime -= 5;
                         this.showSeekAnimation('left');
@@ -2471,6 +2506,7 @@
                     e.preventDefault();
                     if (e.ctrlKey) {
                         this.jumpToNextChapter();
+                        this.showChapterSkipOverlay('right');
                     } else {
                         this.video.currentTime += 5;
                         this.showSeekAnimation('right');
@@ -2515,8 +2551,10 @@
                     this.video.currentTime += 5;
                     this.showSeekAnimation('right');
                     break;
-                case 'shift+n':
-                    this.video.dispatchEvent(new CustomEvent('lyt-skip'));
+                case 'n':
+                    if (e.shiftKey) {
+                        this.video.dispatchEvent(new CustomEvent('lyt-skip'));
+                    }
                     break;
                 case '+':
                 case '=':
@@ -2529,6 +2567,48 @@
                     this.setPlayerUIScale(this._uiScale - this._uiScaleStep);
                     break;
             }
+        }
+        
+        /**
+         * Display the chapter name on the right side of the video for two seconds.
+         */
+        showChapterSkipOverlay(direction) {
+            if (this.chapters.length === 0) return;
+
+            const currentTime = this.video.currentTime;
+            let currentChapter = null;
+
+            for (let i = this.chapters.length - 1; i >= 0; i--) {
+                if (this.chapters[i].time <= currentTime + 0.5) {
+                    currentChapter = this.chapters[i];
+                    break;
+                }
+            }
+
+            if (!currentChapter) return;
+
+            let overlay = this.wrapper.querySelector('.lyt_chapter_skip_overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'lyt_chapter_skip_overlay';
+                this.wrapper.appendChild(overlay);
+            }
+
+            overlay.textContent = currentChapter.title;
+
+            // Apply direction class
+            overlay.classList.remove('lyt_chapter_skip_left', 'lyt_chapter_skip_right');
+            overlay.classList.add(direction === 'left' ? 'lyt_chapter_skip_left' : 'lyt_chapter_skip_right');
+
+            // Reset animation and visibility
+            overlay.classList.remove('lyt_chapter_skip_show');
+            void overlay.offsetWidth; // Trigger reflow
+            overlay.classList.add('lyt_chapter_skip_show');
+
+            clearTimeout(this._chapterSkipTimer);
+            this._chapterSkipTimer = setTimeout(() => {
+                overlay.classList.remove('lyt_chapter_skip_show');
+            }, 2000);
         }
 
         async copyVideoUrl() {
