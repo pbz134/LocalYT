@@ -301,13 +301,23 @@ def generate_tags_for_video(video_name, allowed_tags, auto_tag_rules):
                 ],
                 max_tokens=50,      # Increased slightly to allow for thinking tags
                 temperature=0.2,    # Bumped slightly from 0.1 to give it a tiny bit of flexibility on retries
-                timeout=90
+                timeout=90,
+                # =====================================================================
+                # SOLUTION 1: Pass kwargs to the Jinja template parser to disable 
+                # thinking natively at the server level before generation begins.
+                # =====================================================================
+                extra_body={
+                    "chat_template_kwargs": {
+                        "enable_thinking": False
+                    }
+                }
             )
 
             # Extract the chosen tags (legacy dictionary access)
             raw_text = response["choices"][0]["message"]["content"].strip()
             
             # Clean out thinking blocks and extract the final line
+            # (Still keeping this as a fallback safety net in case of edge cases)
             cleaned_tags = clean_llm_output(raw_text)
             
             if attempts == 1 and raw_text != cleaned_tags:
