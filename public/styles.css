@@ -180,7 +180,7 @@ body {
     display: flex;
     justify-content: flex-start;
     align-items: flex-start;
-    padding: 80px 0px 20px;
+    padding: 70px 0px 20px;
     background-color: var(--main-bg-color);
     color: #fff;
 }
@@ -722,3 +722,606 @@ img.search-icon {
         a, button, div, img, span {
             -webkit-tap-highlight-color: transparent !important;
         }
+
+/* ==============================================
+   TOUCH DEVICE — CHANNEL PAGE STYLES
+   ============================================== */
+
+/* --- Channel Top & Content Sections --- */
+.touch-device .channel-top-section {
+    max-width: 100% !important;
+}
+
+.touch-device .channel-content-section {
+    max-width: 100% !important;
+    margin-top: 0 !important;
+}
+
+/* --- Channel Banner --- */
+.touch-device .channel-banner {
+    margin-top: 56px !important;
+    max-width: 100% !important;
+}
+
+/* --- Channel Header (pic, name, subscribe) --- */
+.touch-device .channel-header {
+    flex-wrap: wrap !important;
+    padding: 12px !important;
+    max-width: 100% !important;
+    gap: 8px !important;
+}
+
+.touch-device .channel-header .channel-pic {
+    width: 56px !important;
+    height: 56px !important;
+    margin-right: 12px !important;
+}
+
+.touch-device .channel-header .channel-name {
+    font-size: 16px !important;
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+}
+
+.touch-device .channel-header .video-count {
+    font-size: 13px !important;
+}
+
+.touch-device .channel-header-right {
+    margin-left: 0 !important;
+    margin-top: 4px !important;
+}
+
+/* Compact subscribe + subscriber count */
+.touch-device .channel-header-right .subscribe-button {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+}
+
+.touch-device .channel-header-right .subscriber-count {
+    padding: 7px 10px !important;
+    font-size: 11px !important;
+}
+
+/* --- Tabs — horizontal scroll --- */
+.touch-device .tabs {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-width: 100% !important;
+    padding: 0 8px !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+.touch-device .tabs::-webkit-scrollbar {
+    display: none !important;
+}
+
+.touch-device .tab {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+}
+
+/* Tab search bar — narrower on mobile */
+.touch-device .tab-search-bar.active {
+    width: 130px !important;
+}
+
+.touch-device .tab-search-bar input {
+    font-size: 14px !important;
+    padding: 8px 10px !important;
+}
+
+/* --- Tab Content — uniform padding --- */
+.touch-device .tab-content {
+    padding: 15px 0 !important;
+}
+
+/* ==============================================
+   TOUCH DEVICE — HOME TAB
+   ============================================== */
+
+.touch-device .home-preview-section {
+    padding: 0 12px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.touch-device .home-preview-row {
+    flex-direction: column !important;
+    gap: 16px !important;
+}
+
+.touch-device .home-player-wrapper {
+    flex: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+.touch-device .home-info-panel {
+    width: 100% !important;
+}
+
+.touch-device .home-video-title {
+    font-size: 15px !important;
+}
+
+.touch-device .home-video-meta {
+    font-size: 13px !important;
+}
+
+.touch-device .home-video-description-text {
+    font-size: 13px !important;
+    -webkit-line-clamp: 5 !important;
+}
+
+.touch-device .home-others-label {
+    padding: 12px 12px 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    font-size: 16px !important;
+}
+
+.touch-device .home-others-grid {
+    padding: 0 12px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Home row wrappers — wrap into a nice 2-col grid */
+.touch-device .home-row-wrapper {
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+    justify-content: flex-start !important;
+}
+
+.touch-device .home-row-wrapper .video-item {
+    flex: 1 1 calc(50% - 6px) !important;
+    max-width: calc(50% - 6px) !important;
+    min-width: 140px !important;
+    box-sizing: border-box !important;
+}
+
+.touch-device .home-row-wrapper .video-item .video-thumbnail {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9 !important;
+}
+
+/* Playlist items in home row — full width */
+.touch-device .home-row-wrapper .playlist-item {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.touch-device .home-row-wrapper .playlist-item .playlist-thumbnail {
+    aspect-ratio: 16 / 9 !important;
+}
+
+/* ==============================================
+   TOUCH DEVICE — VIDEOS TAB
+   ============================================== */
+
+/* Override .container grid so channel-videos controls its own layout */
+.touch-device .videos-wrapper.container {
+    display: block !important;
+    padding: 60px 0 20px !important;
+    max-width: 100% !important;
+}
+
+/* Sort / View toggles — compact */
+.touch-device .sort-options {
+    margin: 0 12px !important;
+    margin-bottom: -35px !important;
+}
+
+.touch-device .sort-toggle,
+.touch-device .view-toggle {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+}
+
+.touch-device .sort-dropdown-menu {
+    min-width: 200px !important;
+    right: 0 !important;
+}
+
+.touch-device .view-dropdown-menu {
+    min-width: 120px !important;
+    right: 0 !important;
+}
+
+/* Video grid — 2 columns on phones, expanding on larger screens */
+.touch-device .channel-videos {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    gap: 10px !important;
+    padding: 0 12px !important;
+}
+
+.touch-device .channel-videos .video-item {
+    width: auto !important;
+    margin: 0 !important;
+}
+
+.touch-device .channel-videos .video-thumbnail {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9 !important;
+}
+
+.touch-device .channel-videos .video-title {
+    font-size: 13px !important;
+}
+
+.touch-device .channel-videos .video-description {
+    font-size: 11px !important;
+    padding-left: 0 !important;
+}
+
+.touch-device .channel-videos .video-length {
+    font-size: 10px !important;
+    padding: 1px 3px !important;
+    bottom: 2px !important;
+    right: 2px !important;
+}
+
+/* List view — keep horizontal card but smaller thumbnail */
+.touch-device .channel-videos.list-view {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+}
+
+.touch-device .channel-videos.list-view .video-item {
+    display: grid !important;
+    grid-template-columns: 130px 1fr !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    gap: 0 10px !important;
+}
+
+.touch-device .channel-videos.list-view .video-thumbnail {
+    height: auto !important;
+    aspect-ratio: 16 / 9 !important;
+}
+
+.touch-device .channel-videos.list-view .video-title {
+    font-size: 14px !important;
+}
+
+.touch-device .channel-videos.list-view .video-description {
+    margin-top: -30px !important;
+    font-size: 12px !important;
+}
+
+/* Loading / no-more indicators */
+.touch-device .loading-spinner,
+.touch-device .no-more-videos {
+    padding: 15px 12px !important;
+}
+
+/* ==============================================
+   TOUCH DEVICE — PLAYLISTS TAB
+   ============================================== */
+
+.touch-device .playlists-container {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    gap: 10px !important;
+    padding: 0 12px !important;
+}
+
+.touch-device .playlists-container .playlist-item {
+    width: auto !important;
+    margin: 0 !important;
+}
+
+.touch-device .playlists-container .playlist-thumbnail {
+    height: auto !important;
+    aspect-ratio: 16 / 9 !important;
+}
+
+.touch-device .playlists-container .playlist-title {
+    font-size: 13px !important;
+    padding: 5px 2px !important;
+}
+
+.touch-device .playlists-container .playlist-video-count {
+    font-size: 12px !important;
+    padding: 0 2px !important;
+}
+
+/* ==============================================
+   TOUCH DEVICE — ABOUT TAB
+   ============================================== */
+
+.touch-device .about-container {
+    flex-direction: column !important;
+    gap: 20px !important;
+    padding: 0 12px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.touch-device .about-description h3,
+.touch-device .about-stats h3 {
+    font-size: 16px !important;
+}
+
+/* ==============================================
+   TOUCH DEVICE — POSTS TAB
+   ============================================== */
+
+.touch-device .posts-container {
+    padding: 20px 12px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.touch-device .post-images-wrapper {
+    max-width: 100% !important;
+    aspect-ratio: auto !important;
+}
+
+.touch-device .post-images-wrapper .post-image.active {
+    aspect-ratio: 16 / 9 !important;
+    object-fit: cover !important;
+}
+
+/* Always show carousel buttons on touch (no hover) */
+.touch-device .carousel-btn {
+    opacity: 1 !important;
+}
+
+.touch-device .post-content-text {
+    font-size: 13px !important;
+}
+
+/* ==============================================
+   TOUCH DEVICE — CHANNEL SEARCH TAB
+   ============================================== */
+
+.touch-device .channel-search-results {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    gap: 10px !important;
+    padding: 0 12px !important;
+}
+
+.touch-device .channel-search-results .video-item {
+    width: auto !important;
+    margin: 0 !important;
+}
+
+.touch-device .channel-search-results .video-thumbnail {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9 !important;
+}
+
+.touch-device .channel-search-results .video-title {
+    font-size: 13px !important;
+}
+
+.touch-device .channel-search-results .video-description {
+    font-size: 11px !important;
+    padding-left: 0 !important;
+}
+
+/* ==============================================
+   TOUCH DEVICE — LEGACY / CLASSIC CHANNEL MODE
+   ============================================== */
+
+.touch-device.legacy-channel .channel-pic {
+    width: 64px !important;
+    height: 64px !important;
+    left: 10px !important;
+}
+
+.touch-device.classic-channel .tab {
+    padding: 10px 10px !important;
+    margin: 0 8px !important;
+}
+
+.touch-device.classic-channel .posts-container {
+    padding: 20px 12px !important;
+    max-width: 100% !important;
+}
+
+/* ==============================================
+   TOUCH DEVICE — MOBILE SEARCH OVERLAY
+   (Used by video.html & available for channel.html)
+   ============================================== */
+
+.mobile-search-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.92);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.mobile-search-overlay.active {
+    display: flex;
+}
+
+.mobile-search-input {
+    width: 100%;
+    max-width: 500px;
+    padding: 14px 18px;
+    font-size: 18px;
+    font-family: 'RobotoRegular', Arial, sans-serif;
+    border: 2px solid #444;
+    border-radius: 8px;
+    background-color: #1a1a1a;
+    color: #fff;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease;
+}
+
+.mobile-search-input:focus {
+    border-color: #3ea6ff;
+}
+
+.mobile-search-input::placeholder {
+    color: #666;
+}
+
+.mobile-search-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 32px;
+    cursor: pointer;
+    padding: 8px 14px;
+    line-height: 1;
+    border-radius: 50%;
+    transition: background-color 0.2s ease;
+}
+
+.mobile-search-close:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ==============================================
+   TOUCH DEVICE — FANCY ENHANCEMENTS
+   ============================================== */
+
+/* Subtle card-like video items with gentle shadow */
+.touch-device .channel-videos .video-item,
+.touch-device .channel-search-results .video-item,
+.touch-device .playlists-container .playlist-item {
+    background: #1a1a1a !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.touch-device .channel-videos .video-item:active,
+.touch-device .channel-search-results .video-item:active,
+.touch-device .playlists-container .playlist-item:active {
+    transform: scale(0.97) !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Rounded thumbnails on touch */
+.touch-device .channel-videos .thumbnail-container,
+.touch-device .channel-search-results .thumbnail-container,
+.touch-device .playlists-container .playlist-thumbnail {
+    border-radius: 10px 10px 0 0 !important;
+    overflow: hidden !important;
+}
+
+/* Home tab miniplayer rounded corners */
+.touch-device .home-player-wrapper {
+    border-radius: 12px !important;
+    overflow: hidden !important;
+}
+
+/* Home tab video items — card style */
+.touch-device .home-row-wrapper .video-item {
+    background: #1a1a1a !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.touch-device .home-row-wrapper .video-item:active {
+    transform: scale(0.97) !important;
+}
+
+.touch-device .home-row-wrapper .video-item .thumbnail-container {
+    border-radius: 10px 10px 0 0 !important;
+    overflow: hidden !important;
+}
+
+/* Home tab playlist items — card style */
+.touch-device .home-row-wrapper .playlist-item {
+    background: #1a1a1a !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* Posts — card style */
+.touch-device .post-item {
+    border-radius: 12px !important;
+    border: 1px solid #2a2a2a !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Channel header — pill-shaped subscribe button */
+.touch-device .channel-header-right .subscribe-button {
+    padding: 7px 16px !important;
+}
+
+/* Tab indicator — thicker & colorful for touch */
+.touch-device .tab.active {
+    border-bottom: 3px solid #fff !important;
+}
+
+/* Sort & view dropdowns — rounded & elevated */
+.touch-device .sort-dropdown-menu,
+.touch-device .view-dropdown-menu {
+    border-radius: 10px !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5) !important;
+    overflow: hidden !important;
+}
+
+.touch-device .sort-dropdown-item,
+.touch-device .view-dropdown-item {
+    padding: 12px 16px !important;
+    font-size: 14px !important;
+}
+
+/* About tab — card containers */
+.touch-device .about-description,
+.touch-device .about-stats {
+    background: #1a1a1a !important;
+    border-radius: 12px !important;
+    padding: 16px !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Share button — touch-friendly */
+.touch-device .share-button {
+    padding: 10px 0 !important;
+}
+
+/* Smooth page-level transitions */
+.touch-device .channel-top-section,
+.touch-device .channel-content-section {
+    transition: max-width 0.3s ease !important;
+}
+
+/* Video length badge — slightly larger & rounder for touch */
+.touch-device .video-length {
+    font-size: 11px !important;
+    padding: 2px 5px !important;
+    border-radius: 4px !important;
+    bottom: 4px !important;
+    right: 4px !important;
+}
+
+/* Scrollbar hiding for tabs (Firefox) */
+.touch-device .tabs {
+    scrollbar-width: none !important;
+}
