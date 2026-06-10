@@ -499,7 +499,7 @@ img.search-icon {
 }
 
 .touch-device #logo-version {
-    margin-left: -4px !important;
+    display: none;
 }
 
 /* Hide category buttons on mobile to free up space */
@@ -515,12 +515,12 @@ img.search-icon {
     position: static !important;
     right: auto !important;
     margin-top: 0;
+    margin-right: 5px;
 }
 
-/* Ensure user actions/profile picture stays compact on the right */
 .touch-device .user-actions {
     margin-left: 0;
-    margin-right: 10px;
+    margin-right: 25px;
     flex-shrink: 0;
 }
 
