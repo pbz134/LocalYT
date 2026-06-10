@@ -216,7 +216,10 @@ def clean_llm_output(raw_text):
     return cleaned.strip()
 
 def generate_tags_for_video(video_name, allowed_tags, auto_tag_rules):
-    """Use the koboldcpp API to choose two tags from the allowed pool for a video."""
+    """Use the koboldcpp API to choose two tags from the allowed pool for a video.
+    Returns None if the LLM fails to produce 2 valid tags after MAX_LLM_RETRIES attempts.
+    When None is returned, the caller should NOT create a .txt tag file.
+    """
     
     # Extract channel name from the video path
     parts = video_name.split(os.path.sep)
@@ -267,6 +270,7 @@ def generate_tags_for_video(video_name, allowed_tags, auto_tag_rules):
 
     valid_tags = []
     attempts = 0
+    llm_call_failed = False  # Track if all LLM attempts exhausted without success
 
     # Retry loop if the LLM outputs invalid tags
     while len(valid_tags) < 2 and attempts < MAX_LLM_RETRIES:
@@ -325,9 +329,11 @@ def generate_tags_for_video(video_name, allowed_tags, auto_tag_rules):
             print(f"Error generating tags: {e}")
             print("Will retry or skip video.")
 
-    # If fewer than two valid tags were found after all retries, skip this video
+    # If fewer than two valid tags were found after all retries,
+    # the LLM has failed - return None so NO .txt tag file is created
     if len(valid_tags) < 2:
-        print(f"  Failed to get valid tags after {MAX_LLM_RETRIES} attempts. Skipping video.")
+        llm_call_failed = True
+        print(f"  LLM failed to produce valid tags after {MAX_LLM_RETRIES} attempts. No .txt file will be created.")
         return None
 
     return valid_tags[:2]
@@ -407,6 +413,7 @@ def main():
     # Step 3: Process each media file
     auto_tag_count = 0
     llm_count = 0
+    llm_failed_count = 0  # Track videos skipped due to LLM failure
     
     # Track which rules matched
     rule_match_counts = {}
@@ -424,16 +431,18 @@ def main():
         try:
             tags = generate_tags_for_video(media_name, allowed_tags, auto_tag_rules)
             
-            # If the LLM failed and returned None, skip saving this video
+            # If the LLM failed after MAX_LLM_RETRIES, tags will be None.
+            # Do NOT create a .txt tag file for this video.
             if tags is None:
-                print(f"  Skipping {media_name} due to invalid LLM tags.")
-                llm_count += 1
+                print(f"  Skipping {media_name} - no .txt file will be created due to LLM failure.")
+                llm_failed_count += 1
                 continue
                 
             print(f"  Chosen Tags: {tags[0]}, {tags[1]}")
             save_tags_to_file(media_name, tags, OUTPUT_DIR)
             
-            # Check if it was auto-tagged or LLM-processed
+            # Determine if it was auto-tagged or LLM-processed
+            # (re-check rules to classify for statistics; tags is guaranteed non-None here)
             _, rule_name = apply_auto_tag_rules(media_name, auto_tag_rules)
             if rule_name is not None:
                 auto_tag_count += 1
@@ -443,8 +452,8 @@ def main():
                 
         except Exception as e:
             print(f"  Error processing {media_name}: {e}")
-            print(f"  Skipping {media_name}.")
-            llm_count += 1
+            print(f"  Skipping {media_name} - no .txt file will be created.")
+            llm_failed_count += 1
 
     print(f"\n{'='*50}")
     print(f"COMPLETED! Processed {len(media_files)} media files:")
@@ -453,7 +462,8 @@ def main():
         print(f"    Rule breakdown:")
         for rule_name, count in sorted(rule_match_counts.items(), key=lambda x: -x[1]):
             print(f"      - {rule_name}: {count}")
-    print(f"  - LLM-processed: {llm_count}")
+    print(f"  - LLM-processed (success): {llm_count}")
+    print(f"  - LLM failed (no file created): {llm_failed_count}")
     print(f"{'='*50}")
 
 if __name__ == "__main__":
