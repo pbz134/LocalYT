@@ -64,3 +64,8 @@ Metadaten hinzufügen:
 - "LocalYT-Debug\download_channel_or_playlist.bat" ausführen, um Kanal- und Playlist-Links zu holen
 
 - "LocalYT-Debug\Fetch_GUI.bat" ausführen, um Metadaten zu diesen Videolinks zu holen (diese werden automatisch in LocalYT eingefügt)
+
+----------------------------------------------------------------------------------------------------
+
+Android-App:
+- Der Quellcode und die APK-Datei für die LocalYT Android-App sind enthalten in "/LocalYT-Rev-Files/AppAndProjects"
