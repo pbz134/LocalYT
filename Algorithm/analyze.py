@@ -3,10 +3,11 @@ import json
 import openai
 import time
 import re
+from difflib import get_close_matches
 
 # Configuration
-KOBOLDCPP_API_URL = "http://localhost:5001/v1"  # Replace with your koboldcpp API endpoint
-media_list = "media_list.txt"  # Path to your existing video list file
+KOBOLDCPP_API_URL = "http://localhost:5001/v1"
+media_list = "media_list.txt"
 
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -19,13 +20,12 @@ OUTPUT_DIR = os.path.join(PARENT_DIR, "videos")
 DESCRIPTIONS_DIR = os.path.join(PARENT_DIR, "descriptions")  # Descriptions directory
 
 DEFAULT_TAG = "Uncategorized"  # Default tag if the model fails to choose one
+MAX_LLM_RETRIES = 3           # How many times to retry if the LLM gives invalid tags
 
-# Set up the OpenAI client for koboldcpp
+# Set up the OpenAI client for koboldcpp (Legacy v0.28 syntax)
 openai.api_base = KOBOLDCPP_API_URL
 openai.api_key = "dummy-key"  # API key is not required for local koboldcpp
-
-# Increase timeout settings
-openai.request_timeout = 30  # Set timeout to 30 seconds
+openai.request_timeout = 90   # Increased timeout for the full tag list and retries
 
 def read_media_list(file_path):
     """Read the list of media filenames from a .txt file."""
@@ -74,21 +74,20 @@ def apply_auto_tag_rules(video_name, rules):
         if not tags:
             continue
         
-        # --- NEW: Normalize match_value to a list for multi-value matching ---
+        # Normalize match_value to a list for multi-value matching
         if isinstance(match_value, str):
             match_values = [match_value]
         elif isinstance(match_value, list):
             match_values = match_value
         else:
             continue
-        # ---------------------------------------------------------------------
         
         # Prepare the video name for matching (do this once per rule, not per value)
         video_name_for_match = video_name if case_sensitive else video_name.lower()
         
         matched = False
         
-        # --- NEW: Loop through all values in the match_values list ---
+        # Loop through all values in the match_values list
         for current_match_value in match_values:
             # Skip empty values in the list
             if not current_match_value:
@@ -99,7 +98,7 @@ def apply_auto_tag_rules(video_name, rules):
             if match_type == "contains":
                 if match_value_for_match in video_name_for_match:
                     matched = True
-                    break  # Found a match, no need to check the rest of the values
+                    break
             
             elif match_type == "extension":
                 if video_name_for_match.endswith(match_value_for_match):
@@ -129,7 +128,6 @@ def apply_auto_tag_rules(video_name, rules):
             else:
                 print(f"  Warning: Unknown match_type '{match_type}' in rule '{rule_name}'")
                 continue
-        # -------------------------------------------------------------
 
         if matched:
             return tags, rule_name
@@ -182,6 +180,41 @@ def get_video_description(video_name):
         print(f"Error reading description for {video_name}: {e}")
         return None
 
+def validate_tag(tag, allowed_tags):
+    """
+    Validate a tag. If it's not perfectly in the list, 
+    try fuzzy matching to correct minor LLM hallucinations/typos.
+    """
+    tag = tag.strip()
+    if tag in allowed_tags:
+        return tag
+    
+    # Fuzzy match: find the closest tag with at least 80% similarity
+    matches = get_close_matches(tag, allowed_tags, n=1, cutoff=0.8)
+    if matches:
+        return matches[0]
+    
+    return None
+
+def clean_llm_output(raw_text):
+    """
+    Removes <think...>...</think > blocks, ziali tags, and extracts
+    the last meaningful line (the actual answer) from LLM responses.
+    """
+    # Remove <think...>...</think > or <ziali...>...</ziali > blocks
+    cleaned = re.sub(r'<think.*?>.*?</think\s*>', '', raw_text, flags=re.DOTALL | re.IGNORECASE)
+    cleaned = re.sub(r'<ziali.*?>.*?</ziali\s*>', '', cleaned, flags=re.DOTALL | re.IGNORECASE)
+    
+    # Remove any remaining XML-like tags just in case
+    cleaned = re.sub(r'<[^>]+>', '', cleaned)
+    
+    # Split into lines and find the last non-empty line (the actual answer)
+    lines = [line.strip() for line in cleaned.split('\n') if line.strip()]
+    
+    if lines:
+        return lines[-1]
+    return cleaned.strip()
+
 def generate_tags_for_video(video_name, allowed_tags, auto_tag_rules):
     """Use the koboldcpp API to choose two tags from the allowed pool for a video."""
     
@@ -219,77 +252,85 @@ def generate_tags_for_video(video_name, allowed_tags, auto_tag_rules):
         "PS3": "Playstation 3",
         "PS4": "Playstation 4",
         "PS5": "Playstation 5",
-        # Add more mappings as needed
     }
 
     # Replace abbreviations in the video name with their full forms
+    video_name_processed = video_name
     for abbrev, full_name in abbreviation_map.items():
-        video_name = video_name.replace(abbrev, full_name)
+        video_name_processed = video_name_processed.replace(abbrev, full_name)
 
-    # Split the allowed tags into smaller chunks (e.g., 50 tags per chunk)
-    chunk_size = 50
-    tag_chunks = [allowed_tags[i:i + chunk_size] for i in range(0, len(allowed_tags), chunk_size)]
-
-    # Initialize a list to store valid tags
-    valid_tags = []
-
-    # Build the base prompt parts
-    title_part = f"Video Title: {video_name}\n\n"
-    description_part = ""
+    # Build the user prompt content with the FULL tag list
+    user_content = f"Video Title: {video_name_processed}\n\n"
     if description:
-        description_part = f"Video Description:\n{description}\n\n"
-    
-    # Process each chunk of tags
-    for chunk in tag_chunks:
-        # Customize the prompt with description if available
-        prompt = (
-            f"Analyze the following video title and description (if available). "
-            f"Choose exactly two tags from the list below to categorize it. "
-            f"Your response must be exactly two words from the provided list, separated by a comma. "
-            f"Do not add any extra text or explanations. "
-            f"If a console, brand, person, character or game is mentioned, prefer their respective tag.\n\n"
-            f"{title_part}"
-            f"{description_part}"
-            f"Allowed Tags: {', '.join(chunk)}\n\n"
-            f"Chosen Tags: "
-        )
+        user_content += f"Video Description:\n{description}\n\n"
+    user_content += f"Allowed Tags: {', '.join(allowed_tags)}\n\n"
+
+    valid_tags = []
+    attempts = 0
+
+    # Retry loop if the LLM outputs invalid tags
+    while len(valid_tags) < 2 and attempts < MAX_LLM_RETRIES:
+        attempts += 1
+        if attempts > 1:
+            print(f"  Retry attempt {attempts}/{MAX_LLM_RETRIES}...")
+            time.sleep(1) # Brief pause before retrying
 
         try:
-            # Send the request to the koboldcpp API with timeout handling
-            response = openai.Completion.create(
-                model="koboldcpp",  # Model name (can be anything for koboldcpp)
-                prompt=prompt,
-                max_tokens=30,
-                stop=["\n"],
-                temperature=0.1,
-                timeout=30  # Add timeout parameter here too
+            # Send the request using the legacy openai v0.28 Chat syntax
+            response = openai.ChatCompletion.create(
+                model="kcpp",  # Updated to match KoboldCPP API docs
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a helpful video categorization assistant. "
+                            "Your task is to choose exactly two tags from the provided 'Allowed Tags' list to categorize the video. "
+                            "Your response must be exactly two tags from the list, separated by a comma. "
+                            "Do not add any extra text, explanations, or file names. "
+                            "If a console, brand, person, character, or game is mentioned, prefer their respective tag."
+                        )
+                    },
+                    {
+                        "role": "user",
+                        "content": user_content
+                    }
+                ],
+                max_tokens=50,      # Increased slightly to allow for thinking tags
+                temperature=0.2,    # Bumped slightly from 0.1 to give it a tiny bit of flexibility on retries
+                timeout=90
             )
 
-            # Extract the chosen tags
-            chosen_tags = response["choices"][0]["text"].strip()
+            # Extract the chosen tags (legacy dictionary access)
+            raw_text = response["choices"][0]["message"]["content"].strip()
+            
+            # Clean out thinking blocks and extract the final line
+            cleaned_tags = clean_llm_output(raw_text)
+            
+            if attempts == 1 and raw_text != cleaned_tags:
+                print(f"  (Cleaned LLM thinking blocks from output)")
 
             # Split the response into two tags
-            tags = [tag.strip() for tag in chosen_tags.split(",")][:2]  # Ensure only two tags are taken
+            raw_tags = [tag.strip() for tag in cleaned_tags.split(",")][:2]
 
-            # Validate the tags and add them to the valid_tags list
-            for tag in tags:
-                if tag in allowed_tags and tag not in valid_tags:
-                    valid_tags.append(tag)
-
-            # Stop if we have two valid tags
-            if len(valid_tags) >= 2:
-                break
+            # Validate the tags with fuzzy matching
+            current_valid = []
+            for tag in raw_tags:
+                validated_tag = validate_tag(tag, allowed_tags)
+                if validated_tag and validated_tag not in valid_tags and validated_tag not in current_valid:
+                    current_valid.append(validated_tag)
+            
+            valid_tags.extend(current_valid)
 
         except Exception as e:
             print(f"Error generating tags: {e}")
-            print("Will retry with smaller tag chunks or use default tags")
-            continue
+            print("Will retry or skip video.")
 
-    # If fewer than two valid tags were found, use the default tag
-    while len(valid_tags) < 2:
-        valid_tags.append(DEFAULT_TAG)
+    # If fewer than two valid tags were found after all retries, skip this video
+    if len(valid_tags) < 2:
+        print(f"  Failed to get valid tags after {MAX_LLM_RETRIES} attempts. Skipping video.")
+        return None
 
-    return valid_tags[:2]  # Ensure only two tags are returned
+    return valid_tags[:2]
 
 def save_tags_to_file(video_name, tags, output_dir):
     """Save the chosen tags to a .txt file in the specified output directory, preserving the original file structure."""
@@ -334,15 +375,14 @@ def save_tags_to_file(video_name, tags, output_dir):
         print(f"  Video directory: {video_dir if 'video_dir' in locals() else 'N/A'}")
         print(f"  Output path: {output_path if 'output_path' in locals() else 'N/A'}")
         print(f"  Tag file: {tag_file if 'tag_file' in locals() else 'N/A'}")
-        raise  # Re-raise the exception so the main function knows it failed
+        raise
 
 def main():
     # Step 1: Always load the super expanded tag list
     print(f"Loading tags from: {TAGS_SUPEREXPANDED_FILE}")
     allowed_tags = load_tags(TAGS_SUPEREXPANDED_FILE)
     print(f"Loaded {len(allowed_tags)} allowed tags from {TAGS_SUPEREXPANDED_FILE}.")
-    print(f"Using super accurate and slow tag list (tags_superexpanded.json)")
-    print(f"Timeout set to 30 seconds for model loading and responses")
+    print(f"Using full tag list directly (no chunking).")
     
     # Step 1.5: Load auto-tag rules
     auto_tag_rules = load_auto_tag_rules(AUTO_TAG_RULES_FILE)
@@ -351,7 +391,6 @@ def main():
     print(f"Looking for descriptions in: {DESCRIPTIONS_DIR}")
 
     # Step 2: Read the existing media list
-    # Make media_list.txt path relative to script directory
     media_list_path = os.path.join(SCRIPT_DIR, media_list)
     print(f"Looking for media list at: {media_list_path}")
     media_files = read_media_list(media_list_path)
@@ -384,6 +423,13 @@ def main():
             
         try:
             tags = generate_tags_for_video(media_name, allowed_tags, auto_tag_rules)
+            
+            # If the LLM failed and returned None, skip saving this video
+            if tags is None:
+                print(f"  Skipping {media_name} due to invalid LLM tags.")
+                llm_count += 1
+                continue
+                
             print(f"  Chosen Tags: {tags[0]}, {tags[1]}")
             save_tags_to_file(media_name, tags, OUTPUT_DIR)
             
@@ -397,13 +443,8 @@ def main():
                 
         except Exception as e:
             print(f"  Error processing {media_name}: {e}")
-            print(f"  Using default tags for {media_name}")
-            tags = [DEFAULT_TAG, DEFAULT_TAG]
-            try:
-                save_tags_to_file(media_name, tags, OUTPUT_DIR)
-                llm_count += 1
-            except Exception as save_error:
-                print(f"  CRITICAL: Could not save default tags either: {save_error}")
+            print(f"  Skipping {media_name}.")
+            llm_count += 1
 
     print(f"\n{'='*50}")
     print(f"COMPLETED! Processed {len(media_files)} media files:")

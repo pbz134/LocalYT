@@ -13,7 +13,7 @@
       "match_value": ["nikke", "rapi", "shift up"],
       "case_sensitive": false,
       "tags": ["Anime", "Goddess of Victory Nikke", "Gaming"]
-    }
+    },
     {
       "name": "Anime AMV Rule",
       "match_type": "contains",
