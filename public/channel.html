@@ -14,17 +14,10 @@
     })();
     </script>
     <script>
-    // Load Player for the HOME tab miniplayer based on user's preference
+    // Load LYT Player for the HOME tab miniplayer
     (function() {
-        const playerSettings = JSON.parse(localStorage.getItem('videoPlayer') || '{}');
-        const selectedPlayer = playerSettings.player || 'lyt';
-
         const script = document.createElement('script');
-        if (selectedPlayer === 'lyt') {
-            script.src = 'lyt-player.js';
-        } else {
-            script.src = 'fluidplayer.min.js';
-        }
+        script.src = 'lyt-player.js';
         document.head.appendChild(script);
     })();
 
