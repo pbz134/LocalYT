@@ -7,6 +7,13 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
     <script>
+    (function detectTouchDevice() {
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            document.documentElement.className += ' touch-device';
+        }
+    })();
+    </script>
+    <script>
     // Load Player for the HOME tab miniplayer based on user's preference
     (function() {
         const playerSettings = JSON.parse(localStorage.getItem('videoPlayer') || '{}');
@@ -677,6 +684,9 @@
         .stats-item:first-of-type {
             border-top: 1px solid #3f3f3f;
         }
+        .joined-disclaimer:hover > span { 
+            display: block !important; 
+        }
         .stats-item.total-views {
             font-weight: normal;
         }
@@ -1329,7 +1339,7 @@
                 <div class="about-stats">
                     <h3 id="aboutStatsHeader">Stats</h3>
                     <div class="stats-list">
-                        <div class="stats-item" id="statsJoined">Joined --</div>
+                        <div class="stats-item"><span id="statsJoined">Joined --</span> <span class="joined-disclaimer" style="position: relative; display: inline-block; cursor: help; margin-left: 6px;"><i style="font-style: italic; font-size: 11px; color: #aaa; border: 1.5px solid #aaa; border-radius: 50%; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; vertical-align: middle; box-sizing: border-box; padding-right: 1.5px; margin-top: -2px;">i</i><span id="joinedDisclaimerText" style="display: none; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 5px; background-color: #555; color: white; text-align: center; border-radius: 4px; padding: 6px 8px; font-size: 12px; white-space: normal; width: 220px; z-index: 100; font-style: normal; font-weight: normal;">The "Joined" date is guessed based on the earliest video upload date of the channel. Not providing yt-dlp-fetched metadata will lead to inaccuracy.</span></span></div>
                         <div class="stats-item total-views" id="statsViews">-- views</div>
                         <button class="share-button" id="shareChannelBtn">
                             <img src="LocalYT-Rev-Files/share.svg" alt="Share">
@@ -1338,6 +1348,19 @@
                     </div>
                 </div>
             </div>
+
+            <!-- German Translation Script for Joined Disclaimer -->
+            <script>
+                (function() {
+                    const disclaimerEl = document.getElementById('joinedDisclaimerText');
+                    if (disclaimerEl) {
+                        const en = 'The "Joined" date is guessed based on the earliest video upload date of the channel. Not providing yt-dlp-fetched metadata will lead to inaccuracy.';
+                        const de = 'Das "Beigetreten"-Datum wird anhand des frühesten Video-Upload-Datums des Kanals geschätzt. Das Fehlen von yt-dlp-Metadaten führt zu Ungenauigkeiten.';
+                        disclaimerEl.textContent = (localStorage.getItem('language') === 'de') ? de : en;
+                    }
+                })();
+            </script>
+
         </div>
 
         <!-- Search Tab -->
