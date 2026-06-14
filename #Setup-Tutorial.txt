@@ -65,6 +65,8 @@ Metadaten hinzufügen:
 
 - "LocalYT-Debug\Fetch_GUI.bat" ausführen, um Metadaten zu diesen Videolinks zu holen (diese werden automatisch in LocalYT eingefügt)
 
+- "LocalYT-Rev-Files\Optional-Metadata\STT\run.bat" ausführen, um Untertitel für Videos zu generieren oder beim Setup aktivieren
+
 ----------------------------------------------------------------------------------------------------
 
 Android-App:

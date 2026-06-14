@@ -4,16 +4,29 @@ setlocal enabledelayedexpansion
 :: Check if #Setup.env exists
 set "LLM_TAGGING=yes"
 set "SEEKBAR_PREVIEWS=yes"
+set "SUBTITLES=yes"
 
 if exist "#Setup.env" (
     echo Found #Setup.env, loading preferences...
     for /f "tokens=1,* delims==" %%a in (#Setup.env) do (
         if /i "%%a"=="LLM_TAGGING" set "LLM_TAGGING=%%b"
         if /i "%%a"=="SEEKBAR_PREVIEWS" set "SEEKBAR_PREVIEWS=%%b"
+        if /i "%%a"=="SUBTITLES" set "SUBTITLES=%%b"
     )
 ) else (
     echo #Setup.env not found. Please configure your preferences:
     
+    :ask_subtitles
+    set /p "subtitles_choice=Do you want to add subtitles to your videos? (y/n): "
+    if /i "!subtitles_choice!"=="y" (
+        set "SUBTITLES=yes"
+    ) else if /i "!subtitles_choice!"=="n" (
+        set "SUBTITLES=no"
+    ) else (
+        echo Please enter y or n.
+        goto ask_subtitles
+    )
+
     :ask_llm
     set /p "llm_choice=Do you want to do the LLM video tagging? (y/n): "
     if /i "!llm_choice!"=="y" (
@@ -37,7 +50,8 @@ if exist "#Setup.env" (
     )
 
     :: Save choices to #Setup.env for future runs
-    echo LLM_TAGGING=!LLM_TAGGING!> "#Setup.env"
+    echo SUBTITLES=!SUBTITLES!> "#Setup.env"
+    echo LLM_TAGGING=!LLM_TAGGING!>> "#Setup.env"
     echo SEEKBAR_PREVIEWS=!SEEKBAR_PREVIEWS!>> "#Setup.env"
     echo.
     echo Preferences saved to #Setup.env. You won't be asked again.
@@ -64,6 +78,14 @@ echo Fixing _NA in subtitle file names...
 
 echo Deduplicating general English and US English subtitles...
 .\venv\python.exe .\LocalYT-Rev-Files\FixEnglishSubDupes.py
+
+:: Subtitles Section
+if /i "!SUBTITLES!"=="yes" (
+    echo Generating subtitles...
+    .\venv\python.exe .\LocalYT-Rev-Files\run.py --all --model small.en --task transcribe -y
+) else (
+    echo Skipping subtitle generation...
+)
 
 echo Fixing auto-generated subtitle structuring...
 .\venv\python.exe .\LocalYT-Rev-Files\srt_fixer_cli.py -idir subtitles -odir subtitles
