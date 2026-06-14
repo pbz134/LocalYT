@@ -1,0 +1,2 @@
+Add any file paths here that the LLM should skip (in case of not being able to tag or other).
+The structure of this list is the exact same as in media_list.txt.

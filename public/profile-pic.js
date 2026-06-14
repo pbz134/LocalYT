@@ -790,7 +790,7 @@
         if (logo && !document.getElementById('logo-version')) {
             const versionSpan = document.createElement('span');
             versionSpan.id = 'logo-version';
-            versionSpan.textContent = 'v4.50'; // Current LocalYT version
+            versionSpan.textContent = 'v4.60'; // Current LocalYT version
             
             const isLight = getSetting('appearanceMode', 'dark') === 'light';
             versionSpan.style.color = isLight ? '#999999' : '#c8c8c8';
@@ -881,8 +881,14 @@
                 const appearanceItem = createMenuItem('appearance.svg', getLang('Appearance: Dark', 'Erscheinungsbild: Dunkel'));
                 updateAppearanceText(appearanceItem);
 
+                let holdTimer;
+                appearanceItem.addEventListener('mousedown', () => { holdTimer = setTimeout(() => { toggleAppearanceMode(true); updateAppearanceText(appearanceItem); closeMenu(); }, 500); });
+                appearanceItem.addEventListener('mouseup', () => clearTimeout(holdTimer));
+                appearanceItem.addEventListener('mouseleave', () => clearTimeout(holdTimer));
+
                 appearanceItem.addEventListener('click', (e) => {
                     e.stopPropagation();
+                    clearTimeout(holdTimer); // Prevent click from firing if hold was successful
                     const isShiftHeld = e.shiftKey;
                     toggleAppearanceMode(isShiftHeld);
                     updateAppearanceText(appearanceItem);

@@ -1,0 +1,36 @@
+{
+  "name": "localyt-revamped",
+  "version": "4.6.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@websr/websr": "^0.0.15",
+    "axios": "^1.8.3",
+    "bcrypt": "^5.1.1",
+    "chokidar": "^3.6.0",
+    "connect-redis": "^9.0.0",
+    "cookie-parser": "^1.4.7",
+    "discord-rpc": "^4.0.1",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.3.1",
+    "express-session": "^1.18.1",
+    "mp4box": "^2.1.2",
+    "multer": "^2.1.1",
+    "music-metadata": "^11.9.0",
+    "node-id3": "^0.2.9",
+    "proper-lockfile": "^4.1.2",
+    "redis": "^5.11.0",
+    "session-file-store": "^1.5.0",
+    "sharp": "^0.34.5",
+    "sqlite3": "^5.1.7",
+    "uuid": "^11.1.0",
+    "ws": "^8.21.0"
+  }
+}
