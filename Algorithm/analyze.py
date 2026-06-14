@@ -8,6 +8,7 @@ from difflib import get_close_matches
 # Configuration
 KOBOLDCPP_API_URL = "http://localhost:5001/v1"
 media_list = "media_list.txt"
+media_list_skip = "media_list_skip.txt"  # Skip list configuration
 
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -30,7 +31,7 @@ openai.request_timeout = 90   # Increased timeout for the full tag list and retr
 def read_media_list(file_path):
     """Read the list of media filenames from a .txt file."""
     with open(file_path, "r", encoding='utf-8') as f:
-        media_files = [line.strip() for line in f.readlines()]
+        media_files = [line.strip() for line in f.readlines() if line.strip()]
     return media_files
 
 def load_tags(file_path):
@@ -412,6 +413,20 @@ def main():
     media_files = read_media_list(media_list_path)
     print(f"Found {len(media_files)} media files in the list.")
     
+    # Step 2.5: Read the skip list and filter out skipped files
+    skip_list_path = os.path.join(SCRIPT_DIR, media_list_skip)
+    skip_count = 0
+    if os.path.exists(skip_list_path):
+        print(f"Looking for skip list at: {skip_list_path}")
+        skip_files = read_media_list(skip_list_path)
+        skip_set = set(skip_files)
+        original_count = len(media_files)
+        media_files = [f for f in media_files if f not in skip_set]
+        skip_count = original_count - len(media_files)
+        print(f"Found {len(skip_files)} files in skip list. {skip_count} files will be skipped.")
+    else:
+        print(f"No skip list found at {skip_list_path}. Processing all files.")
+    
     # Display the output directory
     print(f"Output will be saved to: {OUTPUT_DIR}")
     
@@ -467,6 +482,7 @@ def main():
 
     print(f"\n{'='*50}")
     print(f"COMPLETED! Processed {len(media_files)} media files:")
+    print(f"  - Skipped (via skip list): {skip_count}")
     print(f"  - Auto-tagged (rules): {auto_tag_count}")
     if rule_match_counts:
         print(f"    Rule breakdown:")
