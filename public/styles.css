@@ -652,7 +652,7 @@ img.search-icon {
         }
 
         .touch-device .logo-overlay {
-            top: 70% !important;
+            display: none !important;
         }
 
         .touch-device .current-video-title {
