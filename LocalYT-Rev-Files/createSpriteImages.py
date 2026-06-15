@@ -96,7 +96,7 @@ def process_single_video(args):
     video_name = os.path.splitext(filename)[0]
     
     # 1. Clean filename for output files
-    safe_video_name = re.sub(r'[^\w\s.-]', '', video_name)
+    safe_video_name = re.sub(r'[^\w\s.\-()]', '', video_name)
     safe_video_name = safe_video_name.replace('.', ' ')
     safe_video_name = re.sub(r'\s+', ' ', safe_video_name).strip()
     
