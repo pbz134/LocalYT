@@ -728,29 +728,6 @@
                 <div id="videoPageLayoutStatus" class="status-msg"></div>
             </div>
 
-            <!-- Video Player Section -->
-            <div class="settings-section">
-                <h2 id="videoPlayerHeading">Video Player</h2>
-
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="videoPlayerLabel">Default video player</div>
-                        <div class="setting-description" id="videoPlayerDesc">Choose between the lightweight LYT Player or Fluid Player</div>
-                    </div>
-                    <div class="setting-control">
-                        <select class="setting-select" id="videoPlayer">
-                            <option value="lyt" selected>LYT Player</option>
-                            <option value="fluid">Fluid Player</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="inline-form" style="margin-top: 15px;">
-                    <button class="btn btn-save" id="saveVideoPlayerBtn">Save Preference</button>
-                </div>
-                <div id="videoPlayerStatus" class="status-msg"></div>
-            </div>
-
             <!-- Playlist Page Layout Section -->
             <div class="settings-section">
                 <h2 id="playlistPageLayoutHeading">Playlist Page Layout</h2>
@@ -961,6 +938,29 @@
                 <div id="roundedCornersStatus" class="status-msg"></div>
             </div>
 
+            <!-- Playlist Order Section -->
+            <div class="settings-section">
+                <h2 id="playlistOrderHeading">Playlist Order</h2>
+
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div id="playlistOrderLabel">Invert playlist video order</div>
+                        <div class="setting-description" id="playlistOrderDesc">Show newest videos first (oldest on the right). When disabled, oldest videos appear first (oldest on the left).</div>
+                    </div>
+                    <div class="setting-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="invertPlaylistOrder">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="inline-form" style="margin-top: 15px;">
+                    <button class="btn btn-save" id="savePlaylistOrderBtn">Save Preference</button>
+                </div>
+                <div id="playlistOrderStatus" class="status-msg"></div>
+            </div>
+
             <!-- Configuration Import/Export Section -->
             <div class="settings-section">
                 <h2 id="configImportExportHeading">Configuration</h2>
@@ -990,7 +990,7 @@
 
         </div>
 
-
+    </div>
 
     <!-- Cropper Modal -->
     <div class="crop-modal-overlay" id="cropperModal">
@@ -1008,7 +1008,9 @@
     <div class="toast success" id="successToast"></div>
 
     <script src="profile-pic.js"></script>
+
     <script>
+
 // --- Language Helper ---
 function getLang(en, de) {
     return localStorage.getItem('language') === 'de' ? de : en;
@@ -1063,18 +1065,6 @@ function applyTranslations() {
     document.getElementById('videoPageLayoutDesc').textContent = getLang('Choose between Modern layout or Classic layout (view count on right, buttons stacked vertically)', 'Wähle zwischen modernem Layout oder klassischem Layout (Aufrufzahl rechts, Buttons gestapelt)');
     document.getElementById('saveVideoPageLayoutBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
 
-    // Video Player Translations
-    document.getElementById('videoPlayerHeading').textContent = getLang('Video Player', 'Videoplayer');
-    document.getElementById('videoPlayerLabel').textContent = getLang('Default video player', 'Standard-Videoplayer');
-    document.getElementById('videoPlayerDesc').textContent = getLang('Choose between the lightweight LYT Player or Fluid Player', 'Wähle zwischen dem leichten LYT Player oder dem Fluid Player');
-    document.getElementById('saveVideoPlayerBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
-
-    const videoPlayerSelect = document.getElementById('videoPlayer');
-    if (videoPlayerSelect) {
-        videoPlayerSelect.options[0].text = getLang('LYT Player', 'LYT Player');
-        videoPlayerSelect.options[1].text = getLang('Fluid Player', 'Fluid Player');
-    }
-
     // Player UI Scale Translations
     document.getElementById('playerUIScaleHeading').textContent = getLang('Player UI Scale', 'Player-UI-Skalierung');
     document.getElementById('playerUIScaleLabel').textContent = getLang('Player interface size', 'Größe der Player-Oberfläche');
@@ -1106,6 +1096,12 @@ function applyTranslations() {
     document.getElementById('playlistPageLayoutLabel').textContent = getLang('Default playlist video layout', 'Standard-Video-Layout für Playlists');
     document.getElementById('playlistPageLayoutDesc').textContent = getLang('Choose how playlist pages load by default (Grid or List view)', 'Wähle, wie Playlistseiten standardmäßig geladen werden (Raster- oder Listenansicht)');
     document.getElementById('savePlaylistPageLayoutBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
+
+    // Playlist Order Translations
+    document.getElementById('playlistOrderHeading').textContent = getLang('Playlist Order', 'Playlist-Reihenfolge');
+    document.getElementById('playlistOrderLabel').textContent = getLang('Invert playlist video order', 'Playlist-Reihenfolge umkehren');
+    document.getElementById('playlistOrderDesc').textContent = getLang('Show newest videos first (oldest on the right). When disabled, oldest videos appear first (oldest on the left).', 'Zeige neueste Videos zuerst (älteste rechts). Wenn deaktiviert, erscheinen älteste Videos zuerst (älteste links).');
+    document.getElementById('savePlaylistOrderBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
 
     // Update dropdown options text
     const videoPageLayoutSelect = document.getElementById('videoPageLayout');
@@ -1394,57 +1390,6 @@ function saveVideoPageLayout() {
 }
 
 // ==============================
-// Video Player Logic
-// ==============================
-function loadVideoPlayer() {
-    const savedLocal = JSON.parse(localStorage.getItem('videoPlayer') || '{}');
-    const defaultPlayer = 'lyt';
-    const currentPlayer = savedLocal.player || defaultPlayer;
-    
-    document.getElementById('videoPlayer').value = currentPlayer;
-
-    fetch('/user-settings')
-        .then(res => {
-            if (!res.ok) throw new Error('Not authenticated');
-            return res.json();
-        })
-        .then(serverSettings => {
-            if (serverSettings && serverSettings.videoPlayer) {
-                const serverPlayer = serverSettings.videoPlayer;
-                document.getElementById('videoPlayer').value = serverPlayer;
-                localStorage.setItem('videoPlayer', JSON.stringify({ player: serverPlayer }));
-            }
-        })
-        .catch(err => console.error('Could not load video player setting from server:', err));
-}
-
-function saveVideoPlayer() {
-    const player = document.getElementById('videoPlayer').value;
-    localStorage.setItem('videoPlayer', JSON.stringify({ player: player }));
-
-    fetch('/user-settings')
-        .then(res => res.json())
-        .then(currentSettings => {
-            const updatedSettings = { ...currentSettings, videoPlayer: player };
-            return fetch('/user-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings: updatedSettings })
-            });
-        })
-        .then(res => {
-            if (res.ok) {
-                showStatus('videoPlayerStatus', getLang('Video player preference saved!', 'Videoplayer-Einstellung gespeichert!'), true);
-            } else {
-                showStatus('videoPlayerStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
-            }
-        })
-        .catch(() => {
-            showStatus('videoPlayerStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
-        });
-}
-
-// ==============================
 // Player UI Scale Logic
 // ==============================
 function loadPlayerUIScale() {
@@ -1594,6 +1539,57 @@ function savePlaylistPageLayout() {
         })
         .catch(() => {
             showStatus('playlistPageLayoutStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
+        });
+}
+
+// ==============================
+// Playlist Order Logic
+// ==============================
+function loadPlaylistOrder() {
+    const savedLocal = JSON.parse(localStorage.getItem('invertPlaylistOrder') || '{}');
+    const defaultValue = true;
+    const currentValue = savedLocal.enabled !== undefined ? savedLocal.enabled : defaultValue;
+    
+    document.getElementById('invertPlaylistOrder').checked = currentValue;
+
+    fetch('/user-settings')
+        .then(res => {
+            if (!res.ok) throw new Error('Not authenticated');
+            return res.json();
+        })
+        .then(serverSettings => {
+            if (serverSettings && serverSettings.invertPlaylistOrder !== undefined) {
+                const serverValue = serverSettings.invertPlaylistOrder;
+                document.getElementById('invertPlaylistOrder').checked = serverValue;
+                localStorage.setItem('invertPlaylistOrder', JSON.stringify({ enabled: serverValue }));
+            }
+        })
+        .catch(err => console.error('Could not load playlist order setting from server:', err));
+}
+
+function savePlaylistOrder() {
+    const enabled = document.getElementById('invertPlaylistOrder').checked;
+    localStorage.setItem('invertPlaylistOrder', JSON.stringify({ enabled: enabled }));
+
+    fetch('/user-settings')
+        .then(res => res.json())
+        .then(currentSettings => {
+            const updatedSettings = { ...currentSettings, invertPlaylistOrder: enabled };
+            return fetch('/user-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings: updatedSettings })
+            });
+        })
+        .then(res => {
+            if (res.ok) {
+                showStatus('playlistOrderStatus', getLang('Playlist order preference saved!', 'Playlist-Reihenfolge gespeichert!'), true);
+            } else {
+                showStatus('playlistOrderStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
+            }
+        })
+        .catch(() => {
+            showStatus('playlistOrderStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
         });
 }
 
@@ -1930,7 +1926,6 @@ sidebarLinks.forEach(link => {
             loadCommenterProfileStyle();
             loadChannelDefaultView();
             loadVideoPageLayout();
-            loadVideoPlayer();
             loadPlaylistPageLayout();
             loadChannelPageStyle();
             loadFuzzySubCount();
@@ -1939,7 +1934,8 @@ sidebarLinks.forEach(link => {
             loadShowChannelProfilePic();
             loadShowEndScreenGrid();
             loadPlayerUIScale();
-            loadRoundedCorners(); 
+            loadRoundedCorners();
+            loadPlaylistOrder();
         }
     });
 });
@@ -1985,7 +1981,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('saveCommenterStyleBtn')?.addEventListener('click', saveCommenterProfileStyle);
     document.getElementById('saveChannelDefaultViewBtn')?.addEventListener('click', saveChannelDefaultView);
     document.getElementById('saveVideoPageLayoutBtn')?.addEventListener('click', saveVideoPageLayout);
-    document.getElementById('saveVideoPlayerBtn')?.addEventListener('click', saveVideoPlayer);
     document.getElementById('savePlaylistPageLayoutBtn')?.addEventListener('click', savePlaylistPageLayout);
     document.getElementById('saveChannelPageStyleBtn')?.addEventListener('click', saveChannelPageStyle);
     document.getElementById('saveFuzzySubCountBtn')?.addEventListener('click', saveFuzzySubCount);
@@ -1997,6 +1992,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('savePlayerUIScaleBtn')?.addEventListener('click', savePlayerUIScale);
     document.getElementById('saveRoundedCornersBtn')?.addEventListener('click', saveRoundedCorners);
+    document.getElementById('savePlaylistOrderBtn')?.addEventListener('click', savePlaylistOrder);
 
     // Initialize config import/export buttons
     initConfigImportExport();
@@ -2536,9 +2532,6 @@ function gatherCurrentSettings() {
     // Video page layout
     config.videoPageLayout = document.getElementById('videoPageLayout').value;
     
-    // Video player
-    config.videoPlayer = document.getElementById('videoPlayer').value;
-    
     // Playlist page layout
     config.playlistPageLayout = document.getElementById('playlistPageLayout').value;
     
@@ -2565,6 +2558,9 @@ function gatherCurrentSettings() {
 
     // Rounded Corners
     config.roundedCorners = document.getElementById('roundedCorners').checked;
+
+    // Playlist Order
+    config.invertPlaylistOrder = document.getElementById('invertPlaylistOrder').checked;
     
     return config;
 }
@@ -2655,11 +2651,6 @@ function validateConfig(config) {
         return false;
     }
     
-    // Validate video player
-    if (config.videoPlayer && !['lyt', 'fluid'].includes(config.videoPlayer)) {
-        return false;
-    }
-    
     // Validate playlist page layout
     if (config.playlistPageLayout && !['grid', 'list'].includes(config.playlistPageLayout)) {
         return false;
@@ -2701,6 +2692,11 @@ function validateConfig(config) {
     if (config.roundedCorners !== undefined && typeof config.roundedCorners !== 'boolean') {
         return false;
     }
+
+    // Validate playlist order
+    if (config.invertPlaylistOrder !== undefined && typeof config.invertPlaylistOrder !== 'boolean') {
+        return false;
+    }
     
     return true;
 }
@@ -2740,12 +2736,6 @@ function applyConfiguration(config) {
     if (config.videoPageLayout) {
         document.getElementById('videoPageLayout').value = config.videoPageLayout;
         localStorage.setItem('videoPageLayout', JSON.stringify({ layout: config.videoPageLayout }));
-    }
-    
-    // Apply video player
-    if (config.videoPlayer) {
-        document.getElementById('videoPlayer').value = config.videoPlayer;
-        localStorage.setItem('videoPlayer', JSON.stringify({ player: config.videoPlayer }));
     }
     
     // Apply playlist page layout
@@ -2800,6 +2790,11 @@ function applyConfiguration(config) {
         document.getElementById('roundedCorners').checked = config.roundedCorners;
         localStorage.setItem('roundedCorners', JSON.stringify({ enabled: config.roundedCorners }));
     }
+    // Apply Playlist Order
+    if (config.invertPlaylistOrder !== undefined) {
+        document.getElementById('invertPlaylistOrder').checked = config.invertPlaylistOrder;
+        localStorage.setItem('invertPlaylistOrder', JSON.stringify({ enabled: config.invertPlaylistOrder }));
+    }
 }
 
 function saveImportedConfiguration(config) {
@@ -2831,10 +2826,6 @@ function saveImportedConfiguration(config) {
                 updatedSettings.videoPageLayout = config.videoPageLayout;
             }
             
-            if (config.videoPlayer) {
-                updatedSettings.videoPlayer = config.videoPlayer;
-            }
-            
             if (config.playlistPageLayout) {
                 updatedSettings.playlistPageLayout = config.playlistPageLayout;
             }
@@ -2859,7 +2850,10 @@ function saveImportedConfiguration(config) {
                 updatedSettings.roundedCorners = config.roundedCorners;
             }
 
-            // Save merged settings to server
+            if (config.invertPlaylistOrder !== undefined) {
+                updatedSettings.invertPlaylistOrder = config.invertPlaylistOrder;
+            }
+
             if (config.showChannelProfilePic !== undefined) {
                 updatedSettings.showChannelProfilePic = config.showChannelProfilePic;
             }

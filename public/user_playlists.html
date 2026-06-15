@@ -684,7 +684,21 @@ async function loadPlaylists() {
                 
                 let currentTotalSecs = 0;
 
-                videos.forEach(video => {
+                // Check if playlist order should be inverted
+                let invertOrder = false;
+                try {
+                    const savedOrder = JSON.parse(localStorage.getItem('invertPlaylistOrder') || '{}');
+                    // If no setting exists, default to inverted order (oldest on right)
+                    invertOrder = savedOrder.enabled !== undefined ? savedOrder.enabled === true : true;
+                } catch(e) { invertOrder = false; }
+                
+                // Get videos in the appropriate order
+                let videosToRender = [...videos];
+                if (invertOrder) {
+                    videosToRender.reverse();
+                }
+
+                videosToRender.forEach(video => {
                     const item = document.createElement('div');
                     item.className = 'playlist-video-item';
                     
