@@ -530,7 +530,8 @@
                     .fluid_video_wrapper video {
                         display: block;
                         width: 100%;
-                        height: auto;
+                        max-height: 70vh;
+                        object-fit: contain;
                     }
                     
                     /* Poster / Thumbnail Overlay */
