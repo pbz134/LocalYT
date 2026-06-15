@@ -670,10 +670,10 @@ img.search-icon {
         }
 
         .touch-device .video-description {
-            margin: 10px 0 0 0 !important;
-            max-width: 100% !important;
+            margin: 10px 10px 0 10px !important;
+            max-width: calc(100% - 20px) !important;
             box-sizing: border-box !important;
-    padding-left: 0 !important;
+    padding-left: 10px !important;
         }
 
         /* --- Touch Device Index Page Video Items --- */
