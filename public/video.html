@@ -639,13 +639,32 @@
             text-decoration: underline;
         }
 
-        video {
-            width: 100%;
-            height: auto;
-            aspect-ratio: auto;
-            display: block;
-            border: none;
-        }
+video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    display: block;
+    border: none;
+}
+
+.video-stage {
+    aspect-ratio: 16 / 9;
+    background-color: #000;
+}
+
+.fluid_video_wrapper {
+    aspect-ratio: 16 / 9 !important;
+    background-color: #000;
+    position: relative;
+    width: 100%;
+}
+
+.fluid_video_wrapper video {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    object-fit: contain !important;
+}
 
         .fluid_video_wrapper:fullscreen,
         .fluid_video_wrapper.pseudo_fullscreen {
