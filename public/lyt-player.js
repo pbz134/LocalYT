@@ -531,7 +531,6 @@
                         display: block;
                         width: 100%;
                         height: auto;
-                        aspect-ratio: 16 / 9;
                     }
                     
                     /* Poster / Thumbnail Overlay */
@@ -548,7 +547,7 @@
                     }
 
                     .fluid_video_wrapper video[poster] {
-                        object-fit: contain;
+                        object-fit: fill;
                     }
 
                     .video-stage .logo-overlay {

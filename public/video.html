@@ -32,45 +32,6 @@
         }
     }
 
-    // Determine which Player script to load based on settings and video file extension
-    (function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        
-        let videoSrc = '';
-        try {
-            videoSrc = safeDecodeURIComponent(urlParams.get('src') || '');
-        } catch (e) {
-            console.warn("Could not decode video src in head, using raw value:", e);
-            videoSrc = urlParams.get('src') || '';
-        }
-        
-        const extension = videoSrc.split('.').pop().toLowerCase();
-        const playerSettings = JSON.parse(localStorage.getItem('videoPlayer') || '{}');
-        const selectedPlayer = playerSettings.player || 'lyt';
-        
-        const scriptsToLoad = [];
-
-        if (selectedPlayer === 'lyt') {
-            scriptsToLoad.push('lyt-player.js');
-        } else {
-            // Fluid Player
-            if (extension === 'mp3') {
-                scriptsToLoad.push('fluidplayer.minMP3MOD.js');
-            } else {
-                scriptsToLoad.push('fluidplayer.min.js');
-            }
-        }
-        
-        scriptsToLoad.forEach(scriptFile => {
-            const script = document.createElement('script');
-            script.src = scriptFile;
-            script.onload = function() {
-                console.log(`Loaded ${scriptFile} for ${extension} files (Player: ${selectedPlayer})`);
-            };
-            document.head.appendChild(script);
-        });
-    })();
-
 // ==============================
 // Apply Rounded Corners Preference
 // ==============================
@@ -680,7 +641,6 @@
             video {
                 width: 100%;
                 height: auto;
-                aspect-ratio: 16 / 9;
                 display: block;
                 border: none;
             }
@@ -1019,46 +979,9 @@
 .video-suggestions .suggestion-title {
     cursor: pointer !important;
 } 
+
     </style>
     <style>
-        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container .fluid_controls_progress {
-            height: 7px !important;
-        }
-
-        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container.fluid_slider .fluid_controls_progress .fluid_controls_currentprogress .fluid_controls_currentpos {
-            background-color: inherit !important;
-        }
-
-        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container .fluid_controls_buffered {
-            height: 4px !important;
-        }
-
-        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container .fluid_controls_progress,
-        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container .fluid_controls_progress .fluid_controls_currentprogress {
-            height: 5px !important;
-        }
-
-        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container:hover .fluid_controls_progress,
-        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container:hover .fluid_controls_buffered,
-        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container:hover .fluid_controls_progress_container:hover .fluid_controls_ad_markers_holder {
-            margin-top: 0px !important;
-            height: 5px !important;
-        }
-
-        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container:hover .fluid_controls_progress .fluid_controls_currentprogress {
-            height: 5px !important;
-        }
-        /* Make the dot always visible (opacity 1) */
-        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container.fluid_slider .fluid_controls_progress .fluid_controls_currentprogress .fluid_controls_currentpos {
-            opacity: 1 !important;
-        }
-
-        /* Remove the fade-in transition so it doesn't animate on page load */
-        .fluid_video_wrapper.fluid_player_layout_default .fluid_controls_container .fluid_controls_progress_container.fluid_slider .fluid_controls_progress .fluid_controls_currentprogress .fluid_controls_currentpos {
-        -webkit-transition: none !important;
-        transition: none !important;
-        }
-
         /* ===== UP NEXT AUTOPLAY OVERLAY ===== */
         .lyt_upnext_overlay {
             position: absolute;
@@ -4592,7 +4515,7 @@ function toggleLiveChat() {
     }
 </script>
     <script src="profile-pic.js"></script>
-    <script src="fluidplayer-custom-stats.js"></script>
+    <script src="lyt-player-custom-stats.js"></script>
     <script src="sidebar.js"></script>
     <script src="thumbnail-context-menu.js"></script>
 </body>
