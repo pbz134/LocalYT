@@ -15,7 +15,7 @@
             position: absolute;
             top: 4px;
             right: 4px;
-            background: transparent;
+            background: #000;
             border: none;
             border-radius: 50%;
             width: 24px;
