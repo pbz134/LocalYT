@@ -117,7 +117,7 @@
             this.isLooping = false;
 
             // Current LYT Player version
-            this.version = 'v2.4.5';
+            this.version = 'v2.5.0';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -220,6 +220,51 @@
                     .lyt_btn_settings {
                         position: relative;
                     }
+                /* Center Play/Pause Button – visible only on touch devices when controls are showing */
+                .touch-device .lyt_center_play_btn {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    z-index: 11; /* above video, below controls */
+                    cursor: pointer;
+                    display: none;
+                    opacity: 0;
+                    transition: none;
+                    pointer-events: none;
+                }
+                .touch-device .fluid_video_wrapper.lyt_active .lyt_center_play_btn {
+                    display: block;
+                    opacity: 1;
+                    pointer-events: auto;
+                }
+                .touch-device .lyt_center_play_bg {
+                    width: 64px;
+                    height: 64px;
+                    background: rgba(0, 0, 0, 0.5);
+                    border-radius: 50%;
+                    transition: transform 0.2s ease, background 0.2s ease;
+                }
+                .touch-device .lyt_center_play_btn:hover .lyt_center_play_bg {
+                    transform: scale(1.05);
+                    background: rgba(0, 0, 0, 0.7);
+                }
+                .touch-device .lyt_center_play_icon {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    color: #fff;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .touch-device .lyt_center_play_icon svg {
+                    width: 32px;
+                    height: 32px;
+                    fill: #fff;
+                    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+                }
                     .lyt_hd_badge {
                         position: absolute;
                         top: 5px;
@@ -1251,6 +1296,12 @@
                 <!-- Poster/Thumbnail Overlay -->
                 <div class="lyt_poster_overlay" style="${posterStyle}"></div>
 
+                <!-- ===== CENTER PLAY/PAUSE BUTTON (touch devices only) ===== -->
+                <div class="lyt_center_play_btn">
+                    <div class="lyt_center_play_bg"></div>
+                    <div class="lyt_center_play_icon">${SVG.play}</div>
+                </div>
+
                 <!-- Title Display -->
                 <div class="lyt_title_display"></div>
 
@@ -1401,6 +1452,7 @@
                 contextMenu: this.wrapper.querySelector('.lyt_context_menu'),
                 posterOverlay: this.wrapper.querySelector('.lyt_poster_overlay'),
                 titleDisplay: this.wrapper.querySelector('.lyt_title_display'),
+                centerPlayBtn: this.wrapper.querySelector('.lyt_center_play_btn'),
                 
                 // Channel Profile Pic
                 channelProfilePic: this.wrapper.querySelector('.lyt_channel_profile_pic'),
@@ -1514,11 +1566,13 @@
             // Video Events
             this.video.addEventListener('play', () => {
                 this.updatePlayPauseBtn(true);
+                this.updateCenterPlayBtn(true);
                 this.hidePoster();
                 this.showCenterAnimation('pause');
             });
             this.video.addEventListener('pause', () => {
                 this.updatePlayPauseBtn(false);
+                this.updateCenterPlayBtn(false);t
                 this.showCenterAnimation('play');
             });
             this.video.addEventListener('pause', () => this.updatePlayPauseBtn(false));
@@ -1541,6 +1595,14 @@
                 this.video.paused ? this.video.play() : this.video.pause();
             });
             
+            // Center play/pause button
+            if (this.dom.centerPlayBtn) {
+                this.dom.centerPlayBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.video.paused ? this.video.play() : this.video.pause();
+                });
+            }
+
             // Skip button
             this.dom.skipBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1572,11 +1634,6 @@
             if (this.video.readyState >= 1) {
                 updateHdBadge();
             }
-
-            // Single click on video to toggle play
-            this.video.addEventListener('click', () => {
-                this.video.paused ? this.video.play() : this.video.pause();
-            });
 
             // Double click on video to toggle fullscreen
             this.video.addEventListener('dblclick', () => {
@@ -1726,7 +1783,14 @@
                 }
             });
             
-            // Close menus on video/progress interaction
+            // Only attach video click for non-touch devices (play/pause toggle)
+            if (!('ontouchstart' in window || navigator.maxTouchPoints > 0)) {
+                this.video.addEventListener('click', () => {
+                    this.video.paused ? this.video.play() : this.video.pause();
+                });
+            }
+
+            // Close menus on video/progress interaction (works on all devices)
             this.video.addEventListener('click', () => {
                 this.closeAllMenus();
                 this.closeContextMenu();
@@ -1735,7 +1799,6 @@
                 this.closeAllMenus();
                 this.closeContextMenu();
             });
-
             // Keyboard shortcuts
             document.addEventListener('keydown', (e) => this.handleKeyboard(e));
             
@@ -2200,6 +2263,14 @@
         updatePlayPauseBtn(isPlaying) {
             this.dom.playBtn.innerHTML = isPlaying ? SVG.pause : SVG.play;
             this.dom.playBtn.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
+        }
+
+        updateCenterPlayBtn(isPlaying) {
+            if (!this.dom.centerPlayBtn) return;
+            const icon = this.dom.centerPlayBtn.querySelector('.lyt_center_play_icon');
+            if (icon) {
+                icon.innerHTML = isPlaying ? SVG.pause : SVG.play;
+            }
         }
 
         showCenterAnimation(type) {
