@@ -1,3 +1,4 @@
+// profile-pic.js:
 (function() {
     const PLACEHOLDER = '/LocalYT-Rev-Files/user-profile-placeholder.jpg';
     let menuInstance = null;
@@ -924,6 +925,10 @@
                     window.open('https://github.com/pbz134/LocalYT/issues', '_blank');
                 }));
 
+                menuInstance.appendChild(createMenuItem('about.svg', getLang('About', 'Über'), () => {
+                    window.location.href = 'about.html';
+                }));
+
             } else {
                 menuInstance.appendChild(createMenuItem('signout.svg', getLang('Sign In', 'Anmelden'), () => {
                     window.location.href = '/login.html';
@@ -939,6 +944,10 @@
 
                 menuInstance.appendChild(createMenuItem('feedback.svg', getLang('Send Feedback', 'Feedback senden'), () => {
                     window.open('https://github.com/pbz134/LocalYT/issues', '_blank');
+                }));
+
+                menuInstance.appendChild(createMenuItem('about.svg', getLang('About', 'Über'), () => {
+                    window.location.href = 'about.html';
                 }));
             }
         }

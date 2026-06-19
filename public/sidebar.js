@@ -102,7 +102,6 @@ function initSidebar() {
             <a href="subscribed_channels.html" id="sidebarSubscriptions">Subscriptions</a>
             <a href="user_playlists.html" id="sidebarPlaylists">Playlists</a>
             <a href="watch_later.html" id="sidebarWatchLater">Watch later</a>
-            <a href="about.html" id="sidebarAbout">About</a>
             <div class="sidebar-divider"></div>
             <div class="genre-label" id="sidebarGenreLabel">Topics</div>
             <div id="sidebarTopicsContainer">
@@ -144,7 +143,6 @@ function initSidebar() {
     const subscriptionsEl = document.getElementById('sidebarSubscriptions');
     const playlistsEl = document.getElementById('sidebarPlaylists');
     const watchLaterEl = document.getElementById('sidebarWatchLater');
-    const aboutEl = document.getElementById('sidebarAbout');
     const genreLabelEl = document.getElementById('sidebarGenreLabel');
     const editTopicsEl = document.getElementById('sidebarEditTopics');
 
@@ -155,7 +153,6 @@ function initSidebar() {
     
     if (watchLaterEl) watchLaterEl.textContent = getLang('Watch later', 'Später ansehen');
 
-    if (aboutEl) aboutEl.textContent = getLang('About', 'Über');
     if (genreLabelEl) genreLabelEl.textContent = getLang('Topics', 'Themen');
     if (editTopicsEl) editTopicsEl.lastChild.textContent = getLang('Edit Topics', 'Themen bearb.');
 
