@@ -211,11 +211,47 @@
             const layout = this.options.layoutControls || {};
             const primaryColor = layout.primaryColor || 'red';
             const posterImage = layout.posterImage || '';
-
+        
             const posterStyle = posterImage ? "background-image: url('" + posterImage.replace(/'/g, "\'") + "');" : '';
-
+        
+            // Detect touch device
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        
+            // Only include center play button on touch devices
+            const centerPlayButtonHtml = isTouchDevice ? `
+                <!-- ===== CENTER PLAY/PAUSE BUTTON (touch devices only) ===== -->
+                <div class="lyt_center_play_btn">
+                    <div class="lyt_center_play_bg"></div>
+                    <div class="lyt_center_play_icon">${SVG.play}</div>
+                </div>
+            ` : '';
+        
             const controlsHtml = `
                 <style>
+/* Hide center play button by default (non-touch devices) */
+.lyt_center_play_btn {
+    display: none;
+}
+
+/* Show only on touch devices when controls are visible */
+.touch-device .lyt_center_play_btn {
+    display: none; /* still hidden initially */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 11;
+    cursor: pointer;
+    opacity: 0;
+    transition: none;
+    pointer-events: none;
+}
+
+.touch-device .fluid_video_wrapper.lyt_active .lyt_center_play_btn {
+    display: block; /* show when active and on touch */
+    opacity: 1;
+    pointer-events: auto;
+}
                     /* HD Badge */
                     .lyt_btn_settings {
                         position: relative;
@@ -1595,13 +1631,13 @@
                 this.video.paused ? this.video.play() : this.video.pause();
             });
             
-            // Center play/pause button
+            // Center play/pause button (only if it exists)
             if (this.dom.centerPlayBtn) {
                 this.dom.centerPlayBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.video.paused ? this.video.play() : this.video.pause();
-                });
-            }
+                e.stopPropagation();
+                this.video.paused ? this.video.play() : this.video.pause();
+            });
+        }
 
             // Skip button
             this.dom.skipBtn.addEventListener('click', (e) => {
