@@ -2548,7 +2548,7 @@ document.addEventListener('click', function(e) {
                 const suggestionPathParts = video.path.split('/');
                 const suggestionChannel = suggestionPathParts[0];
                 let suggestionThumbnailPath;
-            
+                
                 if (suggestionPathParts.length > 2) {
                     const suggestionPlaylist = suggestionPathParts[1];
                     const suggestionVideoName = stripExtension(suggestionPathParts[suggestionPathParts.length - 1]);
@@ -2557,7 +2557,7 @@ document.addEventListener('click', function(e) {
                     const suggestionVideoName = stripExtension(suggestionPathParts[suggestionPathParts.length - 1]);
                     suggestionThumbnailPath = `${encodeURIComponent(suggestionChannel)}/${encodeURIComponent(suggestionVideoName)}.jpg`;
                 }
-            
+                
                 // Construct URL, preserving playlist and userplaylist parameters
                 let videoUrl = `video.html?src=${encodeURIComponent(video.path)}`;
                 if (playlistParam) {
@@ -2566,35 +2566,35 @@ document.addEventListener('click', function(e) {
                 if (userPlaylistParam) {
                     videoUrl += `&userplaylist=${encodeURIComponent(userPlaylistParam)}`;
                 }
-            
+                
                 suggestionElement.innerHTML = `
                     <div class="thumbnail-container">
                         <img src="/thumbnails-small/${suggestionThumbnailPath}" alt="${suggestionTitle}" class="video-thumbnail">
                         <div class="video-length"></div>
                     </div>
                     <div class="suggestion-info">
-                        <div class="suggestion-title">${suggestionTitle}</div>
+                        <div class="suggestion-title" title="${suggestionTitle.replace(/"/g, '&quot;')}">${suggestionTitle}</div>
                         <div class="suggestion-channel">${channel}</div>
                         <div class="view-count">${localStorage.getItem('language') === 'de' ? video.viewCount.replace(/,/g, '.') : video.viewCount} ${getLang('views', 'Aufrufe')}</div>
                     </div>
                 `;
-            
+                
                 suggestionElement.dataset.videoPath = video.path;
                 container.appendChild(suggestionElement);
-            
+                
                 const thumbLink = suggestionElement.querySelector('.thumbnail-container');
                 const titleLink = suggestionElement.querySelector('.suggestion-title');
-            
+                
                 thumbLink.addEventListener('click', () => { window.location.href = videoUrl; });
                 titleLink.addEventListener('click', () => { window.location.href = videoUrl; });
-            
+                
                 const contextHandler = (e) => {
                     e.preventDefault();
                     window.open(videoUrl, '_blank');
                 };
                 thumbLink.addEventListener('contextmenu', contextHandler);
                 titleLink.addEventListener('contextmenu', contextHandler);
-            
+                
                 const middleHandler = (e) => {
                     if (e.button === 1) {
                         e.preventDefault();
@@ -2605,7 +2605,7 @@ document.addEventListener('click', function(e) {
                 thumbLink.addEventListener('auxclick', middleHandler);
                 titleLink.addEventListener('mouseup', middleHandler);
                 titleLink.addEventListener('auxclick', middleHandler);
-            
+                
                 const videoFilename = video.path.split('/').pop();
                 const videoNameWithoutExt = stripExtension(videoFilename);
                 fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
