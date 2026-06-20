@@ -1,338 +1,220 @@
 #!/usr/bin/env python3
 """
-Thumbnail Processor - Scans for thumbnails and:
-- Adds left/right black bars to ALL 640x480 and 960x720 thumbnails to make them 16:9
-- For 480x360 thumbnails: crops if top/bottom black bars detected, otherwise adds side borders
-- For 320x240 thumbnails: crops to 320x180 if top/bottom black bars detected, otherwise skips
-- Adds borders to 1:1 thumbnails to make them 16:9 using the most common color
-- NEW: Adds black borders to portrait thumbnails with aspect ratio ~0.56 (e.g., 480x854, 720x1280)
+Thumbnail Black Bar Remover - Scans for thumbnails with black bars and zooms in to remove them.
+Overwrites files directly without creating backups.
 """
 
 import os
 import argparse
 from pathlib import Path
-from PIL import Image, ImageOps
+from PIL import Image
 import numpy as np
-from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import sys
 
-# Valid dimensions and their aspect ratios
-VALID_DIMENSIONS = {
-    (640, 480): "4:3 (will add black borders to make 16:9)",
-    (960, 720): "4:3 (will add black borders to make 16:9)",
-    (480, 360): "4:3 (will crop or add borders to make 16:9)",
-    (320, 240): "4:3 (will crop to 320x180 if black bars detected)",
-    (1, 1): "1:1 (square - will add borders to make 16:9 using most common color)"
-}
-
-# Portrait dimensions with aspect ratio around 0.56 (9:16 portrait)
-PORTRAIT_ASPECT_RATIO_TARGET = 0.56  # 9/16 = 0.5625
-PORTRAIT_ASPECT_TOLERANCE = 0.02  # Accept ratios between 0.54 and 0.58
-
-def get_most_common_color(image, sampling_ratio=0.1):
+def find_content_boundaries(image, threshold=30):
     """
-    Find the most common color in the image by sampling pixels.
+    Find the actual content boundaries by detecting where black bars end.
     
     Args:
         image: PIL Image object
-        sampling_ratio: Ratio of pixels to sample (0.1 = 10%)
+        threshold: Pixel value threshold for considering a pixel as black
     
     Returns:
-        tuple: RGB color tuple of the most common color
+        tuple: (left, top, right, bottom) boundaries of the content
     """
-    # Convert to RGB if necessary
-    if image.mode != 'RGB':
-        image = image.convert('RGB')
+    img_array = np.array(image.convert('RGB'))
+    height, width = img_array.shape[:2]
     
-    # Get image dimensions
-    width, height = image.size
-    total_pixels = width * height
+    # Find left boundary (scan from left to right)
+    left_boundary = 0
+    for x in range(width):
+        # Check if this column has any non-black pixels
+        column = img_array[:, x]
+        # Check if any pixel in column is not black (above threshold)
+        non_black = np.any(np.any(column > threshold, axis=1))
+        if non_black:
+            left_boundary = x
+            break
     
-    # Calculate number of pixels to sample
-    sample_size = max(1, int(total_pixels * sampling_ratio))
+    # Find right boundary (scan from right to left)
+    right_boundary = width
+    for x in range(width - 1, -1, -1):
+        column = img_array[:, x]
+        non_black = np.any(np.any(column > threshold, axis=1))
+        if non_black:
+            right_boundary = x + 1
+            break
     
-    # Generate random sampling positions
-    np.random.seed(42)  # For reproducibility
-    x_samples = np.random.randint(0, width, sample_size)
-    y_samples = np.random.randint(0, height, sample_size)
+    # Find top boundary (scan from top to bottom)
+    top_boundary = 0
+    for y in range(height):
+        row = img_array[y, :]
+        non_black = np.any(np.any(row > threshold, axis=1))
+        if non_black:
+            top_boundary = y
+            break
     
-    # Sample pixels
-    pixels = []
-    for x, y in zip(x_samples, y_samples):
-        r, g, b = image.getpixel((x, y))
-        # Quantize colors to reduce variations (group similar colors)
-        r = (r // 10) * 10
-        g = (g // 10) * 10
-        b = (b // 10) * 10
-        pixels.append((r, g, b))
+    # Find bottom boundary (scan from bottom to top)
+    bottom_boundary = height
+    for y in range(height - 1, -1, -1):
+        row = img_array[y, :]
+        non_black = np.any(np.any(row > threshold, axis=1))
+        if non_black:
+            bottom_boundary = y + 1
+            break
     
-    # Find most common color
-    color_counter = Counter(pixels)
-    most_common = color_counter.most_common(1)[0][0]
-    
-    # Restore original color values (add 5 to get back to middle of range)
-    most_common = (most_common[0] + 5, most_common[1] + 5, most_common[2] + 5)
-    
-    return most_common
-
-def add_border_to_16_9(image):
-    """
-    Add borders to a square image to make it 16:9 aspect ratio.
-    Uses the most common color in the image for the borders.
-    
-    Args:
-        image: PIL Image object (assumed to be square)
-    
-    Returns:
-        PIL Image object with borders added to achieve 16:9
-    """
-    width, height = image.size
-    
-    # Ensure image is square
-    if width != height:
-        return image
-    
-    # Calculate target width for 16:9 aspect ratio
-    target_width = int(height * 16 / 9)
-    
-    if target_width <= width:
-        return image
-    
-    # Get most common color for borders
-    border_color = get_most_common_color(image)
-    
-    # Calculate border width (add equally to both sides)
-    total_border = target_width - width
-    left_border = total_border // 2
-    right_border = total_border - left_border
-    
-    # Add borders
-    bordered_image = ImageOps.expand(
-        image, 
-        border=(left_border, 0, right_border, 0), 
-        fill=border_color
-    )
-    
-    return bordered_image
-
-def add_black_bars_to_4_3(image):
-    """
-    Add black bars to the sides of a 4:3 image (640x480, 960x720, etc.) to make it 16:9.
-    
-    Args:
-        image: PIL Image object (assumed to be 4:3 aspect ratio)
-    
-    Returns:
-        PIL Image object with black bars added to achieve 16:9
-    """
-    width, height = image.size
-    
-    # Verify aspect ratio is roughly 4:3
-    if abs(width/height - 4/3) > 0.01:
-        return image
-    
-    # Calculate target width for 16:9 aspect ratio (keeping height the same)
-    target_width = int(height * 16 / 9)
-    
-    if target_width <= width:
-        return image
-    
-    # Calculate border width to add (black bars)
-    total_border = target_width - width
-    left_border = total_border // 2
-    right_border = total_border - left_border
-    
-    # Add black borders
-    bordered_image = ImageOps.expand(
-        image, 
-        border=(left_border, 0, right_border, 0), 
-        fill=(0, 0, 0)  # Black
-    )
-    
-    return bordered_image
-
-def add_black_bars_to_portrait(image):
-    """
-    Add black bars to the sides of a portrait image (aspect ratio ~0.56) to make it 16:9 landscape.
-    
-    Args:
-        image: PIL Image object (assumed to be portrait with aspect ratio ~0.56)
-    
-    Returns:
-        PIL Image object with black bars added to achieve 16:9 landscape
-    """
-    width, height = image.size
-    
-    # Calculate target dimensions for 16:9 landscape
-    # We'll keep the height and expand the width
-    target_width = int(height * 16 / 9)
-    
-    if target_width <= width:
-        return image
-    
-    # Calculate border width to add (black bars on sides)
-    total_border = target_width - width
-    left_border = total_border // 2
-    right_border = total_border - left_border
-    
-    # Add black borders
-    bordered_image = ImageOps.expand(
-        image, 
-        border=(left_border, 0, right_border, 0), 
-        fill=(0, 0, 0)  # Black
-    )
-    
-    return bordered_image
+    return left_boundary, top_boundary, right_boundary, bottom_boundary
 
 def detect_black_bars(image, threshold=30, sample_ratio=0.1):
     """
-    Detect if the image has black bars at top and bottom (for 480x360 and 320x240 images).
+    Detect if the image has black bars on any side.
     
     Args:
         image: PIL Image object
         threshold: Pixel value threshold for considering a pixel as black (0-255)
-        sample_ratio: Ratio of width to sample for checking black bars
+        sample_ratio: Ratio of width/height to sample for checking black bars
     
     Returns:
-        tuple: (has_top_black_bar, has_bottom_black_bar, top_bar_height, bottom_bar_height)
+        tuple: (has_left_bar, has_right_bar, has_top_bar, has_bottom_bar)
     """
     # Convert to numpy array for faster processing
     img_array = np.array(image.convert('RGB'))
     height, width = img_array.shape[:2]
     
-    # Calculate sample step to check only a portion of the width
-    sample_step = max(1, int(width * (1 - sample_ratio)))
-    sample_indices = range(0, width, sample_step)
+    # Calculate sample step
+    sample_step_x = max(1, int(width * (1 - sample_ratio)))
+    sample_step_y = max(1, int(height * (1 - sample_ratio)))
+    x_indices = range(0, width, sample_step_x)
+    y_indices = range(0, height, sample_step_y)
     
-    # Check top rows (first 20% of image for potential black bars)
-    top_check_height = min(50, height // 5)
+    # Check left side (first 10% of width)
+    left_check_width = max(1, width // 10)
+    left_black_count = 0
+    left_pixel_count = 0
+    
+    for x in range(left_check_width):
+        for y in y_indices:
+            if x < width and y < height:
+                r, g, b = img_array[y, x]
+                if r < threshold and g < threshold and b < threshold:
+                    left_black_count += 1
+                left_pixel_count += 1
+    
+    # Check right side (last 10% of width)
+    right_check_width = max(1, width // 10)
+    right_black_count = 0
+    right_pixel_count = 0
+    
+    for x in range(width - right_check_width, width):
+        for y in y_indices:
+            if 0 <= x < width and y < height:
+                r, g, b = img_array[y, x]
+                if r < threshold and g < threshold and b < threshold:
+                    right_black_count += 1
+                right_pixel_count += 1
+    
+    # Check top side (first 10% of height)
+    top_check_height = max(1, height // 10)
     top_black_count = 0
     top_pixel_count = 0
     
     for y in range(top_check_height):
-        for x in sample_indices:
-            if y < height and x < width:
+        for x in x_indices:
+            if x < width and y < height:
                 r, g, b = img_array[y, x]
                 if r < threshold and g < threshold and b < threshold:
                     top_black_count += 1
                 top_pixel_count += 1
     
-    # Check bottom rows (last 20% of image for potential black bars)
-    bottom_check_height = min(50, height // 5)
+    # Check bottom side (last 10% of height)
+    bottom_check_height = max(1, height // 10)
     bottom_black_count = 0
     bottom_pixel_count = 0
     
     for y in range(height - bottom_check_height, height):
-        for x in sample_indices:
-            if 0 <= y < height:
+        for x in x_indices:
+            if x < width and 0 <= y < height:
                 r, g, b = img_array[y, x]
                 if r < threshold and g < threshold and b < threshold:
                     bottom_black_count += 1
                 bottom_pixel_count += 1
     
     # Calculate black pixel ratios
+    left_black_ratio = left_black_count / left_pixel_count if left_pixel_count > 0 else 0
+    right_black_ratio = right_black_count / right_pixel_count if right_pixel_count > 0 else 0
     top_black_ratio = top_black_count / top_pixel_count if top_pixel_count > 0 else 0
     bottom_black_ratio = bottom_black_count / bottom_pixel_count if bottom_pixel_count > 0 else 0
     
-    # Determine if bars exist (at least 80% black pixels in the checked region)
-    has_top_bar = top_black_ratio > 0.8
-    has_bottom_bar = bottom_black_ratio > 0.8
+    # Determine if bars exist (at least 70% black pixels in the checked region)
+    has_left_bar = left_black_ratio > 0.7
+    has_right_bar = right_black_ratio > 0.7
+    has_top_bar = top_black_ratio > 0.7
+    has_bottom_bar = bottom_black_ratio > 0.7
     
-    # Estimate bar heights (simplified - assume uniform bars)
-    top_bar_height = 0
-    bottom_bar_height = 0
-    
-    if has_top_bar:
-        # Find where top bar ends
-        for y in range(top_check_height, height):
-            black_pixels = 0
-            for x in sample_indices:
-                if x < width and y < height:
-                    r, g, b = img_array[y, x]
-                    if r < threshold and g < threshold and b < threshold:
-                        black_pixels += 1
-            if black_pixels / len(sample_indices) < 0.5:  # Less than 50% black pixels
-                top_bar_height = y
-                break
-        else:
-            top_bar_height = top_check_height
-    
-    if has_bottom_bar:
-        # Find where bottom bar starts (scanning from bottom up)
-        for y in range(height - bottom_check_height - 1, -1, -1):
-            black_pixels = 0
-            for x in sample_indices:
-                if x < width:
-                    r, g, b = img_array[y, x]
-                    if r < threshold and g < threshold and b < threshold:
-                        black_pixels += 1
-            if black_pixels / len(sample_indices) < 0.5:  # Less than 50% black pixels
-                bottom_bar_height = height - y - 1
-                break
-        else:
-            bottom_bar_height = bottom_check_height
-    
-    return has_top_bar, has_bottom_bar, top_bar_height, bottom_bar_height
+    return has_left_bar, has_right_bar, has_top_bar, has_bottom_bar
 
-def crop_to_16_9(image):
+def zoom_to_16_9(image, threshold=30):
     """
-    Crop image to 16:9 aspect ratio by removing equal amounts from top and bottom.
+    Remove black bars and zoom in to achieve 16:9 aspect ratio.
     
     Args:
         image: PIL Image object
+        threshold: Pixel value threshold for black detection
     
     Returns:
-        PIL Image object cropped to 16:9
+        PIL Image object zoomed to 16:9 without black bars
     """
     width, height = image.size
     
-    # Calculate target height for 16:9 aspect ratio
-    target_height = int(width * 9 / 16)
+    # Find the actual content boundaries
+    left, top, right, bottom = find_content_boundaries(image, threshold)
     
-    if target_height >= height:
-        return image
+    # Crop out black bars
+    content_width = right - left
+    content_height = bottom - top
     
-    # Calculate pixels to remove from top and bottom
-    total_remove = height - target_height
-    remove_top = total_remove // 2
-    remove_bottom = total_remove - remove_top
+    # If content is too small or boundaries are invalid, use the whole image
+    if content_width <= 0 or content_height <= 0 or content_width < width * 0.5 or content_height < height * 0.5:
+        cropped = image
+    else:
+        # Crop to content
+        cropped = image.crop((left, top, right, bottom))
     
-    # Crop the image
-    cropped = image.crop((0, remove_top, width, height - remove_bottom))
-    return cropped
+    cropped_width, cropped_height = cropped.size
+    
+    # Now ensure 16:9 aspect ratio
+    target_ratio = 16 / 9
+    current_ratio = cropped_width / cropped_height
+    
+    # If already close to 16:9, return cropped
+    if abs(current_ratio - target_ratio) < 0.01:
+        return cropped
+    
+    if current_ratio > target_ratio:
+        # Too wide - crop from left and right
+        target_width = int(cropped_height * target_ratio)
+        total_remove = cropped_width - target_width
+        remove_left = total_remove // 2
+        remove_right = total_remove - remove_left
+        return cropped.crop((remove_left, 0, cropped_width - remove_right, cropped_height))
+    else:
+        # Too tall - crop from top and bottom
+        target_height = int(cropped_width / target_ratio)
+        total_remove = cropped_height - target_height
+        remove_top = total_remove // 2
+        remove_bottom = total_remove - remove_top
+        return cropped.crop((0, remove_top, cropped_width, cropped_height - remove_bottom))
 
-def is_portrait_aspect_ratio(dimensions):
+def process_image(filepath, threshold=30, dry_run=False, min_size=100):
     """
-    Check if the image dimensions have an aspect ratio around 0.56 (portrait 9:16).
-    
-    Args:
-        dimensions: tuple (width, height)
-    
-    Returns:
-        bool: True if aspect ratio is around 0.56
-    """
-    width, height = dimensions
-    
-    # Skip if it's a known dimension that's handled elsewhere
-    if dimensions in [(640, 480), (960, 720), (480, 360), (320, 240)] or width == height:
-        return False
-    
-    # Calculate aspect ratio (width/height)
-    aspect_ratio = width / height
-    
-    # Check if it's close to 0.56 (portrait 9:16)
-    return abs(aspect_ratio - PORTRAIT_ASPECT_RATIO_TARGET) <= PORTRAIT_ASPECT_TOLERANCE
-
-def process_image(filepath, dry_run=False, backup=False, force=False):
-    """
-    Process a single image file.
+    Process a single image file - detect black bars and zoom in to remove them.
     
     Args:
         filepath: Path to the image file
+        threshold: Pixel value threshold for black detection
         dry_run: If True, only simulate the operation
-        backup: If True, create a backup before cropping
-        force: If True, process 480x360 images even without black bars
+        min_size: Minimum image dimension to process
     
     Returns:
         dict: Result information
@@ -340,203 +222,69 @@ def process_image(filepath, dry_run=False, backup=False, force=False):
     result = {
         'path': str(filepath),
         'status': 'skipped',
-        'message': ''
+        'message': '',
+        'before': None,
+        'after': None
     }
     
     try:
         # Open image
         with Image.open(filepath) as img:
             dimensions = img.size
+            width, height = dimensions
             
-            # Check if dimensions are square (any size)
-            if dimensions[0] == dimensions[1]:
-                # Process square images
-                if dry_run:
-                    target_width = int(dimensions[0] * 16 / 9)
-                    result['status'] = 'would_add_border'
-                    result['message'] = f"Square {dimensions[0]}x{dimensions[1]} -> Would add borders to make {target_width}x{dimensions[0]}"
+            # Skip very small images
+            if width < min_size or height < min_size:
+                result['message'] = f"Image too small ({width}x{height})"
+                return result
+            
+            # Detect black bars
+            has_left, has_right, has_top, has_bottom = detect_black_bars(img, threshold)
+            
+            bar_types = []
+            if has_left:
+                bar_types.append("left")
+            if has_right:
+                bar_types.append("right")
+            if has_top:
+                bar_types.append("top")
+            if has_bottom:
+                bar_types.append("bottom")
+            
+            # Check if there are any black bars
+            has_any_bar = has_left or has_right or has_top or has_bottom
+            
+            if not has_any_bar:
+                # Check if aspect ratio is already 16:9
+                aspect_ratio = width / height
+                target_ratio = 16 / 9
+                if abs(aspect_ratio - target_ratio) < 0.02:
+                    result['message'] = f"No black bars and already 16:9 ({width}x{height})"
                     return result
-                
-                # Add borders to make 16:9
-                bordered_image = add_border_to_16_9(img)
-                
-                if bordered_image != img:  # Only save if changes were made
-                    # Create backup if requested
-                    if backup:
-                        backup_path = filepath.with_suffix(filepath.suffix + '.backup')
-                        img.save(backup_path)
-                    
-                    # Save bordered image
-                    bordered_image.save(filepath)
-                    
-                    new_dimensions = bordered_image.size
-                    result['status'] = 'bordered_square'
-                    result['message'] = f"Square {dimensions} -> {new_dimensions}"
-                else:
-                    result['message'] = f"Square image but couldn't add borders"
-                
+            
+            if dry_run:
+                result['status'] = 'would_process'
+                result['message'] = f"Would process {width}x{height} with {', '.join(bar_types) if bar_types else 'no'} bars"
                 return result
             
-            # Handle 640x480 and 960x720 images - ALWAYS add black bars to make 16:9
-            if dimensions == (640, 480) or dimensions == (960, 720):
-                target_width = int(dimensions[1] * 16 / 9)  # height * 16/9
-                
-                if dry_run:
-                    result['status'] = 'would_add_border_640'
-                    result['message'] = f"{dimensions[0]}x{dimensions[1]} -> Would add black borders to make {target_width}x{dimensions[1]}"
-                    return result
-                
-                # Create backup if requested
-                if backup:
-                    backup_path = filepath.with_suffix(filepath.suffix + '.backup')
-                    img.save(backup_path)
-                
-                # Add black borders to make 16:9
-                bordered_image = add_black_bars_to_4_3(img)
-                
-                if bordered_image != img:
-                    # Save bordered image
-                    bordered_image.save(filepath)
-                    new_dimensions = bordered_image.size
-                    result['status'] = 'bordered_640'
-                    result['message'] = f"{dimensions} -> {new_dimensions}"
-                else:
-                    result['message'] = f"{dimensions} - Could not add borders"
-                
+            # Process the image - remove black bars and make 16:9
+            processed_image = zoom_to_16_9(img, threshold)
+            
+            # Check if any changes were made
+            if processed_image.size == dimensions:
+                result['message'] = f"No changes made to {width}x{height}"
                 return result
             
-            # Handle 480x360 images - crop if top/bottom black bars detected, otherwise add side borders
-            if dimensions == (480, 360):
-                # Detect black bars
-                has_top, has_bottom, top_height, bottom_height = detect_black_bars(img)
-                
-                # Get dimensions
-                width, height = img.size
-                
-                if has_top and has_bottom:
-                    # Has top/bottom black bars - crop to 16:9
-                    target_height = int(width * 9 / 16)  # 480*9/16=270
-                    
-                    if target_height >= height:
-                        result['message'] = f"480x360 - Target height ({target_height}) >= original height ({height})"
-                        return result
-                    
-                    if dry_run:
-                        result['status'] = 'would_crop_480'
-                        result['message'] = f"480x360 -> Would crop to {width}x{target_height}"
-                        return result
-                    
-                    # Create backup if requested
-                    if backup:
-                        backup_path = filepath.with_suffix(filepath.suffix + '.backup')
-                        img.save(backup_path)
-                    
-                    # Crop to 16:9
-                    cropped = crop_to_16_9(img)
-                    
-                    # Save cropped image
-                    cropped.save(filepath)
-                    
-                    result['status'] = 'cropped_480'
-                    result['message'] = f"480x360 -> Cropped to {cropped.size}"
-                    
-                else:
-                    # No black bars - add side borders to make 16:9
-                    target_width = int(360 * 16 / 9)  # 640
-                    
-                    if dry_run:
-                        result['status'] = 'would_add_border_480'
-                        result['message'] = f"480x360 -> Would add black borders to make {target_width}x360"
-                        return result
-                    
-                    # Create backup if requested
-                    if backup:
-                        backup_path = filepath.with_suffix(filepath.suffix + '.backup')
-                        img.save(backup_path)
-                    
-                    # Calculate border width to add (black bars)
-                    total_border = target_width - width
-                    left_border = total_border // 2
-                    right_border = total_border - left_border
-                    
-                    # Add black borders
-                    bordered_image = ImageOps.expand(
-                        img, 
-                        border=(left_border, 0, right_border, 0), 
-                        fill=(0, 0, 0)  # Black
-                    )
-                    
-                    # Save bordered image
-                    bordered_image.save(filepath)
-                    
-                    new_dimensions = bordered_image.size
-                    result['status'] = 'bordered_480'
-                    result['message'] = f"480x360 -> Added borders -> {new_dimensions}"
-                
-                return result
+            # Save the processed image (overwrite)
+            processed_image.save(filepath, quality=95, optimize=True)
             
-            # Handle 320x240 images - crop to 320x180 ONLY if top/bottom black bars detected
-            if dimensions == (320, 240):
-                # Detect black bars
-                has_top, has_bottom, top_height, bottom_height = detect_black_bars(img)
-                
-                if has_top and has_bottom:
-                    target_height = 180  # 320x180 is exactly 16:9
-                    
-                    if dry_run:
-                        result['status'] = 'would_crop_320'
-                        result['message'] = f"320x240 -> Would crop to 320x180"
-                        return result
-                    
-                    # Create backup if requested
-                    if backup:
-                        backup_path = filepath.with_suffix(filepath.suffix + '.backup')
-                        img.save(backup_path)
-                    
-                    # Crop to 16:9
-                    cropped = crop_to_16_9(img)
-                    
-                    # Save cropped image
-                    cropped.save(filepath)
-                    
-                    result['status'] = 'cropped_320'
-                    result['message'] = f"320x240 -> Cropped to 320x180"
-                else:
-                    result['message'] = f"320x240 - No black bars detected"
-                
-                return result
+            new_dimensions = processed_image.size
+            result['status'] = 'processed'
+            result['message'] = f"{width}x{height} with {', '.join(bar_types) if bar_types else 'no'} bars -> {new_dimensions[0]}x{new_dimensions[1]}"
+            result['before'] = dimensions
+            result['after'] = new_dimensions
             
-            # NEW: Handle portrait images with aspect ratio around 0.56
-            if is_portrait_aspect_ratio(dimensions):
-                width, height = dimensions
-                target_width = int(height * 16 / 9)
-                
-                if dry_run:
-                    result['status'] = 'would_add_border_portrait'
-                    result['message'] = f"Portrait {width}x{height} -> Would add black borders to make {target_width}x{height}"
-                    return result
-                
-                # Create backup if requested
-                if backup:
-                    backup_path = filepath.with_suffix(filepath.suffix + '.backup')
-                    img.save(backup_path)
-                
-                # Add black borders to make 16:9 landscape
-                bordered_image = add_black_bars_to_portrait(img)
-                
-                if bordered_image != img:
-                    # Save bordered image
-                    bordered_image.save(filepath)
-                    new_dimensions = bordered_image.size
-                    result['status'] = 'bordered_portrait'
-                    result['message'] = f"Portrait {width}x{height} -> {new_dimensions}"
-                else:
-                    result['message'] = f"Portrait {width}x{height} - Could not add borders"
-                
-                return result
-            
-            # If we get here, dimensions are not handled
-            result['message'] = f"Dimensions {dimensions} not processed"
+            return result
             
     except Exception as e:
         result['status'] = 'error'
@@ -545,27 +293,25 @@ def process_image(filepath, dry_run=False, backup=False, force=False):
     return result
 
 def main():
-    parser = argparse.ArgumentParser(description='Process thumbnails to 16:9 aspect ratio')
+    parser = argparse.ArgumentParser(
+        description='Remove black bars from thumbnails by zooming in (overwrites files)'
+    )
     parser.add_argument('directory', nargs='?', default='./thumbnails',
                        help='Root directory to scan (default: ./thumbnails)')
     parser.add_argument('--dry-run', '-n', action='store_true',
                        help='Simulate operations without actually modifying files')
-    parser.add_argument('--backup', '-b', action='store_true',
-                       help='Create backup of original files before modifying')
-    parser.add_argument('--force', '-f', action='store_true',
-                       help='Force crop 480x360 images even without black bars')
-    parser.add_argument('--threads', '-t', type=int, default=4,
+    parser.add_argument('--threshold', '-t', type=int, default=30,
+                       help='Pixel value threshold for black detection (0-255, default: 30)')
+    parser.add_argument('--threads', '-j', type=int, default=4,
                        help='Number of threads for parallel processing (default: 4)')
     parser.add_argument('--recursive', '-r', action='store_true', default=True,
                        help='Scan recursively (default: True)')
-    parser.add_argument('--portrait-tolerance', type=float, default=0.02,
-                       help='Tolerance for portrait aspect ratio detection (default: 0.02)')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                       help='Print detailed information about each file')
+    parser.add_argument('--min-size', type=int, default=100,
+                       help='Minimum image dimension to process (default: 100)')
     
     args = parser.parse_args()
-    
-    # Update global tolerance if specified
-    global PORTRAIT_ASPECT_TOLERANCE
-    PORTRAIT_ASPECT_TOLERANCE = args.portrait_tolerance
     
     # Validate directory
     root_dir = Path(args.directory)
@@ -581,58 +327,128 @@ def main():
     image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.webp', '.gif'}
     
     if args.recursive:
-        files = [f for f in root_dir.rglob('*') if f.suffix.lower() in image_extensions]
+        files = list(root_dir.rglob('*'))
     else:
-        files = [f for f in root_dir.glob('*') if f.is_file() and f.suffix.lower() in image_extensions]
+        files = list(root_dir.glob('*'))
     
-    total_files = len(files)
+    # Filter to only image files
+    image_files = [f for f in files if f.is_file() and f.suffix.lower() in image_extensions]
+    
+    total_files = len(image_files)
     
     if total_files == 0:
-        print("No image files found to process.")
+        print("No image files found to scan.")
         return
-
-    print("Scanning for thumbnails...", end="\r")
     
-    # Initialize counters
-    created_count = 0
+    print(f"Scanning {total_files} image files for black bars...")
+    if args.dry_run:
+        print("⚠️  DRY RUN MODE - No files will be modified")
+    else:
+        print("⚠️  WARNING: Files will be OVERWRITTEN without backups!")
+    
+    # Process files
+    processed_count = 0
+    skipped_count = 0
     error_count = 0
+    results = []
     
-    # Process files in parallel
-    results_list = []
-    
+    # Create a thread pool
     with ThreadPoolExecutor(max_workers=args.threads) as executor:
-        futures = {executor.submit(process_image, f, args.dry_run, args.backup, args.force): f for f in files}
+        # Submit all tasks
+        future_to_file = {
+            executor.submit(process_image, f, args.threshold, args.dry_run, args.min_size): f 
+            for f in image_files
+        }
         
-        completed_count = 0
+        completed = 0
         
-        for future in as_completed(futures):
-            result = future.result()
-            completed_count += 1
-            results_list.append(result)
+        for future in as_completed(future_to_file):
+            filepath = future_to_file[future]
+            completed += 1
             
-            # Update status line (overwrite in place)
-            status_msg = f"Processing file #{completed_count}/{total_files}... (Processed: {created_count})"
-            sys.stdout.write(status_msg.ljust(70) + "\r")
-            sys.stdout.flush()
-            
-            # Count successes and errors silently
-            if result['status'] in ['bordered_640', 'bordered_480', 'cropped_480', 'cropped_320', 
-                                     'bordered_square', 'bordered_portrait']:
-                created_count += 1
-            elif result['status'] == 'error':
+            try:
+                result = future.result()
+                results.append(result)
+                
+                if result['status'] == 'processed':
+                    processed_count += 1
+                    if args.verbose:
+                        rel_path = filepath.relative_to(root_dir)
+                        print(f"✓ Processed: {rel_path} - {result['message']}")
+                elif result['status'] == 'would_process':
+                    if args.verbose:
+                        rel_path = filepath.relative_to(root_dir)
+                        print(f"ℹ [DRY RUN] Would process: {rel_path} - {result['message']}")
+                elif result['status'] == 'error':
+                    error_count += 1
+                    if args.verbose:
+                        rel_path = filepath.relative_to(root_dir)
+                        print(f"✗ Error: {rel_path} - {result['message']}")
+                else:
+                    skipped_count += 1
+                    if args.verbose and result['message']:
+                        rel_path = filepath.relative_to(root_dir)
+                        print(f"  Skipped: {rel_path} - {result['message']}")
+                
+                # Update progress
+                status_msg = f"Processing file #{completed}/{total_files}... "
+                if args.dry_run:
+                    status_msg += f"Would process: {processed_count}, Skipped: {skipped_count}"
+                else:
+                    status_msg += f"Processed: {processed_count}, Skipped: {skipped_count}"
+                if error_count:
+                    status_msg += f", Errors: {error_count}"
+                sys.stdout.write(status_msg.ljust(80) + "\r")
+                sys.stdout.flush()
+                
+            except Exception as e:
                 error_count += 1
+                print(f"\nError processing {filepath}: {e}")
     
-    # Clear line and print summary
-    sys.stdout.write(" " * 70 + "\r")
+    # Clear line
+    sys.stdout.write(" " * 80 + "\r")
     sys.stdout.flush()
     
-    # Print final summary (matching style of 2nd script)
-    print(f"Thumbnail Processing Complete:")
-    print(f"  Total Files Scanned:   {total_files}")
-    print(f"  Thumbnails Processed:  {created_count}")
+    # Print summary
+    print("\n" + "=" * 70)
+    if args.dry_run:
+        print("DRY RUN SUMMARY:")
+    else:
+        print("PROCESSING SUMMARY:")
+    print(f"  Total files scanned:    {total_files}")
+    print(f"  Files processed:        {processed_count}")
+    print(f"  Files skipped:          {skipped_count}")
+    print(f"  Errors:                 {error_count}")
+    
+    if processed_count > 0:
+        print(f"\nSample of processed files (first 10):")
+        processed_results = [r for r in results if r['status'] == 'processed' or r['status'] == 'would_process']
+        for result in processed_results[:10]:
+            rel_path = Path(result['path']).relative_to(root_dir)
+            if result['status'] == 'processed':
+                print(f"  • {rel_path}: {result['message']}")
+            else:
+                print(f"  • [DRY RUN] {rel_path}: {result['message']}")
+        if len(processed_results) > 10:
+            print(f"  ... and {len(processed_results) - 10} more")
+    
+    if not args.dry_run and processed_count > 0:
+        print(f"\n✅ Successfully processed {processed_count} thumbnails")
+    elif args.dry_run and processed_count > 0:
+        print(f"\nℹ  Dry run complete - would have processed {processed_count} thumbnails")
+        print(f"   Run without --dry-run to actually process them")
     
     if error_count > 0:
-        print(f"  Errors:                {error_count}")
+        print(f"\n⚠️  {error_count} errors occurred")
+        error_results = [r for r in results if r['status'] == 'error']
+        for result in error_results[:5]:
+            rel_path = Path(result['path']).relative_to(root_dir)
+            print(f"  • {rel_path}: {result['message']}")
+        if len(error_results) > 5:
+            print(f"  ... and {len(error_results) - 5} more")
+    
+    print("=" * 70)
+    print("Done!")
 
 if __name__ == "__main__":
     main()
