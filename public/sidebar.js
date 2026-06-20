@@ -23,10 +23,12 @@ sidebarCSS.textContent = `
     /* Prevents text inside from squishing/reflowing while the sidebar width animates */
     .sidebar-inner {
         width: 270px;
+        padding-right: 8px;
+        box-sizing: border-box;
     }
 
     .sidebar a {
-        padding: 8px 8px 8px 32px;
+        padding: 8px 8px 8px 20px;
         text-decoration: none;
         font-size: 25px;
         color: #818181;
@@ -42,11 +44,11 @@ sidebarCSS.textContent = `
     .sidebar .sidebar-divider {
         height: 1px;
         background-color: #3f3f3f;
-        margin: 12px 24px;
+        margin: 12px 20px;
     }
 
     .sidebar .genre-label {
-        padding: 8px 8px 4px 32px;
+        padding: 8px 8px 4px 20px;
         font-size: 13px;
         color: #666;
         text-transform: uppercase;
@@ -59,12 +61,42 @@ sidebarCSS.textContent = `
         display: flex;
         align-items: center;
         gap: 12px;
+        padding: 8px 8px 8px 20px;
     }
 
     .sidebar .genre-link img {
         width: 25px;
         height: 25px;
         flex-shrink: 0;
+    }
+
+    /* SVG icon styling for sidebar items */
+    .sidebar .sidebar-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 8px 8px 20px;
+        text-decoration: none;
+        font-size: 25px;
+        color: #818181;
+        transition: 0.3s;
+        white-space: nowrap;
+    }
+
+    .sidebar .sidebar-item:hover {
+        color: #f1f1f1;
+    }
+
+    .sidebar .sidebar-item img.sidebar-icon {
+        width: 25px;
+        height: 25px;
+        flex-shrink: 0;
+        filter: invert(60%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(60%) contrast(90%);
+        transition: filter 0.3s;
+    }
+
+    .sidebar .sidebar-item:hover img.sidebar-icon {
+        filter: invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%);
     }
 
     .openbtn {
@@ -97,11 +129,21 @@ function initSidebar() {
     // 2. Populate the sidebar HTML with default topics (will be replaced if user has custom ones)
     sidebar.innerHTML = `
         <div class="sidebar-inner">
-            <a href="watch_history.html" id="sidebarWatchHistory">Watch History</a>
-            <a href="liked_videos.html" id="sidebarLikedVideos">Liked Videos</a>
-            <a href="subscribed_channels.html" id="sidebarSubscriptions">Subscriptions</a>
-            <a href="user_playlists.html" id="sidebarPlaylists">Playlists</a>
-            <a href="watch_later.html" id="sidebarWatchLater">Watch later</a>
+            <a href="watch_history.html" id="sidebarWatchHistory" class="sidebar-item">
+                <img src="LocalYT-Rev-Files/watch_history.svg" alt="" class="sidebar-icon">Watch History
+            </a>
+            <a href="liked_videos.html" id="sidebarLikedVideos" class="sidebar-item">
+                <img src="LocalYT-Rev-Files/liked_videos.svg" alt="" class="sidebar-icon">Liked Videos
+            </a>
+            <a href="subscribed_channels.html" id="sidebarSubscriptions" class="sidebar-item">
+                <img src="LocalYT-Rev-Files/subscriptions.svg" alt="" class="sidebar-icon">Subscriptions
+            </a>
+            <a href="user_playlists.html" id="sidebarPlaylists" class="sidebar-item">
+                <img src="LocalYT-Rev-Files/playlists.svg" alt="" class="sidebar-icon">Playlists
+            </a>
+            <a href="watch_later.html" id="sidebarWatchLater" class="sidebar-item">
+                <img src="LocalYT-Rev-Files/watch_later.svg" alt="" class="sidebar-icon">Watch later
+            </a>
             <div class="sidebar-divider"></div>
             <div class="genre-label" id="sidebarGenreLabel">Topics</div>
             <div id="sidebarTopicsContainer">
@@ -146,17 +188,35 @@ function initSidebar() {
     const genreLabelEl = document.getElementById('sidebarGenreLabel');
     const editTopicsEl = document.getElementById('sidebarEditTopics');
 
-    if (watchHistoryEl) watchHistoryEl.textContent = getLang('Watch History', 'Wiedergabeverlauf');
-    if (likedVideosEl) likedVideosEl.textContent = getLang('Liked Videos', 'Videos, die ich mag');
-    if (subscriptionsEl) subscriptionsEl.textContent = getLang('Subscriptions', 'Abonnements');
-    if (playlistsEl) playlistsEl.textContent = getLang('Playlists', 'Playlisten');
-    
-    if (watchLaterEl) watchLaterEl.textContent = getLang('Watch later', 'Später ansehen');
+    // Update text content while preserving icon
+    if (watchHistoryEl) {
+        const textNode = watchHistoryEl.childNodes[watchHistoryEl.childNodes.length - 1];
+        if (textNode) textNode.textContent = getLang('Watch History', 'Wiedergabeverlauf');
+    }
+    if (likedVideosEl) {
+        const textNode = likedVideosEl.childNodes[likedVideosEl.childNodes.length - 1];
+        if (textNode) textNode.textContent = getLang('Liked Videos', 'Videos, die ich mag');
+    }
+    if (subscriptionsEl) {
+        const textNode = subscriptionsEl.childNodes[subscriptionsEl.childNodes.length - 1];
+        if (textNode) textNode.textContent = getLang('Subscriptions', 'Abonnements');
+    }
+    if (playlistsEl) {
+        const textNode = playlistsEl.childNodes[playlistsEl.childNodes.length - 1];
+        if (textNode) textNode.textContent = getLang('Playlists', 'Playlisten');
+    }
+    if (watchLaterEl) {
+        const textNode = watchLaterEl.childNodes[watchLaterEl.childNodes.length - 1];
+        if (textNode) textNode.textContent = getLang('Watch later', 'Später ansehen');
+    }
 
     if (genreLabelEl) genreLabelEl.textContent = getLang('Topics', 'Themen');
     if (editTopicsEl) editTopicsEl.lastChild.textContent = getLang('Edit Topics', 'Themen bearb.');
 
-    // 5. Fetch user's custom topics and replace defaults if found
+    // 5. Load SVG icons setting from server or localStorage
+    loadSidebarSvgIconSetting();
+
+    // 6. Fetch user's custom topics and replace defaults if found
     fetch('/user-topics')
         .then(r => {
             if (!r.ok) throw new Error('Not authenticated');
@@ -203,7 +263,7 @@ function initSidebar() {
             // Not logged in or error — keep default topics, hide Edit button
         });
 
-    // 6. Prevent middle-clicks from opening sidebar links twice
+    // 7. Prevent middle-clicks from opening sidebar links twice
     sidebar.addEventListener('auxclick', function(e) {
         // e.button === 1 is the middle mouse button
         if (e.button === 1 && e.target.closest('a')) {
@@ -211,6 +271,121 @@ function initSidebar() {
         }
     });
 
+    // 8. Listen for changes to the SVG icon setting
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'sidebarSvgIcons') {
+            const enabled = JSON.parse(e.newValue || 'true');
+            applySvgIconVisibility(enabled);
+        }
+    });
+
+    // 9. Also listen for custom event from settings page
+    window.addEventListener('sidebarSvgIconsChanged', function(e) {
+        if (e.detail !== undefined) {
+            applySvgIconVisibility(e.detail);
+        }
+    });
+}
+
+// Function to load sidebar SVG icon setting
+function loadSidebarSvgIconSetting() {
+    // First check if we have it in localStorage directly (legacy)
+    let enabled = localStorage.getItem('sidebarSvgIcons');
+    
+    if (enabled !== null) {
+        // Found in localStorage directly
+        applySvgIconVisibility(JSON.parse(enabled));
+        return;
+    }
+    
+    // Try to load from the user settings (which might be stored with the user ID as key)
+    // Check all localStorage keys for user settings
+    let found = false;
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        // Look for keys that look like user IDs (UUID format)
+        if (key && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key)) {
+            try {
+                const settings = JSON.parse(localStorage.getItem(key));
+                if (settings && settings.sidebarSvgIcons !== undefined) {
+                    applySvgIconVisibility(settings.sidebarSvgIcons);
+                    found = true;
+                    break;
+                }
+            } catch (e) {
+                // Ignore parse errors
+            }
+        }
+    }
+    
+    if (!found) {
+        // Try loading from server
+        fetch('/user-settings')
+            .then(res => {
+                if (!res.ok) throw new Error('Not authenticated');
+                return res.json();
+            })
+            .then(settings => {
+                if (settings && settings.sidebarSvgIcons !== undefined) {
+                    applySvgIconVisibility(settings.sidebarSvgIcons);
+                    // Save to localStorage for future use
+                    localStorage.setItem('sidebarSvgIcons', JSON.stringify(settings.sidebarSvgIcons));
+                } else {
+                    // Default to true
+                    applySvgIconVisibility(true);
+                }
+            })
+            .catch(() => {
+                // Not logged in or error, default to true
+                applySvgIconVisibility(true);
+            });
+    }
+}
+
+// Function to apply SVG icon visibility
+function applySvgIconVisibility(enabled) {
+    const sidebarItems = document.querySelectorAll('.sidebar .sidebar-item');
+    const genreLinks = document.querySelectorAll('.sidebar .genre-link');
+
+    if (enabled) {
+        // Show icons and adjust padding for icon spacing
+        sidebarItems.forEach(item => {
+            const icon = item.querySelector('img.sidebar-icon');
+            if (icon) {
+                icon.style.display = 'inline';
+                icon.style.marginRight = '0';
+            }
+            item.style.paddingLeft = '20px';
+        });
+        // Genre links always have icons visible
+        genreLinks.forEach(link => {
+            const img = link.querySelector('img');
+            if (img) {
+                img.style.display = 'inline';
+                img.style.marginRight = '0';
+            }
+            link.style.paddingLeft = '20px';
+        });
+    } else {
+        // Hide icons and adjust padding to reclaim space
+        sidebarItems.forEach(item => {
+            const icon = item.querySelector('img.sidebar-icon');
+            if (icon) {
+                icon.style.display = 'none';
+                icon.style.marginRight = '0';
+            }
+            item.style.paddingLeft = '32px';
+        });
+        // Genre links - hide their icons too but keep padding consistent
+        genreLinks.forEach(link => {
+            const img = link.querySelector('img');
+            if (img) {
+                img.style.display = 'none';
+                img.style.marginRight = '0';
+            }
+            link.style.paddingLeft = '32px';
+        });
+    }
 }
 
 // Sidebar Toggle Functions

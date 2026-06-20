@@ -961,6 +961,29 @@
                 <div id="playlistOrderStatus" class="status-msg"></div>
             </div>
 
+            <!-- Sidebar SVG Icons Section -->
+            <div class="settings-section">
+                <h2 id="sidebarSvgIconsHeading">Sidebar Icons</h2>
+
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div id="sidebarSvgIconsLabel">Show SVG icons in sidebar</div>
+                        <div class="setting-description" id="sidebarSvgIconsDesc">Display SVG icons next to sidebar items like on the white screenshot</div>
+                    </div>
+                    <div class="setting-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="sidebarSvgIcons">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="inline-form" style="margin-top: 15px;">
+                    <button class="btn btn-save" id="saveSidebarSvgIconsBtn">Save Preference</button>
+                </div>
+                <div id="sidebarSvgIconsStatus" class="status-msg"></div>
+            </div>
+
             <!-- Configuration Import/Export Section -->
             <div class="settings-section">
                 <h2 id="configImportExportHeading">Configuration</h2>
@@ -1234,6 +1257,12 @@ function applyTranslations() {
     document.getElementById('roundedCornersLabel').textContent = getLang('Rounded corners', 'Abgerundete Ecken');
     document.getElementById('roundedCornersDesc').textContent = getLang('Add subtle rounded corners to the video player and video thumbnails', 'Leicht abgerundete Ecken zum Videoplayer und allen Video-Miniaturansichten hinzufügen');
     document.getElementById('saveRoundedCornersBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
+
+    // Sidebar SVG Icons Translations
+    document.getElementById('sidebarSvgIconsHeading').textContent = getLang('Sidebar Icons', 'Seitenleistensymbole');
+    document.getElementById('sidebarSvgIconsLabel').textContent = getLang('Show SVG icons in sidebar', 'SVG-Symbole in der Seitenleiste anzeigen');
+    document.getElementById('sidebarSvgIconsDesc').textContent = getLang('Display SVG icons next to sidebar items like on the white screenshot', 'SVG-Symbole neben den Seitenleisteneinträgen wie auf dem weißen Screenshot anzeigen');
+    document.getElementById('saveSidebarSvgIconsBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
 }
 
 // ==============================
@@ -1900,6 +1929,60 @@ function saveShowEndScreenGrid() {
 }
 
 // ==============================
+// Sidebar SVG Icons Logic
+// ==============================
+function loadSidebarSvgIcons() {
+    const savedLocal = JSON.parse(localStorage.getItem('sidebarSvgIcons') || '{}');
+    const defaultValue = true;
+    const currentValue = savedLocal.enabled !== undefined ? savedLocal.enabled : defaultValue;
+    
+    document.getElementById('sidebarSvgIcons').checked = currentValue;
+
+    fetch('/user-settings')
+        .then(res => {
+            if (!res.ok) throw new Error('Not authenticated');
+            return res.json();
+        })
+        .then(serverSettings => {
+            if (serverSettings && serverSettings.sidebarSvgIcons !== undefined) {
+                const serverValue = serverSettings.sidebarSvgIcons;
+                document.getElementById('sidebarSvgIcons').checked = serverValue;
+                localStorage.setItem('sidebarSvgIcons', JSON.stringify({ enabled: serverValue }));
+            }
+        })
+        .catch(err => console.error('Could not load sidebar SVG icons setting from server:', err));
+}
+
+function saveSidebarSvgIcons() {
+    const enabled = document.getElementById('sidebarSvgIcons').checked;
+    localStorage.setItem('sidebarSvgIcons', JSON.stringify(enabled));
+
+    // Dispatch custom event for sidebar.js to listen to
+    window.dispatchEvent(new CustomEvent('sidebarSvgIconsChanged', { detail: enabled }));
+
+    fetch('/user-settings')
+        .then(res => res.json())
+        .then(currentSettings => {
+            const updatedSettings = { ...currentSettings, sidebarSvgIcons: enabled };
+            return fetch('/user-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings: updatedSettings })
+            });
+        })
+        .then(res => {
+            if (res.ok) {
+                showStatus('sidebarSvgIconsStatus', getLang('Sidebar SVG icons preference saved!', 'Einstellung für Seitenleistensymbole gespeichert!'), true);
+            } else {
+                showStatus('sidebarSvgIconsStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
+            }
+        })
+        .catch(() => {
+            showStatus('sidebarSvgIconsStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
+        });
+}
+
+// ==============================
 // Tab Switching
 // ==============================
 const sidebarLinks = document.querySelectorAll('.settings-sidebar a');
@@ -1936,6 +2019,7 @@ sidebarLinks.forEach(link => {
             loadPlayerUIScale();
             loadRoundedCorners();
             loadPlaylistOrder();
+            loadSidebarSvgIcons();
         }
     });
 });
@@ -1993,6 +2077,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('savePlayerUIScaleBtn')?.addEventListener('click', savePlayerUIScale);
     document.getElementById('saveRoundedCornersBtn')?.addEventListener('click', saveRoundedCorners);
     document.getElementById('savePlaylistOrderBtn')?.addEventListener('click', savePlaylistOrder);
+    document.getElementById('saveSidebarSvgIconsBtn')?.addEventListener('click', saveSidebarSvgIcons);
 
     // Initialize config import/export buttons
     initConfigImportExport();
@@ -2561,6 +2646,9 @@ function gatherCurrentSettings() {
 
     // Playlist Order
     config.invertPlaylistOrder = document.getElementById('invertPlaylistOrder').checked;
+
+    // Sidebar SVG Icons
+    config.sidebarSvgIcons = document.getElementById('sidebarSvgIcons').checked;
     
     return config;
 }
@@ -2697,6 +2785,11 @@ function validateConfig(config) {
     if (config.invertPlaylistOrder !== undefined && typeof config.invertPlaylistOrder !== 'boolean') {
         return false;
     }
+
+    // Validate sidebar SVG icons
+    if (config.sidebarSvgIcons !== undefined && typeof config.sidebarSvgIcons !== 'boolean') {
+        return false;
+    }
     
     return true;
 }
@@ -2795,6 +2888,16 @@ function applyConfiguration(config) {
         document.getElementById('invertPlaylistOrder').checked = config.invertPlaylistOrder;
         localStorage.setItem('invertPlaylistOrder', JSON.stringify({ enabled: config.invertPlaylistOrder }));
     }
+    // Apply Sidebar SVG Icons
+    if (config.sidebarSvgIcons !== undefined) {
+        document.getElementById('sidebarSvgIcons').checked = config.sidebarSvgIcons;
+        localStorage.setItem('sidebarSvgIcons', JSON.stringify({ enabled: config.sidebarSvgIcons }));
+        // Notify sidebar.js of the change
+        window.dispatchEvent(new StorageEvent('storage', {
+            key: 'sidebarSvgIcons',
+            newValue: JSON.stringify(config.sidebarSvgIcons)
+        }));
+    }
 }
 
 function saveImportedConfiguration(config) {
@@ -2865,6 +2968,11 @@ function saveImportedConfiguration(config) {
             // Save Player UI Scale
             if (config.playerUIScale !== undefined) {
                 updatedSettings.playerUIScale = config.playerUIScale;
+            }
+
+            // Save Sidebar SVG Icons
+            if (config.sidebarSvgIcons !== undefined) {
+                updatedSettings.sidebarSvgIcons = config.sidebarSvgIcons;
             }
 
             // Save merged settings to server
