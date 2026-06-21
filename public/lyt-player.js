@@ -509,7 +509,7 @@
                     .lyt_thumb_title:hover {
                         color: #3ea6ff;
                     }
-
+                    
                     /* ===== END SCREEN GRID ===== */
                     .lyt_end_screen {
                         position: absolute;
@@ -532,12 +532,11 @@
                     .lyt_end_grid {
                         display: grid;
                         grid-template-columns: repeat(4, 1fr);
-                        grid-template-rows: repeat(3, 1fr);
                         gap: 8px;
                         width: 100%;
                         max-width: 900px;
                         max-height: 100%;
-                        aspect-ratio: 16 / 9;
+                        /* Remove aspect-ratio: 16/9; now each item defines its own aspect */
                     }
                     .lyt_end_item {
                         position: relative;
@@ -545,10 +544,11 @@
                         border-radius: 4px;
                         cursor: pointer;
                         background: #111;
-                        transition: transform 0.15s ease;
-                    }
-                    .lyt_end_item:hover {
-                        z-index: 1;
+                        aspect-ratio: 16 / 9;          /* 16:9 thumbnails */
+                        opacity: 0;                     /* hidden until animation */
+                        transform: scale(0.8);         /* starting state for pop */
+                        animation: lyt-end-pop 0.4s ease forwards;
+                        /* animation-delay will be set inline via JavaScript */
                     }
                     .lyt_end_item img {
                         width: 100%;
@@ -570,6 +570,11 @@
                         white-space: nowrap;
                         overflow: hidden;
                         text-overflow: ellipsis;
+                    }
+                    /* Pop-up animation */
+                    @keyframes lyt-end-pop {
+                        0% { opacity: 0; transform: scale(0.8); }
+                        100% { opacity: 1; transform: scale(1); }
                     }
                     .lyt_end_close {
                         position: absolute;
@@ -1608,7 +1613,7 @@
             });
             this.video.addEventListener('pause', () => {
                 this.updatePlayPauseBtn(false);
-                this.updateCenterPlayBtn(false);t
+                this.updateCenterPlayBtn(false);
                 this.showCenterAnimation('play');
             });
             this.video.addEventListener('pause', () => this.updatePlayPauseBtn(false));
@@ -1892,9 +1897,10 @@
                 this.dom.recThumbnail.classList.remove('lyt_rec_thumb_show');
             });
 
-            // Hide recommendation on video end
+            // Hide recommendation and show end screen on video end
             this.video.addEventListener('ended', () => {
                 this.hideRecommendationPopup();
+                this.showEndScreen();
             });
 
             // Popup hover: pause dismiss timer
@@ -2146,12 +2152,15 @@
         /**
          * Show the 4x3 end screen grid overlay.
          */
+        /**
+         * Show the 4x3 end screen grid overlay with staggered pop‑up animation.
+         */
         async showEndScreen() {
             const videos = await this.fetchEndScreenRecommendations();
             if (!videos || videos.length === 0) return;
-
+        
             this._endScreenData = videos;
-
+        
             let html = '';
             videos.forEach((video, index) => {
                 const thumbUrl = this.buildThumbnailUrl(video.path);
@@ -2162,9 +2171,19 @@
                     </div>
                 `;
             });
-
+        
             this.dom.endGrid.innerHTML = html;
             this.dom.endScreen.classList.add('lyt_end_show');
+        
+            // Staggered animation: each item gets a delay based on row+col
+            const items = this.dom.endGrid.querySelectorAll('.lyt_end_item');
+            const cols = 4;
+            items.forEach((item, index) => {
+                const row = Math.floor(index / cols);
+                const col = index % cols;
+                const delay = (row + col) * 0.08; // seconds, adjust as desired
+                item.style.animationDelay = `${delay}s`;
+            });
         }
 
         /**
