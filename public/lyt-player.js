@@ -1532,14 +1532,16 @@
                     const track = tracks[i];
                     
                     // Safely skip Fluid Player tracks without skipping LYT Player tracks.
-                    // Fluid Player tracks use '/videos/' in their src URL, while LYT subs use '/subtitles/'.
-                    // We cannot just skip all 'metadata' tracks because LYT Player also relies on 
-                    // 'metadata' initially to prevent native browser subtitle rendering.
                     if (track.kind === 'metadata') {
                         const trackEl = this.video.querySelectorAll('track')[i];
                         if (trackEl && trackEl.src && trackEl.src.includes('/videos/')) {
                             continue; 
                         }
+                    }
+                    
+                    // Skip tracks that have no actual content
+                    if (!this.hasTrackContent(track)) {
+                        continue;
                     }
                     
                     const activeClass = this.currentTrackIndex === i ? ' lyt_active' : '';
@@ -2443,6 +2445,22 @@
         }
         
         setSubtitleTrack(trackIndex) {
+            // Check if the selected track actually has content (not just an empty WEBVTT file)
+            if (trackIndex >= 0) {
+                const track = this.video.textTracks[trackIndex];
+                if (!track || !this.hasTrackContent(track)) {
+                    // Track exists but has no content - treat as if no subtitles available
+                    this.currentTrackIndex = -1;
+                    this.subtitlesEnabled = false;
+                    this.dom.subtitlesBtn.style.opacity = '0.6';
+                    this.dom.subtitlesMenu.querySelectorAll('.lyt_sub_option').forEach(opt => {
+                        opt.classList.toggle('lyt_active', parseInt(opt.dataset.track) === -1);
+                    });
+                    this.dom.subtitlesDisplay.innerHTML = '';
+                    return;
+                }
+            }
+        
             this.currentTrackIndex = trackIndex;
             const tracks = this.video.textTracks;
             
@@ -2460,7 +2478,7 @@
                 }
                 
                 // Remember this track for the next time C is pressed!
-                this.lastSelectedTrackIndex = trackIndex; // <-- ADD THIS LINE
+                this.lastSelectedTrackIndex = trackIndex;
             }
             
             this.subtitlesEnabled = trackIndex >= 0;
@@ -2475,6 +2493,31 @@
             } else {
                 this.updateSubtitlesDisplay();
             }
+        }
+        
+        /**
+         * Check if a text track has actual subtitle content (cues).
+         * Empty WEBVTT files will have no cues even after loading.
+         */
+        hasTrackContent(track) {
+            // Check if the track has cues already loaded
+            if (track.cues && track.cues.length > 0) {
+                return true;
+            }
+            
+            // Check the track element's readyState - 2 means cues are loaded
+            if (track.readyState === 2 && track.cues && track.cues.length > 0) {
+                return true;
+            }
+            
+            // If readyState is 0 (NONE) or 1 (LOADING), we can't be sure yet
+            // We'll assume it might have content and let the cues load event handle it
+            if (track.readyState < 2) {
+                return true; // Optimistically assume content exists
+            }
+            
+            // Track is loaded but has no cues - it's empty
+            return false;
         }
         
         updateSubtitlesDisplay() {
