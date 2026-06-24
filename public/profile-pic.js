@@ -232,11 +232,12 @@
     function applyLightModeBlackOverride() {
         let oldOverride = document.getElementById('light-mode-black-override');
         if (oldOverride) oldOverride.remove();
-
-        const style = document.createElement('style');
-        style.id = 'light-mode-black-override';
-        
-        style.textContent = `
+    
+        // Check if blue titles are enabled
+        const titleScheme = JSON.parse(localStorage.getItem('titleColorScheme') || '{}');
+        const isBlueTitles = titleScheme.scheme === 'blue';
+    
+        let styleText = `
             [style*="background-color: rgb(30, 30, 30)"],
             [style*="background-color: #1e1e1e"],
             .video-description,
@@ -264,7 +265,7 @@
             .view-count {
                 color: #555555 !important;
             }
-
+    
             [style*="color: rgb(204, 204, 204)"],
             [style*="color: #cccccc"],
             .about-description .description-text,
@@ -274,8 +275,7 @@
             #shareBtnText {
                 color: #555555 !important;
             }
-
-            /* Replace #aaaaaa with #666666 */
+    
             [style*="color: rgb(170, 170, 170)"],
             [style*="color: #aaaaaa"],
             .tab,
@@ -287,118 +287,118 @@
             .description-toggle {
                 color: #666666 !important;
             }
-
+    
             /* Classic Layout Info Box Light Mode */
             #classicInfoBoxWrapper {
                 background-color: #ffffff !important;
                 border-color: #e0e0e0 !important;
             }
-
+    
             #classicInfoBoxWrapper #classicActionsWrapper {
                 border-top-color: #e0e0e0 !important;
             }
-
+    
             .channel-name,
             .classic-channel-name-text {
                 color: #000000 !important;
             }
-
+    
             /* Classic Layout Description Box & Toggle Light Mode */
             body[data-video-layout="classic"] .video-description,
             .classic-layout-active .video-description {
                 background-color: #ffffff !important;
             }
-
+    
             body[data-video-layout="classic"] .description-toggle,
             .classic-layout-active .description-toggle {
                 background-color: #ffffff !important;
                 border-top-color: #e0e0e0 !important;
                 color: #333333 !important;
             }
-
+    
             .channel-name,
             .classic-channel-name-text {
                 color: #000000 !important;
             }
-
+    
             /* Active Tab Color for Light Mode */
             .tab.active {
                 color: #333 !important;
                 border-bottom-color: #333 !important;
             }
-
+    
             .suggestion-item.current-video-item {
                 background-color: #999 !important;
             }
-
+    
             .playlist-section-header, .playlist-section-header a {
                 color: #333 !important;
             }
-
+    
             /* Search Suggestions Light Mode */
             .suggestion-item {
                 background-color: #ffffff !important;
                 color: #0f0f0f !important;
             }
-
+    
             .suggestion-item:hover {
                 background-color: #e0e0e0 !important;
             }
-
+    
             .search-suggestions {
                 background-color: #ffffff !important;
                 border-color: rgba(0, 0, 0, 0.1) !important;
             }
-
+    
             .suggestion-item .history-icon {
                 filter: invert(0) !important;
             }
-
+    
             .suggestion-item .history-icon {
                 filter: invert(0.8) !important;
             }
-
+    
             [style*="color: rgb(227, 227, 227)"],
             [style*="color: #e3e3e3"],
             .post-content-text,
             .classic-playlist-description {
                 color: #000000 !important;
             }
-
+    
             /* White fade for collapsed comments in Light Mode */
             .comment-text.collapsed::after {
                 background: linear-gradient(rgba(255, 255, 255, 0), #f1f1f1) !important;
             }
-
+    
             /* White fade for collapsed video description in Light Mode */
             .video-description.collapsed::after {
                 background: linear-gradient(rgba(255, 255, 255, 0), #ffffff) !important;
             }
-
+    
             /* Channel name to dark grey */
             .channel-name {
                 color: #000000 !important;
             }
-
+    
             .subscriber-count {
                 color: #737373 !important;
             }
-
+    
             /* Placeholder visibility */
             ::placeholder {
                 color: #737373 !important;
             }
-
+    
             /* Search icon visibility (invert back to dark) */
             .search-icon {
                 filter: invert(0.6) !important; 
             }
-
+    
             /* Tab search icon */
             .tab-search-icon {
                 filter: invert(0) !important;
             }
-
+    
             /* Channel search input text color */
             #channelSearchInput {
                 color: #0f0f0f !important;
@@ -407,6 +407,11 @@
             #searchInput {
                 color: #000000 !important;
             }
+        `;
+    
+        // Only force title colors to black if blue titles are OFF
+        if (!isBlueTitles) {
+            styleText += `
             .video-title:not(.blue-text):not([style*="#128ee9"]),
             .playlist-title:not(.blue-text):not([style*="#128ee9"]),
             .home-video-title:not(.blue-text):not([style*="#128ee9"]),
@@ -419,11 +424,14 @@
             #commentsTotalAmount {
                 color: #000000 !important;
             }
-
+            `;
+        }
+    
+        styleText += `
             .openbtn {
                 filter: invert(1);
             }
-
+    
             /* Sort/View Dropdowns Light Mode */
             .sort-toggle,
             .sort-toggle.open,
@@ -444,18 +452,22 @@
             .view-dropdown-item:hover {
                 background-color: #e0e0e0 !important;
             }
-
+    
             /* Dropdown arrows for light mode */
             .sort-toggle-arrow,
             .view-toggle-arrow {
                 border-top-color: #0f0f0f !important;
             }
-
+    
             /* Prevent invert filter from breaking the Data URI SVG logo */
             .logo {
                 filter: none !important;
             }
         `;
+    
+        const style = document.createElement('style');
+        style.id = 'light-mode-black-override';
+        style.textContent = styleText;
         document.head.appendChild(style);
     }
 
