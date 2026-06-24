@@ -122,6 +122,11 @@ def main():
     for root, _, files in os.walk(thumbnails_dir):
         for filename in files:
             if filename.lower().endswith(SUPPORTED_EXTENSIONS):
+                # --- Ignore files that have "SpriteImg" in their name ---
+                if "spriteimg" in filename.lower():
+                    continue
+                # -------------------------------------------------------------
+                
                 full_path = os.path.join(root, filename)
                 rel_path = os.path.relpath(full_path, thumbnails_dir)
                 files_to_process.append((full_path, rel_path))
