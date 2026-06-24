@@ -1,81 +1,133 @@
 import os
+import sys
+from pathlib import Path
 
-def get_corresponding_video_dir(comments_dir):
-    """
-    Determines the path to the 'videos' directory assuming it mirrors 
-    the 'comments' directory structure one level up.
-    """
-    # E.g., E:\LocalYT\comments -> E:\LocalYT\videos
-    parent_dir = os.path.dirname(comments_dir)
-    return os.path.join(parent_dir, "videos")
+def get_progress_bar(current, total, width=20):
+    """Generate a simple progress bar string."""
+    if total == 0:
+        return "[" + " " * width + "]"
+    
+    filled = int((current / total) * width)
+    bar = "=" * filled + " " * (width - filled)
+    return f"[{bar}]"
 
-def remove_underscores_from_json(root_dir):
-    """
-    Recursively scans root_dir and removes underscores from .json filenames,
-    ONLY IF no corresponding video file (.mp4, .mp3, .mkv) with the original name exists.
-    """
-    if not os.path.exists(root_dir):
-        print(f"Error: Directory '{root_dir}' not found.")
-        print(f"Absolute path checked: {os.path.abspath(root_dir)}")
+def rename_files():
+    # Define the character mapping based on your description
+    char_mapping = {
+        '▀': 'ß',  # Wrong character to correct ß
+        'õ': 'ä',  # Wrong character to correct ä
+        '÷': 'ö',  # Wrong character to correct ö
+        '³': 'ü',  # Wrong character to correct ü
+        '–': '-'   # Wrong character to correct -
+    }
+    
+    # Define the folders to scan (relative to parent directory)
+    folders_to_scan = [
+        'comments',
+        'livechats',
+        'channelbanner',
+        'channelpic',
+        'channelstats',
+        'channeldesc',
+        'descriptions',
+        'filedates',
+        'filenames',
+        'subcount',
+        'thumbnails',
+        'videos',
+        'videostats',
+        'viewcounts',
+        'subtitles'
+    ]
+    
+    # Get the directory where the script is located
+    script_dir = Path(__file__).resolve().parent
+    # Go up one level from the script directory (LocalYT-Rev-Files) to reach the parent
+    base_dir = script_dir.parent
+    
+    print("LocalYT Metadata Filename Character Fixer")
+    print("=" * 50)
+    print(f"Scanning from: {base_dir}")
+    print("Mapping: '▀'→'ß', 'õ'→'ä', '÷'→'ö', '³'→'ü', '–'→'-'")
+    
+    # Pre-scan to count all files for progress
+    sys.stdout.write("Scanning files...".ljust(70) + "\r")
+    sys.stdout.flush()
+    
+    files_to_check = []
+    for folder_name in folders_to_scan:
+        folder_path = base_dir / folder_name
+        
+        if not folder_path.exists():
+            continue
+        
+        for root, dirs, files in os.walk(folder_path):
+            for filename in files:
+                files_to_check.append((Path(root), filename))
+    
+    total_files = len(files_to_check)
+    
+    if total_files == 0:
+        print("No files found to scan.                                    ")
         return
 
-    videos_root = get_corresponding_video_dir(root_dir)
-    video_extensions = (".mp4", ".mp3", ".mkv")
-    count = 0
+    # Counters for statistics
+    files_renamed = 0
+    conflict_skipped = 0
+    error_count = 0
     
-    # Walk through the directory tree
-    for current_dir, dirs, files in os.walk(root_dir):
-        for filename in files:
-            # Check if file is a JSON file AND contains an underscore
-            if filename.endswith(".json") and "_" in filename:
+    # Process each file
+    for i, (root, filename) in enumerate(files_to_check, 1):
+        
+        # Build status message with progress bar
+        progress_bar = get_progress_bar(i, total_files)
+        status_msg = f"{progress_bar} {i}/{total_files} (Renamed: {files_renamed})"
+        sys.stdout.write(status_msg.ljust(70) + "\r")
+        sys.stdout.flush()
+        
+        # Check if filename contains any of the wrong characters
+        new_filename = filename
+        for wrong_char, correct_char in char_mapping.items():
+            if wrong_char in new_filename:
+                new_filename = new_filename.replace(wrong_char, correct_char)
+        
+        # If filename needs to be changed, rename it
+        if new_filename != filename:
+            old_path = root / filename
+            new_path = root / new_filename
+            
+            try:
+                # Check if new filename already exists (Silent Skip)
+                if new_path.exists():
+                    conflict_skipped += 1
+                    continue
                 
-                old_path = os.path.join(current_dir, filename)
+                # Rename the file
+                old_path.rename(new_path)
+                files_renamed += 1
                 
-                # Get the name without the .json extension
-                base_name = os.path.splitext(filename)[0]
-                
-                # Determine the expected video directory for this specific channel
-                # E.g., E:\LocalYT\comments\MaSiRo -> E:\LocalYT\videos\MaSiRo
-                relative_path = os.path.relpath(current_dir, root_dir)
-                if relative_path == ".":
-                    channel_video_dir = videos_root
-                else:
-                    channel_video_dir = os.path.join(videos_root, relative_path)
-                
-                # Check if any video file exists with the EXACT original base name
-                video_exists = False
-                if os.path.isdir(channel_video_dir):
-                    for ext in video_extensions:
-                        expected_video_path = os.path.join(channel_video_dir, base_name + ext)
-                        if os.path.exists(expected_video_path):
-                            video_exists = True
-                            break
-                
-                # Only rename if NO matching video file was found
-                if not video_exists:
-                    new_filename = filename.replace("_", "")
-                    new_path = os.path.join(current_dir, new_filename)
+            except Exception as e:
+                error_count += 1
+                print(f"\nError renaming '{filename}': {e}")
+                sys.stdout.write(status_msg.ljust(70) + "\r")
+                sys.stdout.flush()
 
-                    try:
-                        os.rename(old_path, new_path)
-                        print(f"Renamed: '{filename}' -> '{new_filename}'")
-                        count += 1
-                    except OSError as e:
-                        print(f"Error renaming '{filename}': {e}")
-                else:
-                    print(f"Skipped:  '{filename}' (Matching video file found)")
-
-    print(f"\nOperation complete. {count} files renamed.")
+    # Clear status line and print final summary
+    sys.stdout.write(" " * 70 + "\r")
+    sys.stdout.flush()
+    
+    print("=" * 50)
+    print("Character Fix Complete:")
+    print(f"  Total Files Scanned:   {total_files}")
+    print(f"  Files Renamed:         {files_renamed}")
+    
+    if conflict_skipped > 0:
+        print(f"  Skipped (Conflict):    {conflict_skipped}")
+    
+    if error_count > 0:
+        print(f"  Errors:                 {error_count} (Check warnings above)")
+    
+    print("=" * 50)
 
 if __name__ == "__main__":
-    # Get the directory where this script is located
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    # Go one level up from the script dir, then into 'comments'
-    # Script: E:\LocalYT\LocalYT-Rev-Files\script.py
-    # Target: E:\LocalYT\comments
-    target_directory = os.path.join(os.path.dirname(script_dir), "comments")
-    
-    print(f"Scanning: {target_directory}")
-    print(f"Comparing against: {get_corresponding_video_dir(target_directory)}\n")
-    remove_underscores_from_json(target_directory)
+    rename_files()
