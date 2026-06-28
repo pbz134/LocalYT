@@ -101,7 +101,7 @@
     {
       "name": "Mario Bros Rule",
       "match_type": "contains",
-      "match_value": "mario bros",
+      "match_value": ["mario bros", "super mario bros"],
       "case_sensitive": false,
       "tags": ["Mario Bros", "Gaming"]
     },
@@ -111,6 +111,62 @@
       "match_value": "mario kart",
       "case_sensitive": false,
       "tags": ["Mario Kart", "Gaming"]
+    },
+    {
+      "name": "Mario Maker Rule",
+      "match_type": "contains",
+      "match_value": "mario maker",
+      "case_sensitive": false,
+      "tags": ["Mario Maker", "Gaming"]
+    },
+    {
+      "name": "Mario Party Rule",
+      "match_type": "contains",
+      "match_value": "mario party",
+      "case_sensitive": false,
+      "tags": ["Mario Party", "Gaming"]
+    },
+    {
+      "name": "Mario Odyssey Rule",
+      "match_type": "contains",
+      "match_value": "mario odyssey",
+      "case_sensitive": false,
+      "tags": ["Mario Odyssey", "Gaming"]
+    },
+    {
+      "name": "Mario Sunshine Rule",
+      "match_type": "contains",
+      "match_value": "mario sunshine",
+      "case_sensitive": false,
+      "tags": ["Mario Sunshine", "Gaming"]
+    },
+    {
+      "name": "Mario Tennis Rule",
+      "match_type": "contains",
+      "match_value": "mario tennis",
+      "case_sensitive": false,
+      "tags": ["Mario Tennis", "Gaming"]
+    },
+    {
+      "name": "Paper Mario Rule",
+      "match_type": "contains",
+      "match_value": "paper mario",
+      "case_sensitive": false,
+      "tags": ["Paper Mario", "Gaming"]
+    },
+    {
+      "name": "Mario Galaxy Rule",
+      "match_type": "contains",
+      "match_value": "mario galaxy",
+      "case_sensitive": false,
+      "tags": ["Mario Galaxy", "Gaming"]
+    },
+    {
+      "name": "Luigi's Mansion Rule",
+      "match_type": "contains",
+      "match_value": ["luigi's mansion", "luigis mansion"],
+      "case_sensitive": false,
+      "tags": ["Luigi's Mansion", "Gaming"]
     },
     {
       "name": "Mario Rule",
