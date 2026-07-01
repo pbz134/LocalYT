@@ -47,6 +47,36 @@
         .video-item .video-description {
             margin-left: -48px;
         }
+
+        /* --- Remove Button Styles & Fix 3-Dot Overlap --- */
+        /* Move 3-dot menu to the left to make room for the remove button on the right */
+        .video-item .thumbnail-menu-btn {
+            right: auto !important;
+            left: 4px !important;
+        }
+
+        .video-item .remove-video-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(0, 0, 0, 0.75);
+            color: #fff;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s, background 0.2s;
+            z-index: 12; /* Higher than the 3-dot menu */
+            padding: 0;
+        }
+        .video-item:hover .remove-video-btn { opacity: 1; }
+        .video-item .remove-video-btn:hover { background: #ff4444; }
     </style>
 
 </head>
@@ -93,6 +123,10 @@ function stripExtension(filename) {
 function getVideoExtension(path) {
     const match = path.match(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i);
     return match ? match[1] : 'mp4';
+}
+
+function getLang(en, de) {
+    return localStorage.getItem('language') === 'de' ? de : en;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -150,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
             videos.forEach(video => {
                 const videoElement = document.createElement('div');
                 videoElement.className = 'video-item';
+                videoElement.style.transition = 'opacity 0.3s';
                 
                 const videoTitle = video.displayName;
                 const videoPathWithoutExt = stripExtension(video.path);
@@ -159,6 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 videoElement.innerHTML = `
                     <div class="thumbnail-container">
+                        <button class="remove-video-btn" title="${getLang('Remove', 'Entfernen')}">&times;</button>
                         <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
                         <div class="video-length"></div>
                     </div>
@@ -172,6 +208,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
                 container.appendChild(videoElement);
+
+                // Remove Button Logic
+                const removeBtn = videoElement.querySelector('.remove-video-btn');
+                removeBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    try {
+                        const res = await fetch('/remove-from-history', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ video: video.path })
+                        });
+                        if (res.ok) {
+                            videoElement.style.opacity = '0';
+                            setTimeout(() => videoElement.remove(), 300);
+                        } else {
+                            console.error('Failed to remove from history');
+                        }
+                    } catch (err) {
+                        console.error('Error removing from history:', err);
+                    }
+                });
 
                 // Thumbnail Click Handlers
                 const thumbContainer = videoElement.querySelector('.thumbnail-container');
@@ -230,23 +287,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     .catch(error => {
                         console.error('Error fetching video length:', error);
                     });
-            });
-
-            // Lazy load observer
-            const observer = new IntersectionObserver((entries, observer) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const img = entry.target;
-                        img.src = img.dataset.src;
-                        observer.unobserve(img);
-                    }
-                });
-            });
-
-            document.querySelectorAll('.video-thumbnail').forEach(img => {
-                img.dataset.src = img.src;
-                img.src = '';
-                observer.observe(img);
             });
         })
         .catch(error => {

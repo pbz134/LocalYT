@@ -3053,6 +3053,39 @@ app.post('/add-to-history', (req, res) => {
     });
 });
 
+app.post('/remove-from-history', (req, res) => {
+    const { video } = req.body;
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('User not authenticated');
+    if (!video) return res.status(400).send('Video path is required');
+
+    fs.readFile(watchHistoryFilePath, 'utf8', (err, data) => {
+        let watchHistoryData = {};
+        if (!err) {
+            try {
+                watchHistoryData = JSON.parse(data);
+            } catch (e) {
+                watchHistoryData = {};
+            }
+        }
+        
+        if (watchHistoryData[userId]) {
+            // Filter out the video to be removed
+            watchHistoryData[userId] = watchHistoryData[userId].filter(item => {
+                const itemPath = typeof item === 'object' ? item.video : item;
+                return itemPath !== video;
+            });
+            
+            fs.writeFile(watchHistoryFilePath, JSON.stringify(watchHistoryData, null, 2), err => {
+                if (err) return res.status(500).send('Error removing from watch history');
+                res.sendStatus(200);
+            });
+        } else {
+            res.status(404).send('User history not found');
+        }
+    });
+});
+
 // --- ERROR HANDLING MIDDLEWARE ---
 app.use((err, req, res, next) => {
     // Suppress harmless Windows EPERM errors from session-file-store
