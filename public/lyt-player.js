@@ -59,7 +59,8 @@
         speed: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>',
         settings: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>',
         fullscreen: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>',
-        fullscreenExit: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>'
+        fullscreenExit: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>',
+        back: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>'
     };
 
     class LYTPlayer {
@@ -116,8 +117,25 @@
             // Loop state
             this.isLooping = false;
 
+            // Equalizer state
+            this._asmr = false;
+            this._equalizerSettings = {
+                sub: 0,
+                low: 0,
+                mid: 0,
+                high: 0,
+                compression: false
+            };
+            this._equalizerEnabled = false;
+            this._audioContext = null;
+            this._sourceNode = null;
+            this._filters = {};
+            this._compressor = null;
+            this._equalizerInitialized = false;
+            this._eqSaveTimer = null; // for debouncing server saves
+
             // Current LYT Player version
-            this.version = 'v2.5.0';
+            this.version = 'v2.6.2';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -126,6 +144,10 @@
         }
 
         init() {
+            // Determine if video title contains "ASMR" (case-insensitive)
+            const title = this.options.layoutControls?.title || '';
+            this._asmr = title.toLowerCase().includes('asmr');
+
             this.setupWrapper();
             
             // --- RESTORE VOLUME FROM PREVIOUS SESSION ---
@@ -189,6 +211,19 @@
             // Trigger user callback
             if (layout.playerInitCallback) {
                 layout.playerInitCallback();
+            }
+
+            // Setup equalizer UI if ASMR, then load persisted settings
+            if (this._asmr) {
+                this._setupEqualizerUI();
+                // Load saved EQ settings (async, will apply when loaded)
+                this.loadEqualizerSettings();
+            } else {
+                // For non-ASMR, we still create the UI but disabled, and load settings (but won't apply)
+                // We'll still create the menu so it's consistent, but greyed out.
+                this._setupEqualizerUI();
+                // Load settings but they won't be applied because _asmr is false.
+                this.loadEqualizerSettings();
             }
         }
 
@@ -1413,6 +1448,7 @@
                             <button class="lyt_btn lyt_btn_settings" aria-label="Settings">${SVG.settings}</button>
                             <div class="lyt_popup_menu lyt_settings_menu">
                                 <div class="lyt_menu_content">
+                                    <!-- Equalizer option will be inserted here by JavaScript -->
                                     <div class="lyt_menu_option lyt_opt_speed" data-submenu="speed">Speed</div>
                                     <div class="lyt_menu_option lyt_opt_subs" data-submenu="subtitles">Subtitles/CC</div>
                                     <div class="lyt_menu_option lyt_opt_quality" data-submenu="quality">Quality</div>
@@ -1432,6 +1468,8 @@
                                     <button class="lyt_submenu_back" data-back="main"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg> Quality</button>
                                     <div class="lyt_menu_content"></div>
                                 </div>
+
+                                <!-- Equalizer submenu will be inserted here by JavaScript -->
                             </div>
 
                             <button class="lyt_btn lyt_btn_fullscreen" aria-label="Fullscreen">${SVG.fullscreen}</button>
@@ -1513,6 +1551,379 @@
             this.buildQualityMenu();
         }
         
+        // ----- Equalizer UI Setup -----
+        _setupEqualizerUI() {
+            // Insert Equalizer option above Speed in main menu
+            const mainMenu = this.dom.mainMenuContent;
+            const speedOption = mainMenu.querySelector('.lyt_opt_speed');
+            if (!speedOption) return;
+
+            const eqOption = document.createElement('div');
+            eqOption.className = 'lyt_menu_option lyt_opt_equalizer';
+            eqOption.dataset.submenu = 'equalizer';
+            eqOption.textContent = 'Equalizer';
+
+            if (!this._asmr) {
+                eqOption.classList.add('lyt_disabled');
+                eqOption.style.opacity = '0.5';
+                eqOption.style.pointerEvents = 'none';
+            }
+
+            mainMenu.insertBefore(eqOption, speedOption);
+
+            // Build Equalizer submenu
+            const eqSubmenu = document.createElement('div');
+            eqSubmenu.className = 'lyt_popup_submenu lyt_equalizer_menu';
+            eqSubmenu.innerHTML = `
+                <button class="lyt_submenu_back" data-back="main">${SVG.back} Equalizer</button>
+                <div class="lyt_menu_content lyt_equalizer_content">
+                    <div class="lyt_eq_band">
+                        <label>Sub (60 Hz)</label>
+                        <input type="range" min="-12" max="12" step="0.5" value="0" data-band="sub">
+                        <span class="lyt_eq_value">0 dB</span>
+                    </div>
+                    <div class="lyt_eq_band">
+                        <label>Low (250 Hz)</label>
+                        <input type="range" min="-12" max="12" step="0.5" value="0" data-band="low">
+                        <span class="lyt_eq_value">0 dB</span>
+                    </div>
+                    <div class="lyt_eq_band">
+                        <label>Mid (1 kHz)</label>
+                        <input type="range" min="-12" max="12" step="0.5" value="0" data-band="mid">
+                        <span class="lyt_eq_value">0 dB</span>
+                    </div>
+                    <div class="lyt_eq_band">
+                        <label>High (4 kHz)</label>
+                        <input type="range" min="-12" max="12" step="0.5" value="0" data-band="high">
+                        <span class="lyt_eq_value">0 dB</span>
+                    </div>
+                    <div class="lyt_eq_band lyt_eq_compression">
+                        <label>Compression</label>
+                        <input type="checkbox" data-band="compression">
+                        <span class="lyt_eq_value">Off</span>
+                    </div>
+                    <div class="lyt_eq_reset">
+                        <button class="lyt_eq_reset_btn">Reset</button>
+                    </div>
+                </div>
+            `;
+
+            // Insert after quality submenu
+            const qualityMenu = this.dom.qualityMenu;
+            qualityMenu.parentNode.insertBefore(eqSubmenu, qualityMenu.nextSibling);
+
+            this.dom.equalizerMenu = eqSubmenu;
+            this.dom.equalizerOption = eqOption;
+
+            // If not ASMR, disable all controls in submenu
+            if (!this._asmr) {
+                eqSubmenu.querySelectorAll('input, button').forEach(el => {
+                    el.disabled = true;
+                    el.style.opacity = '0.4';
+                    el.style.pointerEvents = 'none';
+                });
+                // Add a message
+                const msg = document.createElement('div');
+                msg.className = 'lyt_eq_disabled_msg';
+                msg.style.color = '#888';
+                msg.style.padding = '10px 16px';
+                msg.style.fontSize = '13px';
+                msg.textContent = 'Equalizer only available for ASMR videos.';
+                eqSubmenu.querySelector('.lyt_equalizer_content').prepend(msg);
+            }
+
+            // Bind events for equalizer (sliders, checkbox, reset)
+            this._bindEqualizerEvents();
+
+            // Update UI with current settings (if any)
+            this._updateEqualizerUI();
+        }
+
+        _updateEqualizerUI() {
+            const eqMenu = this.dom.equalizerMenu;
+            if (!eqMenu) return;
+
+            // Update sliders
+            eqMenu.querySelectorAll('input[type="range"]').forEach(input => {
+                const band = input.dataset.band;
+                if (this._equalizerSettings[band] !== undefined) {
+                    input.value = this._equalizerSettings[band];
+                    const label = input.closest('.lyt_eq_band').querySelector('.lyt_eq_value');
+                    if (label) label.textContent = this._equalizerSettings[band] + ' dB';
+                }
+            });
+
+            // Update compression checkbox
+            const compInput = eqMenu.querySelector('input[type="checkbox"]');
+            if (compInput) {
+                compInput.checked = this._equalizerSettings.compression || false;
+                const label = compInput.closest('.lyt_eq_band').querySelector('.lyt_eq_value');
+                if (label) label.textContent = compInput.checked ? 'On' : 'Off';
+            }
+        }
+
+        _bindEqualizerEvents() {
+            const eqMenu = this.dom.equalizerMenu;
+            if (!eqMenu) return;
+
+            // Sliders
+            eqMenu.querySelectorAll('input[type="range"]').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const band = input.dataset.band;
+                    const val = parseFloat(input.value);
+                    const label = input.closest('.lyt_eq_band').querySelector('.lyt_eq_value');
+                    if (label) label.textContent = val + ' dB';
+                    this._equalizerSettings[band] = val;
+                    this._applyEqualizer();
+                    this._saveEqualizerSettings();
+                });
+            });
+
+            // Compression checkbox
+            const compInput = eqMenu.querySelector('input[type="checkbox"]');
+            if (compInput) {
+                compInput.addEventListener('change', () => {
+                    const enabled = compInput.checked;
+                    const label = compInput.closest('.lyt_eq_band').querySelector('.lyt_eq_value');
+                    if (label) label.textContent = enabled ? 'On' : 'Off';
+                    this._equalizerSettings.compression = enabled;
+                    this._applyEqualizer();
+                    this._saveEqualizerSettings();
+                });
+            }
+
+            // Reset button
+            const resetBtn = eqMenu.querySelector('.lyt_eq_reset_btn');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', () => {
+                    // Reset sliders to 0
+                    eqMenu.querySelectorAll('input[type="range"]').forEach(input => {
+                        input.value = 0;
+                        const label = input.closest('.lyt_eq_band').querySelector('.lyt_eq_value');
+                        if (label) label.textContent = '0 dB';
+                        const band = input.dataset.band;
+                        this._equalizerSettings[band] = 0;
+                    });
+                    // Uncheck compression
+                    if (compInput) {
+                        compInput.checked = false;
+                        const label = compInput.closest('.lyt_eq_band').querySelector('.lyt_eq_value');
+                        if (label) label.textContent = 'Off';
+                        this._equalizerSettings.compression = false;
+                    }
+                    this._applyEqualizer();
+                    this._saveEqualizerSettings();
+                });
+            }
+
+            // Also, when any slider/checkbox is interacted, ensure audio context is initialized
+            eqMenu.addEventListener('input', () => {
+                this._ensureEqualizerAudio();
+            });
+            eqMenu.addEventListener('change', () => {
+                this._ensureEqualizerAudio();
+            });
+        }
+
+        // ----- Equalizer Audio Processing -----
+        _ensureEqualizerAudio() {
+            if (!this._equalizerInitialized && this._asmr) {
+                this._initEqualizerAudio();
+            }
+        }
+
+        _initEqualizerAudio() {
+            if (this._equalizerInitialized || !this._asmr) return;
+
+            try {
+                // Create AudioContext
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                this._audioContext = new AudioCtx();
+
+                // Resume context if suspended (user gesture will resume)
+                if (this._audioContext.state === 'suspended') {
+                    this._audioContext.resume();
+                }
+
+                // Create source from video element
+                this._sourceNode = this._audioContext.createMediaElementSource(this.video);
+
+                // Create filters: sub, low, mid, high (peaking)
+                const bands = [
+                    { name: 'sub', freq: 60, Q: 1.4 },
+                    { name: 'low', freq: 250, Q: 1 },
+                    { name: 'mid', freq: 1000, Q: 1 },
+                    { name: 'high', freq: 4000, Q: 1 }
+                ];
+
+                let prevNode = this._sourceNode;
+                bands.forEach(band => {
+                    const filter = this._audioContext.createBiquadFilter();
+                    filter.type = 'peaking';
+                    filter.frequency.value = band.freq;
+                    filter.Q.value = band.Q;
+                    filter.gain.value = 0; // will be set by apply
+                    prevNode.connect(filter);
+                    this._filters[band.name] = filter;
+                    prevNode = filter;
+                });
+
+                // Compression
+                const compressor = this._audioContext.createDynamicsCompressor();
+                compressor.threshold.value = -24;
+                compressor.ratio.value = 4;
+                compressor.knee.value = 6;
+                compressor.attack.value = 0.003;
+                compressor.release.value = 0.25;
+                this._compressor = compressor;
+
+                // Connect filters to compressor (or directly to destination if compression off)
+                // We'll manage routing in _applyEqualizer
+                // Initially, connect filters directly to destination, and compressor not in chain
+                prevNode.connect(this._audioContext.destination);
+
+                this._equalizerInitialized = true;
+
+                // Apply current settings
+                this._applyEqualizer();
+
+                // Handle when video source changes (e.g., new video loaded) - we need to recreate nodes
+                // But LYTPlayer is per video, so not needed.
+                // However, if the video element changes source, we need to reconnect.
+                // We'll listen to 'loadstart' and reset.
+                this.video.addEventListener('loadstart', () => {
+                    this._resetEqualizerAudio();
+                });
+
+            } catch (e) {
+                console.error('Failed to initialize equalizer audio:', e);
+                this._equalizerInitialized = false;
+            }
+        }
+
+        _resetEqualizerAudio() {
+            // Disconnect everything and re-init on next interaction
+            if (this._sourceNode) {
+                try {
+                    this._sourceNode.disconnect();
+                } catch (e) {}
+            }
+            Object.values(this._filters).forEach(f => {
+                try { f.disconnect(); } catch (e) {}
+            });
+            if (this._compressor) {
+                try { this._compressor.disconnect(); } catch (e) {}
+            }
+            this._sourceNode = null;
+            this._filters = {};
+            this._compressor = null;
+            this._equalizerInitialized = false;
+            if (this._audioContext) {
+                this._audioContext.close().catch(() => {});
+                this._audioContext = null;
+            }
+        }
+
+        _applyEqualizer() {
+            // Only apply if this is an ASMR video
+            if (!this._asmr) return;
+            if (!this._equalizerInitialized) return;
+
+            // Update filter gains
+            const bands = ['sub', 'low', 'mid', 'high'];
+            bands.forEach(band => {
+                const filter = this._filters[band];
+                if (filter) {
+                    filter.gain.value = this._equalizerSettings[band] || 0;
+                }
+            });
+
+            // Re-route audio based on compression state
+            const compression = this._equalizerSettings.compression || false;
+
+            // Disconnect existing connections from last filter to destination/compressor
+            const lastFilter = this._filters['high'];
+            if (!lastFilter) return;
+
+            try {
+                // Disconnect from all destinations
+                lastFilter.disconnect();
+            } catch (e) {}
+
+            if (compression) {
+                // Connect last filter -> compressor -> destination
+                lastFilter.connect(this._compressor);
+                this._compressor.connect(this._audioContext.destination);
+            } else {
+                // Connect last filter -> destination
+                lastFilter.connect(this._audioContext.destination);
+            }
+        }
+
+        // ----- Save/Load Equalizer Settings -----
+        _saveEqualizerSettings() {
+            // Always save to localStorage for quick load
+            try {
+                localStorage.setItem('lyt_eq_settings', JSON.stringify(this._equalizerSettings));
+            } catch (e) {}
+
+            // Debounced server save (only if logged in)
+            clearTimeout(this._eqSaveTimer);
+            this._eqSaveTimer = setTimeout(() => {
+                this._saveEqualizerToServer();
+            }, 500);
+        }
+
+        async _saveEqualizerToServer() {
+            try {
+                // Fetch current user settings, update equalizer part, and POST back
+                const response = await fetch('/user-settings');
+                if (!response.ok) return;
+
+                const currentSettings = await response.json();
+                currentSettings.equalizer = this._equalizerSettings;
+
+                await fetch('/user-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ settings: currentSettings })
+                });
+            } catch (e) {
+                // Silently fail - settings will still be in localStorage
+            }
+        }
+
+        async loadEqualizerSettings() {
+            // 1. Load from localStorage first (immediate)
+            try {
+                const local = JSON.parse(localStorage.getItem('lyt_eq_settings'));
+                if (local) {
+                    Object.assign(this._equalizerSettings, local);
+                }
+            } catch (e) {}
+
+            // 2. Override with server settings (if user is logged in)
+            try {
+                const response = await fetch('/user-settings');
+                if (response.ok) {
+                    const settings = await response.json();
+                    if (settings.equalizer) {
+                        Object.assign(this._equalizerSettings, settings.equalizer);
+                        // Update localStorage to match
+                        localStorage.setItem('lyt_eq_settings', JSON.stringify(this._equalizerSettings));
+                    }
+                }
+            } catch (e) {}
+
+            // 3. If ASMR, update UI and apply
+            if (this._asmr) {
+                this._updateEqualizerUI();
+                this._applyEqualizer();
+            }
+        }
+
+        // ---- End Equalizer ----
+
         buildSpeedMenu() {
             let html = '';
             this.speedOptions.forEach(speed => {
@@ -1724,34 +2135,34 @@
                 this.toggleMenu(this.dom.settingsMenu);
             });
 
-            // Handle Main Menu Options (Speed/Subs/Quality) -> Open Submenus
-            this.dom.settingsMenu.querySelectorAll('[data-submenu]').forEach(option => {
-                option.addEventListener('click', (e) => {
-                    const menuItem = e.target.closest('[data-submenu]');
-                    if (!menuItem) return;
-                    
+            // ========== FIX: Use event delegation for settings menu ==========
+            // Main menu options: data-submenu
+            this.dom.settingsMenu.addEventListener('click', (e) => {
+                const menuItem = e.target.closest('[data-submenu]');
+                if (menuItem) {
                     const targetId = menuItem.dataset.submenu;
                     const submenu = this.dom.settingsMenu.querySelector(`.lyt_${targetId}_menu`);
-                    if(submenu) {
+                    if (submenu) {
                         this.hideMainMenu();
                         submenu.classList.add('lyt_show');
-                        
-                        if(targetId === 'subtitles') this.buildSubtitlesMenu(); // NOW MATCHES!
-                        if(targetId === 'quality') this.buildQualityMenu();
+                        if (targetId === 'subtitles') this.buildSubtitlesMenu();
+                        if (targetId === 'quality') this.buildQualityMenu();
                     }
-                });
+                    e.stopPropagation();
+                }
             });
 
-            // Handle Submenu Back Buttons
-            this.dom.settingsMenu.querySelectorAll('.lyt_submenu_back').forEach(btn => {
-                btn.addEventListener('click', (e) => {
+            // Submenu back buttons: .lyt_submenu_back
+            this.dom.settingsMenu.addEventListener('click', (e) => {
+                const backBtn = e.target.closest('.lyt_submenu_back');
+                if (backBtn) {
                     e.stopPropagation();
                     this.hideAllSubmenus();
                     this.showMainMenu();
-                });
+                }
             });
 
-            // Speed Submenu Actions
+            // Speed Submenu Actions (still direct because they are inside the submenu)
             this.dom.speedMenu.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const option = e.target.closest('.lyt_speed_option');
@@ -2201,6 +2612,7 @@
             if(this.dom.speedMenu) this.dom.speedMenu.classList.remove('lyt_show');
             if(this.dom.subtitlesMenu) this.dom.subtitlesMenu.classList.remove('lyt_show');
             if(this.dom.qualityMenu) this.dom.qualityMenu.classList.remove('lyt_show');
+            if(this.dom.equalizerMenu) this.dom.equalizerMenu.classList.remove('lyt_show');
         }
         
         hideMainMenu() {
