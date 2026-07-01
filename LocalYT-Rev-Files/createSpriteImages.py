@@ -24,9 +24,8 @@ MAX_WORKERS = 8
 # Maximum width of the generated sprite image in pixels.
 # Keeping this under 30000 ensures compatibility with almost all browsers/viewers.
 MAX_SPRITE_WIDTH_PX = 25000 
-# Hard limit on number of frames to generate per video (~2.7 hours at 5s interval).
-# Increase this if you process movies longer than 3 hours.
-MAX_FRAMES_HARD_LIMIT = 2000 
+# Hard limit on number of frames to generate per video (~13.5 hours at 5s interval).
+MAX_FRAMES_HARD_LIMIT = 10000 
 # ---------------------
 
 # Lock for console output so threads don't overwrite each other messily
@@ -95,10 +94,8 @@ def process_single_video(args):
     
     video_name = os.path.splitext(filename)[0]
     
-    # 1. Clean filename for output files
-    safe_video_name = re.sub(r'[^\w\s.\-()]', '', video_name)
-    safe_video_name = safe_video_name.replace('.', ' ')
-    safe_video_name = re.sub(r'\s+', ' ', safe_video_name).strip()
+    # 1. Use original video name for output files
+    safe_video_name = video_name
     
     vtt_filename = f"{safe_video_name}.vtt"
     sprite_filename = f"{safe_video_name}SpriteImg.jpg"
