@@ -87,6 +87,5 @@ What if I only have the video files and no metadata?
 ## TO DO
 - Finish implementing mobile support
 - Finish implementing Light Mode
-- Find a way to better manage tons of invidividual video metadata files
 - Implement a Time Machine feature (simulated travel to the past which hides videos and content uploaded after X date
 - Find a local music genre classification model
