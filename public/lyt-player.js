@@ -113,6 +113,7 @@
             this._recThumbVisible = false;
             this._recTriggerTimes = [30, 180];
             this._endScreenData = null;
+            this._endScreenShown = false;
             
             // Loop state
             this.isLooping = false;
@@ -1893,10 +1894,6 @@
                 // Apply current settings
                 this._applyEqualizer();
 
-                // Handle when video source changes (e.g., new video loaded) - we need to recreate nodes
-                // But LYTPlayer is per video, so not needed.
-                // However, if the video element changes source, we need to reconnect.
-                // We'll listen to 'loadstart' and reset.
                 this.video.addEventListener('loadstart', () => {
                     this._resetEqualizerAudio();
                 });
@@ -2414,10 +2411,17 @@
                 this._recThumbVisible = false;
                 this.dom.recPopup.classList.remove('lyt_rec_slide_in');
                 this.dom.recThumbnail.classList.remove('lyt_rec_thumb_show');
+                this._endScreenShown = false;
             });
 
-            // Hide recommendation and show end screen on video end
+            // Inside bindEvents(), in the 'ended' listener
             this.video.addEventListener('ended', () => {
+                // Skip if looping is enabled
+                if (this.isLooping) return;
+                // Prevent multiple end-screen appearances
+                if (this._endScreenShown) return;
+                this._endScreenShown = true;
+
                 this.hideRecommendationPopup();
                 this.showEndScreen();
             });
