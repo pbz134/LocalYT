@@ -347,9 +347,6 @@
             transition: background-color 0.15s;
             white-space: nowrap;
         }
-        .view-dropdown-item:hover {
-            background-color: var(--hover-bg-color, #555);
-        }
         .view-dropdown-item.active {
             color: #fff;
         }
@@ -1245,6 +1242,8 @@
         <div class="tabs">
             <div class="tab active" data-tab="home">HOME</div>
             <div class="tab" data-tab="videos">VIDEOS</div>
+            <!-- New Live/Streams tab, hidden by default; shown only if Live folder exists -->
+            <div class="tab" data-tab="streams" style="display:none;">LIVE</div>
             <div class="tab" data-tab="playlists">PLAYLISTS</div>
             <div class="tab" data-tab="posts">POSTS</div>
             <div class="tab" data-tab="about">ABOUT</div>
@@ -1318,6 +1317,40 @@
                 <div id="loadingSpinner" class="loading-spinner">Loading more videos</div>
                 <div id="noMoreVideos" class="no-more-videos" style="display: none;">No more videos to load</div>
                 <div id="loadMoreTrigger" class="load-more-trigger"></div>
+            </div>
+        </div>
+
+        <!-- Streams (Live) Tab -->
+        <div id="streamsTab" class="tab-content">
+            <div class="sort-options">
+                <div class="sort-dropdown">
+                    <button class="sort-toggle" id="streamsSortToggle">
+                        <span id="streamsSortToggleLabel">Date added (newest)</span>
+                        <div class="sort-toggle-arrow"></div>
+                    </button>
+                    <div class="sort-dropdown-menu" id="streamsSortDropdownMenu">
+                        <div class="sort-dropdown-item active" data-sort="newest">Date added (newest)</div>
+                        <div class="sort-dropdown-item" data-sort="popular">Most popular</div>
+                        <div class="sort-dropdown-item" data-sort="oldest">Date added (oldest)</div>
+                        <div class="sort-dropdown-item" data-sort="longest">Longest</div>
+                    </div>
+                </div>
+                <div class="view-dropdown">
+                    <button class="view-toggle" id="streamsViewToggle">
+                        <span id="streamsViewToggleLabel">Grid</span>
+                        <div class="view-toggle-arrow"></div>
+                    </button>
+                    <div class="view-dropdown-menu" id="streamsViewDropdownMenu">
+                        <div class="view-dropdown-item active" data-view="grid">Grid</div>
+                        <div class="view-dropdown-item" data-view="list">List</div>
+                    </div>
+                </div>
+            </div>
+            <div class="container videos-wrapper">
+                <div class="channel-videos" id="streamsVideosContainer"></div>
+                <div id="streamsLoadingSpinner" class="loading-spinner">Loading more streams</div>
+                <div id="streamsNoMoreVideos" class="no-more-videos" style="display: none;">No more streams to load</div>
+                <div id="streamsLoadMoreTrigger" class="load-more-trigger"></div>
             </div>
         </div>
 
@@ -1412,7 +1445,7 @@ function parseChannelUrl() {
     const raw = new URLSearchParams(window.location.search).get('channel') || '';
     const decoded = decodeURIComponent(raw);
 
-    const validTabs = ['videos', 'playlists', 'about', 'posts', 'search'];
+    const validTabs = ['videos', 'playlists', 'about', 'posts', 'search', 'streams']; // added 'streams'
     const tabNames = validTabs.find(t => decoded.endsWith('/' + t));
 
     if (tabNames) {
@@ -1578,6 +1611,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const noMoreVideos = document.getElementById('noMoreVideos');
     const subscribeButton = document.getElementById('subscribeButton');
 
+    // Streams-specific elements
+    const streamsVideosContainer = document.getElementById('streamsVideosContainer');
+    const streamsLoadingSpinner = document.getElementById('streamsLoadingSpinner');
+    const streamsLoadMoreTrigger = document.getElementById('streamsLoadMoreTrigger');
+    const streamsNoMoreVideos = document.getElementById('streamsNoMoreVideos');
+
     let currentVideos = [];
     let currentSortMode = 'newest';
     let renderedVideoCount = 0;
@@ -1585,6 +1624,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let hasMoreVideos = true;
     let intersectionObserver = null;
     let isSubscribed = false;
+
+    // Streams-specific state
+    let streamsVideos = [];
+    let streamsSortMode = 'newest';
+    let streamsRenderedCount = 0;
+    let streamsIsLoadingMore = false;
+    let streamsHasMore = true;
+    let streamsIntersectionObserver = null;
 
     let homeFluidPlayerInstance = null;
     const loadedTabs = new Set();
@@ -1639,6 +1686,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateUITranslations() {
         document.querySelector('.tab[data-tab="home"]').textContent = getLang('Home', 'Übersicht');
         document.querySelector('.tab[data-tab="videos"]').textContent = getLang('Videos', 'Videos');
+        document.querySelector('.tab[data-tab="streams"]').textContent = getLang('Live', 'Live');
         document.querySelector('.tab[data-tab="playlists"]').textContent = getLang('Playlists', 'Playlisten');
         document.querySelector('.tab[data-tab="about"]').textContent = getLang('About', 'Kanalinfo');
         document.querySelector('.tab[data-tab="posts"]').textContent = document.body.classList.contains('classic-channel') ? getLang('Discussion', 'Diskussion') : getLang('Posts', 'Beiträge');
@@ -1670,7 +1718,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('homeOthersLabel').textContent = getLang('Uploads', 'Neueste Videos');
 
-    // Sort dropdown logic
+    // Sort dropdown logic for Videos tab
     const sortToggle = document.getElementById('sortToggle');
     const sortDropdownMenu = document.getElementById('sortDropdownMenu');
     const sortToggleLabel = document.getElementById('sortToggleLabel');
@@ -1708,7 +1756,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // View dropdown logic
+    // View dropdown logic for Videos tab
     const viewToggle = document.getElementById('viewToggle');
     const viewDropdownMenu = document.getElementById('viewDropdownMenu');
     const viewToggleLabel = document.getElementById('viewToggleLabel');
@@ -1768,6 +1816,100 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // ---------- Streams Tab sorting and view ----------
+    const streamsSortToggle = document.getElementById('streamsSortToggle');
+    const streamsSortDropdownMenu = document.getElementById('streamsSortDropdownMenu');
+    const streamsSortToggleLabel = document.getElementById('streamsSortToggleLabel');
+
+    streamsSortToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        streamsSortDropdownMenu.classList.toggle('open');
+        streamsSortToggle.classList.toggle('open');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.sort-dropdown')) {
+            streamsSortDropdownMenu.classList.remove('open');
+            streamsSortToggle.classList.remove('open');
+        }
+    });
+
+    document.querySelectorAll('#streamsSortDropdownMenu .sort-dropdown-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const sortValue = item.dataset.sort;
+            streamsSortMode = sortValue;
+            document.querySelectorAll('#streamsSortDropdownMenu .sort-dropdown-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            const updatedSortLabels = {
+                newest: getLang('Date added (newest)', 'Hinzugefügt am... (neueste zuerst)'),
+                popular: getLang('Most popular', 'Am beliebtesten'),
+                oldest: getLang('Date added (oldest)', 'Hinzugefügt am... (älteste zuerst)'),
+                longest: getLang('Longest', 'Längste')
+            };
+            streamsSortToggleLabel.textContent = updatedSortLabels[sortValue];
+            streamsSortDropdownMenu.classList.remove('open');
+            streamsSortToggle.classList.remove('open');
+            sortStreamsArray();
+            resetAndRenderStreams();
+        });
+    });
+
+    const streamsViewToggle = document.getElementById('streamsViewToggle');
+    const streamsViewDropdownMenu = document.getElementById('streamsViewDropdownMenu');
+    const streamsViewToggleLabel = document.getElementById('streamsViewToggleLabel');
+    let streamsViewMode = 'grid';
+
+    streamsViewToggleLabel.textContent = getLang(
+        streamsViewMode === 'grid' ? 'Grid' : 'List',
+        streamsViewMode === 'grid' ? 'Raster' : 'Liste'
+    );
+
+    document.querySelectorAll('#streamsViewDropdownMenu .view-dropdown-item').forEach(item => {
+        if (item.dataset.view === streamsViewMode) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+    });
+
+    if (streamsViewMode === 'list') {
+        streamsVideosContainer.classList.add('list-view');
+    }
+
+    streamsViewToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        streamsViewDropdownMenu.classList.toggle('open');
+        streamsViewToggle.classList.toggle('open');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.view-dropdown')) {
+            streamsViewDropdownMenu.classList.remove('open');
+            streamsViewToggle.classList.remove('open');
+        }
+    });
+
+    document.querySelectorAll('#streamsViewDropdownMenu .view-dropdown-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const viewValue = item.dataset.view;
+            streamsViewMode = viewValue;
+            document.querySelectorAll('#streamsViewDropdownMenu .view-dropdown-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            streamsViewToggleLabel.textContent = getLang(
+                viewValue === 'grid' ? 'Grid' : 'List',
+                viewValue === 'grid' ? 'Raster' : 'Liste'
+            );
+            streamsViewDropdownMenu.classList.remove('open');
+            streamsViewToggle.classList.remove('open');
+            if (viewValue === 'list') {
+                streamsVideosContainer.classList.add('list-view');
+            } else {
+                streamsVideosContainer.classList.remove('list-view');
+            }
+        });
+    });
+    // ---------- End streams sort/view ----------
 
     function switchTab(tabName) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1834,6 +1976,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case 'videos':
                 lazyLoadVideosTab();
+                break;
+            case 'streams':
+                lazyLoadStreamsTab();
                 break;
             case 'playlists':
                 loadPlaylists();
@@ -3018,6 +3163,298 @@ document.addEventListener('DOMContentLoaded', () => {
                 videosContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">Failed to load videos.</p>';
             });
     }
+
+    // ============================================================
+    // STREAMS (LIVE) TAB
+    // ============================================================
+    function lazyLoadStreamsTab() {
+        if (loadedTabs.has('streams')) return;
+        loadedTabs.add('streams');
+
+        showSkeletons(12, 'streamsVideosContainer', 'video');
+
+        fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`)
+            .then(r => r.ok ? r.json() : {})
+            .then(metaCache => {
+                // Filter videos that are in the "Live" subfolder (case-sensitive? we'll assume exact "Live")
+                const liveVideos = Object.keys(metaCache)
+                    .filter(path => path.includes('/Live/'))
+                    .map(path => {
+                        const meta = metaCache[path];
+                        return {
+                            path: path,
+                            type: meta.type || 'video',
+                            displayName: meta.displayName || path.split('/').pop(),
+                            fileDate: meta.fileDate || 'Unknown date',
+                            viewCount: meta.viewCount || '0',
+                            videoLength: meta.videoLength || ''
+                        };
+                    })
+                    .filter(v => v.videoLength !== ''); // exclude playlists or non-video
+
+                streamsVideos = liveVideos;
+                hideSkeletons();
+                streamsVideosContainer.innerHTML = '';
+
+                streamsHasMore = streamsVideos.length > 0;
+                streamsSortMode = 'newest';
+                sortStreamsArray();
+                loadMoreStreams();
+                setupStreamsIntersectionObserver();
+
+                window.addEventListener('scroll', () => { if (!streamsIntersectionObserver) checkAndLoadMoreStreams(); });
+                window.addEventListener('resize', () => { if (!streamsIntersectionObserver) checkAndLoadMoreStreams(); });
+            })
+            .catch(error => {
+                console.error("Error lazy-loading streams:", error);
+                hideSkeletons();
+                streamsVideosContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">Failed to load streams.</p>';
+            });
+    }
+
+    function sortStreamsArray() {
+        switch(streamsSortMode) {
+            case 'newest':
+                streamsVideos.sort((a, b) => {
+                    try {
+                        const dateA = parseEuropeanDate(a.fileDate).getTime();
+                        const dateB = parseEuropeanDate(b.fileDate).getTime();
+                        return dateB - dateA;
+                    } catch (e) {
+                        return 0;
+                    }
+                });
+                break;
+            case 'oldest':
+                streamsVideos.sort((a, b) => {
+                    try {
+                        const dateA = parseEuropeanDate(a.fileDate).getTime();
+                        const dateB = parseEuropeanDate(b.fileDate).getTime();
+                        return dateA - dateB;
+                    } catch (e) {
+                        return 0;
+                    }
+                });
+                break;
+            case 'popular':
+                streamsVideos.sort((a, b) => {
+                    const countA = parseInt(String(a.viewCount).replace(/,/g, '')) || 0;
+                    const countB = parseInt(String(b.viewCount).replace(/,/g, '')) || 0;
+                    return countB - countA;
+                });
+                break;
+            case 'longest':
+                streamsVideos.sort((a, b) => {
+                    const parseDuration = (str) => {
+                        if (!str) return 0;
+                        const parts = str.split(':').map(Number);
+                        if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+                        if (parts.length === 2) return parts[0] * 60 + parts[1];
+                        return parts[0] || 0;
+                    };
+                    const lenA = parseDuration(a.videoLength);
+                    const lenB = parseDuration(b.videoLength);
+                    return lenB - lenA;
+                });
+                break;
+        }
+    }
+
+    function resetAndRenderStreams() {
+        streamsRenderedCount = 0;
+        streamsVideosContainer.innerHTML = '';
+        streamsHasMore = streamsVideos.length > 0;
+        streamsLoadingSpinner.classList.remove('visible');
+        streamsNoMoreVideos.style.display = 'none';
+        loadMoreStreams();
+    }
+
+    function createStreamVideoElement(video) {
+        // Reuse the same video element creation logic
+        const videoElement = document.createElement('div');
+        videoElement.className = 'video-item';
+        const videoTitle = video.displayName;
+        const videoPathWithoutExt = stripExtension(video.path);
+        const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
+
+        let descText = '';
+        let formattedViewCount = video.viewCount || '0';
+        if (!isNaN(formattedViewCount) && formattedViewCount !== '0') {
+            formattedViewCount = parseInt(formattedViewCount).toLocaleString();
+        }
+        if (localStorage.getItem('language') === 'de') {
+            formattedViewCount = formattedViewCount.replace(/,/g, '.');
+        }
+        
+        const viewsText = getLang('views', 'Aufrufe');
+        const uploadedText = getLang('Uploaded on', 'Hochgeladen am');
+        
+        if (video.fileDate && video.fileDate !== 'Unknown date') {
+            descText = `${formattedViewCount} ${viewsText} • ${uploadedText} ${video.fileDate}`;
+        } else {
+            descText = `${formattedViewCount} ${viewsText} • ${getLang('Loading date...', 'Lade Datum...')}`;
+        }
+
+        const videoLength = video.videoLength || '';
+
+        videoElement.innerHTML = `
+            <div class="thumbnail-container">
+                <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
+                <div class="video-length">${videoLength}</div>
+            </div>
+            <div class="video-title" onclick="openVideo('${encodeURIComponent(video.path)}')">${videoTitle}</div>
+            <div class="video-description">${descText}</div>
+        `;
+
+        const videoLink = videoElement.querySelector('.video-title');
+        const videoThumb = videoElement.querySelector('.video-thumbnail');
+        const descriptionDiv = videoElement.querySelector('.video-description');
+
+        if (!video.fileDate || video.fileDate === 'Unknown date') {
+            fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
+                .then(r => r.ok ? r.text() : 'Unknown date')
+                .then(fetchedDate => {
+                    const trimmedDate = fetchedDate.trim();
+                    if (trimmedDate && trimmedDate !== 'Unknown date') {
+                        descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${trimmedDate}`;
+                        video.fileDate = trimmedDate;
+                    } else {
+                        descriptionDiv.textContent = `${formattedViewCount} ${viewsText}`;
+                    }
+                })
+                .catch(() => {
+                    descriptionDiv.textContent = `${formattedViewCount} ${viewsText}`;
+                });
+        }
+
+        videoThumb.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
+        videoThumb.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+        });
+        videoLink.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+        });
+
+        const openInNewTabHandler = (event) => {
+            if (event.button === 1) {
+                event.preventDefault();
+                window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+            }
+        };
+
+        videoThumb.addEventListener('mouseup', openInNewTabHandler);
+        videoLink.addEventListener('mouseup', openInNewTabHandler);
+        videoThumb.addEventListener('auxclick', openInNewTabHandler);
+        videoLink.addEventListener('auxclick', openInNewTabHandler);
+
+        return videoElement;
+    }
+
+    function loadMoreStreams() {
+        if (streamsIsLoadingMore || !streamsHasMore) return;
+
+        const startIndex = streamsRenderedCount;
+        const endIndex = Math.min(startIndex + VIDEOS_PER_PAGE, streamsVideos.length);
+
+        if (startIndex >= streamsVideos.length) {
+            streamsHasMore = false;
+            streamsLoadingSpinner.classList.remove('visible');
+            streamsNoMoreVideos.style.display = 'block';
+            return;
+        }
+
+        streamsIsLoadingMore = true;
+        streamsLoadingSpinner.classList.add('visible');
+        streamsNoMoreVideos.style.display = 'none';
+
+        requestAnimationFrame(() => {
+            const fragment = document.createDocumentFragment();
+
+            for (let i = startIndex; i < endIndex; i++) {
+                const video = streamsVideos[i];
+                const videoElement = createStreamVideoElement(video);
+                fragment.appendChild(videoElement);
+            }
+
+            streamsVideosContainer.appendChild(fragment);
+            streamsRenderedCount = endIndex;
+            streamsIsLoadingMore = false;
+
+            if (streamsRenderedCount >= streamsVideos.length) {
+                streamsHasMore = false;
+                streamsLoadingSpinner.classList.remove('visible');
+                streamsNoMoreVideos.style.display = 'block';
+            } else {
+                streamsLoadingSpinner.classList.remove('visible');
+            }
+        });
+    }
+
+    function checkAndLoadMoreStreams() {
+        if (!streamsHasMore || streamsIsLoadingMore) return;
+        const trigger = streamsLoadMoreTrigger;
+        if (!trigger) return;
+        const rect = trigger.getBoundingClientRect();
+        const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+        if (rect.top <= windowHeight + 300) {
+            loadMoreStreams();
+        }
+    }
+
+    function setupStreamsIntersectionObserver() {
+        if (window.IntersectionObserver) {
+            streamsIntersectionObserver = new IntersectionObserver(
+                (entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting && streamsHasMore && !streamsIsLoadingMore) {
+                            loadMoreStreams();
+                        }
+                    });
+                },
+                { root: null, rootMargin: '300px', threshold: 0 }
+            );
+            if (streamsLoadMoreTrigger) {
+                streamsIntersectionObserver.observe(streamsLoadMoreTrigger);
+            }
+        }
+    }
+
+    // ============================================================
+    // DETECT LIVE FOLDER EXISTENCE AND SHOW/HIDE TAB
+    // ============================================================
+    function detectLiveFolder() {
+        const liveTab = document.querySelector('.tab[data-tab="streams"]');
+        if (!liveTab) return;
+
+        fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`)
+            .then(r => r.ok ? r.json() : {})
+            .then(metaCache => {
+                const hasLive = Object.keys(metaCache).some(path => path.includes('/Live/'));
+                if (hasLive) {
+                    liveTab.style.display = ''; // show
+                    // If initial tab is streams, ensure it's active (already handled)
+                } else {
+                    liveTab.style.display = 'none';
+                    // If current tab is streams but no live videos, fallback to home
+                    if (initialTab === 'streams') {
+                        switchTab('home');
+                    }
+                }
+            })
+            .catch(() => {
+                // On error, hide tab to be safe
+                liveTab.style.display = 'none';
+            });
+    }
+
+    // Call after page load
+    detectLiveFolder();
+
+    // ============================================================
+    // END STREAMS TAB
+    // ============================================================
 
     function updateHeaderStats(subs, vids) {
         let text = channel;
