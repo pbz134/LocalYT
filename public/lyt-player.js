@@ -263,30 +263,30 @@
         
             const controlsHtml = `
                 <style>
-/* Hide center play button by default (non-touch devices) */
-.lyt_center_play_btn {
-    display: none;
-}
+                /* Hide center play button by default (non-touch devices) */
+                .lyt_center_play_btn {
+                    display: none;
+                }
 
-/* Show only on touch devices when controls are visible */
-.touch-device .lyt_center_play_btn {
-    display: none; /* still hidden initially */
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 11;
-    cursor: pointer;
-    opacity: 0;
-    transition: none;
-    pointer-events: none;
-}
+                /* Show only on touch devices when controls are visible */
+                .touch-device .lyt_center_play_btn {
+                    display: none; /* still hidden initially */
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    z-index: 11;
+                    cursor: pointer;
+                    opacity: 0;
+                    transition: none;
+                    pointer-events: none;
+                }
 
-.touch-device .fluid_video_wrapper.lyt_active .lyt_center_play_btn {
-    display: block; /* show when active and on touch */
-    opacity: 1;
-    pointer-events: auto;
-}
+                .touch-device .fluid_video_wrapper.lyt_active .lyt_center_play_btn {
+                    display: block; /* show when active and on touch */
+                    opacity: 1;
+                    pointer-events: auto;
+                }
                     /* HD Badge */
                     .lyt_btn_settings {
                         position: relative;
