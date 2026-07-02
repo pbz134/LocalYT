@@ -954,6 +954,117 @@
                     .lyt_menu_content {
                         padding: 4px 0;
                     }
+                    
+                    /* ===== EQUALIZER MENU STYLES ===== */
+                    .lyt_equalizer_menu {
+                        min-width: 220px;
+                    }
+                    .lyt_equalizer_menu .lyt_eq_band {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 4px 12px;
+                    }
+                    .lyt_equalizer_menu .lyt_eq_band label {
+                        flex: 0 0 90px;
+                        font-size: calc(12px * var(--lyt-ui-scale));
+                        color: #ddd;
+                    }
+                    .lyt_equalizer_menu .lyt_eq_band input[type="range"] {
+                        flex: 1;
+                        height: 4px;
+                        -webkit-appearance: none;
+                        appearance: none;
+                        background: rgba(255,255,255,0.2);
+                        border-radius: 2px;
+                        outline: none;
+                        transition: background 0.2s;
+                    }
+                    /* Slider track (WebKit) */
+                    .lyt_equalizer_menu .lyt_eq_band input[type="range"]::-webkit-slider-runnable-track {
+                        height: 4px;
+                        background: rgba(255,255,255,0.2);
+                        border-radius: 2px;
+                    }
+                    .lyt_equalizer_menu .lyt_eq_band input[type="range"]::-webkit-slider-thumb {
+                        -webkit-appearance: none;
+                        appearance: none;
+                        width: 14px;
+                        height: 14px;
+                        background: red;
+                        border-radius: 50%;
+                        margin-top: -5px;
+                        box-shadow: 0 0 8px rgba(255,0,0,0.4);
+                        cursor: pointer;
+                        transition: transform 0.15s;
+                    }
+                    .lyt_equalizer_menu .lyt_eq_band input[type="range"]::-webkit-slider-thumb:hover {
+                        transform: scale(1.15);
+                    }
+                    /* Slider track (Firefox) */
+                    .lyt_equalizer_menu .lyt_eq_band input[type="range"]::-moz-range-track {
+                        height: 4px;
+                        background: rgba(255,255,255,0.2);
+                        border-radius: 2px;
+                        border: none;
+                    }
+                    .lyt_equalizer_menu .lyt_eq_band input[type="range"]::-moz-range-thumb {
+                        width: 14px;
+                        height: 14px;
+                        background: red;
+                        border: none;
+                        border-radius: 50%;
+                        box-shadow: 0 0 8px rgba(255,0,0,0.4);
+                        cursor: pointer;
+                    }
+                    .lyt_equalizer_menu .lyt_eq_value {
+                        flex: 0 0 100px;
+                        width: 100px;
+                        min-width: 100px;
+                        text-align: right;
+                        font-family: 'Courier New', monospace;
+                        font-size: calc(12px * var(--lyt-ui-scale));
+                        color: #eee;
+
+                        white-space: nowrap;
+                    }
+                    .lyt_equalizer_menu .lyt_eq_compression {
+                        justify-content: space-between;
+                    }
+                    .lyt_equalizer_menu .lyt_eq_compression input[type="checkbox"] {
+                        accent-color: red;
+                        width: 18px;
+                        height: 18px;
+                        cursor: pointer;
+                    }
+                    .lyt_eq_reset {
+                        text-align: center;
+                        padding: 8px 0;
+                    }
+                    .lyt_eq_reset_btn {
+                        background: rgba(255,255,255,0.1);
+                        border: 1px solid rgba(255,255,255,0.2);
+                        color: #eee;
+                        padding: 4px 16px;
+                        border-radius: 3px;
+                        cursor: pointer;
+                        font-size: calc(12px * var(--lyt-ui-scale));
+                        transition: background 0.15s;
+                    }
+                    .lyt_eq_reset_btn:hover {
+                        background: rgba(255,255,255,0.2);
+                    }
+                    /* Disabled state (non-ASMR) */
+                    .lyt_opt_equalizer.lyt_disabled {
+                        opacity: 0.5;
+                        pointer-events: none;
+                    }
+                    .lyt_eq_disabled_msg {
+                        color: #888;
+                        padding: 10px 16px;
+                        font-size: 13px;
+                        text-align: center;
+                    }
 
                     .lyt_menu_option {
                         display: block;
@@ -1557,20 +1668,18 @@
             const mainMenu = this.dom.mainMenuContent;
             const speedOption = mainMenu.querySelector('.lyt_opt_speed');
             if (!speedOption) return;
-
+        
             const eqOption = document.createElement('div');
             eqOption.className = 'lyt_menu_option lyt_opt_equalizer';
             eqOption.dataset.submenu = 'equalizer';
             eqOption.textContent = 'Equalizer';
-
+        
             if (!this._asmr) {
                 eqOption.classList.add('lyt_disabled');
-                eqOption.style.opacity = '0.5';
-                eqOption.style.pointerEvents = 'none';
             }
-
+        
             mainMenu.insertBefore(eqOption, speedOption);
-
+        
             // Build Equalizer submenu
             const eqSubmenu = document.createElement('div');
             eqSubmenu.className = 'lyt_popup_submenu lyt_equalizer_menu';
@@ -1607,14 +1716,14 @@
                     </div>
                 </div>
             `;
-
+        
             // Insert after quality submenu
             const qualityMenu = this.dom.qualityMenu;
             qualityMenu.parentNode.insertBefore(eqSubmenu, qualityMenu.nextSibling);
-
+        
             this.dom.equalizerMenu = eqSubmenu;
             this.dom.equalizerOption = eqOption;
-
+        
             // If not ASMR, disable all controls in submenu
             if (!this._asmr) {
                 eqSubmenu.querySelectorAll('input, button').forEach(el => {
@@ -1625,16 +1734,13 @@
                 // Add a message
                 const msg = document.createElement('div');
                 msg.className = 'lyt_eq_disabled_msg';
-                msg.style.color = '#888';
-                msg.style.padding = '10px 16px';
-                msg.style.fontSize = '13px';
                 msg.textContent = 'Equalizer only available for ASMR videos.';
                 eqSubmenu.querySelector('.lyt_equalizer_content').prepend(msg);
             }
-
+        
             // Bind events for equalizer (sliders, checkbox, reset)
             this._bindEqualizerEvents();
-
+        
             // Update UI with current settings (if any)
             this._updateEqualizerUI();
         }
