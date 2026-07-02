@@ -927,11 +927,11 @@
                         min-width: 0;
                         flex: 0 1 auto;
                     }
-.lyt_chapter_title:not(:empty)::before {
-    content: '•';
-    margin-right: 6px;
-    opacity: 0.5;
-}
+                    .lyt_chapter_title:not(:empty)::before {
+                        content: '•';
+                        margin-right: 6px;
+                        opacity: 0.5;
+                    }
                     
                     /* Popup menus */
                     .lyt_popup_menu {
