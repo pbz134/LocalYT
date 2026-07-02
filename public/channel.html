@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Channel Videos</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="skeleton.css">
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
     <script>
     (function detectTouchDevice() {
@@ -53,22 +54,21 @@
     <style>
         /* Channel page background wrapper styling */
         .channel-top-section {
-            background-color: #1e1e1e; /* Slightly brighter grey for dark mode */
+            background-color: #1e1e1e;
             width: 100%;
             max-width: 1170px;
             margin: 0 auto;
         }
 
         .channel-content-section {
-            background-color: #1e1e1e; /* Same slightly brighter grey */
+            background-color: #1e1e1e;
             width: 100%;
             max-width: 1170px;
-            margin: 8px auto 0 auto; /* Small gap at top */
+            margin: 8px auto 0 auto;
             padding-bottom: 20px;
             min-height: 400px;
         }
 
-        /* Adjust existing elements to remove their own backgrounds/margins that might conflict */
         .channel-banner {
             width: 100%;
             max-width: 1170px;
@@ -78,18 +78,7 @@
             background-position: center;
             background-repeat: no-repeat;
             margin: 80px auto 0 auto;
-            /* Remove any default background if it was set */
             background-color: transparent;
-        }
-        .channel-banner {
-            width: 100%;
-            max-width: 1170px;
-            height: auto;
-            aspect-ratio: 1400 / 230;
-            background-size: contain;
-            background-position: center;
-            background-repeat: no-repeat;
-            margin: 80px auto 0 auto;
         }
         .channel-header {
             display: flex;
@@ -240,9 +229,9 @@
             display: flex;
             justify-content: flex-end;
             margin: 0 20px 0 0;
-            margin-bottom: -50px; 
-            position: relative; 
-            z-index: 10; 
+            margin-bottom: -50px;
+            position: relative;
+            z-index: 10;
         }
         .sort-dropdown {
             position: relative;
@@ -301,20 +290,8 @@
         .sort-dropdown-item:hover {
             background-color: var(--hover-bg-color, #555);
         }
-        .sort-dropdown-item:hover {
-            background-color: #555;
-        }
         .sort-dropdown-item.active {
             color: #fff;
-        }
-        .sort-options {
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-            margin: 0 20px 0 0;
-            margin-bottom: -50px; 
-            position: relative; 
-            z-index: 10; 
         }
         .view-dropdown {
             position: relative;
@@ -373,9 +350,6 @@
         .view-dropdown-item:hover {
             background-color: var(--hover-bg-color, #555);
         }
-        .view-dropdown-item:hover {
-            background-color: #555;
-        }
         .view-dropdown-item.active {
             color: #fff;
         }
@@ -396,7 +370,6 @@
             max-width: 800px;
             margin: 8px auto;
             gap: 0 16px;
-
         }
         .channel-videos.list-view .thumbnail-container {
             grid-row: 1 / 3;
@@ -532,11 +505,10 @@
         
         body.classic-channel .post-item {
             border: none !important;
-            max-width: 100%; /* Full width for longer text lines */
+            max-width: 100%;
             width: auto;
             border: none !important;
         }
-
 
         .video-title {
             font-weight: bold;
@@ -552,7 +524,7 @@
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
-            text-align: left; /* Forces left alignment back */
+            text-align: left;
         }
         .playlist-title {
             padding: 5px;
@@ -578,7 +550,6 @@
             padding: 0 10px;
             margin-top: -4px;
             color: #888;
-            font-size: 14px;
             font-size: 14px;
         }
         .thumbnail-container {
@@ -701,7 +672,7 @@
         .share-button img {
             width: 16px;
             height: 16px;
-            filter: invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%)
+            filter: invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%);
         }
         .tab-loading-placeholder {
             text-align: center;
@@ -817,8 +788,7 @@
             display: flex;
             flex-direction: row;
             align-items: stretch;
-            /* Each playlist takes up exactly 50% of the row (-20px for margins), forcing 2 per row */
-            flex: 0 0 calc(50% - 20px); 
+            flex: 0 0 calc(50% - 20px);
             max-width: calc(50% - 20px);
         }
         .home-row-wrapper .video-item {
@@ -827,7 +797,6 @@
             max-width: 260px;
             box-sizing: content-box;
         }
-
         .home-row-wrapper .video-item .video-thumbnail {
             width: 100%;
         }
@@ -934,7 +903,6 @@
             line-height: 1.3;
             cursor: pointer;
         }
-
         .home-video-meta {
             color: #888;
             font-size: 14px;
@@ -945,7 +913,6 @@
             flex: 1;
             min-height: 100px;
             overflow-y: hidden;
-
             position: relative;
         }
         .home-video-description-text {
@@ -995,15 +962,6 @@
             margin-top: 10px;
             padding-bottom: 10px;
             border-bottom: 1px solid #3f3f3f;
-        }
-        .home-others-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0;
-            max-width: 1170px;
-            margin: 0 auto;
-            padding: 0 20px;
-            box-sizing: border-box;
         }
         .home-others-grid .video-item {
             width: 280px;
@@ -1058,7 +1016,6 @@
             gap: 10px;
             flex-wrap: wrap;
         }
-
         .post-content-text {
             color: #e3e3e3;
             font-size: 14px;
@@ -1196,6 +1153,72 @@
 .channel-videos.list-view .video-thumbnail {
     height: auto;
 }
+
+/* ==============================================
+   HOME TAB SKELETON STYLES
+   ============================================== */
+.skeleton-miniplayer-wrapper {
+    display: flex;
+    gap: 24px;
+    width: 100%;
+}
+.skeleton-miniplayer-thumb {
+    flex: 0 0 480px;
+    max-width: 480px;
+    aspect-ratio: 16 / 9;
+    background: #1a1a1a;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0;
+}
+.skeleton-miniplayer-thumb .skeleton-play-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.skeleton-miniplayer-thumb .skeleton-play-icon::after {
+    content: '';
+    display: block;
+    width: 0;
+    height: 0;
+    border-left: 20px solid rgba(255, 255, 255, 0.4);
+    border-top: 12px solid transparent;
+    border-bottom: 12px solid transparent;
+    margin-left: 4px;
+}
+.skeleton-miniplayer-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.skeleton-miniplayer-info .skeleton-title {
+    width: 70%;
+    height: 20px;
+}
+.skeleton-miniplayer-info .skeleton-meta {
+    width: 40%;
+    height: 14px;
+}
+.skeleton-miniplayer-info .skeleton-desc {
+    width: 90%;
+    height: 12px;
+}
+.skeleton-miniplayer-info .skeleton-desc:last-child {
+    width: 60%;
+}
+.skeleton-miniplayer-info .skeleton-desc-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 6px;
+}
     </style>
 </head>
 <body>
@@ -1240,9 +1263,7 @@
     <div class="channel-content-section">
         <!-- Posts Tab -->
         <div id="postsTab" class="tab-content">
-            <div class="posts-container" id="postsContainer">
-                <div class="tab-loading-placeholder" id="postsLoadingText">Loading posts...</div>
-            </div>
+            <div class="posts-container" id="postsContainer"></div>
         </div>
 
         <!-- Home Tab -->
@@ -1250,7 +1271,7 @@
             <div class="home-preview-section">
                 <div class="home-preview-row" id="homePreviewRow">
                     <div class="home-player-wrapper" id="homePlayerWrapper">
-                        <div class="home-player-placeholder" id="homePlayerPlaceholder">Loading...</div>
+                        <div class="home-player-placeholder" id="homePlayerPlaceholder"></div>
                     </div>
                     <div class="home-info-panel">
                         <div class="home-video-title" id="homeVideoTitle"></div>
@@ -1263,9 +1284,7 @@
                 </div>
             </div>
             <div class="home-others-label" id="homeOthersLabel"></div>
-            <div class="home-others-grid" id="homeOthersGrid">
-                <div class="tab-loading-placeholder" id="homeLoadingText">Loading videos...</div>
-            </div>
+            <div class="home-others-grid" id="homeOthersGrid"></div>
         </div>
 
         <!-- Videos Tab -->
@@ -1304,9 +1323,7 @@
 
         <!-- Playlists Tab -->
         <div id="playlistsTab" class="tab-content">
-            <div class="playlists-container" id="playlistsContainer">
-                <div class="tab-loading-placeholder" id="playlistsLoadingText">Loading playlists</div>
-            </div>
+            <div class="playlists-container" id="playlistsContainer"></div>
         </div>
 
         <!-- About Tab -->
@@ -1314,9 +1331,7 @@
             <div class="about-container">
                 <div class="about-description">
                     <h3 id="aboutDescriptionHeader">Description</h3>
-                    <div id="channelDescription" class="description-text">
-                        <div class="tab-loading-placeholder">Loading</div>
-                    </div>
+                    <div id="channelDescription" class="description-text"></div>
                 </div>
                 <div class="about-stats">
                     <h3 id="aboutStatsHeader">Stats</h3>
@@ -1352,8 +1367,11 @@
     </div>
 
     <script>
+// ======================================================================
+// MIDDLE-CLICK HANDLER
+// ======================================================================
 document.addEventListener('mousedown', function(e) {
-    if (e.button === 1) { // Middle Mouse Button
+    if (e.button === 1) {
         const target = e.target.closest(
             'a, ' + 
             '.video-item, ' + 
@@ -1374,17 +1392,16 @@ document.addEventListener('mousedown', function(e) {
         
         if (target) {
             e.preventDefault();
-            
-            // If it's a real anchor tag with an href, manually open it
             if (target.tagName === 'A' && target.href) {
                 window.open(target.href, '_blank');
             }
-            // For custom elements (divs/spans), their existing 'mouseup' or 'auxclick' 
-            // listeners will handle opening the new tab.
         }
     }
-}, true); // Use Capture phase
+}, true);
 
+// ======================================================================
+// CONSTANTS & HELPERS
+// ======================================================================
 const VIDEOS_PER_PAGE = 20;
 
 function getLang(en, de) {
@@ -1416,13 +1433,104 @@ function buildChannelUrl(channel, tab) {
 
 const { channel, tab: initialTab } = parseChannelUrl();
 
+// ======================================================================
+// SKELETON GENERATORS FOR HOME TAB
+// ======================================================================
+function showHomeSkeletons() {
+    // Mini player skeleton
+    const homePreviewRow = document.getElementById('homePreviewRow');
+    if (homePreviewRow) {
+        homePreviewRow.innerHTML = `
+            <div class="skeleton-miniplayer-wrapper">
+                <div class="skeleton-miniplayer-thumb">
+                    <div class="skeleton-play-icon"></div>
+                </div>
+                <div class="skeleton-miniplayer-info">
+                    <div class="skeleton-title"></div>
+                    <div class="skeleton-meta"></div>
+                    <div class="skeleton-desc-block">
+                        <div class="skeleton-desc"></div>
+                        <div class="skeleton-desc"></div>
+                        <div class="skeleton-desc"></div>
+                        <div class="skeleton-desc" style="width: 70%;"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Others grid skeletons – mimic actual rows with videos and playlists
+    const homeOthersGrid = document.getElementById('homeOthersGrid');
+    if (homeOthersGrid) {
+        homeOthersGrid.innerHTML = '';
+        // Row 1: 5 video skeletons
+        const row1 = document.createElement('div');
+        row1.className = 'home-row-wrapper';
+        for (let i = 0; i < 5; i++) {
+            const item = document.createElement('div');
+            item.className = 'video-item skeleton-item';
+            item.innerHTML = `
+                <div class="thumbnail-container">
+                    <div class="skeleton-thumbnail"></div>
+                    <div class="video-length"></div>
+                </div>
+                <div class="video-title skeleton-title" style="width: 80%; margin: 8px 0 4px 0;"></div>
+                <div class="video-description skeleton-metadata" style="width: 60%;"></div>
+            `;
+            row1.appendChild(item);
+        }
+        homeOthersGrid.appendChild(row1);
+
+        // Row 2: 2 playlist skeletons
+        const row2 = document.createElement('div');
+        row2.className = 'home-row-wrapper';
+        for (let i = 0; i < 2; i++) {
+            const item = document.createElement('div');
+            item.className = 'playlist-item skeleton-item';
+            item.innerHTML = `
+                <div class="playlist-thumbnail" style="background-color: #2a2a2a; width: 100%; height: 168px;"></div>
+                <div class="playlist-info-side" style="padding: 10px;">
+                    <div class="playlist-title skeleton-title" style="width: 70%;"></div>
+                    <div class="playlist-channel-name skeleton-metadata" style="width: 50%; margin-top: 6px;"></div>
+                </div>
+            `;
+            row2.appendChild(item);
+        }
+        homeOthersGrid.appendChild(row2);
+
+        // Row 3: 5 video skeletons
+        const row3 = document.createElement('div');
+        row3.className = 'home-row-wrapper';
+        for (let i = 0; i < 5; i++) {
+            const item = document.createElement('div');
+            item.className = 'video-item skeleton-item';
+            item.innerHTML = `
+                <div class="thumbnail-container">
+                    <div class="skeleton-thumbnail"></div>
+                    <div class="video-length"></div>
+                </div>
+                <div class="video-title skeleton-title" style="width: 80%; margin: 8px 0 4px 0;"></div>
+                <div class="video-description skeleton-metadata" style="width: 60%;"></div>
+            `;
+            row3.appendChild(item);
+        }
+        homeOthersGrid.appendChild(row3);
+
+        // Add pulse animation to all skeleton elements inside the grid
+        homeOthersGrid.querySelectorAll('.skeleton-thumbnail, .skeleton-title, .skeleton-metadata, .playlist-thumbnail, .playlist-title, .playlist-channel-name')
+            .forEach(el => el.style.animation = 'pulse 1.5s infinite');
+    }
+}
+
+// ======================================================================
+// DOM CONTENT LOADED
+// ======================================================================
 document.addEventListener('DOMContentLoaded', () => {
     // Apply legacy channel page style if preferred
     const channelPageStylePref = JSON.parse(localStorage.getItem('channelPageStyle') || '{}');
     if (channelPageStylePref.style === 'legacy') {
         document.body.classList.add('legacy-channel');
         document.body.classList.add('classic-channel');
-        // Move the profile pic into the banner so absolute positioning works cleanly
         const channelPic = document.getElementById('channelPic');
         const channelBanner = document.getElementById('channelBanner');
         if (channelPic && channelBanner) {
@@ -1434,31 +1542,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const mainLogo = document.getElementById('mainLogo');
-
     if (mainLogo) {
         mainLogo.addEventListener('click', (event) => {
             if (event.button === 0) {
                 window.location.href = 'index.html';
             }
         });
-
         mainLogo.addEventListener('mouseup', (event) => {
             if (event.button === 1) {
                 event.preventDefault();
                 window.open('index.html', '_blank');
             }
         });
-
         mainLogo.addEventListener('contextmenu', (event) => {
             event.preventDefault();
             window.open('index.html', '_blank');
         });
-
         mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
         mainLogo.style.cursor = 'pointer';
     }
 });
 
+// ======================================================================
+// MAIN LOGIC
+// ======================================================================
 document.addEventListener('DOMContentLoaded', () => {
     const videosContainer = document.getElementById('channelVideosContainer');
     const playlistsContainer = document.getElementById('playlistsContainer');
@@ -1472,7 +1579,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const subscribeButton = document.getElementById('subscribeButton');
 
     let currentVideos = [];
-    let currentSortMode = 'newest'; // 'newest', 'popular', or 'oldest'
+    let currentSortMode = 'newest';
     let renderedVideoCount = 0;
     let isLoadingMore = false;
     let hasMoreVideos = true;
@@ -1480,16 +1587,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isSubscribed = false;
 
     let homeFluidPlayerInstance = null;
-
     const loadedTabs = new Set();
-
-    // Sort dropdown labels map
-    const sortLabels = {
-        newest: getLang('Date added (newest)', 'Hinzugefügt am... (neueste zuerst)'),
-        popular: getLang('Most popular', 'Am beliebtesten'),
-        oldest: getLang('Date added (oldest)', 'Hinzugefügt am... (älteste zuerst)'),
-        longest: getLang('Longest', 'Längste')
-    };
 
     fetch(`/channelbanner/${encodeURIComponent(channel)}.jpg`, { method: 'HEAD' })
         .then(response => {
@@ -1520,7 +1618,6 @@ document.addEventListener('DOMContentLoaded', () => {
     subscribeButton.addEventListener('click', () => {
         isSubscribed = !isSubscribed;
         updateSubscribeButton();
-
         fetch('/subscribe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1544,9 +1641,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('.tab[data-tab="videos"]').textContent = getLang('Videos', 'Videos');
         document.querySelector('.tab[data-tab="playlists"]').textContent = getLang('Playlists', 'Playlisten');
         document.querySelector('.tab[data-tab="about"]').textContent = getLang('About', 'Kanalinfo');
-         document.querySelector('.tab[data-tab="posts"]').textContent = document.body.classList.contains('classic-channel') ? getLang('Discussion', 'Diskussion') : getLang('Posts', 'Beiträge');
+        document.querySelector('.tab[data-tab="posts"]').textContent = document.body.classList.contains('classic-channel') ? getLang('Discussion', 'Diskussion') : getLang('Posts', 'Beiträge');
 
-        // Update sort dropdown labels
         const updatedSortLabels = {
             newest: getLang('Date added (newest)', 'Hinzugefügt am... (neueste zuerst)'),
             popular: getLang('Most popular', 'Am beliebtesten'),
@@ -1572,10 +1668,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     updateUITranslations();
 
-    document.getElementById('playlistsLoadingText').textContent = getLang('Loading playlists', 'Lade Playlisten...');
-    document.getElementById('homeLoadingText').textContent = getLang('Loading videos...', 'Lade Videos...');
     document.getElementById('homeOthersLabel').textContent = getLang('Uploads', 'Neueste Videos');
-    document.getElementById('postsLoadingText').textContent = getLang('Loading posts...', 'Lade Beiträge...');
 
     // Sort dropdown logic
     const sortToggle = document.getElementById('sortToggle');
@@ -1584,7 +1677,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     sortToggle.addEventListener('click', (e) => {
         e.stopPropagation();
-        const isOpen = sortDropdownMenu.classList.contains('open');
         sortDropdownMenu.classList.toggle('open');
         sortToggle.classList.toggle('open');
     });
@@ -1600,12 +1692,8 @@ document.addEventListener('DOMContentLoaded', () => {
         item.addEventListener('click', () => {
             const sortValue = item.dataset.sort;
             currentSortMode = sortValue;
-
-            // Update active state in dropdown
             document.querySelectorAll('.sort-dropdown-item').forEach(i => i.classList.remove('active'));
             item.classList.add('active');
-
-            // Update toggle label
             const updatedSortLabels = {
                 newest: getLang('Date added (newest)', 'Hinzugefügt am... (neueste zuerst)'),
                 popular: getLang('Most popular', 'Am beliebtesten'),
@@ -1613,12 +1701,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 longest: getLang('Longest', 'Längste')
             };
             sortToggleLabel.textContent = updatedSortLabels[sortValue];
-
-            // Close dropdown
             sortDropdownMenu.classList.remove('open');
             sortToggle.classList.remove('open');
-
-            // Re-sort and re-render
             sortVideosArray();
             resetAndRender();
         });
@@ -1630,13 +1714,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewToggleLabel = document.getElementById('viewToggleLabel');
     let currentViewMode = 'grid';
 
-    // Apply user's default channel view preference
     const channelDefaultViewPref = JSON.parse(localStorage.getItem('channelDefaultView') || '{}');
     if (channelDefaultViewPref.view) {
         currentViewMode = channelDefaultViewPref.view;
     }
 
-    // Update the view toggle label and active state to match the preference
     viewToggleLabel.textContent = getLang(
         currentViewMode === 'grid' ? 'Grid' : 'List',
         currentViewMode === 'grid' ? 'Raster' : 'Liste'
@@ -1650,7 +1732,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Apply the view class immediately if the preference is list
     if (currentViewMode === 'list') {
         videosContainer.classList.add('list-view');
     }
@@ -1672,22 +1753,14 @@ document.addEventListener('DOMContentLoaded', () => {
         item.addEventListener('click', () => {
             const viewValue = item.dataset.view;
             currentViewMode = viewValue;
-
-            // Update active state in dropdown
             document.querySelectorAll('.view-dropdown-item').forEach(i => i.classList.remove('active'));
             item.classList.add('active');
-
-            // Update toggle label
             viewToggleLabel.textContent = getLang(
                 viewValue === 'grid' ? 'Grid' : 'List',
                 viewValue === 'grid' ? 'Raster' : 'Liste'
             );
-
-            // Close dropdown
             viewDropdownMenu.classList.remove('open');
             viewToggle.classList.remove('open');
-
-            // Toggle view class on container
             if (viewValue === 'list') {
                 videosContainer.classList.add('list-view');
             } else {
@@ -1742,7 +1815,6 @@ document.addEventListener('DOMContentLoaded', () => {
             loadTabContent(tabName);
         }
 
-        // Restore channel search state if navigating back to the search tab
         if (tabName === 'search') {
             const searchBar = document.querySelector('.tab-search-bar');
             if (!searchBar.classList.contains('active')) {
@@ -1750,7 +1822,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (query) {
                 channelSearchInput.value = query;
-                // Re-trigger search automatically
                 executeChannelSearch(query);
             }
         }
@@ -1779,13 +1850,35 @@ document.addEventListener('DOMContentLoaded', () => {
         loadedTabs.add(tabName);
     }
 
+    // ============================================================
+    // HOME TAB LOADING WITH DETAILED SKELETONS
+    // ============================================================
     function loadHomeTab() {
+        // Show detailed skeletons immediately
+        showHomeSkeletons();
+
         fetch(`/channel-home-previews/${encodeURIComponent(channel)}.json`)
             .then(response => {
                 if (!response.ok) throw new Error('No preview file');
                 return response.json();
             })
             .then(previews => {
+                // Remove skeletons and render real content
+                const homePreviewRow = document.getElementById('homePreviewRow');
+                homePreviewRow.innerHTML = `
+                    <div class="home-player-wrapper" id="homePlayerWrapper">
+                        <div class="home-player-placeholder" id="homePlayerPlaceholder"></div>
+                    </div>
+                    <div class="home-info-panel">
+                        <div class="home-video-title" id="homeVideoTitle"></div>
+                        <div class="home-video-meta" id="homeVideoMeta"></div>
+                        <div class="home-video-description-box">
+                            <div class="home-video-description-text" id="homeVideoDescription"></div>
+                            <a class="home-video-description-read-more" id="homeVideoDescriptionReadMore" href="#">Mehr anzeigen</a>
+                        </div>
+                    </div>
+                `;
+
                 if (!previews || previews.length === 0) {
                     document.getElementById('homePlayerPlaceholder').textContent = getLang('No videos found', 'Keine Videos gefunden');
                     document.getElementById('homeOthersGrid').innerHTML = '';
@@ -1795,13 +1888,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const featuredVideo = previews.find(v => v.type === 'video') || previews[0];
                 const featuredPath = featuredVideo.path;
 
-                // Fetch the full search index to find the true 5 most recent videos
                 fetch('/search-index')
                     .then(r => r.ok ? r.json() : { videos: [] })
                     .then(data => {
                         const allChannelVideos = (data.videos || []).filter(v => v.path.startsWith(channel + '/'));
 
-                        // Sort by the fileDate from previews, fallback to path order
                         const previewDateMap = {};
                         previews.forEach(p => {
                             if (p.type === 'video') {
@@ -1821,7 +1912,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             return parseDate(dateB) - parseDate(dateA);
                         });
 
-                        // Build the items list: playlists from previews + top 5 videos (excluding featured)
                         const top5Videos = sortedAll.filter(v => v.path !== featuredPath).slice(0, 5).map(v => {
                             const previewMatch = previews.find(p => p.path === v.path);
                             return {
@@ -1834,7 +1924,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         const playlistItems = previews.filter(p => p.type === 'playlist');
 
-                        // Remaining random videos from previews (excluding featured and the top 5)
                         const top5Paths = new Set(top5Videos.map(v => v.path));
                         const remainingRandom = previews.filter(p =>
                             p.type === 'video' &&
@@ -1848,7 +1937,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         renderHomeOtherItems(allItems);
                     })
                     .catch(() => {
-                        // Fallback if search-index fails: use previews as-is minus featured
                         const otherItems = previews.filter(v => v.path !== featuredPath);
                         setupHomeMiniplayer(featuredVideo);
                         renderHomeOtherItems(otherItems);
@@ -1856,27 +1944,40 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch(error => {
                 console.error('Error loading home tab preview:', error);
-                document.getElementById('homePlayerPlaceholder').textContent = getLang('No videos found', 'Keine Videos gefunden');
+                const homePreviewRow = document.getElementById('homePreviewRow');
+                homePreviewRow.innerHTML = `
+                    <div class="home-player-wrapper" id="homePlayerWrapper">
+                        <div class="home-player-placeholder" id="homePlayerPlaceholder">${getLang('No videos found', 'Keine Videos gefunden')}</div>
+                    </div>
+                    <div class="home-info-panel">
+                        <div class="home-video-title" id="homeVideoTitle"></div>
+                        <div class="home-video-meta" id="homeVideoMeta"></div>
+                        <div class="home-video-description-box">
+                            <div class="home-video-description-text" id="homeVideoDescription"></div>
+                            <a class="home-video-description-read-more" id="homeVideoDescriptionReadMore" href="#"></a>
+                        </div>
+                    </div>
+                `;
                 document.getElementById('homeOthersGrid').innerHTML = '';
             });
     }
 
-function getMimeType(extension) {
-    const mimeMap = {
-        'mp4': 'video/mp4',
-        'webm': 'video/webm',
-        'mkv': 'video/x-matroska',
-        'avi': 'video/x-msvideo',
-        'mov': 'video/quicktime',
-        'wmv': 'video/x-ms-wmv',
-        'flv': 'video/x-flv',
-        'mp3': 'audio/mpeg',
-        'm4a': 'audio/mp4',
-        'ogg': 'audio/ogg',
-        'wav': 'audio/wav'
-    };
-    return mimeMap[extension.toLowerCase()] || 'video/mp4';
-}
+    function getMimeType(extension) {
+        const mimeMap = {
+            'mp4': 'video/mp4',
+            'webm': 'video/webm',
+            'mkv': 'video/x-matroska',
+            'avi': 'video/x-msvideo',
+            'mov': 'video/quicktime',
+            'wmv': 'video/x-ms-wmv',
+            'flv': 'video/x-flv',
+            'mp3': 'audio/mpeg',
+            'm4a': 'audio/mp4',
+            'ogg': 'audio/ogg',
+            'wav': 'audio/wav'
+        };
+        return mimeMap[extension.toLowerCase()] || 'video/mp4';
+    }
 
     function setupHomeMiniplayer(video) {
         const wrapper = document.getElementById('homePlayerWrapper');
@@ -1901,11 +2002,9 @@ function getMimeType(extension) {
             homeFluidPlayerInstance = null;
         }
 
-        // Remove old overlay if reinitializing
         const oldOverlay = wrapper.querySelector('.home-logo-overlay');
         if (oldOverlay) oldOverlay.remove();
 
-        // Add the logo overlay
         const logoOverlay = document.createElement('div');
         logoOverlay.className = 'home-logo-overlay';
         wrapper.appendChild(logoOverlay);
@@ -1923,7 +2022,6 @@ function getMimeType(extension) {
             }
         };
 
-        // Load meta cache for instant display without network requests
         fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`)
             .then(response => response.ok ? response.json() : {})
             .then(metaCache => {
@@ -1983,10 +2081,8 @@ function getMimeType(extension) {
         sourceElement.type = mimeType;
         videoElement.appendChild(sourceElement);
 
-        // Hide the overlay permanently once the video starts playing
         videoElement.addEventListener('play', () => {
             logoOverlay.style.opacity = '0';
-            // Remove the event listener and the element itself after fading out
             setTimeout(() => {
                 logoOverlay.remove();
             }, 150);
@@ -2072,11 +2168,9 @@ function getMimeType(extension) {
         const fragment = document.createDocumentFragment();
         const isClassic = document.body.classList.contains('classic-channel');
 
-        // 1. Separate videos and playlists
         const videoItems = items.filter(i => i.type === 'video');
         const playlistItems = items.filter(i => i.type === 'playlist');
 
-        // 2. Sort all available videos by date (newest first)
         const sortedVideos = [...videoItems].sort((a, b) => {
             const dateA = a.fileDate.replace(/\r?\n$/, '').trim();
             const dateB = b.fileDate.replace(/\r?\n$/, '').trim();
@@ -2089,17 +2183,13 @@ function getMimeType(extension) {
             return parseDate(dateB) - parseDate(dateA);
         });
 
-        // 3. Take the most recent 5 videos (from the remaining pool after featured removal)
         const recentFive = sortedVideos.slice(0, 5);
-
-        // 4. Gather the remaining videos and shuffle them
         const otherVideos = sortedVideos.slice(5);
         for (let i = otherVideos.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [otherVideos[i], otherVideos[j]] = [otherVideos[j], otherVideos[i]];
         }
 
-        // 5. Construct rows
         const rows = [];
         rows.push(recentFive);
 
@@ -2114,7 +2204,6 @@ function getMimeType(extension) {
             rows.push(otherVideos.slice(i, i + 5));
         }
 
-        // 6. Fetch meta cache once for all items
         fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`)
             .then(response => response.ok ? response.json() : {})
             .then(metaCache => {
@@ -2300,6 +2389,9 @@ function getMimeType(extension) {
             });
     }
 
+    // ============================================================
+    // HELPERS FOR VIDEOS, PLAYLISTS, POSTS, ABOUT
+    // ============================================================
     function parseEuropeanDate(dateString) {
         if (!dateString || dateString === 'Unknown date') return new Date(0);
         const parts = dateString.replace(/\r?\n$/, '').trim().split('.');
@@ -2349,7 +2441,6 @@ function getMimeType(extension) {
                 break;
             case 'popular':
                 currentVideos.sort((a, b) => {
-                    // FIX: Remove commas before parsing to handle numbers like "4,962"
                     const countA = parseInt(String(a.viewCount).replace(/,/g, '')) || 0;
                     const countB = parseInt(String(b.viewCount).replace(/,/g, '')) || 0;
                     return countB - countA;
@@ -2376,10 +2467,8 @@ function getMimeType(extension) {
         renderedVideoCount = 0;
         videosContainer.innerHTML = '';
         hasMoreVideos = currentVideos.length > 0;
-
         loadingSpinner.classList.remove('visible');
         noMoreVideos.style.display = 'none';
-
         loadMoreVideos();
     }
 
@@ -2390,7 +2479,6 @@ function getMimeType(extension) {
         const videoPathWithoutExt = stripExtension(video.path);
         const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
 
-        // 1. Build the description text instantly from the cached view count
         let descText = '';
         let formattedViewCount = video.viewCount || '0';
         if (!isNaN(formattedViewCount) && formattedViewCount !== '0') {
@@ -2403,7 +2491,6 @@ function getMimeType(extension) {
         const viewsText = getLang('views', 'Aufrufe');
         const uploadedText = getLang('Uploaded on', 'Hochgeladen am');
         
-        // If we already have a valid date from the cache, use it immediately. Otherwise, show a temporary loading state.
         if (video.fileDate && video.fileDate !== 'Unknown date') {
             descText = `${formattedViewCount} ${viewsText} • ${uploadedText} ${video.fileDate}`;
         } else {
@@ -2425,30 +2512,24 @@ function getMimeType(extension) {
         const videoThumb = videoElement.querySelector('.video-thumbnail');
         const descriptionDiv = videoElement.querySelector('.video-description');
 
-        // 2. If the date was unknown, fetch it from the server dynamically (just like the Search tab does)
         if (!video.fileDate || video.fileDate === 'Unknown date') {
             fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
                 .then(r => r.ok ? r.text() : 'Unknown date')
                 .then(fetchedDate => {
                     const trimmedDate = fetchedDate.trim();
                     if (trimmedDate && trimmedDate !== 'Unknown date') {
-                        // Update the text with the real date
                         descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${trimmedDate}`;
-                        // Update the array object so sorting/re-rendering doesn't trigger another fetch
                         video.fileDate = trimmedDate;
                     } else {
-                        // If the server also doesn't know the date, hide the date part cleanly
                         descriptionDiv.textContent = `${formattedViewCount} ${viewsText}`;
                     }
                 })
                 .catch(() => {
-                    // On network error, fallback to just showing the view count
                     descriptionDiv.textContent = `${formattedViewCount} ${viewsText}`;
                 });
         }
 
         videoThumb.addEventListener('click', () => openVideo(encodeURIComponent(video.path)));
-
         videoThumb.addEventListener('contextmenu', (event) => {
             event.preventDefault();
             window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
@@ -2543,17 +2624,19 @@ function getMimeType(extension) {
     }
 
     function loadPlaylists() {
-        playlistsContainer.innerHTML = '<div class="tab-loading-placeholder">' + getLang('Loading playlists', 'Lade Playlisten...') + '</div>';
+        showSkeletons(6, 'playlistsContainer', 'playlist');
+        playlistsContainer.innerHTML = '';
 
         fetch(`/channel-playlists/${encodeURIComponent(channel)}`)
             .then(response => response.json())
             .then(playlists => {
-                // Filter out subfolders (entries containing a '/' after the channel prefix)
+                hideSkeletons();
                 const filtered = playlists.filter(p => !p.path.includes('/'));
                 renderPlaylistsFast(filtered);
             })
             .catch(error => {
                 console.error('Error fetching playlists:', error);
+                hideSkeletons();
                 playlistsContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">Failed to load playlists. Ensure that cache and metadata are up to date.</p>';
             });
     }
@@ -2590,7 +2673,6 @@ function getMimeType(extension) {
 
             const displayTitle = playlist.displayName || playlist.name || playlist.title || playlist.path;
 
-            // Create the thumbnail div with a default grey background
             playlistElement.innerHTML = `
                 <div class="playlist-thumbnail" style="background-color: #333;"><div class="playlist-overlay">${overlayHtml}</div></div>
                 <div class="playlist-title">${displayTitle}</div>
@@ -2601,24 +2683,19 @@ function getMimeType(extension) {
             const mainThumbnailSrc = (playlist.thumbnail && playlist.thumbnail.trim() !== '') ? playlist.thumbnail : null;
 
             if (mainThumbnailSrc) {
-                // Test main thumbnail to see if it actually exists
                 const testImg = new Image();
                 testImg.onload = function() {
                     thumbnailDiv.style.backgroundImage = `url('${testImg.src.replace(/'/g, "\\'")}')`;
                 };
                 testImg.onerror = function() {
-                    // Main thumbnail 404'd, fetch real first video from playlist exactly like playlist.html
                     fetchRealFirstVideoThumbnail(channel, playlist.path, thumbnailDiv);
                 };
-                
-                // Using the URL constructor fixes the NS_BINDING_ABORTED errors caused by unencoded spaces
                 try {
                     testImg.src = new URL(mainThumbnailSrc, window.location.origin).href;
                 } catch(e) {
                     fetchRealFirstVideoThumbnail(channel, playlist.path, thumbnailDiv);
                 }
             } else {
-                // No main thumbnail provided, fetch real first video directly
                 fetchRealFirstVideoThumbnail(channel, playlist.path, thumbnailDiv);
             }
 
@@ -2684,9 +2761,9 @@ function getMimeType(extension) {
             });
     }
 
-    // --- Posts Loading Logic ---
     function loadPosts() {
-        postsContainer.innerHTML = '<div class="tab-loading-placeholder">' + getLang('Loading posts...', 'Lade Beiträge...') + '</div>';
+        showSkeletons(3, 'postsContainer', 'post');
+        postsContainer.innerHTML = '';
 
         fetch(`/channelposts/${encodeURIComponent(channel)}/Community_Posts.json`)
             .then(response => {
@@ -2694,10 +2771,12 @@ function getMimeType(extension) {
                 return response.json();
             })
             .then(postsData => {
+                hideSkeletons();
                 renderPosts(postsData);
             })
             .catch(error => {
                 console.error('Error loading posts:', error);
+                hideSkeletons();
                 postsContainer.innerHTML = `<p style="color: #888; text-align: center; width: 100%; padding: 40px 0;">${getLang('No posts available.', 'Keine Beiträge verfügbar.')}</p>`;
             });
     }
@@ -2710,7 +2789,6 @@ function getMimeType(extension) {
             return;
         }
 
-        // Check if user wants to hide post images
         const hidePostImagesSetting = JSON.parse(localStorage.getItem('hidePostImages') || '{}');
         const shouldHidePostImages = hidePostImagesSetting.enabled === true;
 
@@ -2719,128 +2797,119 @@ function getMimeType(extension) {
 
         const fragment = document.createDocumentFragment();
 
-    posts.forEach(post => {
-        const postElement = document.createElement('div');
-        postElement.className = 'post-item';
+        posts.forEach(post => {
+            const postElement = document.createElement('div');
+            postElement.className = 'post-item';
 
-        // Check if user wants to hide post images (saves bandwidth)
-        const hidePostImagesSetting = JSON.parse(localStorage.getItem('hidePostImages') || '{}');
-        const shouldHidePostImages = hidePostImagesSetting.enabled === true;
+            postElement.innerHTML = `
+                <div class="post-header">
+                    <img src="${channelPicSrc}" alt="" class="post-channel-pic" loading="lazy">
+                    <div class="post-header-info">
+                        <div class="post-author-name">${channel}</div>
+                        <div class="post-date" style="color: #888; font-size: 13px;">${post.raw_date || ''}</div>
+                        <div class="post-content-text"></div>
+                    </div>
+                </div>
+                <div class="post-body"></div>
+                <div class="post-footer">
+                    <img src="${likeIconSrc}" alt="Like" class="post-like-icon">
+                    <span>${post.likes || 0}</span>
+                </div>
+            `;
 
-        // Header with profile pic and content
-        postElement.innerHTML = `
-            <div class="post-header">
-                <img src="${channelPicSrc}" alt="" class="post-channel-pic" loading="lazy">
-            <div class="post-header-info">
-                <div class="post-author-name">${channel}</div>
-                <div class="post-date" style="color: #888; font-size: 13px;">${post.raw_date || ''}</div>
-                <div class="post-content-text"></div>
-            </div>
-            </div>
-            <div class="post-body"></div>
-            <div class="post-footer">
-                <img src="${likeIconSrc}" alt="Like" class="post-like-icon">
-                <span>${post.likes || 0}</span>
-            </div>
-        `;
-
-        const textDiv = postElement.querySelector('.post-content-text');
-        const bodyDiv = postElement.querySelector('.post-body');
-        
-        // Set text content
-        textDiv.textContent = post.content || '';
-        const urlRegex = /(https?:\/\/[^\s<]+)/g;
-        textDiv.innerHTML = textDiv.innerHTML.replace(urlRegex, function(url) {
-            return '<a href="' + url + '" target="_blank" style="color: #3ea6ff; text-decoration: none;">' + url + '</a>';
-        });
-
-        // Handle images - only create img elements if user hasn't enabled "hide images"
-        if (post.images && post.images.length > 0 && !shouldHidePostImages) {
-            const imagesWrapper = document.createElement('div');
-            imagesWrapper.className = 'post-images-wrapper';
-            imagesWrapper.style.display = 'none';
-
-            let validImageCount = 0;
-            const validImages = [];
-
-            post.images.forEach((img, index) => {
-                const imgEl = document.createElement('img');
-                imgEl.className = `post-image${index === 0 ? ' active' : ''}`;
-                imgEl.src = `/channelposts/${encodeURIComponent(channel)}/${encodeURIComponent(img.file_name)}`;
-                imgEl.alt = `Post image ${index + 1}`;
-                
-                imgEl.onload = () => {
-                    validImageCount++;
-                    if (validImageCount === 1) {
-                        imagesWrapper.style.display = '';
-                    }
-                };
-                
-                imagesWrapper.appendChild(imgEl);
+            const textDiv = postElement.querySelector('.post-content-text');
+            const bodyDiv = postElement.querySelector('.post-body');
+            
+            textDiv.textContent = post.content || '';
+            const urlRegex = /(https?:\/\/[^\s<]+)/g;
+            textDiv.innerHTML = textDiv.innerHTML.replace(urlRegex, function(url) {
+                return '<a href="' + url + '" target="_blank" style="color: #3ea6ff; text-decoration: none;">' + url + '</a>';
             });
 
-            // Carousel controls if multiple images exist
-            if (post.images.length > 1) {
-                const prevBtn = document.createElement('button');
-                prevBtn.className = 'carousel-btn carousel-prev';
-                prevBtn.innerHTML = '&#10094;';
-                
-                const nextBtn = document.createElement('button');
-                nextBtn.className = 'carousel-btn carousel-next';
-                nextBtn.innerHTML = '&#10095;';
+            if (post.images && post.images.length > 0 && !shouldHidePostImages) {
+                const imagesWrapper = document.createElement('div');
+                imagesWrapper.className = 'post-images-wrapper';
+                imagesWrapper.style.display = 'none';
 
-                const dotsContainer = document.createElement('div');
-                dotsContainer.className = 'carousel-dots';
-                
-                post.images.forEach((_, index) => {
-                    const dot = document.createElement('div');
-                    dot.className = `carousel-dot${index === 0 ? ' active' : ''}`;
-                    dot.dataset.index = index;
-                    dotsContainer.appendChild(dot);
+                let validImageCount = 0;
+
+                post.images.forEach((img, index) => {
+                    const imgEl = document.createElement('img');
+                    imgEl.className = `post-image${index === 0 ? ' active' : ''}`;
+                    imgEl.src = `/channelposts/${encodeURIComponent(channel)}/${encodeURIComponent(img.file_name)}`;
+                    imgEl.alt = `Post image ${index + 1}`;
+                    
+                    imgEl.onload = () => {
+                        validImageCount++;
+                        if (validImageCount === 1) {
+                            imagesWrapper.style.display = '';
+                        }
+                    };
+                    
+                    imagesWrapper.appendChild(imgEl);
                 });
 
-                imagesWrapper.appendChild(prevBtn);
-                imagesWrapper.appendChild(nextBtn);
-                imagesWrapper.appendChild(dotsContainer);
+                if (post.images.length > 1) {
+                    const prevBtn = document.createElement('button');
+                    prevBtn.className = 'carousel-btn carousel-prev';
+                    prevBtn.innerHTML = '&#10094;';
+                    
+                    const nextBtn = document.createElement('button');
+                    nextBtn.className = 'carousel-btn carousel-next';
+                    nextBtn.innerHTML = '&#10095;';
 
-                let currentIndex = 0;
-                const allImages = imagesWrapper.querySelectorAll('.post-image');
-                const allDots = dotsContainer.querySelectorAll('.carousel-dot');
-
-                const showSlide = (idx) => {
-                    currentIndex = idx;
-                    allImages.forEach((img, i) => {
-                        img.classList.toggle('active', i === currentIndex);
+                    const dotsContainer = document.createElement('div');
+                    dotsContainer.className = 'carousel-dots';
+                    
+                    post.images.forEach((_, index) => {
+                        const dot = document.createElement('div');
+                        dot.className = `carousel-dot${index === 0 ? ' active' : ''}`;
+                        dot.dataset.index = index;
+                        dotsContainer.appendChild(dot);
                     });
-                    allDots.forEach((dot, i) => {
-                        dot.classList.toggle('active', i === currentIndex);
+
+                    imagesWrapper.appendChild(prevBtn);
+                    imagesWrapper.appendChild(nextBtn);
+                    imagesWrapper.appendChild(dotsContainer);
+
+                    let currentIndex = 0;
+                    const allImages = imagesWrapper.querySelectorAll('.post-image');
+                    const allDots = dotsContainer.querySelectorAll('.carousel-dot');
+
+                    const showSlide = (idx) => {
+                        currentIndex = idx;
+                        allImages.forEach((img, i) => {
+                            img.classList.toggle('active', i === currentIndex);
+                        });
+                        allDots.forEach((dot, i) => {
+                            dot.classList.toggle('active', i === currentIndex);
+                        });
+                    };
+
+                    prevBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const newIndex = (currentIndex - 1 + post.images.length) % post.images.length;
+                        showSlide(newIndex);
                     });
-                };
 
-                prevBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const newIndex = (currentIndex - 1 + post.images.length) % post.images.length;
-                    showSlide(newIndex);
-                });
+                    nextBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const newIndex = (currentIndex + 1) % post.images.length;
+                        showSlide(newIndex);
+                    });
 
-                nextBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const newIndex = (currentIndex + 1) % post.images.length;
-                    showSlide(newIndex);
-                });
+                    dotsContainer.addEventListener('click', (e) => {
+                        if (e.target.classList.contains('carousel-dot')) {
+                            showSlide(parseInt(e.target.dataset.index));
+                        }
+                    });
+                }
 
-                dotsContainer.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('carousel-dot')) {
-                        showSlide(parseInt(e.target.dataset.index));
-                    }
-                });
+                bodyDiv.appendChild(imagesWrapper);
             }
 
-            bodyDiv.appendChild(imagesWrapper);
-        }
-
-        fragment.appendChild(postElement);
-    });
+            fragment.appendChild(postElement);
+        });
 
         postsContainer.appendChild(fragment);
     }
@@ -2893,7 +2962,6 @@ function getMimeType(extension) {
                 updateHeaderStats('?', null);
             });
 
-        // Fast video count fetch using the existing home meta cache
         fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`)
             .then(response => response.ok ? response.json() : {})
             .then(metaCache => {
@@ -2913,52 +2981,42 @@ function getMimeType(extension) {
     function lazyLoadVideosTab() {
         if (loadedTabs.has('videos')) return;
         loadedTabs.add('videos');
-        videosContainer.innerHTML = '<div class="loading-spinner visible">' + getLang('Loading videos...', 'Lade Videos...') + '</div>';
+        
+        showSkeletons(12, 'channelVideosContainer', 'video');
 
-        // Fetch the channel's meta cache AND the home previews (which contain the true dates)
-        Promise.all([
-            fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`).then(r => r.ok ? r.json() : {}),
-            fetch(`/channel-home-previews/${encodeURIComponent(channel)}.json`).then(r => r.ok ? r.json() : [])
-        ])
-        .then(([metaCache, previews]) => {
-            // Build a date map from the previews (which have reliably formatted dates)
-            const previewDateMap = {};
-            previews.forEach(p => {
-                if (p.type === 'video') {
-                    previewDateMap[p.path] = p.fileDate ? p.fileDate.replace(/\r?\n$/, '').trim() : '';
-                }
+        fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`)
+            .then(r => r.ok ? r.json() : {})
+            .then(metaCache => {
+                currentVideos = Object.keys(metaCache).map(path => {
+                    const meta = metaCache[path];
+                    return {
+                        path: path,
+                        type: meta.type || 'video',
+                        displayName: meta.displayName || path.split('/').pop(),
+                        fileDate: meta.fileDate || 'Unknown date',
+                        viewCount: meta.viewCount || '0',
+                        videoLength: meta.videoLength || ''
+                    };
+                }).filter(video => video.type !== 'playlist' && video.videoLength !== '');
+
+                hideSkeletons();
+                videosContainer.innerHTML = '';
+
+                hasMoreVideos = currentVideos.length > 0;
+                currentSortMode = 'newest';
+                sortVideosArray();
+
+                loadMoreVideos();
+                setupIntersectionObserver();
+
+                window.addEventListener('scroll', () => { if (!intersectionObserver) checkAndLoadMore(); });
+                window.addEventListener('resize', () => { if (!intersectionObserver) checkAndLoadMore(); });
+            })
+            .catch(error => {
+                console.error("Error lazy-loading videos via cache:", error);
+                hideSkeletons();
+                videosContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">Failed to load videos.</p>';
             });
-
-            // Build the video list from the caches
-            currentVideos = Object.keys(metaCache).map(path => {
-                const meta = metaCache[path];
-                return {
-                    path: path,
-                    type: meta.type || 'video',
-                    displayName: meta.displayName || path.split('/').pop(),
-                    // Use the preview dates first, fallback to meta cache, then 'Unknown date'
-                    fileDate: previewDateMap[path] || meta.fileDate || 'Unknown date',
-                    viewCount: meta.viewCount || '0',
-                    videoLength: meta.videoLength || ''
-                };
-            }).filter(video => video.type !== 'playlist' && video.videoLength !== '');
-
-            hasMoreVideos = currentVideos.length > 0;
-            currentSortMode = 'newest';
-            sortVideosArray();
-            videosContainer.innerHTML = '';
-
-            // Render initial batch
-            loadMoreVideos();
-            setupIntersectionObserver();
-
-            window.addEventListener('scroll', () => { if (!intersectionObserver) checkAndLoadMore(); });
-            window.addEventListener('resize', () => { if (!intersectionObserver) checkAndLoadMore(); });
-        })
-        .catch(error => {
-            console.error("Error lazy-loading videos via cache:", error);
-            videosContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">Failed to load videos.</p>';
-        });
     }
 
     function updateHeaderStats(subs, vids) {
@@ -2981,11 +3039,12 @@ function getMimeType(extension) {
 
     loadHeaderStats();
 
-    // --- MUST BE DECLARED BEFORE INITIAL TAB SETUP ---
+    // ============================================================
+    // CHANNEL SEARCH
+    // ============================================================
     const channelSearchInput = document.getElementById('channelSearchInput');
     const channelSearchResults = document.getElementById('channelSearchResults');
     let channelSearchTimeout = null;
-    // -------------------------------------------------
 
     if (initialTab !== 'home') {
         document.querySelector('.tab[data-tab="home"]').classList.remove('active');
@@ -2996,7 +3055,6 @@ function getMimeType(extension) {
         if (targetContent) targetContent.classList.add('active');
         loadTabContent(initialTab);
 
-        // Restore channel search query if present on initial load
         if (initialTab === 'search') {
             const searchBar = document.querySelector('.tab-search-bar');
             if (!searchBar.classList.contains('active')) {
@@ -3005,7 +3063,6 @@ function getMimeType(extension) {
             const initialQuery = new URLSearchParams(window.location.search).get('q') || '';
             if (initialQuery) {
                 channelSearchInput.value = initialQuery;
-                // Directly execute the search instead of dispatching an event
                 executeChannelSearch(initialQuery);
             }
         }
@@ -3189,14 +3246,13 @@ function openVideo(videoSrc) {
     window.location.href = `video.html?src=${videoSrc}`;
 }
 
-// ==============================
-// Apply Title Color Scheme Preference
-// ==============================
+// ============================================================
+// TITLE COLOR SCHEME PREFERENCE
+// ============================================================
 (function applyTitleColorScheme() {
     const setting = JSON.parse(localStorage.getItem('titleColorScheme') || '{}');
     
     function applyBlueText() {
-        // Remove old style if exists
         const existingStyle = document.getElementById('title-color-scheme-blue');
         if (existingStyle) existingStyle.remove();
         
@@ -3204,9 +3260,7 @@ function openVideo(videoSrc) {
             const style = document.createElement('style');
             style.id = 'title-color-scheme-blue';
             
-            // Use ultra-high specificity to beat Light Mode's !important
             style.textContent = `
-                /* High specificity selectors to override Light Mode */
                 html body .video-title.blue-text,
                 html body .playlist-title.blue-text,
                 html body .home-video-title.blue-text,
@@ -3223,19 +3277,16 @@ function openVideo(videoSrc) {
                 }
             `;
             
-            // Append AFTER profile-pic.js styles so this loads later
             document.head.appendChild(style);
             
-            // Add class to all existing elements
             document.querySelectorAll('.video-title, .playlist-title, .home-video-title, .post-author-name').forEach(el => {
                 el.classList.add('blue-text');
             });
             
-            // Watch for new elements added dynamically (infinite scroll, tab switching)
             const observer = new MutationObserver((mutations) => {
                 mutations.forEach((mutation) => {
                     mutation.addedNodes.forEach((node) => {
-                        if (node.nodeType === 1) { // Element node
+                        if (node.nodeType === 1) {
                             if (node.matches && (
                                 node.matches('.video-title') || 
                                 node.matches('.playlist-title') || 
@@ -3245,7 +3296,6 @@ function openVideo(videoSrc) {
                                 node.classList.add('blue-text');
                             }
                             
-                            // Also check children
                             if (node.querySelectorAll) {
                                 node.querySelectorAll('.video-title, .playlist-title, .home-video-title, .post-author-name').forEach(el => {
                                     el.classList.add('blue-text');
@@ -3258,34 +3308,30 @@ function openVideo(videoSrc) {
             
             observer.observe(document.body, { childList: true, subtree: true });
         } else {
-            // Remove classes if disabled
             document.querySelectorAll('.blue-text').forEach(el => el.classList.remove('blue-text'));
         }
     }
 
-    // Apply immediately
     applyBlueText();
     
-    // Re-apply after profile-pic.js loads (which applies Light Mode)
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => setTimeout(applyBlueText, 100));
     } else {
         setTimeout(applyBlueText, 100);
     }
     
-    // Re-apply when settings change (for live switching without reload)
     window.addEventListener('storage', (e) => {
         if (e.key === 'titleColorScheme') {
-            location.reload(); // Simplest way to ensure consistency
+            location.reload();
         }
     });
 })();
-
     </script>
-    <!-- External Search Suggestion Script -->
+    <!-- External Scripts -->
     <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>
     <script src="sidebar.js"></script>
     <script src="thumbnail-context-menu.js"></script>
+    <script src="skeleton-loader.js"></script>
 </body>
 </html>

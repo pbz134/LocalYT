@@ -1,0 +1,113 @@
+/* Skeleton placeholder styles */
+.skeleton-item {
+    width: 320px;                 /* matches .video-item width */
+    background: transparent;
+    overflow: hidden;
+    text-align: center;
+}
+
+.skeleton-item .thumbnail-container {
+    display: block;               /* ensures the container has width */
+    width: 100%;
+    position: relative;           /* keep consistent with real thumbnails */
+}
+
+.skeleton-thumbnail {
+    display: block;
+    width: 100%;
+    height: 180px;               /* matches video-thumbnail height */
+    background-color: #3a3a3a;
+}
+
+.skeleton-item .video-info {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px;
+    text-align: left;
+}
+
+.skeleton-item .video-details {
+    display: flex;
+    flex-direction: column;
+    margin-left: 10px;
+    flex: 1;
+}
+
+.skeleton-channel-pic {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #3a3a3a;
+    flex-shrink: 0;
+}
+
+.skeleton-title {
+    display: block;
+    height: 14px;
+    width: 80%;
+    margin-bottom: 6px;
+    border-radius: 4px;
+    background-color: #3a3a3a;
+}
+
+.skeleton-metadata {
+    display: block;
+    height: 12px;
+    width: 60%;
+    border-radius: 4px;
+    background-color: #3a3a3a;
+}
+
+/* Playlist skeleton styles */
+.skeleton-item .playlist-thumbnail {
+    background-color: #3a3a3a !important;
+}
+
+.skeleton-item .playlist-title,
+.skeleton-item .playlist-channel-name {
+    background-color: #3a3a3a;
+    border-radius: 4px;
+}
+
+/* Home tab specific skeletons */
+.skeleton-item .video-title.skeleton-title,
+.skeleton-item .video-description.skeleton-metadata {
+    margin-left: 0;
+    padding-left: 0;
+    text-align: left;
+}
+
+.skeleton-item .playlist-info-side {
+    padding: 10px;
+    text-align: left;
+}
+
+/* Post skeleton styles */
+.skeleton-item .post-header {
+    display: flex;
+    align-items: flex-start;
+    padding: 16px 16px 0 16px;
+    gap: 12px;
+}
+
+.skeleton-item .post-body {
+    padding: 12px 16px;
+}
+
+/* Animations */
+.skeleton-item .skeleton-thumbnail,
+.skeleton-item .skeleton-channel-pic,
+.skeleton-item .skeleton-title,
+.skeleton-item .skeleton-metadata,
+.skeleton-item .playlist-thumbnail,
+.skeleton-item .playlist-title,
+.skeleton-item .playlist-channel-name {
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}

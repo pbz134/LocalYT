@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search Results</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="skeleton.css">
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
 <script>
 // ==============================
@@ -447,6 +448,58 @@
                 font-size: 10px;
             }
         }
+
+        /* Search result skeleton container */
+.search-results-container .skeleton-item {
+    width: 70%;
+    margin: 0 auto 20px auto;
+    display: flex;
+    gap: 15px;
+    min-height: 200px;
+    background: transparent;
+    box-sizing: border-box;
+}
+
+        .search-results-container .skeleton-item .thumbnail-container {
+            flex-shrink: 0;
+            width: 320px;
+        }
+
+        .search-results-container .skeleton-item .skeleton-thumbnail {
+            width: 320px;
+            height: 180px;
+        }
+
+        .search-results-container .skeleton-item .video-info {
+            flex: 1;
+            padding: 10px 0;
+            margin-left: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .search-results-container .skeleton-item .skeleton-title {
+            width: 70%;
+            height: 18px;
+        }
+
+        .search-results-container .skeleton-item .skeleton-channel-pic {
+            width: 30px;
+            height: 30px;
+        }
+
+        .search-results-container .skeleton-item .skeleton-metadata {
+            width: 50%;
+            height: 14px;
+        }
+
+        .search-results-container .skeleton-item .channel-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body class="search-page">
@@ -529,7 +582,7 @@
     </div>
 
     <div class="container search-results-container" id="searchResultsContainer">
-        <div class="loading-indicator" id="loadingIndicator">Loading search index...</div>
+        <!-- No loading text - skeletons will be shown instead -->
     </div>
 
     <script>
@@ -643,8 +696,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // UI Translation
     document.getElementById('searchInput').placeholder = getLang('Search', 'Suche');
-    document.getElementById('loadingIndicator').textContent = getLang('Loading search index...', 'Lade Suchindex...');
     document.getElementById('filterToggleText').textContent = getLang('Filters', 'Filter');
+
+    // Show skeletons immediately while loading
+    if (initialQuery) {
+        showSkeletons(8, 'searchResultsContainer', 'search');
+    } else {
+        document.getElementById('searchResultsContainer').innerHTML = 
+            `<div style="color: white; padding: 20px;">${getLang('Enter a search term above', 'Gib oben einen Suchbegriff ein')}</div>`;
+    }
 
     // Initialize Web Worker if available
     if (window.Worker) {
@@ -676,6 +736,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             searchState.index = await indexResponse.json();
         } catch (error) {
             console.error('Error loading search index:', error);
+            hideSkeletons();
             showError(getLang('Error loading search. Please refresh.', 'Fehler beim Laden der Suche. Bitte aktualisiere die Seite.'));
             return;
         }
@@ -684,9 +745,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Perform initial search if query exists
     if (initialQuery) {
         performSearch(initialQuery);
-    } else {
-        document.getElementById('searchResultsContainer').innerHTML = 
-            `<div style="color: white; padding: 20px;">${getLang('Enter a search term above', 'Gib oben einen Suchbegriff ein')}</div>`;
     }
 
     // Search Navigation Logic
@@ -720,6 +778,7 @@ function handleWorkerResponse(e) {
     if (type === 'search') {
         searchState.currentResults = results;
         searchState.currentQuery = query;
+        hideSkeletons();
         displaySearchResults(results);
     }
 }
@@ -727,8 +786,8 @@ function handleWorkerResponse(e) {
 function performSearch(query, maxResults = 100) {
     if (!query || !searchState.index) return;
     
-    const resultsContainer = document.getElementById('searchResultsContainer');
-    resultsContainer.innerHTML = `<div class="loading-indicator">${getLang('Searching...', 'Suche...')}</div>`;
+    // Show skeletons while searching
+    showSkeletons(8, 'searchResultsContainer', 'search');
     
     searchState.currentQuery = query.toLowerCase();
     searchState.lastSearchId++;
@@ -743,6 +802,7 @@ function performSearch(query, maxResults = 100) {
     } else {
         const results = localSearch(searchState.currentQuery, maxResults);
         searchState.currentResults = results;
+        hideSkeletons();
         displaySearchResults(results);
     }
 }
@@ -799,6 +859,10 @@ function localSearch(query, maxResults = 100) {
 function displaySearchResults(results) {
     const resultsContainer = document.getElementById('searchResultsContainer');
     
+    // Remove skeletons if they exist
+    hideSkeletons();
+    resultsContainer.innerHTML = '';
+    
     if (!results || results.length === 0) {
         resultsContainer.innerHTML = `
             <div style="color: white; padding: 20px;">
@@ -807,8 +871,6 @@ function displaySearchResults(results) {
         `;
         return;
     }
-    
-    resultsContainer.innerHTML = '';
     
     // Group by channel for channel results
     const channelCounts = {};
@@ -1405,5 +1467,6 @@ function parseDurationToSeconds(durationStr) {
     <script src="profile-pic.js"></script>
     <script src="sidebar.js"></script>
     <script src="thumbnail-context-menu.js"></script>
+    <script src="skeleton-loader.js"></script>
 </body>
 </html>
