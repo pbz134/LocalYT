@@ -66,7 +66,8 @@ def generate_meta_cache(channel, all_channel_videos, playlists, force_overwrite)
         video_path_without_ext = strip_extension(path)
         filename = os.path.basename(video_path_without_ext)
         meta = meta_cache.get(path, {})
-        
+        meta["type"] = "video"
+
         # View count
         vc_path = os.path.join(SERVER_ROOT, "viewcounts", f"{video_path_without_ext}.txt")
         if not os.path.exists(vc_path):
@@ -107,7 +108,8 @@ def generate_meta_cache(channel, all_channel_videos, playlists, force_overwrite)
         pl_meta_path = os.path.join(SERVER_ROOT, "playlist-meta", f"{pl_path}.json")
         pl_videos = playlists.get((channel, pl_path), [])
         meta = meta_cache.get(pl_path, {})
-        
+        meta["type"] = "playlist"
+
         meta["videoCount"] = 0
         meta["thumbnail"] = None
         meta["firstVideoName"] = None

@@ -3097,7 +3097,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return `/subcount/${encodeURIComponent(channel)}`;
         }
-
+    
         fetch(getSubcountEndpoint())
             .then(response => response.ok ? response.text() : '0')
             .then(subCount => {
@@ -3106,11 +3106,14 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(() => {
                 updateHeaderStats('?', null);
             });
-
+    
         fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`)
             .then(response => response.ok ? response.json() : {})
             .then(metaCache => {
-                const videoCount = Object.keys(metaCache).length;
+                // FIX: Count only entries with type "video" (exclude playlists)
+                const videoCount = Object.keys(metaCache)
+                    .filter(key => metaCache[key].type === 'video')
+                    .length;
                 return fetch(getSubcountEndpoint())
                     .then(response => response.ok ? response.text() : '0')
                     .then(subCount => {
