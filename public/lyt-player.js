@@ -136,12 +136,41 @@
             this._eqSaveTimer = null; // for debouncing server saves
 
             // Current LYT Player version
-            this.version = 'v2.6.2';
+            this.version = 'v2.6.5';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
             
+            // --- Language & Translations ---
+            this._lang = localStorage.getItem('language') || 'en';
+            this._translations = {
+                en: {
+                    speed: 'Speed',
+                    quality: 'Quality',
+                    subtitles: 'Subtitles/CC',
+                    reset: 'Reset',
+                    compression: 'Compression',
+                    on: 'On',
+                    off: 'Off'
+                },
+                de: {
+                    speed: 'Geschwindigkeit',
+                    quality: 'Qualität',
+                    subtitles: 'Untertitel/CC',
+                    reset: 'Zurücksetzen',
+                    compression: 'Kompression',
+                    on: 'Ein',
+                    off: 'Aus'
+                }
+            };
+            
             this.init();
+        }
+
+        // ----- Translation helper -----
+        _t(key) {
+            const dict = this._translations[this._lang] || this._translations.en;
+            return dict[key] || key;
         }
 
         init() {
@@ -1561,23 +1590,23 @@
                             <div class="lyt_popup_menu lyt_settings_menu">
                                 <div class="lyt_menu_content">
                                     <!-- Equalizer option will be inserted here by JavaScript -->
-                                    <div class="lyt_menu_option lyt_opt_speed" data-submenu="speed">Speed</div>
-                                    <div class="lyt_menu_option lyt_opt_subs" data-submenu="subtitles">Subtitles/CC</div>
-                                    <div class="lyt_menu_option lyt_opt_quality" data-submenu="quality">Quality</div>
+                                    <div class="lyt_menu_option lyt_opt_speed" data-submenu="speed">${this._t('speed')}</div>
+                                    <div class="lyt_menu_option lyt_opt_subs" data-submenu="subtitles">${this._t('subtitles')}</div>
+                                    <div class="lyt_menu_option lyt_opt_quality" data-submenu="quality">${this._t('quality')}</div>
                                 </div>
 
                                 <div class="lyt_popup_submenu lyt_speed_menu">
-                                    <button class="lyt_submenu_back" data-back="main"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg> Speed</button>
+                                    <button class="lyt_submenu_back" data-back="main"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg> ${this._t('speed')}</button>
                                     <div class="lyt_menu_content"></div>
                                 </div>
                                 
                                 <div class="lyt_popup_submenu lyt_subtitles_menu">
-                                    <button class="lyt_submenu_back" data-back="main"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg> Subtitles/CC</button>
+                                    <button class="lyt_submenu_back" data-back="main"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg> ${this._t('subtitles')}</button>
                                     <div class="lyt_menu_content"></div>
                                 </div>
                                 
                                 <div class="lyt_popup_submenu lyt_quality_menu">
-                                    <button class="lyt_submenu_back" data-back="main"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg> Quality</button>
+                                    <button class="lyt_submenu_back" data-back="main"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg> ${this._t('quality')}</button>
                                     <div class="lyt_menu_content"></div>
                                 </div>
 
@@ -1708,12 +1737,12 @@
                         <span class="lyt_eq_value">0 dB</span>
                     </div>
                     <div class="lyt_eq_band lyt_eq_compression">
-                        <label>Compression</label>
+                        <label>${this._t('compression')}</label>
                         <input type="checkbox" data-band="compression">
-                        <span class="lyt_eq_value">Off</span>
+                        <span class="lyt_eq_value">${this._t('off')}</span>
                     </div>
                     <div class="lyt_eq_reset">
-                        <button class="lyt_eq_reset_btn">Reset</button>
+                        <button class="lyt_eq_reset_btn">${this._t('reset')}</button>
                     </div>
                 </div>
             `;
@@ -1765,7 +1794,7 @@
             if (compInput) {
                 compInput.checked = this._equalizerSettings.compression || false;
                 const label = compInput.closest('.lyt_eq_band').querySelector('.lyt_eq_value');
-                if (label) label.textContent = compInput.checked ? 'On' : 'Off';
+                if (label) label.textContent = compInput.checked ? this._t('on') : this._t('off');
             }
         }
 
@@ -1792,7 +1821,7 @@
                 compInput.addEventListener('change', () => {
                     const enabled = compInput.checked;
                     const label = compInput.closest('.lyt_eq_band').querySelector('.lyt_eq_value');
-                    if (label) label.textContent = enabled ? 'On' : 'Off';
+                    if (label) label.textContent = enabled ? this._t('on') : this._t('off');
                     this._equalizerSettings.compression = enabled;
                     this._applyEqualizer();
                     this._saveEqualizerSettings();
@@ -1815,7 +1844,7 @@
                     if (compInput) {
                         compInput.checked = false;
                         const label = compInput.closest('.lyt_eq_band').querySelector('.lyt_eq_value');
-                        if (label) label.textContent = 'Off';
+                        if (label) label.textContent = this._t('off');
                         this._equalizerSettings.compression = false;
                     }
                     this._applyEqualizer();
