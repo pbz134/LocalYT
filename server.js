@@ -622,7 +622,7 @@ function scanFolder(folderPath, baseDir) {
 
 // Incremental scan: Only rescan changed channels
 function incrementalScanAndCacheVideos() {
-    console.log('\nLaunching incremental scan...');
+    console.log('Launching incremental scan...');
     const videosDir = path.join(__dirname, 'videos');
     
     // Load current cache and versions
@@ -892,7 +892,7 @@ function fullScanAndCacheVideos() {
 
 // Main function to initialize the cache
 function initializeVideoCache() {
-    console.log('\nInitializing video cache...');
+    console.log('Initializing video cache...');
     
     if (fs.existsSync(cacheFilePath)) {
         try {
@@ -1058,7 +1058,8 @@ function initializePlaylistShortLinks() {
                 playlistShortMap.set(name, code);
                 shortCodeToPlaylistMap.set(code, name);
             }
-            console.log(`📂 ${playlistShortMap.size} Playlist Short Links geladen.`);
+            console.log(`${playlistShortMap.size} Playlist Short Links loaded.`);
+            console.log(`${videoArray.length} videos loaded`);
         } catch (err) {
             console.error('Error loading playlist links:', err);
         }
@@ -1090,9 +1091,9 @@ function initializePlaylistShortLinks() {
 
     if (newCodesGenerated > 0) {
         savePlaylistLinksToFile();
-        console.log(`✅ ${newCodesGenerated} neue Playlist Short Links generiert. Total: ${playlistShortMap.size}`);
+        console.log(`${newCodesGenerated} neue Playlist Short Links generated. Total: ${playlistShortMap.size}`);
     } else {
-        console.log(`📂 Playlist Short Links aktuell. Total: ${playlistShortMap.size}`);
+        console.log(`Playlist Short Links up to date. Total: ${playlistShortMap.size}`);
     }
 }
 
@@ -2951,11 +2952,6 @@ app.get('/shared-playlist', (req, res) => {
     }
 });
 
-// ======================================================================
-// SERVER START
-// ======================================================================
-
 app.listen(PORT, () => {
-    console.log(`\n🚀 Server is running on http://localhost:${PORT}`);
-    console.log(`${videoArray.length} videos loaded\n`);
+    console.log(`\nServer is running on http://localhost:${PORT}`);
 });
