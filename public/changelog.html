@@ -237,6 +237,12 @@
                     <li>Added German translations to LYT Player</li>
                     <li>Playlists don't count towards a channel's total video count anymore</li>
                     <li>Fixed .video-description clipping into long video titles on playlist.html if List view was enabled</li>
+                    <li>New cache creation system
+                        <ul>
+                            <li>Instead of having to manually delete cache files and doing a full rescan when updating the database, the server will detect modified channels and efficiently update the cache files</li>
+                            <li>In short: No more need to delete cache files and 10x faster updating</li>
+                        </ul>
+                    </li>
                 </ul>
             </section>
 
