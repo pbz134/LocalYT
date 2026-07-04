@@ -706,7 +706,7 @@ function incrementalScanAndCacheVideos() {
         videoArray = newCache;
         videoArray.sort((a, b) => a.path.localeCompare(b.path));
         
-        console.log(`Cache updated: ${videoArray.length} Videos (${changedChannels} changed, ${unchangedChannels} unchanged)`);
+        console.log(`Cache updated: ${videoArray.length} videos (${changedChannels} changed, ${unchangedChannels} unchanged).`);
         
         // Versionen speichern
         saveFolderVersions(newVersions);
@@ -902,7 +902,7 @@ function initializeVideoCache() {
                 const videos = JSON.parse(data);
                 videoCache = new Map(videos.map(v => [v.path, v]));
                 videoArray = videos;
-                console.log(`Cache loaded: ${videoCache.size} Videos.`);
+                console.log(`Cache loaded: ${videoCache.size} videos.`);
                 
                 // Run incremental scan
                 incrementalScanAndCacheVideos();
@@ -945,7 +945,7 @@ function buildRecommendationIndex() {
     
     fs.writeFileSync(recommendationIndexPath, JSON.stringify(index, null, 2));
     recommendationIndex = index;
-    console.log(`Recommendation index done: ${Object.keys(index).length} tags/channels.`);
+    console.log(`Recommendation index loaded: ${Object.keys(index).length} tags/channels.`);
 }
 
 function initializeRecommendationIndex() {
@@ -953,7 +953,6 @@ function initializeRecommendationIndex() {
         try {
             const data = fs.readFileSync(recommendationIndexPath, 'utf8');
             recommendationIndex = JSON.parse(data);
-            console.log(`Recommendation index loaded: ${Object.keys(recommendationIndex).length} tags/channels.`);
         } catch (err) {
             console.log('Recommendation index corrupted, re-running full scan...');
             buildRecommendationIndex();
@@ -1041,7 +1040,7 @@ const channelHomeMetaCacheDir = path.join(__dirname, 'channel-home-meta-cache');
 if (fs.existsSync(channelHomeMetaCacheDir)) {
     try {
         const metaFiles = fs.readdirSync(channelHomeMetaCacheDir).filter(f => f.endsWith('.json'));
-        console.log(`${metaFiles.length} Channel Home Meta caches loaded.`);
+        console.log(`${metaFiles.length} Channel Home Meta cache files loaded.`);
     } catch (err) {
         console.error('Error reading channel home meta caches:', err);
     }
@@ -1059,7 +1058,7 @@ function initializePlaylistShortLinks() {
                 shortCodeToPlaylistMap.set(code, name);
             }
             console.log(`${playlistShortMap.size} Playlist Short Links loaded.`);
-            console.log(`${videoArray.length} videos loaded`);
+            console.log(`${videoArray.length} videos loaded.`);
         } catch (err) {
             console.error('Error loading playlist links:', err);
         }
@@ -1093,7 +1092,7 @@ function initializePlaylistShortLinks() {
         savePlaylistLinksToFile();
         console.log(`${newCodesGenerated} neue Playlist Short Links generated. Total: ${playlistShortMap.size}`);
     } else {
-        console.log(`Playlist Short Links up to date. Total: ${playlistShortMap.size}`);
+        console.log(`${playlistShortMap.size} Playlist Short Links loaded.`);
     }
 }
 
