@@ -1420,15 +1420,97 @@ document.addEventListener('mousedown', function(e) {
             '.channel-name, ' + 
             '.suggestion-item, ' +
             '#mainLogo, ' +
-            '.post-item'
+            '.post-item, ' +
+            '.mention-link'
         );
         
         if (target) {
             e.preventDefault();
+            // Don't open here - let the 'auxclick' or 'mouseup' handler handle it
+            // This just prevents the default middle-click autoscroll behavior
+        }
+    }
+}, true);
+
+// Use 'auxclick' for middle-click handling (fires once per click)
+document.addEventListener('auxclick', function(e) {
+    if (e.button === 1) {
+        const target = e.target.closest(
+            'a, ' + 
+            '.video-item, ' + 
+            '.playlist-item, ' + 
+            '.video-title, ' + 
+            '.video-thumbnail, ' + 
+            '.playlist-thumbnail, ' + 
+            '.home-video-title, ' + 
+            '.tab, ' + 
+            '.sort-toggle, ' + 
+            '.subscribe-button, ' + 
+            '.share-button, ' + 
+            '.channel-name, ' + 
+            '.suggestion-item, ' +
+            '#mainLogo, ' +
+            '.post-item, ' +
+            '.mention-link'
+        );
+        
+        if (target) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Get the URL from the target
+            let url = null;
             if (target.tagName === 'A' && target.href) {
-                window.open(target.href, '_blank');
+                url = target.href;
+            } else if (target.dataset && target.dataset.channel) {
+                url = `channel.html?channel=${target.dataset.channel}`;
+            } else if (target.closest('.mention-link') && target.closest('.mention-link').dataset.channel) {
+                url = `channel.html?channel=${target.closest('.mention-link').dataset.channel}`;
+            } else if (target.closest('a') && target.closest('a').href) {
+                url = target.closest('a').href;
+            } else if (target.classList && target.classList.contains('video-item')) {
+                const titleEl = target.querySelector('.video-title');
+                if (titleEl && titleEl.getAttribute('onclick')) {
+                    const match = titleEl.getAttribute('onclick').match(/openVideo\('([^']+)'\)/);
+                    if (match) url = `video.html?src=${match[1]}`;
+                }
+            } else if (target.closest('.video-item')) {
+                const item = target.closest('.video-item');
+                const titleEl = item.querySelector('.video-title');
+                if (titleEl && titleEl.getAttribute('onclick')) {
+                    const match = titleEl.getAttribute('onclick').match(/openVideo\('([^']+)'\)/);
+                    if (match) url = `video.html?src=${match[1]}`;
+                }
+            } else if (target.closest('.playlist-item')) {
+                // Playlist items have click handlers
+                const item = target.closest('.playlist-item');
+                if (item) {
+                    // Trigger the click but in a new tab
+                    const clickHandler = item._clickHandler || item.onclick;
+                    if (clickHandler) {
+                        // Try to get the URL from the playlist item
+                        const titleEl = item.querySelector('.playlist-title');
+                        if (titleEl && titleEl.textContent) {
+                            const playlistName = titleEl.textContent;
+                            url = `playlist.html?channel=${encodeURIComponent(channel)}&playlist=${encodeURIComponent(playlistName)}`;
+                        }
+                    }
+                }
+            }
+            
+            if (url) {
+                window.open(url, '_blank');
             }
         }
+    }
+}, true);
+
+// Keep the mouseup handler but only for elements that don't have auxclick handling
+document.addEventListener('mouseup', function(e) {
+    // Only handle if it's NOT a middle click (button 1)
+    // Middle clicks are handled by auxclick above
+    if (e.button !== 1) {
+        // Handle other button logic if needed
     }
 }, true);
 
@@ -1465,6 +1547,112 @@ function buildChannelUrl(channel, tab) {
 }
 
 const { channel, tab: initialTab } = parseChannelUrl();
+
+async function detectAndStyleLinks(text) {
+    const urlRegex = /(https?:\/\/[^\s<]+)/g;
+    const timestampRegex = /(\b\d{1,2}:\d{2}(?::\d{2})?\b)/g;
+    const mentionRegex = /@(\w+)/g;
+
+    // 1. Handle URLs
+    let processedText = text.replace(urlRegex, function(url) {
+        return '<a href="' + url + '" target="_blank" style="color: #167ac6; text-decoration: none;">' + url + '</a>';
+    });
+
+    // 2. Handle Timestamps
+    processedText = processedText.replace(timestampRegex, function(timestamp) {
+        const seconds = convertTimestampToSeconds(timestamp);
+        return '<a href="#" onclick="seekToTimestamp(\'' + timestamp + '\'); return false;" style="color: #167ac6; text-decoration: none;">' + timestamp + '</a>';
+    });
+
+    // 3. Handle @Mentions (Check if Channel Image Exists)
+    const mentions = [];
+    let match;
+    while ((match = mentionRegex.exec(processedText)) !== null) {
+        if (!mentions.includes(match[1])) {
+            mentions.push(match[1]);
+        }
+    }
+
+    if (mentions.length > 0) {
+        const checkPromises = mentions.map(channelName => {
+            return fetch(`/channelpic/${encodeURIComponent(channelName)}.jpg`, { method: 'HEAD' })
+                .then(res => ({ name: channelName, exists: res.ok }))
+                .catch(() => ({ name: channelName, exists: false }));
+        });
+
+        try {
+            const results = await Promise.all(checkPromises);
+            const existingChannels = results.filter(r => r.exists).map(r => r.name);
+            
+            let idCounter = 0;
+            
+            processedText = processedText.replace(mentionRegex, function(fullMatch, channelName) {
+                if (existingChannels.includes(channelName)) {
+                    const uniqueId = `mention-${idCounter++}`;
+                    const encodedChannel = encodeURIComponent(channelName);
+                    
+                    return `<span id="${uniqueId}" class="mention-link" data-channel="${encodedChannel}" style="color: #167ac6; cursor: pointer;">${fullMatch}</span>`;
+                }
+                return fullMatch;
+            });
+            
+            setTimeout(() => {
+                existingChannels.forEach((channelName, index) => {
+                    const el = document.getElementById(`mention-${index}`);
+                    if (el) {
+                        const url = `channel.html?channel=${el.dataset.channel}`;
+                        
+                        // Left click
+                        el.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            window.location.href = url;
+                        });
+                        
+                        // Middle click - use 'auxclick' event (which fires ONCE for middle click)
+                        // This replaces the separate mouseup + mousedown handlers
+                        el.addEventListener('auxclick', (e) => {
+                            if (e.button === 1) { // Middle button
+                                e.preventDefault();
+                                e.stopPropagation();
+                                window.open(url, '_blank');
+                                return false;
+                            }
+                        });
+                        
+                        // Right click
+                        el.addEventListener('contextmenu', (e) => {
+                            e.preventDefault();
+                            window.open(url, '_blank');
+                        });
+                    }
+                });
+            }, 0);
+
+        } catch (e) {
+            console.log('Could not verify mentions:', e);
+        }
+    }
+
+    return processedText;
+}
+
+// Helper function for timestamp conversion
+function convertTimestampToSeconds(timestamp) {
+    const parts = timestamp.split(':').map(part => parseInt(part, 10));
+    if (parts.length === 3) {
+        return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    } else if (parts.length === 2) {
+        return parts[0] * 60 + parts[1];
+    }
+    return 0;
+}
+
+// Helper function to seek to timestamp (for channel page)
+function seekToTimestamp(timestamp) {
+    // This is a placeholder - on channel page, we navigate to video page with timestamp
+    const videoTitle = document.querySelector('.video-title')?.textContent || 'Video';
+    alert('Timestamp ' + timestamp + ' - Navigate to video page to seek');
+}
 
 // ======================================================================
 // SKELETON GENERATORS FOR HOME TAB
@@ -2870,41 +3058,50 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    function loadAbout() {
-        fetch(`/channel-description/${encodeURIComponent(channel)}`)
-            .then(response => response.text())
-            .then(description => {
-                document.getElementById('channelDescription').textContent = description || 'No description available.';
-            })
-            .catch(() => {
-                document.getElementById('channelDescription').textContent = 'No description available.';
-            });
+function loadAbout() {
+    fetch(`/channel-description/${encodeURIComponent(channel)}`)
+        .then(response => response.text())
+        .then(async description => {
+            const descElement = document.getElementById('channelDescription');
+            if (description) {
+                // Process links in description
+                const processedDesc = description.replace(/(https?:\/\/[^\s<]+)/g, function(url) {
+                    return '<a href="' + url + '" target="_blank" style="color: #167ac6; text-decoration: none;">' + url + '</a>';
+                });
+                descElement.innerHTML = processedDesc;
+            } else {
+                descElement.textContent = 'No description available.';
+            }
+        })
+        .catch(() => {
+            document.getElementById('channelDescription').textContent = 'No description available.';
+        });
 
-        fetch(`/channelstats/${encodeURIComponent(channel)}.json`)
-            .then(response => {
-                if (response.ok) return response.json();
-                throw new Error('No stats file');
-            })
-            .then(data => {
-                if (data.channel_creation_date) {
-                    const date = parseEuropeanDate(data.channel_creation_date);
-                    if (date.getTime() > 0) {
-                        document.getElementById('statsJoined').textContent = getLang('Joined', 'Beigetreten') + ' ' + formatJoinDate(date);
-                    }
+    fetch(`/channelstats/${encodeURIComponent(channel)}.json`)
+        .then(response => {
+            if (response.ok) return response.json();
+            throw new Error('No stats file');
+        })
+        .then(data => {
+            if (data.channel_creation_date) {
+                const date = parseEuropeanDate(data.channel_creation_date);
+                if (date.getTime() > 0) {
+                    document.getElementById('statsJoined').textContent = getLang('Joined', 'Beigetreten') + ' ' + formatJoinDate(date);
                 }
-                if (data.total_views_raw) {
-                    let views = parseInt(data.total_views_raw).toLocaleString('en-US');
-                    if (localStorage.getItem('language') === 'de') views = views.replace(/,/g, '.');
-                    document.getElementById('statsViews').textContent = `${views} ${getLang('views', 'Aufrufe')}`;
-                } else if (data.total_views) {
-                    document.getElementById('statsViews').textContent = `${data.total_views} ${getLang('views', 'Aufrufe')}`;
-                }
-            })
-            .catch(() => {
-                document.getElementById('statsJoined').textContent = getLang('Joined', 'Beigetreten') + ' --';
-                document.getElementById('statsViews').textContent = `0 ${getLang('views', 'Aufrufe')}`;
-            });
-    }
+            }
+            if (data.total_views_raw) {
+                let views = parseInt(data.total_views_raw).toLocaleString('en-US');
+                if (localStorage.getItem('language') === 'de') views = views.replace(/,/g, '.');
+                document.getElementById('statsViews').textContent = `${views} ${getLang('views', 'Aufrufe')}`;
+            } else if (data.total_views) {
+                document.getElementById('statsViews').textContent = `${data.total_views} ${getLang('views', 'Aufrufe')}`;
+            }
+        })
+        .catch(() => {
+            document.getElementById('statsJoined').textContent = getLang('Joined', 'Beigetreten') + ' --';
+            document.getElementById('statsViews').textContent = `0 ${getLang('views', 'Aufrufe')}`;
+        });
+}
 
     function loadPosts() {
         showSkeletons(3, 'postsContainer', 'post');
@@ -2926,138 +3123,160 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    function renderPosts(posts) {
-        postsContainer.innerHTML = '';
+function renderPosts(posts) {
+    postsContainer.innerHTML = '';
 
-        if (!posts || posts.length === 0) {
-            postsContainer.innerHTML = `<p style="color: #888; text-align: center; width: 100%; padding: 40px 0;">${getLang('No posts available.', 'Keine Beiträge verfügbar.')}</p>`;
-            return;
-        }
+    if (!posts || posts.length === 0) {
+        postsContainer.innerHTML = `<p style="color: #888; text-align: center; width: 100%; padding: 40px 0;">${getLang('No posts available.', 'Keine Beiträge verfügbar.')}</p>`;
+        return;
+    }
 
-        const hidePostImagesSetting = JSON.parse(localStorage.getItem('hidePostImages') || '{}');
-        const shouldHidePostImages = hidePostImagesSetting.enabled === true;
+    const hidePostImagesSetting = JSON.parse(localStorage.getItem('hidePostImages') || '{}');
+    const shouldHidePostImages = hidePostImagesSetting.enabled === true;
 
-        const channelPicSrc = `/channelpic/${encodeURIComponent(channel)}.jpg`;
-        const likeIconSrc = 'LocalYT-Rev-Files/like.svg';
+    const channelPicSrc = `/channelpic/${encodeURIComponent(channel)}.jpg`;
+    const likeIconSrc = 'LocalYT-Rev-Files/like.svg';
 
-        const fragment = document.createDocumentFragment();
+    const fragment = document.createDocumentFragment();
 
-        posts.forEach(post => {
-            const postElement = document.createElement('div');
-            postElement.className = 'post-item';
+    posts.forEach(post => {
+        const postElement = document.createElement('div');
+        postElement.className = 'post-item';
 
-            postElement.innerHTML = `
-                <div class="post-header">
-                    <img src="${channelPicSrc}" alt="" class="post-channel-pic" loading="lazy">
-                    <div class="post-header-info">
-                        <div class="post-author-name">${channel}</div>
-                        <div class="post-date" style="color: #888; font-size: 13px;">${post.raw_date || ''}</div>
-                        <div class="post-content-text"></div>
-                    </div>
+        postElement.innerHTML = `
+            <div class="post-header">
+                <img src="${channelPicSrc}" alt="" class="post-channel-pic" loading="lazy">
+                <div class="post-header-info">
+                    <div class="post-author-name">${channel}</div>
+                    <div class="post-date" style="color: #888; font-size: 13px;">${post.raw_date || ''}</div>
+                    <div class="post-content-text"></div>
                 </div>
-                <div class="post-body"></div>
-                <div class="post-footer">
-                    <img src="${likeIconSrc}" alt="Like" class="post-like-icon">
-                    <span>${post.likes || 0}</span>
-                </div>
-            `;
+            </div>
+            <div class="post-body"></div>
+            <div class="post-footer">
+                <img src="${likeIconSrc}" alt="Like" class="post-like-icon">
+                <span>${post.likes || 0}</span>
+            </div>
+        `;
 
-            const textDiv = postElement.querySelector('.post-content-text');
-            const bodyDiv = postElement.querySelector('.post-body');
+        const textDiv = postElement.querySelector('.post-content-text');
+        const bodyDiv = postElement.querySelector('.post-body');
+        
+        // Store raw text for processing
+        const rawText = post.content || '';
+        
+        // Process links, timestamps, and mentions in post content
+        // Use the detectAndStyleLinks function (make sure it's defined and accessible)
+        if (typeof detectAndStyleLinks === 'function') {
+            // For posts, we want to process links synchronously since the content is already available
+            const processedHtml = rawText.replace(/(https?:\/\/[^\s<]+)/g, function(url) {
+                return '<a href="' + url + '" target="_blank" style="color: #167ac6; text-decoration: none;">' + url + '</a>';
+            });
             
-            textDiv.textContent = post.content || '';
+            // Also handle @mentions in posts
+            const mentionRegex = /@(\w+)/g;
+            const processedWithMentions = processedHtml.replace(mentionRegex, function(fullMatch, channelName) {
+                // Check if channel exists via HEAD request (simplified - we'll just make it a link)
+                return '<a href="channel.html?channel=' + encodeURIComponent(channelName) + '" style="color: #167ac6; text-decoration: none; cursor: pointer;">' + fullMatch + '</a>';
+            });
+            
+            textDiv.innerHTML = processedWithMentions;
+        } else {
+            // Fallback: simple URL detection
+            textDiv.textContent = rawText;
             const urlRegex = /(https?:\/\/[^\s<]+)/g;
             textDiv.innerHTML = textDiv.innerHTML.replace(urlRegex, function(url) {
-                return '<a href="' + url + '" target="_blank" style="color: #3ea6ff; text-decoration: none;">' + url + '</a>';
+                return '<a href="' + url + '" target="_blank" style="color: #167ac6; text-decoration: none;">' + url + '</a>';
+            });
+        }
+
+        if (post.images && post.images.length > 0 && !shouldHidePostImages) {
+            const imagesWrapper = document.createElement('div');
+            imagesWrapper.className = 'post-images-wrapper';
+            imagesWrapper.style.display = 'none';
+
+            let validImageCount = 0;
+
+            post.images.forEach((img, index) => {
+                const imgEl = document.createElement('img');
+                imgEl.className = `post-image${index === 0 ? ' active' : ''}`;
+                imgEl.src = `/channelposts/${encodeURIComponent(channel)}/${encodeURIComponent(img.file_name)}`;
+                imgEl.alt = `Post image ${index + 1}`;
+                
+                imgEl.onload = () => {
+                    validImageCount++;
+                    if (validImageCount === 1) {
+                        imagesWrapper.style.display = '';
+                    }
+                };
+                
+                imagesWrapper.appendChild(imgEl);
             });
 
-            if (post.images && post.images.length > 0 && !shouldHidePostImages) {
-                const imagesWrapper = document.createElement('div');
-                imagesWrapper.className = 'post-images-wrapper';
-                imagesWrapper.style.display = 'none';
+            if (post.images.length > 1) {
+                const prevBtn = document.createElement('button');
+                prevBtn.className = 'carousel-btn carousel-prev';
+                prevBtn.innerHTML = '&#10094;';
+                
+                const nextBtn = document.createElement('button');
+                nextBtn.className = 'carousel-btn carousel-next';
+                nextBtn.innerHTML = '&#10095;';
 
-                let validImageCount = 0;
-
-                post.images.forEach((img, index) => {
-                    const imgEl = document.createElement('img');
-                    imgEl.className = `post-image${index === 0 ? ' active' : ''}`;
-                    imgEl.src = `/channelposts/${encodeURIComponent(channel)}/${encodeURIComponent(img.file_name)}`;
-                    imgEl.alt = `Post image ${index + 1}`;
-                    
-                    imgEl.onload = () => {
-                        validImageCount++;
-                        if (validImageCount === 1) {
-                            imagesWrapper.style.display = '';
-                        }
-                    };
-                    
-                    imagesWrapper.appendChild(imgEl);
+                const dotsContainer = document.createElement('div');
+                dotsContainer.className = 'carousel-dots';
+                
+                post.images.forEach((_, index) => {
+                    const dot = document.createElement('div');
+                    dot.className = `carousel-dot${index === 0 ? ' active' : ''}`;
+                    dot.dataset.index = index;
+                    dotsContainer.appendChild(dot);
                 });
 
-                if (post.images.length > 1) {
-                    const prevBtn = document.createElement('button');
-                    prevBtn.className = 'carousel-btn carousel-prev';
-                    prevBtn.innerHTML = '&#10094;';
-                    
-                    const nextBtn = document.createElement('button');
-                    nextBtn.className = 'carousel-btn carousel-next';
-                    nextBtn.innerHTML = '&#10095;';
+                imagesWrapper.appendChild(prevBtn);
+                imagesWrapper.appendChild(nextBtn);
+                imagesWrapper.appendChild(dotsContainer);
 
-                    const dotsContainer = document.createElement('div');
-                    dotsContainer.className = 'carousel-dots';
-                    
-                    post.images.forEach((_, index) => {
-                        const dot = document.createElement('div');
-                        dot.className = `carousel-dot${index === 0 ? ' active' : ''}`;
-                        dot.dataset.index = index;
-                        dotsContainer.appendChild(dot);
+                let currentIndex = 0;
+                const allImages = imagesWrapper.querySelectorAll('.post-image');
+                const allDots = dotsContainer.querySelectorAll('.carousel-dot');
+
+                const showSlide = (idx) => {
+                    currentIndex = idx;
+                    allImages.forEach((img, i) => {
+                        img.classList.toggle('active', i === currentIndex);
                     });
-
-                    imagesWrapper.appendChild(prevBtn);
-                    imagesWrapper.appendChild(nextBtn);
-                    imagesWrapper.appendChild(dotsContainer);
-
-                    let currentIndex = 0;
-                    const allImages = imagesWrapper.querySelectorAll('.post-image');
-                    const allDots = dotsContainer.querySelectorAll('.carousel-dot');
-
-                    const showSlide = (idx) => {
-                        currentIndex = idx;
-                        allImages.forEach((img, i) => {
-                            img.classList.toggle('active', i === currentIndex);
-                        });
-                        allDots.forEach((dot, i) => {
-                            dot.classList.toggle('active', i === currentIndex);
-                        });
-                    };
-
-                    prevBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const newIndex = (currentIndex - 1 + post.images.length) % post.images.length;
-                        showSlide(newIndex);
+                    allDots.forEach((dot, i) => {
+                        dot.classList.toggle('active', i === currentIndex);
                     });
+                };
 
-                    nextBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const newIndex = (currentIndex + 1) % post.images.length;
-                        showSlide(newIndex);
-                    });
+                prevBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const newIndex = (currentIndex - 1 + post.images.length) % post.images.length;
+                    showSlide(newIndex);
+                });
 
-                    dotsContainer.addEventListener('click', (e) => {
-                        if (e.target.classList.contains('carousel-dot')) {
-                            showSlide(parseInt(e.target.dataset.index));
-                        }
-                    });
-                }
+                nextBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const newIndex = (currentIndex + 1) % post.images.length;
+                    showSlide(newIndex);
+                });
 
-                bodyDiv.appendChild(imagesWrapper);
+                dotsContainer.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('carousel-dot')) {
+                        showSlide(parseInt(e.target.dataset.index));
+                    }
+                });
             }
 
-            fragment.appendChild(postElement);
-        });
+            bodyDiv.appendChild(imagesWrapper);
+        }
 
-        postsContainer.appendChild(fragment);
-    }
+        fragment.appendChild(postElement);
+    });
+
+    postsContainer.appendChild(fragment);
+}
 
     function formatJoinDate(date) {
         const monthsEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
