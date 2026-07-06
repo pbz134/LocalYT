@@ -203,7 +203,7 @@ app.get('/video.html', (req, res) => {
     try {
         decodedSrc = decodeURIComponent(videoSrc);
     } catch (e) {
-        console.warn('[Discord Embed] Malformed URI in src, using raw:', videoSrc);
+        console.warn('[Encoding] Malformed URI in src, using raw:', videoSrc);
         decodedSrc = videoSrc;
     }
     const basePath = stripExtension(decodedSrc);
