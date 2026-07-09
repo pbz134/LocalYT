@@ -394,6 +394,16 @@ def save_tags_to_file(video_name, tags, output_dir):
         print(f"  Tag file: {tag_file if 'tag_file' in locals() else 'N/A'}")
         raise
 
+def add_to_skip_list(video_name):
+    """Appends a failed video name to the media_list_skip.txt file."""
+    skip_list_path = os.path.join(SCRIPT_DIR, media_list_skip)
+    try:
+        with open(skip_list_path, "a", encoding='utf-8') as f:
+            f.write(f"{video_name}\n")
+        print(f"  Added to skip list: {skip_list_path}")
+    except Exception as e:
+        print(f"  ERROR adding to skip list: {e}")
+
 def main():
     # Step 1: Always load the super expanded tag list
     print(f"Loading tags from: {TAGS_SUPEREXPANDED_FILE}")
@@ -460,6 +470,7 @@ def main():
             # Do NOT create a .txt tag file for this video.
             if tags is None:
                 print(f"  Skipping {media_name} - no .txt file will be created due to LLM failure.")
+                add_to_skip_list(media_name)
                 llm_failed_count += 1
                 continue
                 
@@ -478,6 +489,7 @@ def main():
         except Exception as e:
             print(f"  Error processing {media_name}: {e}")
             print(f"  Skipping {media_name} - no .txt file will be created.")
+            add_to_skip_list(media_name)
             llm_failed_count += 1
 
     print(f"\n{'='*50}")
@@ -489,7 +501,7 @@ def main():
         for rule_name, count in sorted(rule_match_counts.items(), key=lambda x: -x[1]):
             print(f"      - {rule_name}: {count}")
     print(f"  - LLM-processed (success): {llm_count}")
-    print(f"  - LLM failed (no file created): {llm_failed_count}")
+    print(f"  - LLM failed (added to skip list): {llm_failed_count}")
     print(f"{'='*50}")
 
 if __name__ == "__main__":
