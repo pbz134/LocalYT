@@ -5,12 +5,13 @@ import shutil
 import re
 import struct
 import threading
+import random
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Optional: Check if Pillow is available
 try:
-    from PIL import Image
+    from PIL import Image, ImageChops, ImageStat
     import io
     HAS_PIL = True
 except ImportError:
@@ -85,6 +86,53 @@ def update_status_line(done_count, total_files, fname, progress):
         sys.stdout.write(line_output + "\r")
         sys.stdout.flush()
 
+def is_still_image(video_path, duration):
+    """Extracts two random frames and checks if they are 98% identical."""
+    if duration < 10:
+        return False
+        
+    t1 = random.uniform(1, duration / 2)
+    t2 = random.uniform(duration / 2, duration - 1)
+    
+    frames = []
+    for t in [t1, t2]:
+        cmd = [
+            'ffmpeg', '-ss', str(t), '-i', str(video_path),
+            '-frames:v', '1',
+            '-f', 'image2pipe',
+            '-vcodec', 'bmp',
+            '-'
+        ]
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        header = process.stdout.read(54)
+        if len(header) < 54 or header[:2] != b'BM':
+            process.wait()
+            return False
+            
+        size = struct.unpack('<I', header[2:6])[0]
+        remaining = size - 54
+        img_data = header + process.stdout.read(remaining)
+        process.wait()
+        
+        try:
+            img = Image.open(io.BytesIO(img_data))
+            img = img.resize((32, 32)).convert('RGB')
+            frames.append(img)
+        except Exception:
+            return False
+            
+    if len(frames) != 2:
+        return False
+        
+    diff = ImageChops.difference(frames[0], frames[1])
+    stat = ImageStat.Stat(diff)
+    
+    # Calculate average difference across RGB channels (0-255)
+    avg_diff = sum(stat.mean) / 3.0
+    
+    # 255 * 0.02 = 5.1. If average diff is < 2%, consider it a still image.
+    return avg_diff < 5.1
+
 def process_single_video(args):
     """
     Worker Function.
@@ -120,7 +168,31 @@ def process_single_video(args):
             return ("error", filename)
 
         thumb_width = 160 
-        interval = 5
+        
+        # --- STILL IMAGE DETECTION ---
+        with console_lock:
+            sys.stdout.write(f"\nChecking for still image video: {filename}...      ")
+            sys.stdout.flush()
+            
+        if is_still_image(video_full_path, duration):
+            with console_lock:
+                sys.stdout.write(f"\nSkipping still image video: {filename}                     \n")
+                sys.stdout.flush()
+            return ("still", filename)
+        
+        # Dynamic interval based on video duration
+        if duration > 14400:      # > 240 minutes
+            interval = 80
+        elif duration > 7200:     # > 120 minutes
+            interval = 40
+        elif duration > 3600:     # > 60 minutes
+            interval = 20
+        elif duration > 1800:     # > 30 minutes
+            interval = 10
+        elif duration > 300:      # > 5 minutes
+            interval = 7
+        else:                     # <= 5 minutes
+            interval = 5
         
         num_frames = int(duration // interval)
         
@@ -132,6 +204,11 @@ def process_single_video(args):
             
         if num_frames <= 0:
             return ("error", filename)
+
+        # Verbose output for interval and frame image quantity
+        with console_lock:
+            sys.stdout.write(f"\nCreating image every {interval} seconds for this video... ({num_frames} frames)\n")
+            sys.stdout.flush()
 
         # --- GRID LAYOUT CALCULATION ---
         # Calculate how many columns fit in our max width limit
@@ -277,6 +354,7 @@ def scan_videos_directory(videos_dir, thumbnails_dir, skip_existing=True):
 
     created_count = 0
     skipped_count = 0
+    still_count = 0
     error_count = 0
     
     print(f"Processing {total_files} files...")
@@ -305,6 +383,8 @@ def scan_videos_directory(videos_dir, thumbnails_dir, skip_existing=True):
                 created_count += 1
             elif status == "skipped": 
                 skipped_count += 1
+            elif status == "still":
+                still_count += 1
             elif status == "error":
                 error_count += 1
 
@@ -314,6 +394,7 @@ def scan_videos_directory(videos_dir, thumbnails_dir, skip_existing=True):
     print(f"  Total Scanned:   {total_files}")
     print(f"  New Sprites:     {created_count}")
     print(f"  Skipped:         {skipped_count}")
+    if still_count > 0: print(f"  Still Images:    {still_count}")
     if error_count > 0: print(f"  Errors:          {error_count}")
 
 if __name__ == "__main__":
