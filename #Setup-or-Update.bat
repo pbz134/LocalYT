@@ -5,6 +5,7 @@ setlocal enabledelayedexpansion
 set "LLM_TAGGING=yes"
 set "SEEKBAR_PREVIEWS=yes"
 set "SUBTITLES=yes"
+set "THUMBNAIL_MODE=zoom"
 
 if exist "#Setup.env" (
     echo Found #Setup.env, loading preferences...
@@ -12,52 +13,73 @@ if exist "#Setup.env" (
         if /i "%%a"=="LLM_TAGGING" set "LLM_TAGGING=%%b"
         if /i "%%a"=="SEEKBAR_PREVIEWS" set "SEEKBAR_PREVIEWS=%%b"
         if /i "%%a"=="SUBTITLES" set "SUBTITLES=%%b"
+        if /i "%%a"=="THUMBNAIL_MODE" set "THUMBNAIL_MODE=%%b"
     )
-) else (
-    echo #Setup.env not found. Please configure your preferences:
-    
-    :ask_subtitles
-    set /p "subtitles_choice=Do you want to add subtitles to your videos? (y/n): "
-    if /i "!subtitles_choice!"=="y" (
-        set "SUBTITLES=yes"
-    ) else if /i "!subtitles_choice!"=="n" (
-        set "SUBTITLES=no"
-    ) else (
-        echo Please enter y or n.
-        goto ask_subtitles
-    )
-
-    :ask_llm
-    set /p "llm_choice=Do you want to do the LLM video tagging? (y/n): "
-    if /i "!llm_choice!"=="y" (
-        set "LLM_TAGGING=yes"
-    ) else if /i "!llm_choice!"=="n" (
-        set "LLM_TAGGING=no"
-    ) else (
-        echo Please enter y or n.
-        goto ask_llm
-    )
-
-    :ask_seekbar
-    set /p "seekbar_choice=Do you want to generate seek bar previews? (y/n): "
-    if /i "!seekbar_choice!"=="y" (
-        set "SEEKBAR_PREVIEWS=yes"
-    ) else if /i "!seekbar_choice!"=="n" (
-        set "SEEKBAR_PREVIEWS=no"
-    ) else (
-        echo Please enter y or n.
-        goto ask_seekbar
-    )
-
-    :: Save choices to #Setup.env for future runs
-    echo SUBTITLES=!SUBTITLES!> "#Setup.env"
-    echo LLM_TAGGING=!LLM_TAGGING!>> "#Setup.env"
-    echo SEEKBAR_PREVIEWS=!SEEKBAR_PREVIEWS!>> "#Setup.env"
-    echo.
-    echo Preferences saved to #Setup.env. You won't be asked again.
-    echo.
+    goto env_loaded
 )
 
+echo #Setup.env not found. Please configure your preferences:
+
+:ask_subtitles
+set /p "subtitles_choice=Do you want to add subtitles to your videos? (y/n): "
+if /i "!subtitles_choice!"=="y" (
+    set "SUBTITLES=yes"
+) else if /i "!subtitles_choice!"=="n" (
+    set "SUBTITLES=no"
+) else (
+    echo Please enter y or n.
+    goto ask_subtitles
+)
+
+:ask_llm
+set /p "llm_choice=Do you want to do the LLM video tagging? (y/n): "
+if /i "!llm_choice!"=="y" (
+    set "LLM_TAGGING=yes"
+) else if /i "!llm_choice!"=="n" (
+    set "LLM_TAGGING=no"
+) else (
+    echo Please enter y or n.
+    goto ask_llm
+)
+
+:ask_seekbar
+set /p "seekbar_choice=Do you want to generate seek bar previews? (y/n): "
+if /i "!seekbar_choice!"=="y" (
+    set "SEEKBAR_PREVIEWS=yes"
+) else if /i "!seekbar_choice!"=="n" (
+    set "SEEKBAR_PREVIEWS=no"
+) else (
+    echo Please enter y or n.
+    goto ask_seekbar
+)
+
+:ask_thumbnail
+echo How do you want to fix non-16:9 thumbnails?
+echo 1. Zoom in to 16:9 (default)
+echo 2. Add black borders to make 16:9
+echo 3. Add colored borders (using most common color)
+set /p "thumbnail_choice=Enter 1, 2, or 3: "
+if "!thumbnail_choice!"=="1" (
+    set "THUMBNAIL_MODE=zoom"
+) else if "!thumbnail_choice!"=="2" (
+    set "THUMBNAIL_MODE=black"
+) else if "!thumbnail_choice!"=="3" (
+    set "THUMBNAIL_MODE=color"
+) else (
+    echo Please enter 1, 2, or 3.
+    goto ask_thumbnail
+)
+
+:: Save choices to #Setup.env for future runs
+echo SUBTITLES=!SUBTITLES!> "#Setup.env"
+echo LLM_TAGGING=!LLM_TAGGING!>> "#Setup.env"
+echo SEEKBAR_PREVIEWS=!SEEKBAR_PREVIEWS!>> "#Setup.env"
+echo THUMBNAIL_MODE=!THUMBNAIL_MODE!>> "#Setup.env"
+echo.
+echo Preferences saved to #Setup.env. You won't be asked again.
+echo.
+
+:env_loaded
 echo Generating missing channel pictures...
 .\venv\python.exe .\LocalYT-Rev-Files\createChannelpics.py
 
@@ -109,7 +131,7 @@ echo Calculating total channel view counts and archived date...
 .\venv\python.exe .\LocalYT-Rev-Files\createChannelstats.py
 
 echo Cropping all thumbnails to 16:9...
-.\venv\python.exe .\LocalYT-Rev-Files\CropThumbnails.py
+.\venv\python.exe .\LocalYT-Rev-Files\CropThumbnails.py --mode !THUMBNAIL_MODE!
 
 echo Generating videolengths...
 .\venv\python.exe .\LocalYT-Rev-Files\createVideolengths.py

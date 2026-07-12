@@ -15,13 +15,6 @@ import sys
 def find_content_boundaries(image, threshold=30):
     """
     Find the actual content boundaries by detecting where black bars end.
-    
-    Args:
-        image: PIL Image object
-        threshold: Pixel value threshold for considering a pixel as black
-    
-    Returns:
-        tuple: (left, top, right, bottom) boundaries of the content
     """
     img_array = np.array(image.convert('RGB'))
     height, width = img_array.shape[:2]
@@ -29,9 +22,7 @@ def find_content_boundaries(image, threshold=30):
     # Find left boundary (scan from left to right)
     left_boundary = 0
     for x in range(width):
-        # Check if this column has any non-black pixels
         column = img_array[:, x]
-        # Check if any pixel in column is not black (above threshold)
         non_black = np.any(np.any(column > threshold, axis=1))
         if non_black:
             left_boundary = x
@@ -69,20 +60,10 @@ def find_content_boundaries(image, threshold=30):
 def detect_black_bars(image, threshold=30, sample_ratio=0.1):
     """
     Detect if the image has black bars on any side.
-    
-    Args:
-        image: PIL Image object
-        threshold: Pixel value threshold for considering a pixel as black (0-255)
-        sample_ratio: Ratio of width/height to sample for checking black bars
-    
-    Returns:
-        tuple: (has_left_bar, has_right_bar, has_top_bar, has_bottom_bar)
     """
-    # Convert to numpy array for faster processing
     img_array = np.array(image.convert('RGB'))
     height, width = img_array.shape[:2]
     
-    # Calculate sample step
     sample_step_x = max(1, int(width * (1 - sample_ratio)))
     sample_step_y = max(1, int(height * (1 - sample_ratio)))
     x_indices = range(0, width, sample_step_x)
@@ -140,13 +121,11 @@ def detect_black_bars(image, threshold=30, sample_ratio=0.1):
                     bottom_black_count += 1
                 bottom_pixel_count += 1
     
-    # Calculate black pixel ratios
     left_black_ratio = left_black_count / left_pixel_count if left_pixel_count > 0 else 0
     right_black_ratio = right_black_count / right_pixel_count if right_pixel_count > 0 else 0
     top_black_ratio = top_black_count / top_pixel_count if top_pixel_count > 0 else 0
     bottom_black_ratio = bottom_black_count / bottom_pixel_count if bottom_pixel_count > 0 else 0
     
-    # Determine if bars exist (at least 70% black pixels in the checked region)
     has_left_bar = left_black_ratio > 0.7
     has_right_bar = right_black_ratio > 0.7
     has_top_bar = top_black_ratio > 0.7
@@ -154,70 +133,94 @@ def detect_black_bars(image, threshold=30, sample_ratio=0.1):
     
     return has_left_bar, has_right_bar, has_top_bar, has_bottom_bar
 
-def zoom_to_16_9(image, threshold=30):
+def get_most_common_color(image):
     """
-    Remove black bars and zoom in to achieve 16:9 aspect ratio.
+    Find the most common color in the image.
+    """
+    image_rgb = image.convert('RGB')
+    # Use quantize to make it fast and avoid >256 colors issue
+    quantized = image_rgb.quantize(colors=256, method=Image.MEDIANCUT)
+    palette = quantized.getpalette()
+    colors = quantized.getcolors()
     
-    Args:
-        image: PIL Image object
-        threshold: Pixel value threshold for black detection
-    
-    Returns:
-        PIL Image object zoomed to 16:9 without black bars
+    if not colors:
+        return (0, 0, 0)
+        
+    max_count = 0
+    most_common = (0, 0, 0)
+    for count, color_index in colors:
+        if count > max_count:
+            max_count = count
+            r = palette[color_index * 3]
+            g = palette[color_index * 3 + 1]
+            b = palette[color_index * 3 + 2]
+            most_common = (r, g, b)
+    return most_common
+
+def add_borders(image, color):
+    """
+    Add borders to the image to make it 16:9.
     """
     width, height = image.size
+    target_ratio = 16 / 9
+    current_ratio = width / height
     
+    if current_ratio > target_ratio:
+        target_height = int(width / target_ratio)
+        new_img = Image.new('RGB', (width, target_height), color)
+        top = (target_height - height) // 2
+        new_img.paste(image, (0, top))
+    else:
+        target_width = int(height * target_ratio)
+        new_img = Image.new('RGB', (target_width, height), color)
+        left = (target_width - width) // 2
+        new_img.paste(image, (left, 0))
+    return new_img
+
+def fix_thumbnail(image, threshold=30, mode='zoom'):
+    """
+    Remove black bars and fix the aspect ratio to 16:9 based on the selected mode.
+    """
     # Find the actual content boundaries
     left, top, right, bottom = find_content_boundaries(image, threshold)
-    
-    # Crop out black bars
     content_width = right - left
     content_height = bottom - top
     
     # If content is too small or boundaries are invalid, use the whole image
-    if content_width <= 0 or content_height <= 0 or content_width < width * 0.5 or content_height < height * 0.5:
+    if content_width <= 0 or content_height <= 0 or content_width < image.width * 0.5 or content_height < image.height * 0.5:
         cropped = image
     else:
-        # Crop to content
         cropped = image.crop((left, top, right, bottom))
     
-    cropped_width, cropped_height = cropped.size
-    
-    # Now ensure 16:9 aspect ratio
+    width, height = cropped.size
     target_ratio = 16 / 9
-    current_ratio = cropped_width / cropped_height
+    current_ratio = width / height
     
-    # If already close to 16:9, return cropped
     if abs(current_ratio - target_ratio) < 0.01:
         return cropped
     
-    if current_ratio > target_ratio:
-        # Too wide - crop from left and right
-        target_width = int(cropped_height * target_ratio)
-        total_remove = cropped_width - target_width
-        remove_left = total_remove // 2
-        remove_right = total_remove - remove_left
-        return cropped.crop((remove_left, 0, cropped_width - remove_right, cropped_height))
-    else:
-        # Too tall - crop from top and bottom
-        target_height = int(cropped_width / target_ratio)
-        total_remove = cropped_height - target_height
-        remove_top = total_remove // 2
-        remove_bottom = total_remove - remove_top
-        return cropped.crop((0, remove_top, cropped_width, cropped_height - remove_bottom))
+    if mode == 'zoom':
+        if current_ratio > target_ratio:
+            target_width = int(height * target_ratio)
+            total_remove = width - target_width
+            remove_left = total_remove // 2
+            remove_right = total_remove - remove_left
+            return cropped.crop((remove_left, 0, width - remove_right, height))
+        else:
+            target_height = int(width / target_ratio)
+            total_remove = height - target_height
+            remove_top = total_remove // 2
+            remove_bottom = total_remove - remove_top
+            return cropped.crop((0, remove_top, width, height - remove_bottom))
+    elif mode == 'black':
+        return add_borders(cropped, color=(0, 0, 0))
+    elif mode == 'color':
+        color = get_most_common_color(cropped)
+        return add_borders(cropped, color=color)
 
-def process_image(filepath, threshold=30, dry_run=False, min_size=100):
+def process_image(filepath, threshold=30, dry_run=False, min_size=100, mode='zoom'):
     """
-    Process a single image file - detect black bars and zoom in to remove them.
-    
-    Args:
-        filepath: Path to the image file
-        threshold: Pixel value threshold for black detection
-        dry_run: If True, only simulate the operation
-        min_size: Minimum image dimension to process
-    
-    Returns:
-        dict: Result information
+    Process a single image file - detect black bars and fix aspect ratio.
     """
     result = {
         'path': str(filepath),
@@ -228,17 +231,14 @@ def process_image(filepath, threshold=30, dry_run=False, min_size=100):
     }
     
     try:
-        # Open image
         with Image.open(filepath) as img:
             dimensions = img.size
             width, height = dimensions
             
-            # Skip very small images
             if width < min_size or height < min_size:
                 result['message'] = f"Image too small ({width}x{height})"
                 return result
             
-            # Detect black bars
             has_left, has_right, has_top, has_bottom = detect_black_bars(img, threshold)
             
             bar_types = []
@@ -251,11 +251,9 @@ def process_image(filepath, threshold=30, dry_run=False, min_size=100):
             if has_bottom:
                 bar_types.append("bottom")
             
-            # Check if there are any black bars
             has_any_bar = has_left or has_right or has_top or has_bottom
             
             if not has_any_bar:
-                # Check if aspect ratio is already 16:9
                 aspect_ratio = width / height
                 target_ratio = 16 / 9
                 if abs(aspect_ratio - target_ratio) < 0.02:
@@ -268,14 +266,12 @@ def process_image(filepath, threshold=30, dry_run=False, min_size=100):
                 return result
             
             # Process the image - remove black bars and make 16:9
-            processed_image = zoom_to_16_9(img, threshold)
+            processed_image = fix_thumbnail(img, threshold, mode)
             
-            # Check if any changes were made
             if processed_image.size == dimensions:
                 result['message'] = f"No changes made to {width}x{height}"
                 return result
             
-            # Save the processed image (overwrite)
             processed_image.save(filepath, quality=95, optimize=True)
             
             new_dimensions = processed_image.size
@@ -310,10 +306,11 @@ def main():
                        help='Print detailed information about each file')
     parser.add_argument('--min-size', type=int, default=100,
                        help='Minimum image dimension to process (default: 100)')
+    parser.add_argument('--mode', '-m', choices=['zoom', 'black', 'color'], default='zoom',
+                       help='Mode for fixing aspect ratio: zoom (crop), black (black borders), color (colored borders using most common color) - default: zoom')
     
     args = parser.parse_args()
     
-    # Validate directory
     root_dir = Path(args.directory)
     if not root_dir.exists():
         print(f"Error: Directory '{root_dir}' does not exist")
@@ -323,7 +320,6 @@ def main():
         print(f"Error: '{root_dir}' is not a directory")
         sys.exit(1)
     
-    # Find all image files
     image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.webp', '.gif'}
     
     if args.recursive:
@@ -331,7 +327,6 @@ def main():
     else:
         files = list(root_dir.glob('*'))
     
-    # Filter to only image files
     image_files = [f for f in files if f.is_file() and f.suffix.lower() in image_extensions]
     
     total_files = len(image_files)
@@ -341,22 +336,20 @@ def main():
         return
     
     print(f"Scanning {total_files} image files for black bars...")
+    print(f"Aspect ratio fix mode: {args.mode}")
     if args.dry_run:
         print("⚠️  DRY RUN MODE - No files will be modified")
     else:
         print("⚠️  WARNING: Files will be OVERWRITTEN without backups!")
     
-    # Process files
     processed_count = 0
     skipped_count = 0
     error_count = 0
     results = []
     
-    # Create a thread pool
     with ThreadPoolExecutor(max_workers=args.threads) as executor:
-        # Submit all tasks
         future_to_file = {
-            executor.submit(process_image, f, args.threshold, args.dry_run, args.min_size): f 
+            executor.submit(process_image, f, args.threshold, args.dry_run, args.min_size, args.mode): f 
             for f in image_files
         }
         
@@ -390,7 +383,6 @@ def main():
                         rel_path = filepath.relative_to(root_dir)
                         print(f"  Skipped: {rel_path} - {result['message']}")
                 
-                # Update progress
                 status_msg = f"Processing file #{completed}/{total_files}... "
                 if args.dry_run:
                     status_msg += f"Would process: {processed_count}, Skipped: {skipped_count}"
@@ -405,11 +397,9 @@ def main():
                 error_count += 1
                 print(f"\nError processing {filepath}: {e}")
     
-    # Clear line
     sys.stdout.write(" " * 80 + "\r")
     sys.stdout.flush()
     
-    # Print summary
     print("\n" + "=" * 70)
     if args.dry_run:
         print("DRY RUN SUMMARY:")
