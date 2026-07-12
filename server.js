@@ -361,6 +361,7 @@ const watchHistoryFilePath = path.join(__dirname, 'watchHistory.json');
 const cacheFilePath = path.join(__dirname, 'video_cache.json');
 const recommendationIndexPath = path.join(__dirname, 'recommendation_index.json');
 const folderVersionsPath = path.join(__dirname, 'folder_versions.json');
+const notificationsFilePath = path.join(__dirname, 'notifications.json');
 
 function ensurePreferencesFile() {
     if (!fs.existsSync(preferencesFilePath)) {
@@ -572,6 +573,56 @@ function loadExistingCache() {
     return [];
 }
 
+// --- NOTIFICATION GENERATION ---
+function generateNotifications(addedPaths) {
+    if (!addedPaths || addedPaths.length === 0) {
+        console.log('No new videos added since last scan.');
+        return;
+    }
+
+    const channelCounts = {};
+    addedPaths.forEach(p => {
+        const channel = p.split('/')[0];
+        if (!channelCounts[channel]) channelCounts[channel] = { videos: 0, audios: 0 };
+        if (/\.(mp3|wav|flac|m4a|aac)$/i.test(p)) {
+            channelCounts[channel].audios++;
+        } else {
+            channelCounts[channel].videos++;
+        }
+    });
+
+    let notifications = [];
+    if (fs.existsSync(notificationsFilePath)) {
+        try {
+            notifications = JSON.parse(fs.readFileSync(notificationsFilePath, 'utf8'));
+        } catch (e) {}
+    }
+
+    const timestamp = new Date().toISOString();
+    Object.keys(channelCounts).forEach(channel => {
+        const counts = channelCounts[channel];
+        let parts = [];
+        if (counts.videos > 0) parts.push(`${counts.videos} new video file${counts.videos > 1 ? 's' : ''}`);
+        if (counts.audios > 0) parts.push(`${counts.audios} new audio file${counts.audios > 1 ? 's' : ''}`);
+        
+        if (parts.length > 0) {
+            notifications.unshift({
+                id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                message: `${channel}: ${parts.join(' and ')} added.`,
+                timestamp: timestamp
+            });
+        }
+    });
+
+    // Keep only the latest 50 notifications
+    if (notifications.length > 50) {
+        notifications = notifications.slice(0, 50);
+    }
+
+    fs.writeFileSync(notificationsFilePath, JSON.stringify(notifications, null, 2));
+    console.log(`Generated notifications for ${addedPaths.length} new files.`);
+}
+
 // Recursively scan a folder and return objects
 function scanFolder(folderPath, baseDir) {
     const result = [];
@@ -699,8 +750,18 @@ function incrementalScanAndCacheVideos() {
         }
     }
 
-    // Cache speichern
+    // Save cache
     try {
+        // --- NOTIFICATION CHECK ---
+        if (oldCache.length > 0 && newCache.length > 0) {
+            const oldPaths = new Set(oldCache.map(v => v.path));
+            const addedPaths = newCache.filter(v => !oldPaths.has(v.path)).map(v => v.path);
+            if (addedPaths.length > 0) {
+                generateNotifications(addedPaths);
+            }
+        }
+        // ---------------------------
+
         fs.writeFileSync(cacheFilePath, JSON.stringify(newCache, null, 2));
         videoCache = new Map(newCache.map(v => [v.path, v]));
         videoArray = newCache;
@@ -708,19 +769,19 @@ function incrementalScanAndCacheVideos() {
         
         console.log(`Cache updated: ${videoArray.length} videos (${changedChannels} changed, ${unchangedChannels} unchanged).`);
         
-        // Versionen speichern
+        // Save versions
         saveFolderVersions(newVersions);
         
-        // Recommendation-Index neu aufbauen
+        // Rebuild recommendation indec
         buildRecommendationIndex();
     } catch (err) {
-        console.error('Fehler beim Speichern des Caches:', err);
+        console.error('Error while saving cache:', err);
     }
 }
 
-// VOLLER SCAN (wird verwendet, wenn kein Cache existiert oder er beschädigt ist)
+// Full scan (used when cache unavailable or corrupted)
 function fullScanAndCacheVideos() {
-    console.log('\n🔍 Vollständiger Scan wird gestartet...');
+    console.log('\nInitiating full scan...');
     const videosDir = path.join(__dirname, 'videos');
     const tempCache = [];
     const newVersions = {};
@@ -777,10 +838,10 @@ function fullScanAndCacheVideos() {
         }
     }
 
-    // Fortschrittsbalken für den vollständigen Scan
-    console.log('📊 Sammle alle Kanäle...');
+    // Progress bar for full scan
+    console.log('Collecting all channels...');
     
-    // Erst alle Kanäle finden, um Fortschritt anzeigen zu können
+    // Find all channels first to show progress bar
     const allChannels = [];
     try {
         const items = fs.readdirSync(videosDir);
@@ -802,12 +863,12 @@ function fullScanAndCacheVideos() {
         clearOnComplete: true
     });
 
-    console.log(`📁 ${allChannels.length} Kanäle gefunden.`);
+    console.log(`${allChannels.length} Kanäle gefunden.`);
     progressBar.start(allChannels.length, 0);
 
     let processedChannels = 0;
     
-    // Funktion zum Scannen eines Kanals mit Fortschritt
+    // Function to scan a channel with progress
     function scanChannel(channel) {
         const channelPath = path.join(videosDir, channel);
         const version = getFolderVersion(channelPath);
@@ -815,7 +876,7 @@ function fullScanAndCacheVideos() {
             newVersions[channel] = version;
         }
         
-        // Videos im Kanal scannen (rekursiv)
+        // Scan videos in channel (recursive)
         const walk = (dir) => {
             const files = fs.readdirSync(dir);
             for (const file of files) {
@@ -869,7 +930,7 @@ function fullScanAndCacheVideos() {
         progressBar.update(processedChannels);
     }
 
-    // Alle Kanäle nacheinander scannen
+    // Scan all channels one after another
     for (const channel of allChannels) {
         scanChannel(channel);
     }
@@ -881,7 +942,7 @@ function fullScanAndCacheVideos() {
         videoCache = new Map(tempCache.map(v => [v.path, v]));
         videoArray = tempCache;
         videoArray.sort((a, b) => a.path.localeCompare(b.path));
-        console.log(`✅ Vollständiger Scan abgeschlossen. ${videoArray.length} Videos gecached.`);
+        console.log(`Full scan finished. ${videoArray.length} videos cached.`);
         
         saveFolderVersions(newVersions);
         buildRecommendationIndex();
@@ -2946,6 +3007,44 @@ app.get('/shared-playlist', (req, res) => {
     } catch (err) {
         console.error('Error loading shared playlist:', err);
         res.status(500).send('Error loading playlist');
+    }
+});
+
+// --- NOTIFICATIONS API ---
+const notificationReadStateFilePath = path.join(__dirname, 'notification_read_state.json');
+
+app.get('/api/notifications', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+    try {
+        const notifs = fs.existsSync(notificationsFilePath) ? JSON.parse(fs.readFileSync(notificationsFilePath, 'utf8')) : [];
+        const readState = fs.existsSync(notificationReadStateFilePath) ? JSON.parse(fs.readFileSync(notificationReadStateFilePath, 'utf8')) : {};
+        const userReadIds = readState[userId] || [];
+        
+        const unreadCount = notifs.filter(n => !userReadIds.includes(n.id)).length;
+        res.json({ notifications: notifs, unreadCount });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to load notifications' });
+    }
+});
+
+app.post('/api/notifications/read', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).send('Not authenticated');
+    try {
+        const notifs = fs.existsSync(notificationsFilePath) ? JSON.parse(fs.readFileSync(notificationsFilePath, 'utf8')) : [];
+        const readState = fs.existsSync(notificationReadStateFilePath) ? JSON.parse(fs.readFileSync(notificationReadStateFilePath, 'utf8')) : {};
+        if (!readState[userId]) readState[userId] = [];
+        
+        notifs.forEach(n => {
+            if (!readState[userId].includes(n.id)) {
+                readState[userId].push(n.id);
+            }
+        });
+        fs.writeFileSync(notificationReadStateFilePath, JSON.stringify(readState, null, 2));
+        res.sendStatus(200);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to mark as read' });
     }
 });
 

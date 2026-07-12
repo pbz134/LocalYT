@@ -1,4 +1,3 @@
-// profile-pic.js:
 (function() {
     const PLACEHOLDER = '/LocalYT-Rev-Files/user-profile-placeholder.jpg';
     let menuInstance = null;
@@ -385,6 +384,7 @@
             }
     
             /* Placeholder visibility */
+
             ::placeholder {
                 color: #737373 !important;
             }
@@ -786,6 +786,94 @@
         }
     }
 
+    function initNotifications() {
+        let userActions = document.querySelector('.user-actions');
+        if (!userActions) return;
+        if (document.getElementById('notifBell')) return;
+
+        const notifWrapper = document.createElement('div');
+        notifWrapper.style.position = 'relative';
+        notifWrapper.style.marginRight = '24px';
+        notifWrapper.style.display = 'flex';
+        notifWrapper.style.alignItems = 'center';
+        
+        const notifIcon = document.createElement('img');
+        notifIcon.id = 'notifBell';
+        notifIcon.src = '/LocalYT-Rev-Files/notifications.svg';
+        notifIcon.className = 'notif-icon';
+        notifIcon.draggable = false;
+        
+        const badge = document.createElement('span');
+        badge.id = 'notifBadge';
+        badge.className = 'notif-badge';
+        
+        const notifDropdown = document.createElement('div');
+        notifDropdown.id = 'notifDropdown';
+        notifDropdown.className = 'profile-menu-dropdown notif-dropdown';
+        
+        notifWrapper.appendChild(notifIcon);
+        notifWrapper.appendChild(badge);
+        notifWrapper.appendChild(notifDropdown);
+        
+        const profilePic = document.getElementById('headerProfilePic');
+        if (profilePic) userActions.insertBefore(notifWrapper, profilePic);
+        else userActions.appendChild(notifWrapper);
+
+        notifIcon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (notifDropdown.classList.contains('open')) {
+                notifDropdown.classList.remove('open');
+            } else {
+                notifDropdown.classList.add('open');
+                badge.style.display = 'none';
+                fetch('/api/notifications/read', { method: 'POST' }).catch(err => console.error(err));
+            }
+        });
+
+        document.addEventListener('click', () => {
+            if (notifDropdown.classList.contains('open')) notifDropdown.classList.remove('open');
+        });
+
+        fetch('/api/notifications')
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+                if (!data) return;
+                if (data.unreadCount > 0) {
+                    badge.textContent = data.unreadCount;
+                    badge.style.display = 'flex';
+                }
+                if (data.notifications.length === 0) {
+                    notifDropdown.innerHTML = `<div class="profile-menu-item" style="cursor:default; flex-direction:column; align-items:flex-start;"><span style="font-weight:bold;">No new notifications</span></div>`;
+                } else {
+                    notifDropdown.innerHTML = '';
+                    data.notifications.forEach(n => {
+                        const item = document.createElement('div');
+                        item.className = 'profile-menu-item';
+                        item.style.flexDirection = 'column';
+                        item.style.alignItems = 'flex-start';
+                        item.style.padding = '12px 20px';
+                        item.style.borderBottom = '1px solid rgba(128,128,128,0.2)';
+                        
+                        const msg = document.createElement('span');
+                        msg.style.fontWeight = 'bold';
+                        msg.style.fontSize = '14px';
+                        msg.textContent = n.message;
+                        
+                        const time = document.createElement('span');
+                        time.style.fontSize = '12px';
+                        time.style.opacity = '0.7';
+                        time.style.marginTop = '4px';
+                        time.textContent = new Date(n.timestamp).toLocaleString();
+                        
+                        item.appendChild(msg);
+                        item.appendChild(time);
+                        notifDropdown.appendChild(item);
+                    });
+                }
+            })
+            .catch(err => console.error('Error fetching notifications:', err));
+    }
+
     function initProfilePic() {
         let userActions = document.querySelector('.user-actions');
         if (!userActions) {
@@ -875,6 +963,9 @@
             })
             .then(() => {
                 buildMenu(userData);
+                if (userData && userData.username) {
+                    initNotifications();
+                }
             })
             .catch(err => {
                 console.error('Error checking session:', err);
@@ -1031,6 +1122,36 @@
 
             .header-profile-pic {
                 cursor: pointer;
+            }
+
+            .notif-icon {
+                width: 28px;
+                height: 28px;
+                cursor: pointer;
+                filter: ${isLightMode ? 'invert(0)' : 'invert(1)'};
+            }
+            .notif-badge {
+                position: absolute;
+                top: -5px;
+                right: -8px;
+                background-color: red;
+                color: white;
+                border-radius: 50%;
+                font-size: 10px;
+                padding: 2px 5px;
+                display: none;
+                font-family: 'RobotoRegular', Arial, sans-serif;
+                font-weight: bold;
+                align-items: center;
+                justify-content: center;
+                min-width: 16px;
+                height: 16px;
+                box-sizing: border-box;
+            }
+            .notif-dropdown {
+                min-width: 300px;
+                max-height: 400px;
+                overflow-y: auto;
             }
         `;
         document.head.appendChild(style);
