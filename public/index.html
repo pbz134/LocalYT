@@ -534,9 +534,11 @@ function renderVideos(videos) {
         `;
         container.appendChild(videoElement);
 
-        videoElement.querySelector('.thumbnail-container').addEventListener('click', () => {
+        const thumbnailContainer = videoElement.querySelector('.thumbnail-container');
+        thumbnailContainer.addEventListener('click', () => {
             window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
         });
+        setupVideoLinkEvents(thumbnailContainer, video.path);
 
         setupVideoLinkEvents(videoElement.querySelector('.video-title'), video.path);
         setupChannelLinkEvents(videoElement.querySelector('.channel-pic-link'), channel);
