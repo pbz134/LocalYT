@@ -3318,9 +3318,16 @@ document.addEventListener('click', function(e) {
                 }, 2000);
             }
 
-            function showSaveMessage() {
+            function showSaveMessage(playlistName) {
                 const saveMsg = document.getElementById('saveMessage');
-                saveMsg.textContent = getLang('Saved to playlist', 'Zur Playlist hinzugefügt');
+                const lang = localStorage.getItem('language');
+                let message;
+                if (lang === 'de') {
+                    message = `Zu ${playlistName} hinzugefügt`;
+                } else {
+                    message = `Added to ${playlistName}`;
+                }
+                saveMsg.textContent = message;
                 saveMsg.style.display = 'block';
                 setTimeout(() => {
                     saveMsg.style.display = 'none';
@@ -3392,7 +3399,7 @@ document.addEventListener('click', function(e) {
                     saveModalEl.style.display = 'none';
                     document.getElementById('saveIcon').src = 'LocalYT-Rev-Files/saved.svg';
                     document.getElementById('saveContainer').querySelector('span').textContent = getLang('Saved', 'Gespeichert');
-                    showSaveMessage();
+                    showSaveMessage(pName);
                 } catch (e) {
                     console.error('Error saving to playlist:', e);
                 }
