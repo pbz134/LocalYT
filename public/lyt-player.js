@@ -136,7 +136,7 @@
             this._eqSaveTimer = null; // for debouncing server saves
 
             // Current LYT Player version
-            this.version = 'v2.6.5';
+            this.version = 'v2.6.7';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -163,7 +163,8 @@
                     off: 'Aus'
                 }
             };
-            
+
+
             this.init();
         }
 
@@ -2149,7 +2150,7 @@
         }
 
         bindEvents() {
-            // Video Events
+            // Video Events (unchanged)
             this.video.addEventListener('play', () => {
                 this.updatePlayPauseBtn(true);
                 this.updateCenterPlayBtn(true);
@@ -2174,7 +2175,7 @@
                 this.buildSubtitlesMenu();
                 this.buildQualityMenu();
             });
-
+        
             // Play/Pause button
             this.dom.playBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -2188,7 +2189,7 @@
                 this.video.paused ? this.video.play() : this.video.pause();
             });
         }
-
+        
             // Skip button
             this.dom.skipBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -2196,7 +2197,7 @@
                 this.video.pause(); 
             });
             
-            // HD Badge Logic
+            // HD Badge Logic (unchanged)
             const updateHdBadge = () => {
                 if (!this.dom.settingsBtn) return;
                 
@@ -2207,32 +2208,32 @@
                     badge.textContent = 'HD';
                     this.dom.settingsBtn.appendChild(badge);
                 }
-
+        
                 if (this.video.videoHeight >= 720) {
                     badge.classList.add('lyt_visible');
                 } else {
                     badge.classList.remove('lyt_visible');
                 }
             };
-
+        
             this.video.addEventListener('loadedmetadata', updateHdBadge);
             
             if (this.video.readyState >= 1) {
                 updateHdBadge();
             }
-
+        
             // Double click on video to toggle fullscreen
             this.video.addEventListener('dblclick', () => {
                 this.toggleFullScreen();
             });
-
+        
             // Volume button (mute/unmute)
             this.dom.volumeBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.toggleMute();
             });
             
-            // --- SAVE VOLUME TO LOCALSTORAGE ON EVERY CHANGE ---
+            // Save volume to localStorage (unchanged)
             this.video.addEventListener('volumechange', () => {
                 try {
                     localStorage.setItem('lyt_player_volume', JSON.stringify({
@@ -2242,32 +2243,31 @@
                 } catch (e) {}
             });
             
-            // --- Volume Bar Events (Drag handling) ---
+            // Volume Bar Events (unchanged)
             this.dom.volumeBar.addEventListener('mousedown', (e) => this.handleVolumeDrag(e));
             this.dom.volumeBar.addEventListener('touchstart', (e) => this.handleVolumeDrag(e), { passive: false });
             
-            // Keep volume slider visible while interacting
             this.dom.volumeBar.addEventListener('mousedown', () => {
                 this.dom.volumeSliderWrap.classList.add('lyt_slider_visible');
             });
-
-            // Progress Bar seeking
+        
+            // Progress Bar seeking (unchanged)
             this.dom.progressContainer.addEventListener('mousedown', (e) => this.handleSeekDrag(e));
             this.dom.progressContainer.addEventListener('touchstart', (e) => this.handleSeekDrag(e), { passive: false });
             
-            // Fullscreen
+            // Fullscreen (unchanged)
             this.dom.fullscreenBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.toggleFullScreen();
             });
             
-            // Settings Button Logic
+            // Settings Button Logic (unchanged)
             this.dom.settingsBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.toggleMenu(this.dom.settingsMenu);
             });
-
-            // ========== FIX: Use event delegation for settings menu ==========
+        
+            // ========== FIX: Settings menu events ==========
             // Main menu options: data-submenu
             this.dom.settingsMenu.addEventListener('click', (e) => {
                 const menuItem = e.target.closest('[data-submenu]');
@@ -2283,7 +2283,7 @@
                     e.stopPropagation();
                 }
             });
-
+        
             // Submenu back buttons: .lyt_submenu_back
             this.dom.settingsMenu.addEventListener('click', (e) => {
                 const backBtn = e.target.closest('.lyt_submenu_back');
@@ -2293,10 +2293,10 @@
                     this.showMainMenu();
                 }
             });
-
-            // Speed Submenu Actions (still direct because they are inside the submenu)
+        
+            // ----- Speed Submenu Actions (FIX: removed e.stopPropagation()) -----
             this.dom.speedMenu.addEventListener('click', (e) => {
-                e.stopPropagation();
+                // e.stopPropagation(); // <-- REMOVED to allow back button events to bubble
                 const option = e.target.closest('.lyt_speed_option');
                 if (!option) return;
                 const speed = parseFloat(option.dataset.speed);
@@ -2304,31 +2304,29 @@
                 this.closeAllMenus();
             });
             
-            // Subtitles Submenu Actions
+            // ----- Subtitles Submenu Actions (FIX: removed e.stopPropagation()) -----
             this.dom.subtitlesMenu.addEventListener('click', (e) => {
-                e.stopPropagation();
+                // e.stopPropagation(); // <-- REMOVED
                 const option = e.target.closest('.lyt_sub_option');
                 if (!option) return;
                 const trackIndex = parseInt(option.dataset.track);
                 this.setSubtitleTrack(trackIndex);
                 this.closeAllMenus();
             });
-
+        
             this.dom.subtitlesBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (this.video.textTracks.length === 0) return;
                 if (this.currentTrackIndex >= 0) {
                     this.setSubtitleTrack(-1);
                 } else {
-                    // Re-enable the last manually selected track, OR fall back to preference
                     const trackToEnable = this.lastSelectedTrackIndex >= 0 ? this.lastSelectedTrackIndex : this.getPreferredSubtitleTrack();
                     this.setSubtitleTrack(trackToEnable >= 0 ? trackToEnable : 0);
                 }
             });
-
-            // Context Menu
+        
+            // Context Menu (unchanged)
             this.wrapper.addEventListener('contextmenu', (e) => {
-                // Disable context menu on touch devices (long press)
                 if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
                     e.preventDefault();
                     return;
@@ -2336,7 +2334,7 @@
                 e.preventDefault();
                 this.showContextMenu(e.clientX, e.clientY);
             });
-
+        
             this.dom.contextMenu.addEventListener('click', (e) => {
                 const item = e.target.closest('.lyt_ctx_item');
                 if (!item) return;
@@ -2354,14 +2352,14 @@
                         loopBtn.textContent = this.isLooping ? '✓ Loop' : 'Loop';
                     }
                     this.showToast(this.isLooping ? 'Loop ON' : 'Loop OFF');
-                    return; // Keep menu open so user can see the toggle state
+                    return;
                 } else if (action === 'stats') {
                     this.toggleStatsOverlay();
                 }
                 this.closeContextMenu();
             });
-
-            // Close menus on outside click
+        
+            // Close menus on outside click (unchanged)
             document.addEventListener('click', (e) => {
                 if (!this.wrapper.contains(e.target)) {
                     this.closeAllMenus();
@@ -2369,14 +2367,14 @@
                 }
             });
             
-            // Only attach video click for non-touch devices (play/pause toggle)
+            // Video click for non‑touch devices (unchanged)
             if (!('ontouchstart' in window || navigator.maxTouchPoints > 0)) {
                 this.video.addEventListener('click', () => {
                     this.video.paused ? this.video.play() : this.video.pause();
                 });
             }
-
-            // Close menus on video/progress interaction (works on all devices)
+        
+            // Close menus on video/progress interaction
             this.video.addEventListener('click', () => {
                 this.closeAllMenus();
                 this.closeContextMenu();
@@ -2385,26 +2383,27 @@
                 this.closeAllMenus();
                 this.closeContextMenu();
             });
-            // Keyboard shortcuts
+            
+            // Keyboard shortcuts (unchanged)
             document.addEventListener('keydown', (e) => this.handleKeyboard(e));
             
-            // Fullscreen change event
+            // Fullscreen change event (unchanged)
             document.addEventListener('fullscreenchange', () => this.onFullScreenChange());
             
-            // Auto-hide controls
+            // Auto-hide controls (unchanged)
             this.setupAutoHide();
             
-            // Subtitle cue change listener
+            // Subtitle cue change listener (unchanged)
             this.video.textTracks.addEventListener('change', () => {
                 this.updateSubtitlesDisplay();
             });
-
-            // Continuously update subtitles as the video plays
+        
+            // Continuously update subtitles as the video plays (unchanged)
             this.video.addEventListener('timeupdate', () => {
                 this.updateSubtitlesDisplay();
             });
-
-            // Poster click to play
+        
+            // Poster click to play (unchanged)
             if (this.dom.posterOverlay) {
                 this.dom.posterOverlay.addEventListener('click', () => {
                     this.video.play();
