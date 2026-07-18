@@ -4,6 +4,13 @@
   </a>
 </p>
 
+<div align="center">
+
+[![Release version](https://img.shields.io/github/v/release/pbz134/LocalYT?color=e62117)](https://github.com/pbz134/LocalYT/releases)
+[![Total downloads](https://img.shields.io/github/downloads/pbz134/LocalYT/total?color=e62117)](https://github.com/pbz134/LocalYT)
+
+</div>
+
 **LocalYT** is a feature-rich local video library that allows you to watch videos with seamless metadata integration and a powerful tag-based algorithm in a familiar UI.
 
 
