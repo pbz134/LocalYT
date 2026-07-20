@@ -258,9 +258,6 @@ if /i "!SEEKBAR_PREVIEWS!"=="yes" (
     echo Skipping seek bar previews...
 )
 
-echo Generating channel Home page index...
-.\venv\python.exe .\LocalYT-Rev-Files\generate_home_previews.py
-
 echo.
 echo =============================================================================
 echo All metadata, thumbnails and playlists generated. Server is ready for launch.

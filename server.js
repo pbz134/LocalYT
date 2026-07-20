@@ -59,7 +59,6 @@ function loadLoginAttempts() {
             for (const [ip, attemptData] of Object.entries(attempts)) {
                 loginAttempts.set(ip, attemptData);
             }
-            console.log(`Loaded login attempt data for ${loginAttempts.size} IPs.`);
         } catch (err) {
             console.error('Error loading login attempts:', err);
         }
