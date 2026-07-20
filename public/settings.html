@@ -843,7 +843,7 @@
                 <div id="titleColorSchemeStatus" class="status-msg"></div>
             </div>
 
-            <!-- Channel Profile Pic in Player Section -->
+            <!-- Player Overlays Section -->
             <div class="settings-section">
                 <h2 id="playerOverlayHeading">Player Overlays</h2>
 
@@ -873,10 +873,24 @@
                     </div>
                 </div>
 
-                <div class="inline-form" style="margin-top: 15px;">
-                    <button class="btn btn-save" id="saveChannelProfilePicBtn">Save Preference</button>
+                <!-- NEW: Video Endcards Toggle -->
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <div id="showEndcardsLabel">Show Video Endcards</div>
+                        <div class="setting-description" id="showEndcardsDesc">Display two video thumbnails with channel profile pic during the last 20 seconds of the video</div>
+                    </div>
+                    <div class="setting-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="showEndcards">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
                 </div>
-                <div id="channelProfilePicStatus" class="status-msg"></div>
+
+                <div class="inline-form" style="margin-top: 15px;">
+                    <button class="btn btn-save" id="savePlayerOverlaysBtn">Save Preferences</button>
+                </div>
+                <div id="playerOverlaysStatus" class="status-msg"></div>
             </div>
 
             <!-- Player UI Scale Section -->
@@ -1250,7 +1264,9 @@ function applyTranslations() {
     document.getElementById('channelProfilePicDesc').textContent = getLang("Display the channel's profile picture in the bottom-right corner of the video player", 'Zeigt das Profilbild des Kanals in der unteren rechten Ecke des Videoplayers an');
     document.getElementById('showEndScreenGridLabel').textContent = getLang('Show End Screen Recommendation Grid', 'Empfehlungsraster am Ende anzeigen');
     document.getElementById('showEndScreenGridDesc').textContent = getLang('Display a 4x3 grid of recommended videos when a video ends and autoplay is disabled', 'Ein 4x3-Raster mit empfohlenen Videos anzeigen, wenn ein Video endet und die automatische Wiedergabe deaktiviert ist');
-    document.getElementById('saveChannelProfilePicBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
+    document.getElementById('showEndcardsLabel').textContent = getLang('Show Video Endcards', 'Video-Endkarten anzeigen');
+    document.getElementById('showEndcardsDesc').textContent = getLang('Display two video thumbnails with channel profile pic during the last 20 seconds of the video', 'Zwei Video-Miniaturansichten mit Kanal-Profilbild in den letzten 20 Sekunden des Videos anzeigen');
+    document.getElementById('savePlayerOverlaysBtn').textContent = getLang('Save Preferences', 'Einstellungen speichern');
 
     // Rounded Corners Translations
     document.getElementById('roundedCornersHeading').textContent = getLang('Rounded Corners', 'Abgerundete Ecken');
@@ -1867,13 +1883,13 @@ function saveShowChannelProfilePic() {
         })
         .then(res => {
             if (res.ok) {
-                showStatus('channelProfilePicStatus', getLang('Preference saved!', 'Einstellung gespeichert!'), true);
+                showStatus('playerOverlaysStatus', getLang('Preference saved!', 'Einstellung gespeichert!'), true);
             } else {
-                showStatus('channelProfilePicStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
+                showStatus('playerOverlaysStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
             }
         })
         .catch(() => {
-            showStatus('channelProfilePicStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
+            showStatus('playerOverlaysStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
         });
 }
 
@@ -1918,14 +1934,72 @@ function saveShowEndScreenGrid() {
         })
         .then(res => {
             if (res.ok) {
-                showStatus('channelProfilePicStatus', getLang('Preference saved!', 'Einstellung gespeichert!'), true);
+                showStatus('playerOverlaysStatus', getLang('Preference saved!', 'Einstellung gespeichert!'), true);
             } else {
-                showStatus('channelProfilePicStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
+                showStatus('playerOverlaysStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
             }
         })
         .catch(() => {
-            showStatus('channelProfilePicStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
+            showStatus('playerOverlaysStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
         });
+}
+
+// ==============================
+// Video Endcards Logic (NEW)
+// ==============================
+function loadShowEndcards() {
+    const savedLocal = JSON.parse(localStorage.getItem('showEndcards') || '{}');
+    const defaultValue = true; // Enabled by default
+    const currentValue = savedLocal.enabled !== undefined ? savedLocal.enabled : defaultValue;
+    
+    document.getElementById('showEndcards').checked = currentValue;
+
+    fetch('/user-settings')
+        .then(res => {
+            if (!res.ok) throw new Error('Not authenticated');
+            return res.json();
+        })
+        .then(serverSettings => {
+            if (serverSettings && serverSettings.showEndcards !== undefined) {
+                const serverValue = serverSettings.showEndcards;
+                document.getElementById('showEndcards').checked = serverValue;
+                localStorage.setItem('showEndcards', JSON.stringify({ enabled: serverValue }));
+            }
+        })
+        .catch(err => console.error('Could not load endcards setting from server:', err));
+}
+
+function saveShowEndcards() {
+    const enabled = document.getElementById('showEndcards').checked;
+    localStorage.setItem('showEndcards', JSON.stringify({ enabled: enabled }));
+
+    fetch('/user-settings')
+        .then(res => res.json())
+        .then(currentSettings => {
+            const updatedSettings = { ...currentSettings, showEndcards: enabled };
+            return fetch('/user-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings: updatedSettings })
+            });
+        })
+        .then(res => {
+            if (res.ok) {
+                showStatus('playerOverlaysStatus', getLang('Preference saved!', 'Einstellung gespeichert!'), true);
+            } else {
+                showStatus('playerOverlaysStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
+            }
+        })
+        .catch(() => {
+            showStatus('playerOverlaysStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
+        });
+}
+
+// Combined save for Player Overlays
+function savePlayerOverlays() {
+    saveShowChannelProfilePic();
+    saveShowEndScreenGrid();
+    saveShowEndcards();
 }
 
 // ==============================
@@ -2016,6 +2090,7 @@ sidebarLinks.forEach(link => {
             loadTitleColorScheme();
             loadShowChannelProfilePic();
             loadShowEndScreenGrid();
+            loadShowEndcards();
             loadPlayerUIScale();
             loadRoundedCorners();
             loadPlaylistOrder();
@@ -2070,10 +2145,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('saveFuzzySubCountBtn')?.addEventListener('click', saveFuzzySubCount);
     document.getElementById('saveHidePostImagesBtn')?.addEventListener('click', saveHidePostImages);
     document.getElementById('saveTitleColorSchemeBtn')?.addEventListener('click', saveTitleColorScheme);
-    document.getElementById('saveChannelProfilePicBtn')?.addEventListener('click', () => {
-        saveShowChannelProfilePic();
-        saveShowEndScreenGrid();
-    });
+    document.getElementById('savePlayerOverlaysBtn')?.addEventListener('click', savePlayerOverlays);
     document.getElementById('savePlayerUIScaleBtn')?.addEventListener('click', savePlayerUIScale);
     document.getElementById('saveRoundedCornersBtn')?.addEventListener('click', saveRoundedCorners);
     document.getElementById('savePlaylistOrderBtn')?.addEventListener('click', savePlaylistOrder);
@@ -2638,6 +2710,9 @@ function gatherCurrentSettings() {
     // End Screen Grid
     config.showEndScreenGrid = document.getElementById('showEndScreenGrid').checked;
 
+    // NEW: Video Endcards
+    config.showEndcards = document.getElementById('showEndcards').checked;
+
     // Player UI Scale
     config.playerUIScale = parseFloat(document.getElementById('playerUIScale').value);
 
@@ -2765,6 +2840,11 @@ function validateConfig(config) {
     if (config.showEndScreenGrid !== undefined && typeof config.showEndScreenGrid !== 'boolean') {
         return false;
     }
+
+    // NEW: Validate showEndcards
+    if (config.showEndcards !== undefined && typeof config.showEndcards !== 'boolean') {
+        return false;
+    }
     
     // Validate player UI scale
     if (config.playerUIScale !== undefined && (typeof config.playerUIScale !== 'number' || config.playerUIScale < 0.5 || config.playerUIScale > 2.0)) {
@@ -2873,6 +2953,12 @@ function applyConfiguration(config) {
         localStorage.setItem('showEndScreenGrid', JSON.stringify({ enabled: config.showEndScreenGrid }));
     }
 
+    // NEW: Apply Video Endcards
+    if (config.showEndcards !== undefined) {
+        document.getElementById('showEndcards').checked = config.showEndcards;
+        localStorage.setItem('showEndcards', JSON.stringify({ enabled: config.showEndcards }));
+    }
+
     // Apply Player UI Scale
     if (config.playerUIScale !== undefined) {
         document.getElementById('playerUIScale').value = config.playerUIScale;
@@ -2963,6 +3049,11 @@ function saveImportedConfiguration(config) {
             
             if (config.showEndScreenGrid !== undefined) {
                 updatedSettings.showEndScreenGrid = config.showEndScreenGrid;
+            }
+
+            // NEW: Show Endcards
+            if (config.showEndcards !== undefined) {
+                updatedSettings.showEndcards = config.showEndcards;
             }
             
             // Save Player UI Scale

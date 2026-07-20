@@ -136,7 +136,7 @@
             this._eqSaveTimer = null; // for debouncing server saves
 
             // Current LYT Player version
-            this.version = 'v2.6.7';
+            this.version = 'v2.7.0';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -164,6 +164,14 @@
                 }
             };
 
+            // --- Endcards state ---
+            this._endcardsEnabled = true; // default
+            this._endcardsData = [];
+            this._endcardsShown = false;
+            this._endcardsFetched = false;
+
+            // --- End grid setting ---
+            this._showEndScreenGrid = true;
 
             this.init();
         }
@@ -206,7 +214,8 @@
             this.bindEvents();
             this.loadTimelinePreview();
             this.loadPlayerUIScale();
-            
+            this.loadRoundedCornersSetting();
+
             // Set initial volume display
             this.updateVolumeIcon();
             // Initialize volume bar width based on state
@@ -256,7 +265,271 @@
                 // Load settings but they won't be applied because _asmr is false.
                 this.loadEqualizerSettings();
             }
+
+            // Load endcards and end grid settings
+            this.loadEndcardsSettings();
+            this.loadEndScreenGridSetting();
+
+            // Fetch endcards data when video metadata loaded
+            this.video.addEventListener('loadedmetadata', () => {
+                this.fetchEndcardsData();
+            });
         }
+
+        loadRoundedCornersSetting() {
+            const setting = JSON.parse(localStorage.getItem('roundedCorners') || '{}');
+            const enabled = setting.enabled || false;
+            if (enabled) {
+                this.wrapper.classList.add('rounded-corners');
+            } else {
+                this.wrapper.classList.remove('rounded-corners');
+            }
+            
+            // Also listen for changes
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'roundedCorners') {
+                    try {
+                        const newSetting = JSON.parse(e.newValue || '{}');
+                        if (newSetting.enabled) {
+                            this.wrapper.classList.add('rounded-corners');
+                        } else {
+                            this.wrapper.classList.remove('rounded-corners');
+                        }
+                    } catch (err) {}
+                }
+            });
+        }
+
+        // ----- Endcards Settings -----
+        loadEndcardsSettings() {
+            // Load from localStorage
+            const local = JSON.parse(localStorage.getItem('showEndcards') || '{}');
+            this._endcardsEnabled = local.enabled !== undefined ? local.enabled : true;
+
+            // Override with server settings if available
+            fetch('/user-settings')
+                .then(res => {
+                    if (!res.ok) throw new Error('Not authenticated');
+                    return res.json();
+                })
+                .then(settings => {
+                    if (settings && settings.showEndcards !== undefined) {
+                        this._endcardsEnabled = settings.showEndcards;
+                        localStorage.setItem('showEndcards', JSON.stringify({ enabled: this._endcardsEnabled }));
+                    }
+                })
+                .catch(() => {});
+        }
+
+        loadEndScreenGridSetting() {
+            const local = JSON.parse(localStorage.getItem('showEndScreenGrid') || '{}');
+            this._showEndScreenGrid = local.enabled !== undefined ? local.enabled : true;
+
+            fetch('/user-settings')
+                .then(res => {
+                    if (!res.ok) throw new Error('Not authenticated');
+                    return res.json();
+                })
+                .then(settings => {
+                    if (settings && settings.showEndScreenGrid !== undefined) {
+                        this._showEndScreenGrid = settings.showEndScreenGrid;
+                        localStorage.setItem('showEndScreenGrid', JSON.stringify({ enabled: this._showEndScreenGrid }));
+                    }
+                })
+                .catch(() => {});
+        }
+
+        // ----- Fetch endcards recommendations (two videos from same channel or random) -----
+        async fetchEndcardsData(retries = 3) {
+            if (this._endcardsFetched && this._endcardsData.length > 0) return;
+            const currentPath = this.getCurrentVideoPath();
+            const currentChannel = this.getCurrentChannel();
+            if (!currentPath || !currentChannel) return;
+        
+            try {
+                // Fetch up to 5 random videos from the same channel (excluding current)
+                const response = await fetch(`/channel-random-videos/${encodeURIComponent(currentChannel)}?limit=5`);
+                if (response.ok) {
+                    let videos = await response.json();
+                    // Filter out the current video
+                    videos = videos.filter(v => v.path !== currentPath);
+                    // Pick up to 2 random ones
+                    if (videos.length > 0) {
+                        // Shuffle and take first 2
+                        const shuffled = videos.sort(() => 0.5 - Math.random());
+                        this._endcardsData = shuffled.slice(0, 2);
+                        this._endcardsFetched = true;
+                        console.log('[LYT] Endcards fetched from channel:', this._endcardsData.length);
+                        return;
+                    }
+                }
+                // Fallback: if channel has <2 other videos, try generic recommendations
+                console.log('[LYT] Not enough videos in channel, falling back to recommendations.');
+                const fallbackRes = await fetch(`/sidebar-recommendations?video=${encodeURIComponent(currentPath)}&limit=2`);
+                if (fallbackRes.ok) {
+                    const videos = await fallbackRes.json();
+                    if (videos && videos.length > 0) {
+                        this._endcardsData = videos.slice(0, 2);
+                        this._endcardsFetched = true;
+                        return;
+                    }
+                }
+                // If still empty, retry
+                if (retries > 0) {
+                    console.log(`[LYT] Endcards fetch empty, retrying (${retries} left)...`);
+                    setTimeout(() => this.fetchEndcardsData(retries - 1), 1000);
+                } else {
+                    console.warn('[LYT] No endcards data after retries.');
+                    this._endcardsFetched = true;
+                }
+            } catch (e) {
+                console.warn('[LYT] Error fetching endcards:', e);
+                if (retries > 0) {
+                    setTimeout(() => this.fetchEndcardsData(retries - 1), 1000);
+                } else {
+                    this._endcardsFetched = true;
+                }
+            }
+        }
+
+        // ----- Endcards UI -----
+        showEndcards() {
+            if (!this._endcardsEnabled) {
+                console.log('[LYT] Endcards disabled by setting.');
+                return;
+            }
+            if (this._endcardsShown) {
+                return;
+            }
+            if (this._endcardsData.length === 0) {
+                console.log('[LYT] No endcards data available.');
+                return;
+            }
+        
+            // Build container if not exists
+            if (!this.dom.endcardsContainer) {
+                this.dom.endcardsContainer = document.createElement('div');
+                this.dom.endcardsContainer.className = 'lyt_endcards_container';
+                this.dom.endcardsContainer.innerHTML = `
+                    <div class="lyt_endcard lyt_endcard_left">
+                        <img class="lyt_endcard_thumb" src="" alt="">
+                        <div class="lyt_endcard_title"></div>
+                    </div>
+                    <div class="lyt_endcard_center">
+                        <img class="lyt_endcard_channel_pic" src="" alt="Channel">
+                    </div>
+                    <div class="lyt_endcard lyt_endcard_right">
+                        <img class="lyt_endcard_thumb" src="" alt="">
+                        <div class="lyt_endcard_title"></div>
+                    </div>
+                `;
+                this.wrapper.appendChild(this.dom.endcardsContainer);
+                // Bind click events
+                const left = this.dom.endcardsContainer.querySelector('.lyt_endcard_left');
+                const right = this.dom.endcardsContainer.querySelector('.lyt_endcard_right');
+                const center = this.dom.endcardsContainer.querySelector('.lyt_endcard_center');
+        
+                left.addEventListener('click', () => {
+                    if (this._endcardsData[0]) {
+                        window.location.href = `video.html?src=${encodeURIComponent(this._endcardsData[0].path)}`;
+                    }
+                });
+                right.addEventListener('click', () => {
+                    if (this._endcardsData[1]) {
+                        window.location.href = `video.html?src=${encodeURIComponent(this._endcardsData[1].path)}`;
+                    }
+                });
+                center.addEventListener('click', () => {
+                    const channel = this.getCurrentChannel();
+                    if (channel) {
+                        window.location.href = `channel.html?channel=${encodeURIComponent(channel)}`;
+                    }
+                });
+            }
+        
+            // Populate data
+            const thumbs = this.dom.endcardsContainer.querySelectorAll('.lyt_endcard_thumb');
+            const titles = this.dom.endcardsContainer.querySelectorAll('.lyt_endcard_title');
+            const channelPic = this.dom.endcardsContainer.querySelector('.lyt_endcard_channel_pic');
+        
+            if (thumbs.length >= 2) {
+                thumbs[0].src = this.buildThumbnailUrl(this._endcardsData[0].path);
+                thumbs[1].src = this.buildThumbnailUrl(this._endcardsData[1].path);
+            }
+            if (titles.length >= 2) {
+                titles[0].textContent = this._endcardsData[0].displayName || '';
+                titles[1].textContent = this._endcardsData[1].displayName || '';
+            }
+            // Channel pic: use the existing channel profile pic from options or fetch
+            const layout = this.options.layoutControls || {};
+            if (layout.channelProfilePic) {
+                channelPic.src = layout.channelProfilePic;
+            } else {
+                const channel = this.getCurrentChannel();
+                if (channel) {
+                    channelPic.src = `/channelpic/${encodeURIComponent(channel)}.jpg`;
+                }
+            }
+        
+            this.dom.endcardsContainer.classList.add('lyt_endcards_show');
+            this._endcardsShown = true;
+            console.log('[LYT] Endcards shown.');
+        }
+
+        hideEndcards() {
+            if (this.dom.endcardsContainer) {
+                this.dom.endcardsContainer.classList.remove('lyt_endcards_show');
+            }
+            this._endcardsShown = false;
+        }
+
+        // ----- End Screen Grid (modified to respect setting) -----
+        async showEndScreen() {
+            if (!this._showEndScreenGrid) return;
+            // Check if autoplay is enabled - if so, do not show grid (autoplay will handle)
+            const autoplaySettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
+            if (autoplaySettings.enabled) {
+                // Autoplay is on, so we shouldn't show the grid
+                return;
+            }
+
+            // Otherwise proceed
+            const videos = await this.fetchEndScreenRecommendations();
+            if (!videos || videos.length === 0) return;
+        
+            this._endScreenData = videos;
+        
+            let html = '';
+            videos.forEach((video, index) => {
+                const thumbUrl = this.buildThumbnailUrl(video.path);
+                html += `
+                    <div class="lyt_end_item" data-index="${index}">
+                        <img src="${thumbUrl}" alt="" loading="lazy">
+                        <div class="lyt_end_item_title">${video.displayName || ''}</div>
+                    </div>
+                `;
+            });
+        
+            this.dom.endGrid.innerHTML = html;
+            this.dom.endScreen.classList.add('lyt_end_show');
+        
+            // Staggered animation
+            const items = this.dom.endGrid.querySelectorAll('.lyt_end_item');
+            const cols = 4;
+            items.forEach((item, index) => {
+                const row = Math.floor(index / cols);
+                const col = index % cols;
+                const delay = (row + col) * 0.08;
+                item.style.animationDelay = `${delay}s`;
+            });
+        }
+
+        hideEndScreen() {
+            this.dom.endScreen.classList.remove('lyt_end_show');
+        }
+
+        // ----- Override ended event to handle endcards and grid -----
+        // We'll bind the event in bindEvents but we'll modify the listener.
 
         setupWrapper() {
             let wrapper = this.video.parentElement;
@@ -602,7 +875,6 @@
                         width: 100%;
                         max-width: 900px;
                         max-height: 100%;
-                        /* Remove aspect-ratio: 16/9; now each item defines its own aspect */
                     }
                     .lyt_end_item {
                         position: relative;
@@ -610,11 +882,10 @@
                         border-radius: 4px;
                         cursor: pointer;
                         background: #111;
-                        aspect-ratio: 16 / 9;          /* 16:9 thumbnails */
-                        opacity: 0;                     /* hidden until animation */
-                        transform: scale(0.8);         /* starting state for pop */
+                        aspect-ratio: 16 / 9;
+                        opacity: 0;
+                        transform: scale(0.8);
                         animation: lyt-end-pop 0.4s ease forwards;
-                        /* animation-delay will be set inline via JavaScript */
                     }
                     .lyt_end_item img {
                         width: 100%;
@@ -637,7 +908,6 @@
                         overflow: hidden;
                         text-overflow: ellipsis;
                     }
-                    /* Pop-up animation */
                     @keyframes lyt-end-pop {
                         0% { opacity: 0; transform: scale(0.8); }
                         100% { opacity: 1; transform: scale(1); }
@@ -660,6 +930,90 @@
                     }
                     .lyt_end_close:hover {
                         background: rgba(255,255,255,0.15);
+                    }
+
+                    /* ===== ENDCARDS ===== */
+                    .lyt_endcards_container {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        display: none;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 8%;
+                        z-index: 14;
+                        pointer-events: none;
+                        opacity: 0;
+                        transition: opacity 0.3s ease;
+                    }
+                    .lyt_endcards_container.lyt_endcards_show {
+                        display: flex;
+                        opacity: 1;
+                    }
+                    .lyt_endcard {
+                        width: 32%;
+                        aspect-ratio: 16 / 9;
+                        cursor: pointer;
+                        position: relative;
+                        border-radius: 4px;
+                        overflow: hidden;
+                        background: #111;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+                        pointer-events: auto;
+                        transition: none;
+                    }
+                    /* Apply rounded corners if setting is enabled */
+                    .fluid_video_wrapper.rounded-corners .lyt_endcard {
+                        border-radius: 10px;
+                    }
+                    .lyt_endcard img {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                        display: block;
+                    }
+                    .lyt_endcard_title {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        background: linear-gradient(rgba(0,0,0,0.7) 0%, transparent 100%);
+                        color: #fff;
+                        font-size: 14px;
+                        font-family: 'Roboto', 'Arial', sans-serif;
+                        padding: 8px 10px 20px 10px;
+                        text-align: left;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        line-height: 1.3;
+                        text-shadow: none;
+                    }
+
+                    .lyt_endcard_center {
+                        width: 80px;
+                        height: 80px;
+                        border-radius: 50%;
+                        border: 3px solid rgba(255,255,255,0.8);
+                        overflow: hidden;
+                        cursor: pointer;
+                        pointer-events: auto;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+                        transition: none;
+                        flex-shrink: 0;
+                        background: #333;
+                    }
+                    .lyt_endcard_center img {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                        display: block;
+                    }
+                    .lyt_endcards_container .lyt_endcard,
+                    .lyt_endcards_container .lyt_endcard_center {
+                        pointer-events: auto;
                     }
 
                     /* ===== LYT PLAYER CONTROLS ===== */
@@ -2166,6 +2520,8 @@
             this.video.addEventListener('timeupdate', () => {
                 this.updateTime();
                 this.updateChapterTitle();
+                // --- Endcards logic ---
+                this.handleEndcards();
             });
             this.video.addEventListener('progress', () => this.updateBuffer());
             this.video.addEventListener('waiting', () => this.showLoader(true));
@@ -2440,6 +2796,13 @@
                 this.dom.recPopup.classList.remove('lyt_rec_slide_in');
                 this.dom.recThumbnail.classList.remove('lyt_rec_thumb_show');
                 this._endScreenShown = false;
+                // Reset endcards state
+                this._endcardsFetched = false;
+                this._endcardsData = [];
+                this._endcardsShown = false;
+                this.hideEndcards();
+                // Fetch new endcards data
+                this.fetchEndcardsData();
             });
 
             // Inside bindEvents(), in the 'ended' listener
@@ -2451,7 +2814,14 @@
                 this._endScreenShown = true;
 
                 this.hideRecommendationPopup();
-                this.showEndScreen();
+                // Hide endcards if visible (they should have been hidden at end)
+                this.hideEndcards();
+
+                // Show end screen grid only if setting allows and autoplay is off
+                const autoplaySettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
+                if (!autoplaySettings.enabled && this._showEndScreenGrid) {
+                    this.showEndScreen();
+                }
             });
 
             // Popup hover: pause dismiss timer
@@ -2536,6 +2906,37 @@
                     window.location.href = `video.html?src=${encodeURIComponent(this._endScreenData[index].path)}`;
                 }
             });
+        }
+
+        // ----- Endcards handler (called on timeupdate) -----
+        handleEndcards() {
+            const duration = this.video.duration;
+            if (!duration || !isFinite(duration) || duration < 20) {
+                this.hideEndcards();
+                return;
+            }
+        
+            const current = this.video.currentTime;
+            const isInWindow = current >= duration - 20 && current < duration;
+        
+            if (isInWindow) {
+                // If we haven't shown yet, try to show
+                if (!this._endcardsShown) {
+                    // If data is not yet fetched, fetch it now (with retries)
+                    if (!this._endcardsFetched || this._endcardsData.length === 0) {
+                        console.log('[LYT] Endcards window entered, fetching data now...');
+                        this.fetchEndcardsData(3);
+                        // We'll try again on next timeupdate after fetch
+                        return;
+                    }
+                    // Data is ready, show them
+                    this.showEndcards();
+                }
+            } else {
+                if (this._endcardsShown) {
+                    this.hideEndcards();
+                }
+            }
         }
 
         // ===== RECOMMENDATION SYSTEM METHODS =====
@@ -2701,12 +3102,17 @@
         }
 
         /**
-         * Show the 4x3 end screen grid overlay.
-         */
-        /**
          * Show the 4x3 end screen grid overlay with staggered pop‑up animation.
          */
         async showEndScreen() {
+            if (!this._showEndScreenGrid) return;
+            // Check if autoplay is enabled - if so, do not show grid (autoplay will handle)
+            const autoplaySettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
+            if (autoplaySettings.enabled) {
+                // Autoplay is on, so we shouldn't show the grid
+                return;
+            }
+
             const videos = await this.fetchEndScreenRecommendations();
             if (!videos || videos.length === 0) return;
         
