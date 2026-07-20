@@ -1119,7 +1119,7 @@
                     /* Progress Bar */
                     .lyt_progress_container {
                         width: 100%;
-                        height: 5px;
+                        height: calc(5px * var(--lyt-ui-scale));
                         background: rgba(255,255,255,0.2);
                         cursor: pointer;
                         position: relative;
@@ -1127,7 +1127,7 @@
                         transition: height 0.15s ease;
                     }
                     .lyt_progress_container:hover {
-                        height: 7px;
+                        height: calc(7px * var(--lyt-ui-scale));
                     }
                     .lyt_chapter_marker {
                         position: absolute;
@@ -1158,12 +1158,12 @@
                         justify-content: flex-end;
                     }
                     .lyt_progress_dot {
-                        width: 13px;
-                        height: 13px;
+                        width: calc(12px * var(--lyt-ui-scale));
+                        height: calc(12px * var(--lyt-ui-scale));
                         background: ${primaryColor};
                         border-radius: 50%;
                         position: absolute;
-                        right: -6.5px;
+                        right: calc(-5.5px * var(--lyt-ui-scale));
                         top: 50%;
                         transform: translateY(-50%);
                         opacity: 1;
