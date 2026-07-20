@@ -151,7 +151,14 @@
                     reset: 'Reset',
                     compression: 'Compression',
                     on: 'On',
-                    off: 'Off'
+                    off: 'Off',
+                    copyUrl: 'Copy video URL',
+                    copyUrlTime: 'Copy video URL at current time',
+                    loop: 'Loop',
+                    loopOn: 'Loop ON',
+                    loopOff: 'Loop OFF',
+                    stats: 'Stats for nerds',
+                    linkCopied: 'Link Copied!'
                 },
                 de: {
                     speed: 'Geschwindigkeit',
@@ -159,8 +166,15 @@
                     subtitles: 'Untertitel/CC',
                     reset: 'Zurücksetzen',
                     compression: 'Kompression',
-                    on: 'Ein',
-                    off: 'Aus'
+                    on: 'An',
+                    off: 'Aus',
+                    copyUrl: 'Video-URL kopieren',
+                    copyUrlTime: 'Video-URL mit Zeitstempel kopieren',
+                    loop: 'Wiederholen',
+                    loopOn: 'Wiederholung aktiviert',
+                    loopOff: 'Wiederholung deaktiviert',
+                    stats: 'Statistiken für Nerds',
+                    linkCopied: 'Link kopiert!'
                 }
             };
 
@@ -1882,10 +1896,10 @@
 
                 <!-- Context Menu -->
                 <div class="lyt_context_menu">
-                    <button class="lyt_ctx_item" data-action="copy-url">Copy video URL</button>
-                    <button class="lyt_ctx_item" data-action="copy-url-time">Copy video URL at current time</button>
-                    <button class="lyt_ctx_item" data-action="loop">Loop</button>
-                    <button class="lyt_ctx_item" data-action="stats">Stats for nerds</button>
+                    <button class="lyt_ctx_item" data-action="copy-url">${this._t('copyUrl')}</button>
+                    <button class="lyt_ctx_item" data-action="copy-url-time">${this._t('copyUrlTime')}</button>
+                    <button class="lyt_ctx_item" data-action="loop">${this._t('loop')}</button>
+                    <button class="lyt_ctx_item" data-action="stats">${this._t('stats')}</button>
                     <div class="lyt_ctx_item lyt_ctx_version">LYT Player ${this.version}</div>
                 </div>
 
@@ -2705,9 +2719,9 @@
                     this.video.loop = this.isLooping;
                     const loopBtn = this.dom.contextMenu.querySelector('[data-action="loop"]');
                     if (loopBtn) {
-                        loopBtn.textContent = this.isLooping ? '✓ Loop' : 'Loop';
+                        loopBtn.textContent = this.isLooping ? `✓ ${this._t('loop')}` : this._t('loop');
                     }
-                    this.showToast(this.isLooping ? 'Loop ON' : 'Loop OFF');
+                    this.showToast(this.isLooping ? this._t('loopOn') : this._t('loopOff'));
                     return;
                 } else if (action === 'stats') {
                     this.toggleStatsOverlay();
@@ -3752,7 +3766,7 @@
         async copyToClipboard(text) {
             try {
                 await navigator.clipboard.writeText(text);
-                this.showToast('Link Copied!');
+                this.showToast(this._t('linkCopied'));
             } catch (err) {
                 const textArea = document.createElement("textarea");
                 textArea.value = text;
@@ -3760,7 +3774,7 @@
                 textArea.select();
                 try {
                     document.execCommand('copy');
-                    this.showToast('Link Copied!');
+                    this.showToast(this._t('linkCopied'));
                 } catch (e) { 
                     console.error('Failed to copy', e); 
                 }
