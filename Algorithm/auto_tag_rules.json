@@ -176,6 +176,13 @@
       "tags": ["Mario", "Gaming"]
     },
     {
+      "name": "Wii Rule",
+      "match_type": "contains",
+      "match_value": "wii",
+      "case_sensitive": false,
+      "tags": ["Wii", "Nintendo", "Gaming"]
+    },
+    {
       "name": "Nintendo Rule",
       "match_type": "contains",
       "match_value": ["nintendo", "miyamoto", "reggie", "iwata"],
