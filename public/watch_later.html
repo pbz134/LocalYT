@@ -1007,13 +1007,31 @@ function renderVideos(videos) {
         videoThumb.addEventListener('click', openHandler);
         videoLink.addEventListener('click', openHandler);
 
-        const handleMiddleClick = (e) => { if (e.button === 1) { e.preventDefault(); window.open(videoUrl, '_blank'); } };
+        // --- Fix: disable auto-scroll on middle-click (aux click) ---
+        // Prevent default on mousedown for middle button to stop auto-scroll
+        const preventMiddleScroll = (e) => {
+            if (e.button === 1) {
+                e.preventDefault();
+            }
+        };
+        videoThumb.addEventListener('mousedown', preventMiddleScroll);
+        videoLink.addEventListener('mousedown', preventMiddleScroll);
+
+        const handleMiddleClick = (e) => {
+            if (e.button === 1) {
+                e.preventDefault();
+                window.open(videoUrl, '_blank');
+            }
+        };
         videoThumb.addEventListener('mouseup', handleMiddleClick);
         videoThumb.addEventListener('auxclick', handleMiddleClick);
         videoLink.addEventListener('mouseup', handleMiddleClick);
         videoLink.addEventListener('auxclick', handleMiddleClick);
 
-        const handleRightClick = (e) => { e.preventDefault(); window.open(videoUrl, '_blank'); };
+        const handleRightClick = (e) => {
+            e.preventDefault();
+            window.open(videoUrl, '_blank');
+        };
         videoThumb.addEventListener('contextmenu', handleRightClick);
         videoLink.addEventListener('contextmenu', handleRightClick);
 
@@ -1066,9 +1084,9 @@ function setupClassicSidebar(videos) {
         const count = parseInt(String(v.viewCount || '0').replace(/,/g, ''));
         totalViews += isNaN(count) ? 0 : count;
     });
-    const formattedViews = totalViews.toLocaleString();
+    let formattedViews = totalViews.toLocaleString();
     if (localStorage.getItem('language') === 'de') {
-        formattedViews.replace(/,/g, '.');
+        formattedViews = formattedViews.replace(/,/g, '.');
     }
 
     let totalSecs = 0;
