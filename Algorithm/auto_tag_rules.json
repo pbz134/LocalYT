@@ -29,6 +29,20 @@
       "tags": ["Touhou", "Anime", "Gaming"]
     },
     {
+      "name": "Trance Rule",
+      "match_type": "contains",
+      "match_value": "Trance",
+      "case_sensitive": false,
+      "tags": ["Trance", "Music"]
+    },
+    {
+      "name": "Hardstyle Rule",
+      "match_type": "contains",
+      "match_value": ["Hardstyle", "Uptempo", "GPF", "Rawstyle"],
+      "case_sensitive": false,
+      "tags": ["Hardstyle", "Music"]
+    },
+    {
       "name": "Cover Rule",
       "match_type": "contains",
       "match_value": "cover",
@@ -176,6 +190,48 @@
       "tags": ["Mario", "Gaming"]
     },
     {
+      "name": "Pokemon Rule",
+      "match_type": "contains",
+      "match_value": ["pokemon", "pokémon"],
+      "case_sensitive": false,
+      "tags": ["Pokémon", "Nintendo", "Gaming"]
+    },
+    {
+      "name": "Zelda Rule",
+      "match_type": "contains",
+      "match_value": ["Zelda", "tloz", "ocarina of time", "oot", "majora"],
+      "case_sensitive": false,
+      "tags": ["The Legend of Zelda", "Nintendo", "Gaming"]
+    },
+    {
+      "name": "Kirby Rule",
+      "match_type": "contains",
+      "match_value": "Kirby",
+      "case_sensitive": false,
+      "tags": ["Kirby", "Nintendo", "Gaming"]
+    },
+    {
+      "name": "Pikmin Rule",
+      "match_type": "contains",
+      "match_value": "Pikmin",
+      "case_sensitive": false,
+      "tags": ["Pikmin", "Nintendo", "Gaming"]
+    },
+    {
+      "name": "Animal Crossing Rule",
+      "match_type": "contains",
+      "match_value": ["Animal Crossing", "Wild World", "New Leaf", "Welcome Amiibo", "New Horizons"],
+      "case_sensitive": false,
+      "tags": ["Animal Crossing", "Nintendo", "Gaming"]
+    },
+    {
+      "name": "Sonic Rule",
+      "match_type": "contains",
+      "match_value": "Sonic",
+      "case_sensitive": false,
+      "tags": ["Sonic", "Sega", "Gaming"]
+    },
+    {
       "name": "Wii Rule",
       "match_type": "contains",
       "match_value": "wii",
@@ -188,6 +244,20 @@
       "match_value": ["nintendo", "miyamoto", "reggie", "iwata"],
       "case_sensitive": false,
       "tags": ["Nintendo", "Gaming"]
+    },
+    {
+      "name": "Documentary Rule",
+      "match_type": "contains",
+      "match_value": ["Documentary", "Dokumentation", "Doku", "Reportage"],
+      "case_sensitive": false,
+      "tags": ["Documentary", "Education"]
+    },
+    {
+      "name": "FoE Rule",
+      "match_type": "contains",
+      "match_value": ["FoE", "Forge of Empires", "InnoGames"],
+      "case_sensitive": false,
+      "tags": ["Forge of Empires", "Gaming"]
     },
     {
       "name": "ASMR Rule",
