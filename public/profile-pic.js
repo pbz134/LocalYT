@@ -28,7 +28,6 @@
         }).catch(err => console.error('Failed to sync settings:', err));
     }
 
-    // Returns a promise that resolves ONLY after the settings are saved to the server
     function saveSettingsToServerSync() {
         const settings = {
             language: localStorage.getItem('language'),
@@ -55,7 +54,6 @@
             .catch(() => null);
     }
 
-    // --- Language Helper ---
     function getLang(en, de) {
         return getSetting('language', 'en') === 'de' ? de : en;
     }
@@ -118,7 +116,6 @@
         const targetColor = isLight ? '#333333' : '#ffffff';
         const versionTextColor = isLight ? '#999999' : '#c8c8c8';
 
-        // If it's already correctly colored (e.g. from a previous run), do nothing
         if (logo.dataset.currentLogoColor === targetColor) return;
 
         fetch('LocalYT-Rev-Files/Logo.svg')
@@ -135,7 +132,6 @@
                 const base64Svg = btoa(unescape(encodeURIComponent(modifiedSvg)));
                 logo.src = `data:image/svg+xml;base64,${base64Svg}`;
                 
-                // Mark as colored so we don't re-fetch unnecessarily
                 logo.dataset.currentLogoColor = targetColor;
             })
             .then(() => {
@@ -153,34 +149,27 @@
         const logo = document.getElementById('mainLogo');
         if (!logo) return;
 
-        // Prevent applying it multiple times
         if (logo.dataset.christmasHatApplied === 'true') return;
 
-        // 1. Perform a lightweight HEAD request to grab the Server's Date header
         fetch(window.location.href, { method: 'HEAD' })
             .then(response => {
                 const serverDateStr = response.headers.get('Date');
                 if (!serverDateStr) return;
                 
-                const serverMonth = new Date(serverDateStr).getMonth(); // 0 = Jan, 11 = Dec
+                const serverMonth = new Date(serverDateStr).getMonth();
                 
-                // 2. Only apply if the server time is in December
                 if (serverMonth !== 11) return;
 
-                // 3. Wait for layout calculation so offsetWidth/Height are guaranteed to be > 0
                 requestAnimationFrame(() => {
-                    // If it was applied in a previous frame, abort
                     if (logo.dataset.christmasHatApplied === 'true') return;
 
                     const logoWidth = logo.offsetWidth;
                     const logoHeight = logo.offsetHeight;
 
                     if (logoWidth === 0 || logoHeight === 0) {
-                        // Fallback if still no dimensions somehow
                         return;
                     }
 
-                    // 4. Ensure the logo is inside a wrapper (we cannot append children to <img>)
                     let wrapper = logo.parentElement;
                     if (!wrapper.classList.contains('christmas-logo-wrapper')) {
                         wrapper = document.createElement('div');
@@ -193,18 +182,15 @@
                         wrapper.appendChild(logo);
                     }
 
-                    // 5. Create the hat element
                     const hatImg = document.createElement('img');
                     hatImg.src = '/LocalYT-Rev-Files/christmas-hat.png';
                     hatImg.className = 'christmas-hat-overlay';
                     hatImg.draggable = false;
 
-                    // Size the hat relative to the logo
                     const hatWidth = logoWidth * 0.18; 
                     
-                    // Calculate offsets to align perfectly with the top-left edge
-                    const offsetY = -(hatWidth * 0.45); // Push up slightly
-                    const offsetX = -(hatWidth * -0.55);  // Push left slightly
+                    const offsetY = -(hatWidth * 0.45);
+                    const offsetX = -(hatWidth * -0.55);
 
                     Object.assign(hatImg.style, {
                         position: 'absolute',
@@ -217,7 +203,6 @@
                         transform: 'rotate(15deg)'
                     });
 
-                    // 6. Append to the wrapper container (NOT the logo element)
                     wrapper.appendChild(hatImg);
                     logo.dataset.christmasHatApplied = 'true';
                 });
@@ -227,12 +212,10 @@
             });
     }
 
-    // Helper to apply Light Mode overrides (#1e1e1e -> #FFFFFF, etc.)
     function applyLightModeBlackOverride() {
         let oldOverride = document.getElementById('light-mode-black-override');
         if (oldOverride) oldOverride.remove();
     
-        // Check if blue titles are enabled
         const titleScheme = JSON.parse(localStorage.getItem('titleColorScheme') || '{}');
         const isBlueTitles = titleScheme.scheme === 'blue';
     
@@ -287,7 +270,6 @@
                 color: #666666 !important;
             }
     
-            /* Classic Layout Info Box Light Mode */
             #classicInfoBoxWrapper {
                 background-color: #ffffff !important;
                 border-color: #e0e0e0 !important;
@@ -302,7 +284,6 @@
                 color: #000000 !important;
             }
     
-            /* Classic Layout Description Box & Toggle Light Mode */
             body[data-video-layout="classic"] .video-description,
             .classic-layout-active .video-description {
                 background-color: #ffffff !important;
@@ -320,7 +301,6 @@
                 color: #000000 !important;
             }
     
-            /* Active Tab Color for Light Mode */
             .tab.active {
                 color: #333 !important;
                 border-bottom-color: #333 !important;
@@ -334,7 +314,6 @@
                 color: #333 !important;
             }
     
-            /* Search Suggestions Light Mode */
             .suggestion-item {
                 background-color: #ffffff !important;
                 color: #0f0f0f !important;
@@ -364,17 +343,14 @@
                 color: #000000 !important;
             }
     
-            /* White fade for collapsed comments in Light Mode */
             .comment-text.collapsed::after {
                 background: linear-gradient(rgba(255, 255, 255, 0), #f1f1f1) !important;
             }
     
-            /* White fade for collapsed video description in Light Mode */
             .video-description.collapsed::after {
                 background: linear-gradient(rgba(255, 255, 255, 0), #ffffff) !important;
             }
     
-            /* Channel name to dark grey */
             .channel-name {
                 color: #000000 !important;
             }
@@ -383,56 +359,57 @@
                 color: #737373 !important;
             }
     
-            /* Placeholder visibility */
-
             ::placeholder {
                 color: #737373 !important;
             }
     
-            /* Search icon visibility (invert back to dark) */
             .search-icon {
                 filter: invert(0.6) !important; 
             }
     
-            /* Tab search icon */
             .tab-search-icon {
                 filter: invert(0) !important;
             }
     
-            /* Channel search input text color */
             #channelSearchInput {
                 color: #0f0f0f !important;
             }
-            /* Main search bar input text color in Light Mode */
             #searchInput {
                 color: #000000 !important;
             }
         `;
     
-        // Only force title colors to black if blue titles are OFF
-        if (!isBlueTitles) {
-            styleText += `
-            .video-title:not(.blue-text):not([style*="#128ee9"]),
-            .playlist-title:not(.blue-text):not([style*="#128ee9"]),
-            .home-video-title:not(.blue-text):not([style*="#128ee9"]),
-            .post-author-name:not(.blue-text):not([style*="#128ee9"]),
-            .suggestion-title,
-            .current-video-title,
-            .comment-author,
-            .comment-text,
-            .comments-count,
-            #commentsTotalAmount {
-                color: #000000 !important;
-            }
-            `;
+    // Only force title colors to black if blue titles are OFF
+    if (!isBlueTitles) {
+        styleText += `
+        .video-title:not(.blue-text):not([style*="#128ee9"]),
+        .playlist-title:not(.blue-text):not([style*="#128ee9"]),
+        .home-video-title:not(.blue-text):not([style*="#128ee9"]),
+        .post-author-name:not(.blue-text):not([style*="#128ee9"]),
+        .suggestion-title,
+        .current-video-title,
+        .comment-author,
+        .comment-text,
+        .comments-count,
+        #commentsTotalAmount {
+            color: #000000 !important;
         }
+        `;
+    } else {
+        // Blue titles ON – make suggestion-title and current-video-title darker grey
+        styleText += `
+        .suggestion-title,
+        .current-video-title {
+            color: #444444 !important;
+        }
+        `;
+    }
     
         styleText += `
             .openbtn {
                 filter: invert(1);
             }
     
-            /* Sort/View Dropdowns Light Mode */
             .sort-toggle,
             .sort-toggle.open,
             .view-toggle,
@@ -453,13 +430,11 @@
                 background-color: #e0e0e0 !important;
             }
     
-            /* Dropdown arrows for light mode */
             .sort-toggle-arrow,
             .view-toggle-arrow {
                 border-top-color: #0f0f0f !important;
             }
     
-            /* Prevent invert filter from breaking the Data URI SVG logo */
             .logo {
                 filter: none !important;
             }
@@ -471,7 +446,6 @@
         document.head.appendChild(style);
     }
 
-    // Helper to safely refresh the page without causing loops
     function safeRefreshPage() {
         if (sessionStorage.getItem('justRefreshedAppearance') === 'true') {
             sessionStorage.removeItem('justRefreshedAppearance');
@@ -592,7 +566,6 @@
         if (oldStyle) oldStyle.remove();
         injectMenuStyles();
 
-        // Update version text color dynamically
         if (window.logoVersionRef) {
             const mode = getSetting('appearanceMode', 'dark');
             window.logoVersionRef.style.color = (mode === 'light') ? '#999999' : '#c8c8c8';
@@ -786,6 +759,9 @@
         }
     }
 
+    // ================================================================
+    // UPDATED initNotifications – makes notification items clickable
+    // ================================================================
     function initNotifications() {
         let userActions = document.querySelector('.user-actions');
         if (!userActions) return;
@@ -867,6 +843,41 @@
                         
                         item.appendChild(msg);
                         item.appendChild(time);
+
+                        // ---- Make notification clickable if it contains a channel name ----
+                        let channelName = null;
+                        if (n.channel) {
+                            channelName = n.channel;
+                        } else if (n.message && n.message.includes(':')) {
+                            const parts = n.message.split(':');
+                            channelName = parts[0].trim();
+                        }
+                        if (channelName) {
+                            const url = `channel.html?channel=${encodeURIComponent(channelName)}`;
+                            item.style.cursor = 'pointer';
+                            // Left click – navigate in same tab
+                            item.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                window.location.href = url;
+                                notifDropdown.classList.remove('open'); // close dropdown
+                            });
+                            // Middle click – open in new tab
+                            item.addEventListener('mouseup', (e) => {
+                                if (e.button === 1) {
+                                    e.preventDefault();
+                                    window.open(url, '_blank');
+                                    notifDropdown.classList.remove('open');
+                                }
+                            });
+                            // Right click – open in new tab
+                            item.addEventListener('contextmenu', (e) => {
+                                e.preventDefault();
+                                window.open(url, '_blank');
+                                notifDropdown.classList.remove('open');
+                            });
+                        }
+                        // ----------------------------------------------------------------
+
                         notifDropdown.appendChild(item);
                     });
                 }
@@ -886,12 +897,11 @@
         applyAppearanceMode();
         applyLogoColor();
 
-        // --- Create Version Number Element ---
         const logo = document.getElementById('mainLogo');
         if (logo && !document.getElementById('logo-version')) {
             const versionSpan = document.createElement('span');
             versionSpan.id = 'logo-version';
-            versionSpan.textContent = 'v4.70'; // Current LocalYT version
+            versionSpan.textContent = 'v4.70';
             
             const isLight = getSetting('appearanceMode', 'dark') === 'light';
             versionSpan.style.color = isLight ? '#999999' : '#c8c8c8';
@@ -906,7 +916,6 @@
             
             window.logoVersionRef = versionSpan;
         }
-        // --- End Version Number ---
 
         if (getSetting('language', 'en') === 'de') {
             applyLanguage();
@@ -976,6 +985,46 @@
 
         function buildMenu(userData) {
             if (userData && userData.username) {
+                // Channel name item at the top
+                const userItem = document.createElement('div');
+                userItem.className = 'profile-menu-item';
+
+                const iconImg = document.createElement('img');
+                iconImg.src = PLACEHOLDER;
+                iconImg.className = 'profile-menu-icon';
+                iconImg.draggable = false;
+
+                const textSpan = document.createElement('span');
+                textSpan.className = 'profile-menu-text';
+                textSpan.textContent = userData.username;
+
+                userItem.appendChild(iconImg);
+                userItem.appendChild(textSpan);
+
+                userItem.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    window.location.href = `channel.html?channel=${encodeURIComponent(userData.username)}`;
+                    closeMenu();
+                });
+                userItem.addEventListener('mouseup', (e) => {
+                    if (e.button === 1) {
+                        e.preventDefault();
+                        window.open(`channel.html?channel=${encodeURIComponent(userData.username)}`, '_blank');
+                        closeMenu();
+                    }
+                });
+
+                menuInstance.prepend(userItem);
+
+                const sep = document.createElement('div');
+                sep.style.borderBottom = '1px solid rgba(128,128,128,0.2)';
+                sep.style.margin = '4px 16px';
+                if (userItem.nextSibling) {
+                    menuInstance.insertBefore(sep, userItem.nextSibling);
+                } else {
+                    menuInstance.appendChild(sep);
+                }
+
                 menuInstance.appendChild(createMenuItem('signout.svg', getLang('Sign Out', 'Abmelden'), () => {
                     fetch('/logout').then(() => {
                         window.location.href = '/login.html';
@@ -992,7 +1041,7 @@
 
                 appearanceItem.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    clearTimeout(holdTimer); // Prevent click from firing if hold was successful
+                    clearTimeout(holdTimer);
                     const isShiftHeld = e.shiftKey;
                     toggleAppearanceMode(isShiftHeld);
                     updateAppearanceText(appearanceItem);
