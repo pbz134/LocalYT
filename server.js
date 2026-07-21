@@ -1118,7 +1118,7 @@ function initializePlaylistShortLinks() {
                 shortCodeToPlaylistMap.set(code, name);
             }
             console.log(`${playlistShortMap.size} Playlist Short Links loaded.`);
-            console.log(`${videoArray.length} videos loaded.`);
+            console.log(`${videoArray.length} media files loaded.`);
         } catch (err) {
             console.error('Error loading playlist links:', err);
         }
