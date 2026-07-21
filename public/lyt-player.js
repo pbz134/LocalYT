@@ -3386,24 +3386,49 @@
             this.updateVolumeIcon();
         }
 
+        // ----- NEW: Helper to get volume icon SVG based on volume level -----
+        _getVolumeIcon(vol) {
+            if (this.video.muted || vol === 0) return SVG.volumeMute;
+            if (vol < 0.4) return SVG.volumeLow;
+            if (vol < 0.7) return SVG.volumeMedium;
+            return SVG.volumeHigh;
+        }
+
+        // ----- UPDATED: Use _getVolumeIcon -----
         updateVolumeIcon() {
             const vol = this.video.muted ? 0 : this.video.volume;
-            let icon;
-            if (vol === 0) {
-                icon = SVG.volumeMute;
-            } else if (vol < 0.4) {
-                icon = SVG.volumeLow;
-            } else if (vol < 0.7) {
-                icon = SVG.volumeMedium;
-            } else {
-                icon = SVG.volumeHigh;
-            }
-            this.dom.volumeBtn.innerHTML = icon;
-            
+            this.dom.volumeBtn.innerHTML = this._getVolumeIcon(vol);
             const percent = vol * 100;
             if(this.dom.volumeFill) {
                 this.dom.volumeFill.style.width = `${percent}%`;
             }
+        }
+
+        // ----- NEW: Show any icon in centre with dark grey circle -----
+        showCenterIcon(iconHtml) {
+            const existing = this.wrapper.querySelector('.lyt_center_anim');
+            if (existing) existing.remove();
+
+            const anim = document.createElement('div');
+            anim.className = 'lyt_center_anim';
+            anim.innerHTML = `
+                <div class="lyt_center_bg"></div>
+                <div class="lyt_center_icon">${iconHtml}</div>
+            `;
+            this.wrapper.appendChild(anim);
+            void anim.offsetWidth;
+            anim.classList.add('lyt_show');
+
+            setTimeout(() => {
+                anim.classList.remove('lyt_show');
+                setTimeout(() => anim.remove(), 300);
+            }, 400);
+        }
+
+        // ----- NEW: Show volume icon in centre -----
+        showVolumeAnimation(vol) {
+            const icon = this._getVolumeIcon(vol);
+            this.showCenterIcon(icon);
         }
         
         setPlaybackSpeed(speed) {
@@ -3611,6 +3636,7 @@
             document.addEventListener('touchend', upHandler);
         }
 
+        // ----- UPDATED: handleKeyboard to show volume animation on up/down -----
         handleKeyboard(e) {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
             if (e.target.isContentEditable) return;
@@ -3653,13 +3679,17 @@
                     break;
                 case 'arrowup':
                     e.preventDefault();
-                    this.video.volume = Math.min(1, this.video.volume + 0.05);
+                    const newVolUp = Math.min(1, this.video.volume + 0.05);
+                    this.video.volume = newVolUp;
                     this.updateVolumeIcon();
+                    this.showVolumeAnimation(newVolUp);
                     break;
                 case 'arrowdown':
                     e.preventDefault();
-                    this.video.volume = Math.max(0, this.video.volume - 0.05);
+                    const newVolDown = Math.max(0, this.video.volume - 0.05);
+                    this.video.volume = newVolDown;
                     this.updateVolumeIcon();
+                    this.showVolumeAnimation(newVolDown);
                     break;
                 case 'f':
                     e.preventDefault();
