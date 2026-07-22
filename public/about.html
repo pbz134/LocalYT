@@ -168,6 +168,9 @@
                 <span class="credit-label" id="creditRuntimeLabel">Runtime</span>
                 <span class="credit-value">Node.js</span>
 
+                <span class="credit-label" id="creditMetadataFetcherLabel">Metadata Fetcher</span>
+                <span class="credit-value" id="creditMetadataFetcherValue">yt-dlp</span>
+
                 <span class="credit-label" id="creditCreatedByLabel">Created by</span>
                 <span class="credit-value">pbz134</span>
             </div>
@@ -226,6 +229,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('creditMetadataValue').textContent = getLang('Python and Anaconda venvs', 'Python und Anaconda venvs');
     document.getElementById('creditRuntimeLabel').textContent = getLang('Runtime', 'Laufzeitumgebung');
     document.getElementById('subtitleFixerLabel').textContent = getLang('Subtitle Fixer', 'Untertitel-Fixer');
+    document.getElementById('creditMetadataFetcherLabel').textContent = getLang('Metadata Fetcher', 'Metadaten-Downloader');
+    document.getElementById('creditMetadataFetcherValue').textContent = getLang('yt-dlp', 'yt-dlp');
     document.getElementById('creditCreatedByLabel').textContent = getLang('Created by', 'Erstellt von');
 
     // --- Search Navigation Logic ---
