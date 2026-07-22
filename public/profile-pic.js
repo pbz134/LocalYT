@@ -247,6 +247,10 @@
             .view-count {
                 color: #555555 !important;
             }
+
+            .subscriber-count {
+                color: #555555 !important;
+            }
     
             [style*="color: rgb(204, 204, 204)"],
             [style*="color: #cccccc"],
@@ -264,7 +268,6 @@
             .like-dislike-icons span,
             .share-container span,
             .save-container span,
-
             .sub-count,
             .comment-like-btn span,
             .description-toggle {
@@ -357,7 +360,7 @@
             }
     
             .subscriber-count {
-                color: #555555 !important;
+                color: #737373 !important;
             }
     
             ::placeholder {
@@ -379,12 +382,12 @@
                 color: #000000 !important;
             }
 
-    /* ===== DIVIDER BELOW MINI PLAYER LIGHT MODE ===== */
-    .home-others-label {
-        border-top-color: #e0e0e0 !important; /* Match the sidebar border color */
-    }
+            /* ===== DIVIDER BELOW MINI PLAYER LIGHT MODE ===== */
+            .home-others-label {
+                border-top-color: #e0e0e0 !important;
+            }
 
-            /* ===== RECOMMENDED CHANNELS SIDEBAR LIGHT MODE ===== */
+            /* ===== ANGEZEGTE KANÄLE SIDEBAR LIGHT MODE ===== */
             #relatedChannelsSidebar {
                 background-color: #ffffff !important;
                 border-color: #e0e0e0 !important;
@@ -749,7 +752,8 @@
             'copyWithTimestamp': { en: 'Copy Link + Timestamp', de: 'Link + Zeitstempel kopieren' },
             'copyWithoutTimestamp': { en: 'Copy Link', de: 'Link kopieren' },
             'copyMessage': { en: 'Video URL copied to clipboard!', de: 'Video-URL in die Zwischenablage kopiert!' },
-            'recHeader': { en: 'Recommended', de: 'Empfohlen' }
+            'recHeader': { en: 'Recommended', de: 'Empfohlen' },
+            'relatedChannelsLabel': { en: 'Related channels', de: 'Angesagte Kanäle' }
         };
 
         Object.keys(dict).forEach(key => {
@@ -790,6 +794,12 @@
             } else {
                 saveSpan.textContent = dict.saveContainer[lang];
             }
+        }
+
+        // Update the related channels label
+        const relatedLabel = document.getElementById('relatedChannelsLabel');
+        if (relatedLabel) {
+            relatedLabel.textContent = dict.relatedChannelsLabel[lang] || dict.relatedChannelsLabel['en'];
         }
     }
 
