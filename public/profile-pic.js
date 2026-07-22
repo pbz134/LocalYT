@@ -264,6 +264,7 @@
             .like-dislike-icons span,
             .share-container span,
             .save-container span,
+
             .sub-count,
             .comment-like-btn span,
             .description-toggle {
@@ -479,6 +480,7 @@
                 
                 applyLightModeBlackOverride();
                 setSetting('appearanceMode', 'light');
+
                 safeRefreshPage();
 
             } else {
@@ -985,46 +987,6 @@
 
         function buildMenu(userData) {
             if (userData && userData.username) {
-                // Channel name item at the top
-                const userItem = document.createElement('div');
-                userItem.className = 'profile-menu-item';
-
-                const iconImg = document.createElement('img');
-                iconImg.src = PLACEHOLDER;
-                iconImg.className = 'profile-menu-icon';
-                iconImg.draggable = false;
-
-                const textSpan = document.createElement('span');
-                textSpan.className = 'profile-menu-text';
-                textSpan.textContent = userData.username;
-
-                userItem.appendChild(iconImg);
-                userItem.appendChild(textSpan);
-
-                userItem.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    window.location.href = `channel.html?channel=${encodeURIComponent(userData.username)}`;
-                    closeMenu();
-                });
-                userItem.addEventListener('mouseup', (e) => {
-                    if (e.button === 1) {
-                        e.preventDefault();
-                        window.open(`channel.html?channel=${encodeURIComponent(userData.username)}`, '_blank');
-                        closeMenu();
-                    }
-                });
-
-                menuInstance.prepend(userItem);
-
-                const sep = document.createElement('div');
-                sep.style.borderBottom = '1px solid rgba(128,128,128,0.2)';
-                sep.style.margin = '4px 16px';
-                if (userItem.nextSibling) {
-                    menuInstance.insertBefore(sep, userItem.nextSibling);
-                } else {
-                    menuInstance.appendChild(sep);
-                }
-
                 menuInstance.appendChild(createMenuItem('signout.svg', getLang('Sign Out', 'Abmelden'), () => {
                     fetch('/logout').then(() => {
                         window.location.href = '/login.html';
