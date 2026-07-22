@@ -178,6 +178,7 @@ app.use('/channelpic', express.static(path.join(__dirname, 'channelpic')));
 app.use('/channelbanner', express.static(path.join(__dirname, 'channelbanner')));
 app.use('/channeldesc', express.static(path.join(__dirname, 'channeldesc')));
 app.use('/channelstats', express.static(path.join(__dirname, 'channelstats')));
+app.use('/channeltags', express.static(path.join(__dirname, 'channeltags')));
 app.use('/videostats', express.static(path.join(__dirname, 'videostats')));
 app.use('/descriptions', express.static(path.join(__dirname, 'descriptions')));
 app.use('/comments', express.static(path.join(__dirname, 'comments')));

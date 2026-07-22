@@ -378,6 +378,52 @@
             #searchInput {
                 color: #000000 !important;
             }
+
+    /* ===== DIVIDER BELOW MINI PLAYER LIGHT MODE ===== */
+    .home-others-label {
+        border-top-color: #e0e0e0 !important; /* Match the sidebar border color */
+    }
+
+            /* ===== RECOMMENDED CHANNELS SIDEBAR LIGHT MODE ===== */
+            #relatedChannelsSidebar {
+                background-color: #ffffff !important;
+                border-color: #e0e0e0 !important;
+            }
+            
+            #relatedChannelsSidebar h3 {
+                color: #0f0f0f !important;
+                border-bottom-color: #e0e0e0 !important;
+            }
+            
+            .related-channel-item {
+                border-bottom-color: #e8e8e8 !important;
+            }
+            
+            .related-channel-name {
+                color: #0f0f0f !important;
+            }
+            
+            .related-channel-name:hover {
+                color: #065fd4 !important;
+            }
+            
+            .related-channel-sub-btn {
+                background-color: #cc181e !important;
+                color: #ffffff !important;
+            }
+            
+            .related-channel-sub-btn:hover {
+                background-color: #a31418 !important;
+            }
+            
+            .related-channel-sub-btn.subscribed {
+                background-color: #e0e0e0 !important;
+                color: #0f0f0f !important;
+            }
+            
+            .related-channel-sub-btn.subscribed:hover {
+                background-color: #cccccc !important;
+            }
         `;
     
     // Only force title colors to black if blue titles are OFF

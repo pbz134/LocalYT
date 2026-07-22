@@ -56,14 +56,14 @@
         .channel-top-section {
             background-color: #1e1e1e;
             width: 100%;
-            max-width: 1170px;
+            max-width: 1500px;
             margin: 0 auto;
         }
 
         .channel-content-section {
             background-color: #1e1e1e;
             width: 100%;
-            max-width: 1170px;
+            max-width: 1500px;
             margin: 8px auto 0 auto;
             padding-bottom: 20px;
             min-height: 400px;
@@ -71,10 +71,10 @@
 
         .channel-banner {
             width: 100%;
-            max-width: 1170px;
+            max-width: 100%;
             height: auto;
             aspect-ratio: 1400 / 230;
-            background-size: contain;
+            background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
             margin: 80px auto 0 auto;
@@ -84,7 +84,7 @@
             display: flex;
             align-items: center;
             margin: 20px auto;
-            max-width: 1170px;
+            max-width: 1400px;
             padding: 0 20px;
             box-sizing: border-box;
         }
@@ -127,12 +127,42 @@
             transition: none;
             font-weight: bold;
         }
+
+        body.classic-channel .channel-header {
+            display: flex;
+            align-items: center;
+            margin: 15px auto;
+            max-width: 1500px;
+            padding: 0 20px;
+            box-sizing: border-box;
+            justify-content: flex-start;
+            gap: 0;
+        }
+
         body.classic-channel .channel-name {
             margin-top: -5px;
+            margin-right: auto;
+        }
+
+        body.classic-channel .channel-header-right {
+            display: flex;
+            align-items: center;
+            margin-left: auto;
+            margin-right: 0;
+            flex-shrink: 0;
+        }
+        body.classic-channel .tabs {
+            display: flex;
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 0 20px;
+            box-sizing: border-box;
+            justify-content: flex-start;
+            gap: 8px;
         }
         body.classic-channel .tab {
             padding: 10px 0;
-            margin: 0 20px;
+            margin: 0 20px 0 0;
             border-bottom: none !important;
             position: relative;
             transition: color 0.2s;
@@ -152,7 +182,7 @@
             width: fit-content;
         }
         .channel-name {
-            font-size: 20px;
+            font-size: 22px;
             font-weight: bold;
             color: #fff;
         }
@@ -201,11 +231,10 @@
         }
         .tabs {
             display: flex;
-            max-width: 1170px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 0 20px;
             box-sizing: border-box;
-            border-bottom: 1px solid #3f3f3f;
         }
         .tab {
             padding: 10px 20px;
@@ -213,6 +242,7 @@
             color: #aaa;
             border-bottom: 2px solid transparent;
             transition: all 0.2s;
+            font-size: 15px;
         }
         .tab.active {
             color: #fff;
@@ -396,26 +426,59 @@
             position: relative;
             min-height: 400px;
         }
+        #videosTab .channel-videos,
+        #playlistsTab .playlists-container {
+            justify-content: center;
+            width: 100%;
+            max-width: 100%;
+        }
+        /* Videos tab: 3 items per row, except when in list view */
+        #videosTab .channel-videos:not(.list-view) {
+            gap: 16px;
+        }
+        #videosTab .channel-videos:not(.list-view) .video-item {
+            flex: 0 0 calc((100% - 2 * 16px) / 3.5);
+            max-width: calc((100% - 2 * 16px) / 3.5);
+            width: auto; /* override fixed 200px */
+        }
+        /* Ensure thumbnails keep 16:9 */
+        #videosTab .channel-videos .video-item .video-thumbnail {
+            height: auto;
+            aspect-ratio: 16 / 9;
+        }
+
+        /* Playlists tab: wider items, more spacing */
+        #playlistsTab .playlists-container {
+            gap: 24px;
+        }
+        #playlistsTab .playlists-container .playlist-item {
+            flex: 0 0 340px;
+            width: 340px;
+            max-width: 340px;
+        }
         .channel-videos,
         .playlists-container {
             display: flex;
             flex-wrap: wrap;
-            justify-content: space-around;
+            justify-content: flex-start;
             padding: 0px 20px;
+            gap: 16px;
         }
         .video-item {
-            margin: 10px;
+            margin: 0;
             background: #1e1e1e;
             overflow: hidden;
-            width: 300px;
+            width: 200px;
+            flex: 0 0 200px;
             text-align: center;
             transition: transform 0.2s ease;
         }
         .playlist-item {
-            margin: 10px;
+            margin: 0;
             background: #1e1e1e;
             overflow: hidden;
             width: 300px;
+            flex: 0 0 300px;
             text-align: center;
             transition: transform 0.2s ease;
             cursor: pointer;
@@ -423,7 +486,7 @@
         }
         .video-thumbnail {
             width: 100%;
-            height: 168px;
+            height: 112px;
             display: block;
             background-color: #2a2a2a;
             transition: transform 0.2s ease;
@@ -515,7 +578,7 @@
             color: #d2cfcf;
             text-decoration: none;
             transition: text-decoration 0.2s ease;
-            font-size: 14px;
+            font-size: 15px;
             line-height: 1.3em;
             max-height: 2.6em;
             overflow: hidden;
@@ -523,6 +586,7 @@
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             text-align: left;
+            margin-top: 6px;
         }
         .playlist-title {
             padding: 5px;
@@ -543,6 +607,7 @@
             min-height: 1.5em;
             position: relative;
             z-index: 0;
+            font-size: 13px;
         }
         .playlist-video-count {
             text-align: left;
@@ -620,7 +685,7 @@
         }
         .about-description .description-text {
             color: #ccc;
-            font-size: 14px;
+            font-size: 15px;
             line-height: 1.6;
             white-space: pre-wrap;
         }
@@ -640,7 +705,7 @@
         }
         .stats-item {
             color: #ccc;
-            font-size: 14px;
+            font-size: 15px;
             padding: 12px 0;
             border-bottom: 1px solid #3f3f3f;
         }
@@ -735,8 +800,9 @@
         .channel-search-results {
             display: flex;
             flex-wrap: wrap;
-            justify-content: space-around;
+            justify-content: flex-start;
             padding: 0px 20px;
+            gap: 16px;
         }
         .channel-search-no-results {
             text-align: center;
@@ -755,66 +821,86 @@
         }
 
         /* ===== HOME TAB STYLES ===== */
+        .home-tab-flex-wrapper {
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-start;
+            align-items: flex-start;
+            gap: 0;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 30px;
+            box-sizing: border-box;
+        }
+        .home-tab-main-content {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            box-sizing: border-box;
+            order: 1;
+        }
         .home-others-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 0;
-            max-width: 1170px;
-            margin: 0 auto;
-            padding: 0 20px;
+            gap: 12px;
+            padding: 0;
+            margin: 0;
             box-sizing: border-box;
+            overflow: hidden;
+            width: 100%;
         }
         .home-row-wrapper {
             display: flex;
             flex-wrap: nowrap;
             justify-content: center;
             width: 100%;
-            margin-bottom: 10px;
+            margin-bottom: 16px;
             align-items: center;
-            overflow: visible;
+            overflow: hidden;
+            gap: 40px;
+            box-sizing: border-box;
         }
         .home-row-wrapper .video-item {
-            width: 260px;
-            flex-shrink: 0;
+            width: 240px !important;
+            max-width: 240px !important;
+            min-width: 240px !important;
+            flex: 0 0 240px !important;
+            flex-shrink: 0 !important;
+            box-sizing: border-box;
+            margin: 0 !important;
         }
         .home-row-wrapper .video-item .video-thumbnail {
-            height: 146px;
+            height: auto !important;
+            aspect-ratio: 16 / 9;
         }
         .home-row-wrapper .playlist-item {
-            width: auto;
-            margin: 10px;
+            width: 480px !important;
+            max-width: 480px !important;
+            min-width: 480px !important;
+            flex: 0 0 480px !important;
+            flex-shrink: 0 !important;
+            margin: 0 !important;
             box-sizing: border-box;
-            display: flex;
-            flex-direction: row;
-            align-items: stretch;
-            flex: 0 0 calc(50% - 20px);
-            max-width: calc(50% - 20px);
-        }
-        .home-row-wrapper .video-item {
-            width: auto;
-            flex: 1 1 260px;
-            max-width: 260px;
-            box-sizing: content-box;
-        }
-        .home-row-wrapper .video-item .video-thumbnail {
-            width: 100%;
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: stretch !important;
         }
         .home-row-wrapper .playlist-item .playlist-thumbnail {
-            width: 50%;
-            min-width: 50%;
-            height: auto;
-            aspect-ratio: 16 / 9;
-            flex-shrink: 0;
+            width: 50% !important;
+            min-width: 50% !important;
+            height: auto !important;
+            aspect-ratio: 16 / 9 !important;
+            flex-shrink: 0 !important;
         }
         .home-row-wrapper .playlist-item .playlist-info-side {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            justify-content: center;
-            flex: 1;
-            min-width: 0;
-            padding-left: 12px;
-            overflow: hidden;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            justify-content: center !important;
+            flex: 1 !important;
+            min-width: 0 !important;
+            padding-left: 12px !important;
+            overflow: hidden !important;
         }
         .home-row-wrapper .playlist-item .playlist-info-side .playlist-title {
             font-size: 14px;
@@ -839,6 +925,7 @@
             text-overflow: ellipsis;
             margin-top: 4px;
             margin-left: 5px;
+            max-width: 100%;
         }
         .home-row-wrapper .playlist-item .playlist-info-side .playlist-second-video-name {
             font-size: 12px;
@@ -848,21 +935,27 @@
             text-overflow: ellipsis;
             margin-top: 2px;
             margin-left: 5px;
+            max-width: 100%;
         }
         .home-preview-section {
-            max-width: 1170px;
-            margin: 0 auto;
-            padding: 0 20px;
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
+            width: 100%;
+            margin-bottom: 0;
         }
         .home-preview-row {
             display: flex;
+            flex-direction: row;
             gap: 24px;
-            margin-bottom: 30px;
+            margin-bottom: 0;
+            align-items: flex-start;
+            justify-content: flex-start;
         }
         .home-player-wrapper {
-            flex: 0 0 480px;
-            max-width: 480px;
+            flex: 0 0 600px;
+            max-width: 600px;
             background: #000;
             border-radius: 0;
             overflow: hidden;
@@ -873,7 +966,7 @@
             width: 100%;
             aspect-ratio: 16 / 9;
             display: block;
-            max-height: 270px;
+            max-height: 338px;
         }
         .home-logo-overlay {
             display: none !important;
@@ -895,7 +988,7 @@
             flex-direction: column;
         }
         .home-video-title {
-            font-size: 16px;
+            font-size: 18px;
             font-weight: bold;
             color: #fff;
             margin: 0 0 12px 0;
@@ -904,7 +997,7 @@
         }
         .home-video-meta {
             color: #888;
-            font-size: 14px;
+            font-size: 15px;
             margin-bottom: 16px;
         }
         .home-video-description-box {
@@ -916,7 +1009,7 @@
         }
         .home-video-description-text {
             color: #ccc;
-            font-size: 14px;
+            font-size: 15px;
             line-height: 1.5;
             white-space: pre-line;
             word-wrap: break-word;
@@ -950,23 +1043,28 @@
             text-decoration: underline;
         }
         .home-others-label {
-            max-width: 1170px;
-            margin: 0 auto;
-            padding: 0 20px;
+            max-width: 100%;
+            margin: 20px 0 16px 0;
+            padding: 10px 0 0 0;
             box-sizing: border-box;
             font-size: 18px;
             font-weight: bold;
             color: #fff;
-            margin-bottom: 16px;
-            margin-top: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #3f3f3f;
+            border-top: 1px solid #3f3f3f;
         }
+        .home-row-wrapper .video-item,
         .home-others-grid .video-item {
-            width: 280px;
+            width: 200px !important;
+            max-width: 200px !important;
+            min-width: 200px !important;
+            flex: 0 0 200px !important;
+            flex-shrink: 0 !important;
+            box-sizing: border-box;
+            margin: 0 !important;
         }
         .home-others-grid .video-thumbnail {
-            height: 157px;
+            height: auto !important;
+            aspect-ratio: 16 / 9;
         }
         @keyframes spin {
             to {
@@ -1006,7 +1104,7 @@
         .post-author-name {
             font-weight: bold;
             color: #fff;
-            font-size: 14px;
+            font-size: 15px;
             line-height: 1.2;
             margin-top: -4px;
         }
@@ -1019,7 +1117,7 @@
         }
         .post-content-text {
             color: #e3e3e3;
-            font-size: 14px;
+            font-size: 15px;
             line-height: 1.5;
             word-wrap: break-word;
             white-space: pre-wrap;
@@ -1168,8 +1266,8 @@
             width: 100%;
         }
         .skeleton-miniplayer-thumb {
-            flex: 0 0 480px;
-            max-width: 480px;
+            flex: 0 0 420px;
+            max-width: 420px;
             aspect-ratio: 16 / 9;
             background: #1a1a1a;
             position: relative;
@@ -1224,6 +1322,91 @@
             gap: 6px;
             margin-top: 6px;
         }
+
+        /* ==============================================
+           RELATED CHANNELS SIDEBAR
+           ============================================== */
+        #relatedChannelsSidebar {
+            width: 200px;
+            flex-shrink: 0;
+            padding: 16px 12px;
+            box-sizing: border-box;
+            background-color: #2a2a2a;
+            border-radius: 0;
+            margin: 0px 0 20px 30px;
+            align-self: flex-start;
+            order: 2;
+        }
+        #relatedChannelsSidebar h3 {
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 0 0 16px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #3f3f3f;
+        }
+        .related-channel-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #2a2a2a;
+            gap: 12px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .related-channel-item:last-child {
+            border-bottom: none;
+        }
+        .related-channel-pic {
+            width: 48px;
+            height: 48px;
+            border-radius: 0px;
+            background-color: #2a2a2a;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        .related-channel-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .related-channel-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+        }
+        .related-channel-name:hover {
+            color: #3ea6ff;
+        }
+        .related-channel-sub-btn {
+            margin-top: 6px;
+            background-color: #cc181e;
+            color: #fff;
+            border: none;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 2px;
+            cursor: pointer;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            width: fit-content;
+            transition: background-color 0.2s;
+        }
+        .related-channel-sub-btn:hover {
+            background-color: #a31418;
+        }
+        .related-channel-sub-btn.subscribed {
+            background-color: #555;
+            color: #ccc;
+        }
+        .related-channel-sub-btn.subscribed:hover {
+            background-color: #666;
+        }
     </style>
 </head>
 <body>
@@ -1266,32 +1449,43 @@
         </div>
     </div>
 
-    <!-- BOTTOM GREY SECTION: Content starting from Miniplayer -->
+    <!-- BOTTOM GREY SECTION: Content -->
     <div class="channel-content-section">
         <!-- Posts Tab -->
         <div id="postsTab" class="tab-content">
             <div class="posts-container" id="postsContainer"></div>
         </div>
 
-        <!-- Home Tab -->
+        <!-- Home Tab (Contains Sidebar + Main Content) -->
         <div id="homeTab" class="tab-content active">
-            <div class="home-preview-section">
-                <div class="home-preview-row" id="homePreviewRow">
-                    <div class="home-player-wrapper" id="homePlayerWrapper">
-                        <div class="home-player-placeholder" id="homePlayerPlaceholder"></div>
-                    </div>
-                    <div class="home-info-panel">
-                        <div class="home-video-title" id="homeVideoTitle"></div>
-                        <div class="home-video-meta" id="homeVideoMeta"></div>
-                        <div class="home-video-description-box">
-                            <div class="home-video-description-text" id="homeVideoDescription"></div>
-                            <a class="home-video-description-read-more" id="homeVideoDescriptionReadMore" href="#">Mehr anzeigen</a>
+            <div class="home-tab-flex-wrapper">
+                <!-- Related Channels Sidebar -->
+                <div id="relatedChannelsSidebar">
+                    <h3>Angesagte Kanäle</h3>
+                    <div id="relatedChannelsList"></div>
+                </div>
+
+                <!-- Main Home Content -->
+                <div class="home-tab-main-content">
+                    <div class="home-preview-section">
+                        <div class="home-preview-row" id="homePreviewRow">
+                            <div class="home-player-wrapper" id="homePlayerWrapper">
+                                <div class="home-player-placeholder" id="homePlayerPlaceholder"></div>
+                            </div>
+                            <div class="home-info-panel">
+                                <div class="home-video-title" id="homeVideoTitle"></div>
+                                <div class="home-video-meta" id="homeVideoMeta"></div>
+                                <div class="home-video-description-box">
+                                    <div class="home-video-description-text" id="homeVideoDescription"></div>
+                                    <a class="home-video-description-read-more" id="homeVideoDescriptionReadMore" href="#">Mehr anzeigen</a>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    <div class="home-others-label" id="homeOthersLabel"></div>
+                    <div class="home-others-grid" id="homeOthersGrid"></div>
                 </div>
             </div>
-            <div class="home-others-label" id="homeOthersLabel"></div>
-            <div class="home-others-grid" id="homeOthersGrid"></div>
         </div>
 
         <!-- Videos Tab -->
@@ -1814,7 +2008,208 @@
                 mainLogo.title = "Go to homepage (Left click: same tab, Middle/Right click: new tab)";
                 mainLogo.style.cursor = 'pointer';
             }
+
+            // Load related channels
+            loadRelatedChannels();
         });
+
+        // ======================================================================
+        // RELATED CHANNELS LOGIC
+        // ======================================================================
+        async function loadRelatedChannels() {
+            const sidebarContainer = document.getElementById('relatedChannelsList');
+            if (!sidebarContainer) return;
+
+            // 1. Grab the current channel's tags
+            let currentTags = [];
+            try {
+                const res = await fetch(`/channeltags/${encodeURIComponent(channel)}.txt`);
+                if (res.ok) {
+                    const text = await res.text();
+                    currentTags = text.split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
+                } else {
+                    console.warn('Could not find tag file for current channel');
+                    sidebarContainer.innerHTML = '<p style="color: #888; font-size: 13px;">No tags available</p>';
+                    return;
+                }
+            } catch (err) {
+                console.error('Error fetching current channel tags:', err);
+                sidebarContainer.innerHTML = '<p style="color: #888; font-size: 13px;">Error loading tags</p>';
+                return;
+            }
+
+            if (currentTags.length === 0) {
+                sidebarContainer.innerHTML = '<p style="color: #888; font-size: 13px;">No tags available</p>';
+                return;
+            }
+
+            // 2. Get the list of all channels to compare against
+            let channelsToCheck = [];
+
+            // Try the dedicated json index first (fastest)
+            try {
+                const res = await fetch('/channeltags-list.json');
+                if (res.ok) {
+                    channelsToCheck = await res.json();
+                } else {
+                    throw new Error('channeltags-list.json not found');
+                }
+            } catch (err) {
+                // Fallback: Fetch the search-index to discover all existing channels dynamically
+                console.warn('Could not fetch channeltags-list.json. Falling back to search-index to discover channels.');
+                try {
+                    const searchRes = await fetch('/search-index');
+                    if (searchRes.ok) {
+                        const data = await searchRes.json();
+                        const channelSet = new Set();
+                        (data.videos || []).forEach(v => {
+                            if (v.path) {
+                                const channelName = v.path.split('/')[0];
+                                if (channelName) channelSet.add(channelName);
+                            }
+                        });
+                        channelsToCheck = Array.from(channelSet);
+                    } else {
+                        throw new Error('search-index fetch failed');
+                    }
+                } catch (searchErr) {
+                    console.error('Failed to fetch search-index for fallback:', searchErr);
+                    sidebarContainer.innerHTML = '<p style="color: #888; font-size: 13px;">Unable to discover channels</p>';
+                    return;
+                }
+            }
+
+            // Exclude the current channel from being matched to itself
+            channelsToCheck = channelsToCheck.filter(c => c !== channel);
+
+            if (channelsToCheck.length === 0) {
+                sidebarContainer.innerHTML = '<p style="color: #888; font-size: 13px;">No other channels found</p>';
+                return;
+            }
+
+            // 3. Load tags for each discovered channel and calculate scores
+            const tagPromises = channelsToCheck.map(async (c) => {
+                try {
+                    const res = await fetch(`/channeltags/${encodeURIComponent(c)}.txt`);
+                    if (!res.ok) return null;
+                    const text = await res.text();
+                    const tags = text.split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
+                    if (tags.length === 0) return null;
+                    return { channel: c, tags };
+                } catch (err) {
+                    return null;
+                }
+            });
+
+            const tagResults = await Promise.all(tagPromises);
+            const validChannels = tagResults.filter(r => r !== null);
+
+            // 4. Calculate similarity scores based on tag intersections
+            const scoredChannels = validChannels.map(({ channel: c, tags }) => {
+                const intersection = tags.filter(t => currentTags.includes(t));
+                return { channel: c, score: intersection.length };
+            }).filter(item => item.score > 0);
+
+            // 5. Sort by score descending, then alphabetically for tie-breakers
+            scoredChannels.sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                return a.channel.localeCompare(b.channel);
+            });
+
+            // 6. Determine top 5 channels (or up to 10 if there are high ties)
+            let topChannels = [];
+            if (scoredChannels.length > 0) {
+                const maxScore = scoredChannels[0].score;
+                // Gather all channels with the max score
+                const topTier = scoredChannels.filter(c => c.score === maxScore);
+                let selected = [...topTier];
+                // If we haven't reached 5, continue down the list
+                if (selected.length < 5) {
+                    let i = topTier.length;
+                    while (selected.length < 10 && i < scoredChannels.length) {
+                        if (!selected.includes(scoredChannels[i])) {
+                            selected.push(scoredChannels[i]);
+                        }
+                        i++;
+                    }
+                }
+                // Limit to a maximum of 10
+                topChannels = selected.slice(0, 10);
+            }
+
+            if (topChannels.length === 0) {
+                sidebarContainer.innerHTML = '<p style="color: #888; font-size: 13px;">No similar channels found</p>';
+                return;
+            }
+
+            // 7. Render related channels
+            const fragment = document.createDocumentFragment();
+
+            // Fetch existing subscriptions
+            let subs = {};
+            try {
+                const userRes = await fetch(`/user-subscriptions/${encodeURIComponent(channel)}`);
+                if (userRes.ok) {
+                    subs = await userRes.json();
+                }
+            } catch (err) { /* ignore subscription fetch errors */ }
+
+            for (const entry of topChannels) {
+                const c = entry.channel;
+                const item = document.createElement('div');
+                item.className = 'related-channel-item';
+
+                const isSubbed = subs[c] || false;
+                const picSrc = `/channelpic/${encodeURIComponent(c)}.jpg`;
+                
+                item.innerHTML = `
+                    <img src="${picSrc}" alt="" class="related-channel-pic" onerror="this.src='/LocalYT-Rev-Files/default-avatar.png'">
+                    <div class="related-channel-info">
+                        <span class="related-channel-name" onclick="window.location.href='channel.html?channel=${encodeURIComponent(c)}'">${c}</span>
+                        <button class="related-channel-sub-btn ${isSubbed ? 'subscribed' : ''}" data-channel="${encodeURIComponent(c)}">${isSubbed ? 'Abonniert' : 'Abonnieren'}</button>
+                    </div>
+                `;
+
+                // Subscription button logic
+                const subBtn = item.querySelector('.related-channel-sub-btn');
+                subBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const targetChannel = subBtn.dataset.channel;
+                    const currentState = subBtn.classList.contains('subscribed');
+                    const newState = !currentState;
+                    
+                    subBtn.classList.toggle('subscribed', newState);
+                    subBtn.textContent = newState ? 'Abonniert' : 'Abonnieren';
+
+                    try {
+                        await fetch('/subscribe', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ channel: targetChannel, isSubscribed: newState })
+                        });
+                    } catch (err) {
+                        console.error('Error updating subscription:', err);
+                        // Revert if error occurs
+                        subBtn.classList.toggle('subscribed', currentState);
+                        subBtn.textContent = currentState ? 'Abonniert' : 'Abonnieren';
+                    }
+                });
+
+                // Clicking the name navigates to the channel
+                const nameEl = item.querySelector('.related-channel-name');
+                nameEl.addEventListener('auxclick', (e) => {
+                    if (e.button === 1) {
+                        e.preventDefault();
+                        window.open(`channel.html?channel=${encodeURIComponent(c)}`, '_blank');
+                    }
+                });
+
+                fragment.appendChild(item);
+            }
+
+            sidebarContainer.innerHTML = '';
+            sidebarContainer.appendChild(fragment);
+        }
 
         // ======================================================================
         // MAIN LOGIC
@@ -2411,8 +2806,7 @@
                         }
 
                         const viewsText = getLang('views', 'Aufrufe');
-                        const uploadedText = getLang('Uploaded on', 'Hochgeladen am');
-                        metaEl.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${video.fileDate}`;
+                        metaEl.textContent = `${formattedViewCount} ${viewsText} • ${video.fileDate}`;
 
                         if (meta.displayName && meta.displayName.trim()) {
                             titleEl.textContent = meta.displayName.trim();
@@ -2715,7 +3109,7 @@
                                         const uploadedText = getLang('Uploaded on',
                                         'Hochgeladen am');
                                         const descText =
-                                            `${formattedViewCount} ${viewsText} • ${uploadedText} ${item.fileDate}`;
+                                            `${formattedViewCount} ${viewsText} • ${item.fileDate}`;
                                         const videoLength = meta.videoLength || '';
 
                                         videoElement.innerHTML = `
@@ -2989,7 +3383,7 @@
                 const uploadedText = getLang('Uploaded on', 'Hochgeladen am');
 
                 if (video.fileDate && video.fileDate !== 'Unknown date') {
-                    descText = `${formattedViewCount} ${viewsText} • ${uploadedText} ${video.fileDate}`;
+                    descText = `${formattedViewCount} ${viewsText} • ${video.fileDate}`;
                 } else {
                     descText = `${formattedViewCount} ${viewsText} • ${getLang('Loading date...', 'Lade Datum...')}`;
                 }
@@ -3016,7 +3410,7 @@
                             const trimmedDate = fetchedDate.trim();
                             if (trimmedDate && trimmedDate !== 'Unknown date') {
                                 descriptionDiv.textContent =
-                                    `${formattedViewCount} ${viewsText} • ${uploadedText} ${trimmedDate}`;
+                                    `${formattedViewCount} ${viewsText} • ${trimmedDate}`;
                                 video.fileDate = trimmedDate;
                             } else {
                                 descriptionDiv.textContent = `${formattedViewCount} ${viewsText}`;
@@ -3798,7 +4192,7 @@
                 const uploadedText = getLang('Uploaded on', 'Hochgeladen am');
 
                 if (video.fileDate && video.fileDate !== 'Unknown date') {
-                    descText = `${formattedViewCount} ${viewsText} • ${uploadedText} ${video.fileDate}`;
+                    descText = `${formattedViewCount} ${viewsText} • ${video.fileDate}`;
                 } else {
                     descText = `${formattedViewCount} ${viewsText} • ${getLang('Loading date...', 'Lade Datum...')}`;
                 }
@@ -3825,7 +4219,7 @@
                             const trimmedDate = fetchedDate.trim();
                             if (trimmedDate && trimmedDate !== 'Unknown date') {
                                 descriptionDiv.textContent =
-                                    `${formattedViewCount} ${viewsText} • ${uploadedText} ${trimmedDate}`;
+                                    `${formattedViewCount} ${viewsText} • ${trimmedDate}`;
                                 video.fileDate = trimmedDate;
                             } else {
                                 descriptionDiv.textContent = `${formattedViewCount} ${viewsText}`;
@@ -4106,7 +4500,7 @@
 
                                 let finalText = `${formattedViewCount} ${viewsText}`;
                                 if (fileDate && fileDate.trim() !== 'Unknown date') {
-                                    finalText += ` • ${uploadedText} ${fileDate.trim()}`;
+                                    finalText += ` • ${fileDate.trim()}`;
                                 }
                                 descriptionDiv.textContent = finalText;
                                 if (videoLength.trim()) {
