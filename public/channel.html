@@ -1461,7 +1461,7 @@
             <div class="home-tab-flex-wrapper">
                 <!-- Related Channels Sidebar -->
                 <div id="relatedChannelsSidebar">
-                    <h3>Angesagte Kanäle</h3>
+                    <h3 id="relatedChannelsLabel" style="visibility: hidden;">Angesagte Kanäle</h3>
                     <div id="relatedChannelsList"></div>
                 </div>
 
@@ -2209,6 +2209,17 @@
 
             sidebarContainer.innerHTML = '';
             sidebarContainer.appendChild(fragment);
+
+            const relatedLabel = document.getElementById('relatedChannelsLabel');
+            if (relatedLabel) {
+                const lang = localStorage.getItem('language') || 'en';
+                if (lang === 'de') {
+                    relatedLabel.textContent = 'Angesagte Kanäle';
+                } else {
+                    relatedLabel.textContent = 'Related channels';
+                }
+                relatedLabel.style.visibility = 'visible';
+            }
         }
 
         // ======================================================================
