@@ -54,9 +54,9 @@ if /i "!seekbar_choice!"=="y" (
 )
 
 :ask_thumbnail
-echo How do you want to fix non-16:9 thumbnails?
-echo 1. Zoom in to 16:9 (default)
-echo 2. Add black borders to make 16:9
+echo Choose an option to fix non-16:9 thumbnails
+echo 1. Zoom in to 16:9 (not recommended)
+echo 2. Add black borders
 echo 3. Add colored borders (using most common color)
 set /p "thumbnail_choice=Enter 1, 2, or 3: "
 if "!thumbnail_choice!"=="1" (
