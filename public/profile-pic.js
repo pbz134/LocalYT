@@ -357,7 +357,7 @@
             }
     
             .subscriber-count {
-                color: #737373 !important;
+                color: #555555 !important;
             }
     
             ::placeholder {
