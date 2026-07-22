@@ -4,6 +4,7 @@ import zipfile
 import json
 import argparse
 from datetime import datetime
+from tqdm import tqdm
 
 # Define the files to back up
 FILES_TO_BACKUP = [
@@ -244,61 +245,146 @@ def backup_user_files(server_root, dest_path):
         print(f"Skipped (not found):   {skip_count} item(s)")
 
 
-def backup_metadata_files(server_root, dest_path):
-    """Recursively scan server root for metadata files and create a ZIP preserving folder structure."""
-    server_root_norm = os.path.normpath(server_root)
-    
-    print(f"\nScanning for metadata files in: {server_root_norm}")
-    print("Looking for: .png, .txt, .jpg, .json files (inside folders only)")
-    print("Excluding: node_modules, venv folders")
-    
-    found_files = []
-    skipped_root_files = []
-    
-    for current_root, dirs, files in os.walk(server_root_norm):
-        is_root_level = (os.path.normpath(current_root) == server_root_norm)
+def get_metadata_size_and_count(folder_path):
+    """Quickly scan a folder to find the total size and count of metadata files."""
+    total_size = 0
+    file_count = 0
+    for current_root, dirs, files in os.walk(folder_path):
+        # Prune excluded dirs early for speed
         dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
         
         for filename in files:
             _, ext = os.path.splitext(filename)
-            
             if ext.lower() in METADATA_EXTENSIONS:
                 full_path = os.path.join(current_root, filename)
-                
-                if is_root_level:
-                    skipped_root_files.append(filename)
-                    continue
-                
-                rel_path = os.path.relpath(full_path, server_root_norm)
-                found_files.append((full_path, rel_path))
+                try:
+                    total_size += os.path.getsize(full_path)
+                    file_count += 1
+                except OSError:
+                    pass # Skip files we can't access
+    return total_size, file_count
+
+
+def backup_metadata_files(server_root, dest_path):
+    """Back up metadata from each root-level folder into individual ZIPs, skipping unchanged folders."""
+    server_root_norm = os.path.normpath(server_root)
     
-    if skipped_root_files:
-        print(f"\n[INFO] Skipped {len(skipped_root_files)} base-level file(s):")
-        for f in sorted(skipped_root_files):
-            print(f"         - {f}")
+    print(f"\nScanning and Zipping in: {server_root_norm}")
+    print(f"Destination: {dest_path}")
+    print("-" * 50)
     
-    if not found_files:
-        print("\n[WARN] No metadata files found inside subdirectories!")
-        return
+    total_files_zipped = 0
+    folders_skipped = 0
+    folders_zipped = 0
+    root_files_to_zip = []
     
-    print(f"\nFound {len(found_files)} metadata file(s) inside folders to archive.")
+    top_level_items = os.listdir(server_root_norm)
     
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    zip_filename = f"metadata_backup_{timestamp}.zip"
-    zip_filepath = os.path.join(dest_path, zip_filename)
-    
-    try:
-        with zipfile.ZipFile(zip_filepath, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            for full_path, rel_path in found_files:
-                zipf.write(full_path, rel_path)
-                print(f"[OK] Added: {rel_path}")
-                
-        print(f"\n--- Metadata Backup Complete ---")
-        print(f"Created ZIP archive: {zip_filepath}")
-        print(f"Total files archived: {len(found_files)}")
+    for item in top_level_items:
+        item_path = os.path.join(server_root_norm, item)
+        zip_filepath = os.path.join(dest_path, f"{item}.zip")
         
-    except Exception as e:
-        print(f"\n[FAIL] Error creating ZIP archive: {e}")
+        # --- 1. Handle root-level files ---
+        if os.path.isfile(item_path):
+            _, ext = os.path.splitext(item)
+            # We only back up non-json metadata at the root level
+            if ext.lower() in METADATA_EXTENSIONS and ext.lower() != '.json':
+                root_files_to_zip.append((item_path, item))
+            continue
+        
+        # --- 2. Skip excluded or non-directories ---
+        if item in EXCLUDED_DIRS or not os.path.isdir(item_path):
+            continue
+            
+        # --- 3. Quick Scan for size and count ---
+        print(f"[CHECKING] {item}/ ...", end=" ")
+        current_size, current_count = get_metadata_size_and_count(item_path)
+        
+        if current_count == 0:
+            print("[SKIP] No metadata files.")
+            continue
+            
+        # --- 4. Incremental Check ---
+        if os.path.exists(zip_filepath):
+            try:
+                with zipfile.ZipFile(zip_filepath, 'r') as existing_zip:
+                    zip_info = existing_zip.infolist()
+                    zip_size = sum(info.file_size for info in zip_info)
+                    zip_count = len(zip_info)
+                    
+                # If size and count match exactly, skip zipping this folder!
+                if zip_size == current_size and zip_count == current_count:
+                    print(f"[UP-TO-DATE] Skipped ({current_count} files, {current_size / 1e6:.2f} MB)")
+                    folders_skipped += 1
+                    continue
+                else:
+                    print(f"Updating...")
+            except zipfile.BadZipFile:
+                print("Corrupted Zip detected, re-zipping...")
+        else:
+            print(f"Zipping new file...")
+            
+        # --- 5. Zipping Phase (Only runs if changed or new) ---
+        files_to_zip = []
+        dirs_to_zip = set()
+        
+        # Full walk to gather exact file paths
+        for current_root, dirs, files in os.walk(item_path):
+            dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
+            
+            rel_dir = os.path.relpath(current_root, server_root_norm)
+            dirs_to_zip.add(rel_dir + "/")
+            
+            for filename in files:
+                _, ext = os.path.splitext(filename)
+                if ext.lower() in METADATA_EXTENSIONS:
+                    full_path = os.path.join(current_root, filename)
+                    rel_path = os.path.relpath(full_path, server_root_norm)
+                    files_to_zip.append((full_path, rel_path))
+                    dirs_to_zip.add(os.path.dirname(rel_path) + "/")
+        
+        try:
+            # Overwrite the old zip
+            with zipfile.ZipFile(zip_filepath, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                # Add folders
+                for d in sorted(dirs_to_zip):
+                    d_abs_path = os.path.join(server_root_norm, d.rstrip("/"))
+                    if os.path.isdir(d_abs_path):
+                        zipf.write(d_abs_path, d)
+                
+                # Add files with progress bar
+                for full_path, rel_path in tqdm(files_to_zip, desc=f"  Zipping {item}", unit="file", leave=False):
+                    try:
+                        zipf.write(full_path, rel_path)
+                        total_files_zipped += 1
+                    except Exception:
+                        pass
+                        
+            folders_zipped += 1
+        except Exception as e:
+            print(f"  [FAIL] Could not zip {item}: {e}")
+
+    # --- 6. Handle root files zip ---
+    if root_files_to_zip:
+        root_zip_path = os.path.join(dest_path, "root_files.zip")
+        print("\n[PROCESSING] root_files.zip")
+        try:
+            with zipfile.ZipFile(root_zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for full_path, rel_path in root_files_to_zip:
+                    try:
+                        zipf.write(full_path, rel_path)
+                        total_files_zipped += 1
+                    except Exception:
+                        pass
+            folders_zipped += 1
+        except Exception as e:
+            print(f"  [FAIL] Could not zip root_files: {e}")
+            
+    print("\n" + "=" * 50)
+    print("--- Metadata Backup Complete ---")
+    print(f"Folders Zipped:   {folders_zipped}")
+    print(f"Folders Skipped:  {folders_skipped} (Already up to date)")
+    print(f"Total files written: {total_files_zipped}")
 
 
 def reapply_backup_zip(server_root, zip_filepath, auto_mode=False):
@@ -409,7 +495,7 @@ def main():
     print("\n" + "-" * 50)
     print("Select an option:")
     print("  1. Back up User Files (JSON data + folders)")
-    print("  2. Back up Metadata Files (.png/.txt/.jpg/.json -> ZIP)")
+    print("  2. Back up Metadata Files (.png/.txt/.jpg/.json -> individual ZIPs per folder)")
     print("  3. Reapply/Restore from a backup ZIP")
     print("  0. Exit")
     print("-" * 50)
