@@ -185,9 +185,9 @@
     {
       "name": "Mario Rule",
       "match_type": "contains",
-      "match_value": "mario",
+      "match_value": ["mario", "rosalina", "luigi", "waluigi", "bowser", "dry bones", "pokey", "koopa"],
       "case_sensitive": false,
-      "tags": ["Mario", "Gaming"]
+      "tags": ["Mario", "Nintendo"]
     },
     {
       "name": "Pokemon Rule",
