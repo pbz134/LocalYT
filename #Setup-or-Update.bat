@@ -5,7 +5,7 @@ setlocal enabledelayedexpansion
 set "LLM_TAGGING=yes"
 set "SEEKBAR_PREVIEWS=yes"
 set "SUBTITLES=yes"
-set "THUMBNAIL_MODE=zoom"
+set "THUMBNAIL_MODE=black"
 
 if exist "#Setup.env" (
     echo Found #Setup.env, loading preferences...
