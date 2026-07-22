@@ -113,6 +113,13 @@
       "tags": ["GTA", "Gaming"]
     },
     {
+      "name": "Smash Bros Rule",
+      "match_type": "contains",
+      "match_value": ["smash bros", "brawl"],
+      "case_sensitive": false,
+      "tags": ["Smash Bros", "Nintendo", "Gaming"]
+    },
+    {
       "name": "Mario Bros Rule",
       "match_type": "contains",
       "match_value": ["mario bros", "super mario bros"],
