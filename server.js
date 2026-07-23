@@ -1151,7 +1151,7 @@ function initializePlaylistShortLinks() {
 
     if (newCodesGenerated > 0) {
         savePlaylistLinksToFile();
-        console.log(`${newCodesGenerated} neue Playlist Short Links generated. Total: ${playlistShortMap.size}`);
+        console.log(`${newCodesGenerated} new Playlist Short Links generated. Total: ${playlistShortMap.size}`);
     }
 }
 
