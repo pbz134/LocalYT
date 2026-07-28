@@ -521,6 +521,20 @@
             width: 100%;
         }
 
+        .login-prompt {
+            color: #888;
+            text-align: center;
+            padding: 80px 20px;
+        }
+        .login-prompt a {
+            color: #3ea6ff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .login-prompt a:hover {
+            text-decoration: underline;
+        }
+
         /* --- Search Suggestions Visibility --- */
         .search-suggestions {
             display: none;
@@ -573,6 +587,7 @@
                 <div class="classic-playlist-title" id="classicTitle"></div>
                 <div class="classic-playlist-meta" id="classicMeta"></div>
                 <div class="classic-channel-row">
+
                     <img id="classicUserThumb" class="classic-channel-thumb" alt="">
                     <span id="classicUserNameText" class="classic-channel-name-text"></span>
                 </div>
@@ -859,6 +874,11 @@ async function loadPlaylistVideos() {
     const playlistInfoEl = document.getElementById('playlistInfo');
     const playlistDurationEl = document.getElementById('playlistDuration');
 
+    const contentSection = document.querySelector('.playlist-content-section');
+    const playlistHeader = document.querySelector('.playlist-header');
+    const sortOptions = document.querySelector('.sort-options');
+    const classicSidebar = document.getElementById('classicSidebar');
+
     playlistTitleEl.textContent = WATCH_LATER_NAME;
     document.title = `${WATCH_LATER_NAME} - LocalYT`;
 
@@ -868,7 +888,25 @@ async function loadPlaylistVideos() {
         if (response.status === 404) {
             allVideosData = [];
         } else if (response.status === 401) {
-            videosContainer.innerHTML = `<p class="no-videos-message">${getLang('Please log in.', 'Bitte melde dich an.')}</p>`;
+            // Hide structural elements if not logged in
+            if (playlistHeader) playlistHeader.style.display = 'none';
+            if (sortOptions) sortOptions.style.display = 'none';
+            if (classicSidebar) classicSidebar.style.display = 'none';
+            if (contentSection) {
+                contentSection.style.background = 'transparent';
+                contentSection.style.padding = '0';
+                contentSection.style.minHeight = '0';
+                contentSection.style.boxShadow = 'none';
+            }
+            playlistInfoEl.textContent = '';
+            playlistDurationEl.textContent = '';
+            
+            videosContainer.innerHTML = `
+                <div class="login-prompt">
+                    <p style="font-size:20px; margin-bottom:12px;">${getLang('Please log in to see your Watch Later list', 'Bitte melde dich an, um deine Später ansehen-Liste zu sehen')}</p>
+                    <a href="login.html">${getLang('Go to Login', 'Zum Login')}</a>
+                </div>
+            `;
             return;
         } else if (!response.ok) {
             throw new Error('Failed to load');

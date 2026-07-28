@@ -40,6 +40,19 @@
             color: #ff6b6b;
             font-size: 16px;
         }
+        .login-prompt {
+            color: #888;
+            text-align: center;
+            padding: 80px 20px;
+        }
+        .login-prompt a {
+            color: #3ea6ff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .login-prompt a:hover {
+            text-decoration: underline;
+        }
         /* Styles to match channel.html layout alignment */
         .video-info {
             display: flex;
@@ -384,7 +397,12 @@ document.addEventListener('DOMContentLoaded', () => {
     .catch(error => {
         console.error('Error loading liked videos:', error);
         hideSkeletons();
-        container.innerHTML = `<div class="error-message">${getLang('Error loading liked videos. Please try again.', 'Fehler beim Laden der favorisierten Videos. Bitte versuche es erneut.')}</div>`;
+        container.innerHTML = `
+            <div class="login-prompt">
+                <p style="font-size:20px; margin-bottom:12px;">${getLang('Please log in to see your liked videos', 'Bitte melde dich an, um deine favorisierten Videos zu sehen')}</p>
+                <a href="login.html">${getLang('Go to Login', 'Zum Login')}</a>
+            </div>
+        `;
     });
 });
     </script>

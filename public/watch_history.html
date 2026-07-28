@@ -78,6 +78,20 @@
         }
         .video-item:hover .remove-video-btn { opacity: 1; }
         .video-item .remove-video-btn:hover { background: #ff4444; }
+
+        .login-prompt {
+            color: #888;
+            text-align: center;
+            padding: 80px 20px;
+        }
+        .login-prompt a {
+            color: #3ea6ff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .login-prompt a:hover {
+            text-decoration: underline;
+        }
     </style>
 
 </head>
@@ -189,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // If no videos, show a message
             if (!videos || videos.length === 0) {
-                container.innerHTML = `<div style="color: white; padding: 20px; text-align: center;">${getLang('Your watch history is empty.', 'Deine Wiedergabehistorie ist leer.')}</div>`;
+                container.innerHTML = `<div style="color: white; padding: 20px; text-align: center;">${getLang('Your watch history is empty.', 'Dein Wiedergabeverlauf ist leer.')}</div>`;
                 return;
             }
             
@@ -304,7 +318,12 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(error => {
             console.error('Error loading watch history:', error);
             hideSkeletons();
-            container.innerHTML = '<div style="color: white; padding: 20px; text-align: center;">Error loading watch history. Make sure that you are logged in.</div>';
+            container.innerHTML = `
+                <div class="login-prompt">
+                    <p style="font-size:20px; margin-bottom:12px;">${getLang('Please log in to see your watch history', 'Bitte melde dich an, um deinen Wiedergabeverlauf zu sehen')}</p>
+                    <a href="login.html">${getLang('Go to Login', 'Zum Login')}</a>
+                </div>
+            `;
         });
 });
 

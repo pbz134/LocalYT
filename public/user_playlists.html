@@ -27,6 +27,19 @@
             margin-top: 40px;
             text-align: center;
         }
+        .login-prompt {
+            color: #888;
+            text-align: center;
+            padding: 80px 20px;
+        }
+        .login-prompt a {
+            color: #3ea6ff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .login-prompt a:hover {
+            text-decoration: underline;
+        }
         .playlist-section {
             margin-bottom: 35px;
             border-bottom: 1px solid #3f3f3f;
@@ -448,6 +461,7 @@ document.getElementById('copyLinkBtn').addEventListener('click', () => {
 
 document.getElementById('openLinkBtn').addEventListener('click', () => {
     copyToClipboard(currentShareUrl);
+
     window.open(currentShareUrl, '_blank');
     document.getElementById('sharePlaylistModal').style.display = 'none';
 });
@@ -609,10 +623,26 @@ function setupVideoLinkEvents(element, url) {
 
 async function loadPlaylists() {
     const container = document.getElementById('playlistsContainer');
+    const headerEl = document.getElementById('playlistsHeader');
+    
     container.innerHTML = '';
     try {
         const response = await fetch('/user-playlist-details');
-        if (response.status === 401) return container.innerHTML = '<div class="no-playlists">' + getLang('Please log in.', 'Bitte melden Sie sich an.') + '</div>';
+        if (response.status === 401) {
+            // Hide header if not logged in
+            if (headerEl) headerEl.style.display = 'none';
+            container.innerHTML = `
+                <div class="login-prompt">
+                    <p style="font-size:20px; margin-bottom:12px;">${getLang('Please log in to see your playlists', 'Bitte melde dich an, um deine Playlisten zu sehen')}</p>
+                    <a href="login.html">${getLang('Go to Login', 'Zum Login')}</a>
+                </div>
+            `;
+            return;
+        }
+        
+        // Ensure header is visible for logged in users
+        if (headerEl) headerEl.style.display = '';
+
         if (!response.ok) throw new Error('Failed to load');
 
         const playlists = await response.json();

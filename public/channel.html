@@ -1408,6 +1408,436 @@
             background-color: #666;
         }
     </style>
+<style>
+    /* ============================================================
+       RESPONSIVE FIX: Scales the page for ALL monitor sizes
+       - 4K: Larger elements
+       - 1440p: Your original perfect size
+       - 1080p: Comfortable size
+       - Smaller: Adapts down
+       ============================================================ */
+
+    /* --- Main containers --- */
+    .channel-top-section,
+    .channel-content-section {
+        max-width: clamp(900px, 72vw, 2000px) !important;
+    }
+
+    /* --- Channel banner --- */
+    .channel-banner {
+        margin-top: clamp(30px, 3.5vw, 120px) !important;
+    }
+
+    /* --- Channel header --- */
+    .channel-pic {
+        width: clamp(55px, 4.8vw, 140px) !important;
+        height: clamp(55px, 4.8vw, 140px) !important;
+        margin-right: clamp(12px, 1.4vw, 40px) !important;
+    }
+
+    .channel-name {
+        font-size: clamp(14px, 1.1vw, 32px) !important;
+    }
+
+    .video-count {
+        font-size: clamp(11px, 0.8vw, 24px) !important;
+    }
+
+    .channel-header {
+        padding: 0 clamp(10px, 1.2vw, 30px) !important;
+        margin: clamp(10px, 1.2vw, 30px) auto !important;
+    }
+
+    /* --- Tabs --- */
+    .tab {
+        font-size: clamp(10px, 0.85vw, 22px) !important;
+        padding: clamp(6px, 0.65vw, 14px) clamp(10px, 1.1vw, 30px) !important;
+    }
+
+    .tabs {
+        padding: 0 clamp(10px, 1.2vw, 30px) !important;
+    }
+
+    /* --- Subscribe button & subscriber count --- */
+    .subscribe-button {
+        font-size: clamp(9px, 0.75vw, 20px) !important;
+        padding: clamp(4px, 0.45vw, 12px) clamp(8px, 0.9vw, 24px) !important;
+    }
+
+    .subscriber-count {
+        font-size: clamp(8px, 0.6vw, 16px) !important;
+        padding: clamp(5px, 0.45vw, 12px) clamp(6px, 0.7vw, 16px) !important;
+    }
+
+    /* --- Video items (Videos tab) --- */
+    #videosTab .channel-videos:not(.list-view) .video-item {
+        flex: 0 0 clamp(120px, 9.5vw, 280px) !important;
+        max-width: clamp(120px, 9.5vw, 280px) !important;
+        width: auto !important;
+    }
+
+    .video-title {
+        font-size: clamp(10px, 0.75vw, 22px) !important;
+    }
+
+    .video-description {
+        font-size: clamp(9px, 0.65vw, 18px) !important;
+    }
+
+    /* --- Playlist items (Playlists tab) --- */
+    #playlistsTab .playlists-container .playlist-item {
+        flex: 0 0 clamp(180px, 15vw, 480px) !important;
+        width: clamp(180px, 15vw, 480px) !important;
+        max-width: clamp(180px, 15vw, 480px) !important;
+    }
+
+    .playlist-item {
+        flex: 0 0 clamp(180px, 15vw, 420px) !important;
+        width: clamp(180px, 15vw, 420px) !important;
+    }
+
+    .playlist-title {
+        font-size: clamp(11px, 0.8vw, 22px) !important;
+    }
+
+    /* --- Home tab: mini player --- */
+    .home-player-wrapper {
+        flex: 0 0 clamp(280px, 26vw, 800px) !important;
+        max-width: clamp(280px, 26vw, 800px) !important;
+    }
+
+    .home-video-title {
+        font-size: clamp(12px, 0.95vw, 28px) !important;
+    }
+
+    .home-video-meta {
+        font-size: clamp(10px, 0.75vw, 20px) !important;
+    }
+
+    .home-video-description-text {
+        font-size: clamp(10px, 0.75vw, 20px) !important;
+    }
+
+    /* --- Home tab: row items --- */
+    .home-row-wrapper {
+        gap: clamp(12px, 1.8vw, 60px) !important;
+    }
+
+    .home-row-wrapper .video-item {
+        width: clamp(130px, 11vw, 340px) !important;
+        max-width: clamp(130px, 11vw, 340px) !important;
+        min-width: clamp(130px, 11vw, 340px) !important;
+        flex: 0 0 clamp(130px, 11vw, 340px) !important;
+    }
+
+    .home-row-wrapper .playlist-item {
+        width: clamp(220px, 20vw, 680px) !important;
+        max-width: clamp(220px, 20vw, 680px) !important;
+        min-width: clamp(220px, 20vw, 680px) !important;
+        flex: 0 0 clamp(220px, 20vw, 680px) !important;
+    }
+
+    .home-others-label {
+        font-size: clamp(12px, 0.95vw, 28px) !important;
+        margin: clamp(8px, 1.1vw, 30px) 0 clamp(8px, 0.9vw, 24px) 0 !important;
+    }
+
+    .home-tab-flex-wrapper {
+        padding: 0 clamp(10px, 1.4vw, 40px) !important;
+    }
+
+    /* --- Related channels sidebar --- */
+    #relatedChannelsSidebar {
+        width: clamp(110px, 11vw, 280px) !important;
+        padding: clamp(8px, 0.9vw, 24px) clamp(5px, 0.6vw, 16px) !important;
+        margin: 0px 0 20px clamp(10px, 1.4vw, 40px) !important;
+    }
+
+    #relatedChannelsSidebar h3 {
+        font-size: clamp(11px, 0.8vw, 22px) !important;
+    }
+
+    .related-channel-name {
+        font-size: clamp(9px, 0.65vw, 18px) !important;
+    }
+
+    .related-channel-pic {
+        width: clamp(30px, 2.8vw, 64px) !important;
+        height: clamp(30px, 2.8vw, 64px) !important;
+    }
+
+    .related-channel-sub-btn {
+        font-size: clamp(8px, 0.55vw, 14px) !important;
+        padding: clamp(2px, 0.25vw, 6px) clamp(6px, 0.6vw, 16px) !important;
+    }
+
+    /* --- Sort & view dropdowns --- */
+    .sort-options {
+        margin: 0 clamp(5px, 0.7vw, 30px) 0 0 !important;
+        margin-bottom: clamp(-25px, -2.8vw, -70px) !important;
+    }
+
+    .sort-toggle,
+    .view-toggle {
+        font-size: clamp(9px, 0.7vw, 18px) !important;
+        padding: clamp(4px, 0.45vw, 12px) clamp(8px, 0.9vw, 24px) !important;
+    }
+
+    .sort-dropdown-item,
+    .view-dropdown-item {
+        font-size: clamp(10px, 0.7vw, 18px) !important;
+        padding: clamp(6px, 0.6vw, 14px) clamp(10px, 0.9vw, 24px) !important;
+    }
+
+    /* --- About tab --- */
+    .about-container {
+        gap: clamp(16px, 2.5vw, 60px) !important;
+        padding: 0 clamp(10px, 1.2vw, 30px) !important;
+    }
+
+    .about-description h3,
+    .about-stats h3 {
+        font-size: clamp(12px, 0.9vw, 26px) !important;
+    }
+
+    .about-description .description-text,
+    .stats-item {
+        font-size: clamp(11px, 0.8vw, 22px) !important;
+    }
+
+    .share-button {
+        font-size: clamp(10px, 0.7vw, 18px) !important;
+        padding: clamp(5px, 0.5vw, 12px) 0 !important;
+    }
+
+    /* --- Posts tab --- */
+    .posts-container {
+        padding: clamp(10px, 1.5vw, 30px) !important;
+        gap: clamp(10px, 1.2vw, 30px) !important;
+    }
+
+    .post-item {
+        font-size: clamp(11px, 0.8vw, 20px) !important;
+    }
+
+    .post-author-name {
+        font-size: clamp(11px, 0.8vw, 20px) !important;
+    }
+
+    .post-content-text {
+        font-size: clamp(11px, 0.8vw, 20px) !important;
+    }
+
+    .post-channel-pic {
+        width: clamp(28px, 2.5vw, 56px) !important;
+        height: clamp(28px, 2.5vw, 56px) !important;
+    }
+
+    .post-footer {
+        font-size: clamp(10px, 0.7vw, 18px) !important;
+        padding: clamp(6px, 0.6vw, 16px) clamp(10px, 1vw, 24px) !important;
+    }
+
+    /* --- Channel search bar --- */
+    .tab-search-bar input {
+        font-size: clamp(10px, 0.7vw, 18px) !important;
+        padding: clamp(3px, 0.4vw, 8px) clamp(6px, 0.7vw, 14px) !important;
+    }
+
+    .tab-search-bar.active {
+        width: clamp(120px, 12vw, 280px) !important;
+    }
+
+    /* --- Classic channel styles --- */
+    body.classic-channel .channel-header {
+        padding: 0 clamp(10px, 1.2vw, 30px) !important;
+        margin: clamp(8px, 1vw, 22px) auto !important;
+    }
+
+    body.classic-channel .tabs {
+        padding: 0 clamp(10px, 1.2vw, 30px) !important;
+    }
+
+    body.classic-channel .channel-pic {
+        width: clamp(60px, 5vw, 150px) !important;
+        height: clamp(60px, 5vw, 150px) !important;
+    }
+
+    body.classic-channel .posts-container {
+        padding: clamp(10px, 1.5vw, 30px) clamp(10px, 1.2vw, 30px) clamp(10px, 1.5vw, 30px) 0 !important;
+    }
+
+    body.classic-channel .post-channel-pic {
+        width: clamp(30px, 3vw, 70px) !important;
+        height: clamp(30px, 3vw, 70px) !important;
+    }
+
+    /* --- Load more trigger & spinner --- */
+    .loading-spinner {
+        font-size: clamp(11px, 0.8vw, 20px) !important;
+        padding: clamp(12px, 1.2vw, 30px) !important;
+    }
+
+    .no-more-videos {
+        font-size: clamp(11px, 0.8vw, 20px) !important;
+        padding: clamp(12px, 1.2vw, 30px) !important;
+    }
+
+    /* --- Miscellaneous --- */
+    .channel-videos,
+    .playlists-container,
+    .channel-search-results {
+        padding: 0 clamp(10px, 1.2vw, 30px) !important;
+        gap: clamp(8px, 1vw, 24px) !important;
+    }
+
+    .video-item,
+    .playlist-item {
+        margin: 0 !important;
+    }
+
+    .channel-search-no-results {
+        font-size: clamp(11px, 0.8vw, 20px) !important;
+        padding: clamp(20px, 2.5vw, 60px) 0 !important;
+    }
+
+    /* --- 4K specific fine-tuning (optional) --- */
+    @media (min-width: 2560px) {
+        .channel-top-section,
+        .channel-content-section {
+            max-width: 80vw !important;
+        }
+        
+        /* Even larger elements if desired */
+        .home-row-wrapper .video-item {
+            width: clamp(200px, 14vw, 400px) !important;
+            max-width: clamp(200px, 14vw, 400px) !important;
+            min-width: clamp(200px, 14vw, 400px) !important;
+            flex: 0 0 clamp(200px, 14vw, 400px) !important;
+        }
+    }
+
+    /* --- Small screen tweaks (below 1366px) --- */
+    @media (max-width: 1366px) {
+        .channel-top-section,
+        .channel-content-section {
+            max-width: clamp(900px, 85vw, 1100px) !important;
+        }
+
+        #videosTab .channel-videos:not(.list-view) .video-item {
+            flex: 0 0 clamp(130px, 12vw, 160px) !important;
+            max-width: clamp(130px, 12vw, 160px) !important;
+        }
+
+        .home-row-wrapper .video-item {
+            width: clamp(140px, 14vw, 180px) !important;
+            max-width: clamp(140px, 14vw, 180px) !important;
+            min-width: clamp(140px, 14vw, 180px) !important;
+            flex: 0 0 clamp(140px, 14vw, 180px) !important;
+        }
+
+        .home-row-wrapper .playlist-item {
+            width: clamp(240px, 24vw, 320px) !important;
+            max-width: clamp(240px, 24vw, 320px) !important;
+            min-width: clamp(240px, 24vw, 320px) !important;
+            flex: 0 0 clamp(240px, 24vw, 320px) !important;
+        }
+
+        .home-player-wrapper {
+            flex: 0 0 clamp(300px, 30vw, 400px) !important;
+            max-width: clamp(300px, 30vw, 400px) !important;
+        }
+
+        #relatedChannelsSidebar {
+            width: clamp(120px, 12vw, 160px) !important;
+        }
+    }
+
+    /* --- Very small screens (below 1024px) --- */
+    @media (max-width: 1024px) {
+        .channel-pic {
+            width: clamp(50px, 5vw, 65px) !important;
+            height: clamp(50px, 5vw, 65px) !important;
+        }
+
+        .channel-name {
+            font-size: clamp(14px, 1.4vw, 16px) !important;
+        }
+
+        .tab {
+            font-size: clamp(10px, 1vw, 12px) !important;
+            padding: clamp(5px, 0.6vw, 7px) clamp(8px, 0.8vw, 12px) !important;
+        }
+
+        #videosTab .channel-videos:not(.list-view) .video-item {
+            flex: 0 0 clamp(110px, 14vw, 130px) !important;
+            max-width: clamp(110px, 14vw, 130px) !important;
+        }
+
+        .home-row-wrapper .video-item {
+            width: clamp(110px, 14vw, 140px) !important;
+            max-width: clamp(110px, 14vw, 140px) !important;
+            min-width: clamp(110px, 14vw, 140px) !important;
+            flex: 0 0 clamp(110px, 14vw, 140px) !important;
+        }
+
+        .home-row-wrapper .playlist-item {
+            width: clamp(200px, 24vw, 240px) !important;
+            max-width: clamp(200px, 24vw, 240px) !important;
+            min-width: clamp(200px, 24vw, 240px) !important;
+            flex: 0 0 clamp(200px, 24vw, 240px) !important;
+        }
+
+        .home-player-wrapper {
+            flex: 0 0 clamp(240px, 30vw, 300px) !important;
+            max-width: clamp(240px, 30vw, 300px) !important;
+        }
+
+        #relatedChannelsSidebar {
+            width: clamp(100px, 12vw, 120px) !important;
+            padding: clamp(8px, 0.8vw, 12px) clamp(4px, 0.5vw, 8px) !important;
+        }
+
+        .home-tab-flex-wrapper {
+            padding: 0 clamp(8px, 1vw, 14px) !important;
+        }
+
+        .channel-header {
+            padding: 0 clamp(8px, 1vw, 12px) !important;
+        }
+
+        .tabs {
+            padding: 0 clamp(8px, 1vw, 12px) !important;
+        }
+
+        .subscribe-button {
+            font-size: clamp(9px, 0.9vw, 11px) !important;
+            padding: clamp(4px, 0.4vw, 5px) clamp(6px, 0.6vw, 10px) !important;
+        }
+
+        .subscriber-count {
+            font-size: clamp(8px, 0.7vw, 10px) !important;
+            padding: clamp(4px, 0.4vw, 6px) clamp(5px, 0.5vw, 8px) !important;
+        }
+
+        #relatedChannelsSidebar h3 {
+            font-size: clamp(11px, 1vw, 13px) !important;
+        }
+
+        .related-channel-name {
+            font-size: clamp(9px, 0.9vw, 11px) !important;
+        }
+
+        .related-channel-pic {
+            width: clamp(28px, 2.8vw, 36px) !important;
+            height: clamp(28px, 2.8vw, 36px) !important;
+        }
+
+        .home-video-title {
+            font-size: clamp(13px, 1.2vw, 15px) !important;
+        }
+    }
+</style>
 </head>
 <body>
     <header class="top-bar">
