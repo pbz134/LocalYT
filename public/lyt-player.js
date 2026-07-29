@@ -136,7 +136,7 @@
             this._eqSaveTimer = null; // for debouncing server saves
 
             // Current LYT Player version
-            this.version = 'v2.7.0';
+            this.version = 'v2.7.3';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -604,6 +604,23 @@
                     display: block; /* show when active and on touch */
                     opacity: 1;
                     pointer-events: auto;
+                }
+                /* ===== BOTTOM DARKEN OVERLAY ===== */
+                .lyt_bottom_darken {
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    height: 8%;
+                    background: linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 100%);
+                    pointer-events: none;
+                    z-index: 3;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                }
+
+                .fluid_video_wrapper.lyt_active .lyt_bottom_darken {
+                    opacity: 1;
                 }
                     /* HD Badge */
                     .lyt_btn_settings {
@@ -1881,6 +1898,9 @@
 
                 <!-- Poster/Thumbnail Overlay -->
                 <div class="lyt_poster_overlay" style="${posterStyle}"></div>
+
+                <!-- Bottom darkening gradient -->
+                <div class="lyt_bottom_darken"></div>
 
                 <!-- ===== CENTER PLAY/PAUSE BUTTON (touch devices only) ===== -->
                 <div class="lyt_center_play_btn">
