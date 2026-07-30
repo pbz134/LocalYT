@@ -709,7 +709,7 @@ function incrementalScanAndCacheVideos() {
     let changedChannels = 0;
     let unchangedChannels = 0;
 
-    // Jeden Kanal prüfen
+    // Check every channel
     for (let i = 0; i < channelDirs.length; i++) {
         const channel = channelDirs[i];
         const channelPath = path.join(videosDir, channel);
@@ -725,12 +725,12 @@ function incrementalScanAndCacheVideos() {
 
         if (changed) {
             changedChannels++;
-            // Kanal wurde geändert -> neu scannen
+            // Channel has been changed
             const channelCache = scanFolder(channelPath, videosDir);
             newCache.push(...channelCache);
         } else {
             unchangedChannels++;
-            // Kanal unverändert -> aus altem Cache übernehmen
+            // Channel unchanged
             const oldChannelVideos = oldCache.filter(v => v.path.startsWith(channel + '/'));
             newCache.push(...oldChannelVideos);
         }
@@ -740,12 +740,12 @@ function incrementalScanAndCacheVideos() {
 
     progressBar.stop();
 
-    // Entferne Kanäle, die nicht mehr existieren
+    // Remove channels that don't exist anymore
     const existingChannels = new Set(channelDirs);
     const oldChannelKeys = Object.keys(oldVersions);
     for (const oldChannel of oldChannelKeys) {
         if (!existingChannels.has(oldChannel)) {
-            console.log(`🗑️  Kanal "${oldChannel}" wurde gelöscht.`);
+            console.log(`Channel "${oldChannel}" has been deleted.`);
             delete newVersions[oldChannel];
         }
     }
