@@ -421,6 +421,52 @@
             #relatedTabLabel {
                 color: #0f0f0f !important;
             }
+
+            /* ===== CHANGELOG PAGE LIGHT MODE ===== */
+            .doc-sidebar {
+                background-color: #f0f0f0 !important;
+                border-right-color: #d0d0d0 !important;
+            }
+            .toc-item a {
+                color: #444444 !important;
+            }
+            .toc-item a:hover {
+                color: #222222 !important;
+                background-color: rgba(0, 0, 0, 0.05) !important;
+                border-left-color: #aaaaaa !important;
+            }
+            .toc-title {
+                color: #000000 !important;
+            }
+            .doc-content {
+                color: #222222 !important;
+            }
+            .doc-header {
+                border-bottom-color: #d0d0d0 !important;
+            }
+            .doc-header h1 {
+                color: #000000 !important;
+            }
+            .doc-header p {
+                color: #555555 !important;
+            }
+            .doc-section h2 {
+                color: #000000 !important;
+                border-left-color: #999999 !important;
+            }
+            .doc-section li {
+                color: #333333 !important;
+            }
+            .doc-divider {
+                border-top-color: #e0e0e0 !important;
+            }
+            .top-bar {
+                background-color: #f0f0f0 !important;
+                border-bottom-color: #d0d0d0 !important;
+            }
+            .top-bar .logo {
+                filter: none !important;
+            }
         `;
     
     // Only force title colors to black if blue titles are OFF
