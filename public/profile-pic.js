@@ -382,6 +382,19 @@
                 color: #000000 !important;
             }
 
+            .search-filters-toggle {
+                background: #e0e0e0 !important;
+                color: #0f0f0f !important;
+            }
+            .search-filters-toggle:hover {
+                background: #d0d0d0 !important;
+                color: #000 !important;
+            }
+            .search-filters-toggle.active {
+                background: #cccccc !important;
+                color: #000 !important;
+            }
+
             /* ===== DIVIDER BELOW MINI PLAYER LIGHT MODE ===== */
             .home-others-label {
                 border-top-color: #e0e0e0 !important;
@@ -469,31 +482,31 @@
             }
         `;
     
-    // Only force title colors to black if blue titles are OFF
-    if (!isBlueTitles) {
-        styleText += `
-        .video-title:not(.blue-text):not([style*="#128ee9"]),
-        .playlist-title:not(.blue-text):not([style*="#128ee9"]),
-        .home-video-title:not(.blue-text):not([style*="#128ee9"]),
-        .post-author-name:not(.blue-text):not([style*="#128ee9"]),
-        .suggestion-title,
-        .current-video-title,
-        .comment-author,
-        .comment-text,
-        .comments-count,
-        #commentsTotalAmount {
-            color: #000000 !important;
+        // Only force title colors to black if blue titles are OFF
+        if (!isBlueTitles) {
+            styleText += `
+            .video-title:not(.blue-text):not([style*="#128ee9"]),
+            .playlist-title:not(.blue-text):not([style*="#128ee9"]),
+            .home-video-title:not(.blue-text):not([style*="#128ee9"]),
+            .post-author-name:not(.blue-text):not([style*="#128ee9"]),
+            .suggestion-title,
+            .current-video-title,
+            .comment-author,
+            .comment-text,
+            .comments-count,
+            #commentsTotalAmount {
+                color: #000000 !important;
+            }
+            `;
+        } else {
+            // Blue titles ON – make suggestion-title and current-video-title darker grey
+            styleText += `
+            .suggestion-title,
+            .current-video-title {
+                color: #444444 !important;
+            }
+            `;
         }
-        `;
-    } else {
-        // Blue titles ON – make suggestion-title and current-video-title darker grey
-        styleText += `
-        .suggestion-title,
-        .current-video-title {
-            color: #444444 !important;
-        }
-        `;
-    }
     
         styleText += `
             .openbtn {
@@ -527,6 +540,11 @@
     
             .logo {
                 filter: none !important;
+            }
+
+            /* Override search.html .video-title for light mode */
+            .search-page .video-title {
+                color: #000000 !important;
             }
         `;
     
