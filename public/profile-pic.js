@@ -387,45 +387,39 @@
                 border-top-color: #e0e0e0 !important;
             }
 
-            /* ===== ANGEZEGTE KANÄLE SIDEBAR LIGHT MODE ===== */
-            #relatedChannelsSidebar {
+            /* ===== RELATED TAB LIGHT MODE ===== */
+            #relatedTab .related-channel-item {
                 background-color: #ffffff !important;
                 border-color: #e0e0e0 !important;
             }
-            
-            #relatedChannelsSidebar h3 {
-                color: #0f0f0f !important;
-                border-bottom-color: #e0e0e0 !important;
+            #relatedTab .related-channel-item:hover {
+                background-color: #f0f0f0 !important;
             }
-            
-            .related-channel-item {
-                border-bottom-color: #e8e8e8 !important;
-            }
-            
-            .related-channel-name {
+            #relatedTab .related-channel-name {
                 color: #0f0f0f !important;
             }
-            
-            .related-channel-name:hover {
+            #relatedTab .related-channel-name:hover {
                 color: #065fd4 !important;
             }
-            
-            .related-channel-sub-btn {
+            #relatedTab .related-channel-sub-btn {
                 background-color: #cc181e !important;
                 color: #ffffff !important;
             }
-            
-            .related-channel-sub-btn:hover {
+            #relatedTab .related-channel-sub-btn:hover {
                 background-color: #a31418 !important;
             }
-            
-            .related-channel-sub-btn.subscribed {
+            #relatedTab .related-channel-sub-btn.subscribed {
                 background-color: #e0e0e0 !important;
                 color: #0f0f0f !important;
             }
-            
-            .related-channel-sub-btn.subscribed:hover {
+            #relatedTab .related-channel-sub-btn.subscribed:hover {
                 background-color: #cccccc !important;
+            }
+            #relatedTab .no-related-channels {
+                color: #555555 !important;
+            }
+            #relatedTabLabel {
+                color: #0f0f0f !important;
             }
         `;
     
@@ -753,7 +747,7 @@
             'copyWithoutTimestamp': { en: 'Copy Link', de: 'Link kopieren' },
             'copyMessage': { en: 'Video URL copied to clipboard!', de: 'Video-URL in die Zwischenablage kopiert!' },
             'recHeader': { en: 'Recommended', de: 'Empfohlen' },
-            'relatedChannelsLabel': { en: 'Related channels', de: 'Angesagte Kanäle' }
+            'relatedChannelsLabel': { en: 'Related Channels', de: 'Ähnliche Kanäle' }
         };
 
         Object.keys(dict).forEach(key => {
@@ -796,10 +790,10 @@
             }
         }
 
-        // Update the related channels label
-        const relatedLabel = document.getElementById('relatedChannelsLabel');
-        if (relatedLabel) {
-            relatedLabel.textContent = dict.relatedChannelsLabel[lang] || dict.relatedChannelsLabel['en'];
+        // Update the related tab label (if present)
+        const relatedTabLabel = document.getElementById('relatedTabLabel');
+        if (relatedTabLabel) {
+            relatedTabLabel.textContent = dict.relatedChannelsLabel[lang] || dict.relatedChannelsLabel['en'];
         }
     }
 

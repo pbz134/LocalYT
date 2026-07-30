@@ -821,23 +821,11 @@
         }
 
         /* ===== HOME TAB STYLES ===== */
-        .home-tab-flex-wrapper {
-            display: flex;
-            flex-direction: row;
-            justify-content: flex-start;
-            align-items: flex-start;
-            gap: 0;
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 0 30px;
-            box-sizing: border-box;
-        }
         .home-tab-main-content {
-            flex: 1;
-            min-width: 0;
-            overflow: hidden;
+            width: 100%;
+            max-width: 100%;
             box-sizing: border-box;
-            order: 1;
+            padding: 0;
         }
         .home-others-grid {
             display: flex;
@@ -1324,72 +1312,58 @@
         }
 
         /* ==============================================
-           RELATED CHANNELS SIDEBAR
+           RELATED TAB STYLES
            ============================================== */
-        #relatedChannelsSidebar {
-            width: 200px;
-            flex-shrink: 0;
-            padding: 16px 12px;
-            box-sizing: border-box;
-            background-color: #2a2a2a;
-            border-radius: 0;
-            margin: 0px 0 20px 30px;
-            align-self: flex-start;
-            order: 2;
+        #relatedTab .related-channels-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 10px 0;
         }
-        #relatedChannelsSidebar h3 {
-            color: #fff;
-            font-size: 16px;
-            font-weight: bold;
-            margin: 0 0 16px 0;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #3f3f3f;
-        }
-        .related-channel-item {
+        #relatedTab .related-channel-item {
             display: flex;
             align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #2a2a2a;
-            gap: 12px;
             width: 100%;
-            box-sizing: border-box;
+            max-width: 500px;
+            background-color: #1e1e1e;
+            border: 1px solid #3f3f3f;
+            padding: 12px 16px;
+
+            gap: 16px;
+            transition: background-color 0.2s;
         }
-        .related-channel-item:last-child {
-            border-bottom: none;
-        }
-        .related-channel-pic {
-            width: 48px;
-            height: 48px;
-            border-radius: 0px;
+        #relatedTab .related-channel-item:hover {
             background-color: #2a2a2a;
+        }
+        #relatedTab .related-channel-pic {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
             object-fit: cover;
             flex-shrink: 0;
+            background-color: #2a2a2a;
         }
-        .related-channel-info {
+        #relatedTab .related-channel-info {
             flex: 1;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
         }
-        .related-channel-name {
-            font-size: 14px;
+        #relatedTab .related-channel-name {
+            font-size: 16px;
             font-weight: bold;
             color: #fff;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
             cursor: pointer;
         }
-        .related-channel-name:hover {
+        #relatedTab .related-channel-name:hover {
             color: #3ea6ff;
         }
-        .related-channel-sub-btn {
+        #relatedTab .related-channel-sub-btn {
             margin-top: 6px;
             background-color: #cc181e;
             color: #fff;
             border: none;
-            padding: 4px 12px;
-            font-size: 12px;
+            padding: 6px 16px;
+            font-size: 13px;
             font-weight: bold;
             border-radius: 2px;
             cursor: pointer;
@@ -1397,445 +1371,21 @@
             width: fit-content;
             transition: background-color 0.2s;
         }
-        .related-channel-sub-btn:hover {
+        #relatedTab .related-channel-sub-btn:hover {
             background-color: #a31418;
         }
-        .related-channel-sub-btn.subscribed {
+        #relatedTab .related-channel-sub-btn.subscribed {
             background-color: #555;
             color: #ccc;
         }
-        .related-channel-sub-btn.subscribed:hover {
+        #relatedTab .related-channel-sub-btn.subscribed:hover {
             background-color: #666;
         }
-    </style>    
-    <style>
-        /* ============================================================
-           RESPONSIVE FIX: Scales the page for ALL monitor sizes
-           - 4K: Larger elements
-           - 1440p: Your original perfect size
-           - 1080p: Comfortable size
-           - Smaller: Adapts down
-           ============================================================ */
-    
-        /* --- Main containers --- */
-        .channel-top-section,
-        .channel-content-section {
-            max-width: clamp(900px, 72vw, 2000px) !important;
-        }
-    
-        /* --- Channel banner --- */
-        .channel-banner {
-            margin-top: clamp(30px, 3.5vw, 120px) !important;
-        }
-    
-        /* --- Channel header --- */
-        .channel-pic {
-            width: clamp(55px, 4.8vw, 140px) !important;
-            height: clamp(55px, 4.8vw, 140px) !important;
-            margin-right: clamp(12px, 1.4vw, 40px) !important;
-        }
-    
-        .channel-name {
-            font-size: clamp(14px, 1.1vw, 32px) !important;
-        }
-    
-        .video-count {
-            font-size: clamp(11px, 0.8vw, 24px) !important;
-        }
-    
-        .channel-header {
-            padding: 0 clamp(10px, 1.2vw, 30px) !important;
-            margin: clamp(10px, 1.2vw, 30px) auto !important;
-        }
-    
-        /* --- Tabs --- */
-        .tab {
-            font-size: clamp(10px, 0.85vw, 22px) !important;
-            padding: clamp(6px, 0.65vw, 14px) clamp(10px, 1.1vw, 30px) !important;
-        }
-    
-        .tabs {
-            padding: 0 clamp(10px, 1.2vw, 30px) !important;
-        }
-    
-        /* --- Subscribe button & subscriber count --- */
-        .subscribe-button {
-            font-size: clamp(9px, 0.75vw, 20px) !important;
-            padding: clamp(4px, 0.45vw, 12px) clamp(8px, 0.9vw, 24px) !important;
-        }
-    
-        .subscriber-count {
-            font-size: clamp(8px, 0.6vw, 16px) !important;
-            padding: clamp(5px, 0.45vw, 12px) clamp(6px, 0.7vw, 16px) !important;
-        }
-    
-        /* --- Video items (Videos tab) --- */
-        #videosTab .channel-videos:not(.list-view) .video-item {
-            flex: 0 0 clamp(120px, 9.5vw, 280px) !important;
-            max-width: clamp(120px, 9.5vw, 280px) !important;
-            width: auto !important;
-        }
-    
-        .video-title {
-            font-size: clamp(10px, 0.75vw, 22px) !important;
-        }
-    
-        .video-description {
-            font-size: clamp(9px, 0.65vw, 18px) !important;
-        }
-    
-        /* --- Playlist items (Playlists tab) --- */
-        #playlistsTab .playlists-container .playlist-item {
-            flex: 0 0 clamp(180px, 15vw, 480px) !important;
-            width: clamp(180px, 15vw, 480px) !important;
-            max-width: clamp(180px, 15vw, 480px) !important;
-        }
-    
-        .playlist-item {
-            flex: 0 0 clamp(180px, 15vw, 420px) !important;
-            width: clamp(180px, 15vw, 420px) !important;
-        }
-    
-        .playlist-title {
-            font-size: clamp(11px, 0.8vw, 22px) !important;
-        }
-    
-        /* --- Home tab: mini player --- */
-        .home-player-wrapper {
-            flex: 0 0 clamp(280px, 26vw, 800px) !important;
-            max-width: clamp(280px, 26vw, 800px) !important;
-        }
-    
-        .home-video-title {
-            font-size: clamp(12px, 0.95vw, 28px) !important;
-        }
-    
-        .home-video-meta {
-            font-size: clamp(10px, 0.75vw, 20px) !important;
-        }
-    
-        .home-video-description-text {
-            font-size: clamp(10px, 0.75vw, 20px) !important;
-        }
-    
-        /* --- Home tab: row items --- */
-        .home-row-wrapper {
-            gap: clamp(12px, 1.8vw, 60px) !important;
-        }
-    
-        .home-row-wrapper .video-item {
-            width: clamp(130px, 11vw, 340px) !important;
-            max-width: clamp(130px, 11vw, 340px) !important;
-            min-width: clamp(130px, 11vw, 340px) !important;
-            flex: 0 0 clamp(130px, 11vw, 340px) !important;
-        }
-    
-        .home-row-wrapper .playlist-item {
-            width: clamp(220px, 20vw, 680px) !important;
-            max-width: clamp(220px, 20vw, 680px) !important;
-            min-width: clamp(220px, 20vw, 680px) !important;
-            flex: 0 0 clamp(220px, 20vw, 680px) !important;
-        }
-    
-        .home-others-label {
-            font-size: clamp(12px, 0.95vw, 28px) !important;
-            margin: clamp(8px, 1.1vw, 30px) 0 clamp(8px, 0.9vw, 24px) 0 !important;
-        }
-    
-        .home-tab-flex-wrapper {
-            padding: 0 clamp(10px, 1.4vw, 40px) !important;
-        }
-    
-        /* --- Related channels sidebar --- */
-        #relatedChannelsSidebar {
-            width: clamp(110px, 11vw, 280px) !important;
-            padding: clamp(8px, 0.9vw, 24px) clamp(5px, 0.6vw, 16px) !important;
-            margin: 0px 0 20px clamp(10px, 1.4vw, 40px) !important;
-        }
-    
-        #relatedChannelsSidebar h3 {
-            font-size: clamp(11px, 0.8vw, 22px) !important;
-        }
-    
-        .related-channel-name {
-            font-size: clamp(9px, 0.65vw, 18px) !important;
-        }
-    
-        .related-channel-pic {
-            width: clamp(30px, 2.8vw, 64px) !important;
-            height: clamp(30px, 2.8vw, 64px) !important;
-        }
-    
-        .related-channel-sub-btn {
-            font-size: clamp(8px, 0.55vw, 14px) !important;
-            padding: clamp(2px, 0.25vw, 6px) clamp(6px, 0.6vw, 16px) !important;
-        }
-    
-        /* --- Sort & view dropdowns --- */
-        .sort-options {
-            margin: 0 clamp(5px, 0.7vw, 30px) 0 0 !important;
-            margin-bottom: clamp(-25px, -2.8vw, -70px) !important;
-        }
-    
-        .sort-toggle,
-        .view-toggle {
-            font-size: clamp(9px, 0.7vw, 18px) !important;
-            padding: clamp(4px, 0.45vw, 12px) clamp(8px, 0.9vw, 24px) !important;
-        }
-    
-        .sort-dropdown-item,
-        .view-dropdown-item {
-            font-size: clamp(10px, 0.7vw, 18px) !important;
-            padding: clamp(6px, 0.6vw, 14px) clamp(10px, 0.9vw, 24px) !important;
-        }
-    
-        /* --- About tab --- */
-        .about-container {
-            gap: clamp(16px, 2.5vw, 60px) !important;
-            padding: 0 clamp(10px, 1.2vw, 30px) !important;
-        }
-    
-        .about-description h3,
-        .about-stats h3 {
-            font-size: clamp(12px, 0.9vw, 26px) !important;
-        }
-    
-        .about-description .description-text,
-        .stats-item {
-            font-size: clamp(11px, 0.8vw, 22px) !important;
-        }
-    
-        .share-button {
-            font-size: clamp(10px, 0.7vw, 18px) !important;
-            padding: clamp(5px, 0.5vw, 12px) 0 !important;
-        }
-    
-        /* --- Posts tab --- */
-        .posts-container {
-            padding: clamp(10px, 1.5vw, 30px) !important;
-            gap: clamp(10px, 1.2vw, 30px) !important;
-        }
-    
-        .post-item {
-            font-size: clamp(11px, 0.8vw, 20px) !important;
-        }
-    
-        .post-author-name {
-            font-size: clamp(11px, 0.8vw, 20px) !important;
-        }
-    
-        .post-content-text {
-            font-size: clamp(11px, 0.8vw, 20px) !important;
-        }
-    
-        .post-channel-pic {
-            width: clamp(28px, 2.5vw, 56px) !important;
-            height: clamp(28px, 2.5vw, 56px) !important;
-        }
-    
-        .post-footer {
-            font-size: clamp(10px, 0.7vw, 18px) !important;
-            padding: clamp(6px, 0.6vw, 16px) clamp(10px, 1vw, 24px) !important;
-        }
-    
-        /* --- Channel search bar --- */
-        .tab-search-bar input {
-            font-size: clamp(10px, 0.7vw, 18px) !important;
-            padding: clamp(3px, 0.4vw, 8px) clamp(6px, 0.7vw, 14px) !important;
-        }
-    
-        .tab-search-bar.active {
-            width: clamp(120px, 12vw, 280px) !important;
-        }
-    
-        /* --- Classic channel styles --- */
-        body.classic-channel .channel-header {
-            padding: 0 clamp(10px, 1.2vw, 30px) !important;
-            margin: clamp(8px, 1vw, 22px) auto !important;
-        }
-    
-        body.classic-channel .tabs {
-            padding: 0 clamp(10px, 1.2vw, 30px) !important;
-        }
-    
-        body.classic-channel .channel-pic {
-            width: clamp(60px, 5vw, 150px) !important;
-            height: clamp(60px, 5vw, 150px) !important;
-        }
-    
-        body.classic-channel .posts-container {
-            padding: clamp(10px, 1.5vw, 30px) clamp(10px, 1.2vw, 30px) clamp(10px, 1.5vw, 30px) 0 !important;
-        }
-    
-        body.classic-channel .post-channel-pic {
-            width: clamp(30px, 3vw, 70px) !important;
-            height: clamp(30px, 3vw, 70px) !important;
-        }
-    
-        /* --- Load more trigger & spinner --- */
-        .loading-spinner {
-            font-size: clamp(11px, 0.8vw, 20px) !important;
-            padding: clamp(12px, 1.2vw, 30px) !important;
-        }
-    
-        .no-more-videos {
-            font-size: clamp(11px, 0.8vw, 20px) !important;
-            padding: clamp(12px, 1.2vw, 30px) !important;
-        }
-    
-        /* --- Miscellaneous --- */
-        .channel-videos,
-        .playlists-container,
-        .channel-search-results {
-            padding: 0 clamp(10px, 1.2vw, 30px) !important;
-            gap: clamp(8px, 1vw, 24px) !important;
-        }
-    
-        .video-item,
-        .playlist-item {
-            margin: 0 !important;
-        }
-    
-        .channel-search-no-results {
-            font-size: clamp(11px, 0.8vw, 20px) !important;
-            padding: clamp(20px, 2.5vw, 60px) 0 !important;
-        }
-    
-        /* --- 4K specific fine-tuning (optional) --- */
-        @media (min-width: 2560px) {
-            .channel-top-section,
-            .channel-content-section {
-                max-width: 80vw !important;
-            }
-            
-            /* Even larger elements if desired */
-            .home-row-wrapper .video-item {
-                width: clamp(200px, 14vw, 400px) !important;
-                max-width: clamp(200px, 14vw, 400px) !important;
-                min-width: clamp(200px, 14vw, 400px) !important;
-                flex: 0 0 clamp(200px, 14vw, 400px) !important;
-            }
-        }
-    
-        /* --- Small screen tweaks (below 1366px) --- */
-        @media (max-width: 1366px) {
-            .channel-top-section,
-            .channel-content-section {
-                max-width: clamp(900px, 85vw, 1100px) !important;
-            }
-    
-            #videosTab .channel-videos:not(.list-view) .video-item {
-                flex: 0 0 clamp(130px, 12vw, 160px) !important;
-                max-width: clamp(130px, 12vw, 160px) !important;
-            }
-    
-            .home-row-wrapper .video-item {
-                width: clamp(140px, 14vw, 180px) !important;
-                max-width: clamp(140px, 14vw, 180px) !important;
-                min-width: clamp(140px, 14vw, 180px) !important;
-                flex: 0 0 clamp(140px, 14vw, 180px) !important;
-            }
-    
-            .home-row-wrapper .playlist-item {
-                width: clamp(240px, 24vw, 320px) !important;
-                max-width: clamp(240px, 24vw, 320px) !important;
-                min-width: clamp(240px, 24vw, 320px) !important;
-                flex: 0 0 clamp(240px, 24vw, 320px) !important;
-            }
-    
-            .home-player-wrapper {
-                flex: 0 0 clamp(300px, 30vw, 400px) !important;
-                max-width: clamp(300px, 30vw, 400px) !important;
-            }
-    
-            #relatedChannelsSidebar {
-                width: clamp(120px, 12vw, 160px) !important;
-            }
-        }
-    
-        /* --- Very small screens (below 1024px) --- */
-        @media (max-width: 1024px) {
-            .channel-pic {
-                width: clamp(50px, 5vw, 65px) !important;
-                height: clamp(50px, 5vw, 65px) !important;
-            }
-    
-            .channel-name {
-                font-size: clamp(14px, 1.4vw, 16px) !important;
-            }
-    
-            .tab {
-                font-size: clamp(10px, 1vw, 12px) !important;
-                padding: clamp(5px, 0.6vw, 7px) clamp(8px, 0.8vw, 12px) !important;
-            }
-    
-            #videosTab .channel-videos:not(.list-view) .video-item {
-                flex: 0 0 clamp(110px, 14vw, 130px) !important;
-                max-width: clamp(110px, 14vw, 130px) !important;
-            }
-    
-            .home-row-wrapper .video-item {
-                width: clamp(110px, 14vw, 140px) !important;
-                max-width: clamp(110px, 14vw, 140px) !important;
-                min-width: clamp(110px, 14vw, 140px) !important;
-                flex: 0 0 clamp(110px, 14vw, 140px) !important;
-            }
-    
-            .home-row-wrapper .playlist-item {
-                width: clamp(200px, 24vw, 240px) !important;
-                max-width: clamp(200px, 24vw, 240px) !important;
-                min-width: clamp(200px, 24vw, 240px) !important;
-                flex: 0 0 clamp(200px, 24vw, 240px) !important;
-            }
-    
-            .home-player-wrapper {
-                flex: 0 0 clamp(240px, 30vw, 300px) !important;
-                max-width: clamp(240px, 30vw, 300px) !important;
-            }
-    
-            #relatedChannelsSidebar {
-                width: clamp(100px, 12vw, 120px) !important;
-                padding: clamp(8px, 0.8vw, 12px) clamp(4px, 0.5vw, 8px) !important;
-            }
-    
-            .home-tab-flex-wrapper {
-                padding: 0 clamp(8px, 1vw, 14px) !important;
-            }
-    
-            .channel-header {
-                padding: 0 clamp(8px, 1vw, 12px) !important;
-            }
-    
-            .tabs {
-                padding: 0 clamp(8px, 1vw, 12px) !important;
-            }
-    
-            .subscribe-button {
-                font-size: clamp(9px, 0.9vw, 11px) !important;
-                padding: clamp(4px, 0.4vw, 5px) clamp(6px, 0.6vw, 10px) !important;
-            }
-    
-            .subscriber-count {
-                font-size: clamp(8px, 0.7vw, 10px) !important;
-                padding: clamp(4px, 0.4vw, 6px) clamp(5px, 0.5vw, 8px) !important;
-            }
-    
-            #relatedChannelsSidebar h3 {
-                font-size: clamp(11px, 1vw, 13px) !important;
-            }
-    
-            .related-channel-name {
-                font-size: clamp(9px, 0.9vw, 11px) !important;
-            }
-    
-            .related-channel-pic {
-                width: clamp(28px, 2.8vw, 36px) !important;
-                height: clamp(28px, 2.8vw, 36px) !important;
-            }
-    
-            .home-video-title {
-                font-size: clamp(13px, 1.2vw, 15px) !important;
-            }
+        #relatedTab .no-related-channels {
+            color: #888;
+            font-size: 15px;
+            text-align: center;
+            padding: 40px 0;
         }
     </style>
 </head>
@@ -1868,6 +1418,8 @@
             <div class="tab" data-tab="playlists">PLAYLISTS</div>
             <div class="tab" data-tab="posts">POSTS</div>
             <div class="tab" data-tab="about">ABOUT</div>
+            <!-- New Related tab -->
+            <div class="tab" data-tab="related">RELATED</div>
             <div class="tab-search-container">
                 <div class="tab" data-tab="search">
                     <img src="LocalYT-Rev-Files/search_icon.svg" class="tab-search-icon" alt="Search">
@@ -1886,35 +1438,26 @@
             <div class="posts-container" id="postsContainer"></div>
         </div>
 
-        <!-- Home Tab (Contains Sidebar + Main Content) -->
+        <!-- Home Tab -->
         <div id="homeTab" class="tab-content active">
-            <div class="home-tab-flex-wrapper">
-                <!-- Related Channels Sidebar -->
-                <div id="relatedChannelsSidebar">
-                    <h3 id="relatedChannelsLabel" style="visibility: hidden;">Angesagte Kanäle</h3>
-                    <div id="relatedChannelsList"></div>
-                </div>
-
-                <!-- Main Home Content -->
-                <div class="home-tab-main-content">
-                    <div class="home-preview-section">
-                        <div class="home-preview-row" id="homePreviewRow">
-                            <div class="home-player-wrapper" id="homePlayerWrapper">
-                                <div class="home-player-placeholder" id="homePlayerPlaceholder"></div>
-                            </div>
-                            <div class="home-info-panel">
-                                <div class="home-video-title" id="homeVideoTitle"></div>
-                                <div class="home-video-meta" id="homeVideoMeta"></div>
-                                <div class="home-video-description-box">
-                                    <div class="home-video-description-text" id="homeVideoDescription"></div>
-                                    <a class="home-video-description-read-more" id="homeVideoDescriptionReadMore" href="#">Mehr anzeigen</a>
-                                </div>
+            <div class="home-tab-main-content">
+                <div class="home-preview-section">
+                    <div class="home-preview-row" id="homePreviewRow">
+                        <div class="home-player-wrapper" id="homePlayerWrapper">
+                            <div class="home-player-placeholder" id="homePlayerPlaceholder"></div>
+                        </div>
+                        <div class="home-info-panel">
+                            <div class="home-video-title" id="homeVideoTitle"></div>
+                            <div class="home-video-meta" id="homeVideoMeta"></div>
+                            <div class="home-video-description-box">
+                                <div class="home-video-description-text" id="homeVideoDescription"></div>
+                                <a class="home-video-description-read-more" id="homeVideoDescriptionReadMore" href="#">Mehr anzeigen</a>
                             </div>
                         </div>
                     </div>
-                    <div class="home-others-label" id="homeOthersLabel"></div>
-                    <div class="home-others-grid" id="homeOthersGrid"></div>
                 </div>
+                <div class="home-others-label" id="homeOthersLabel"></div>
+                <div class="home-others-grid" id="homeOthersGrid"></div>
             </div>
         </div>
 
@@ -2028,6 +1571,12 @@
         <!-- Search Tab -->
         <div id="searchTab" class="tab-content">
             <div class="channel-search-results" id="channelSearchResults"></div>
+        </div>
+
+        <!-- Related Tab -->
+        <div id="relatedTab" class="tab-content">
+            <h3 id="relatedTabLabel" style="color: #fff; font-size: 20px; margin: 0 0 16px 0;">Related Channels</h3>
+            <div id="relatedChannelsContainer" class="related-channels-grid"></div>
         </div>
     </div>
 
@@ -2180,7 +1729,7 @@
             const raw = new URLSearchParams(window.location.search).get('channel') || '';
             const decoded = decodeURIComponent(raw);
 
-            const validTabs = ['videos', 'playlists', 'about', 'posts', 'search', 'streams']; // added 'streams'
+            const validTabs = ['videos', 'playlists', 'about', 'posts', 'search', 'streams', 'related'];
             const tabNames = validTabs.find(t => decoded.endsWith('/' + t));
 
             if (tabNames) {
@@ -2439,16 +1988,21 @@
                 mainLogo.style.cursor = 'pointer';
             }
 
-            // Load related channels
-            loadRelatedChannels();
+            // Load related channels when the related tab is first activated
+            // We'll do it in loadTabContent.
         });
 
         // ======================================================================
-        // RELATED CHANNELS LOGIC
+        // RELATED CHANNELS LOGIC (now for the tab)
         // ======================================================================
+        let relatedChannelsLoaded = false;
+
         async function loadRelatedChannels() {
-            const sidebarContainer = document.getElementById('relatedChannelsList');
-            if (!sidebarContainer) return;
+            const container = document.getElementById('relatedChannelsContainer');
+            if (!container) return;
+
+            // Show loading state
+            container.innerHTML = '<div class="tab-loading-placeholder">' + getLang('Loading related channels...', 'Lade ähnliche Kanäle...') + '</div>';
 
             // 1. Grab the current channel's tags
             let currentTags = [];
@@ -2459,17 +2013,17 @@
                     currentTags = text.split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
                 } else {
                     console.warn('Could not find tag file for current channel');
-                    sidebarContainer.innerHTML = '<p style="color: #888; font-size: 13px;">No tags available</p>';
+                    container.innerHTML = '<div class="no-related-channels">' + getLang('No tags available for this channel.', 'Keine Tags für diesen Kanal verfügbar.') + '</div>';
                     return;
                 }
             } catch (err) {
                 console.error('Error fetching current channel tags:', err);
-                sidebarContainer.innerHTML = '<p style="color: #888; font-size: 13px;">Error loading tags</p>';
+                container.innerHTML = '<div class="no-related-channels">' + getLang('Error loading tags.', 'Fehler beim Laden der Tags.') + '</div>';
                 return;
             }
 
             if (currentTags.length === 0) {
-                sidebarContainer.innerHTML = '<p style="color: #888; font-size: 13px;">No tags available</p>';
+                container.innerHTML = '<div class="no-related-channels">' + getLang('No tags available for this channel.', 'Keine Tags für diesen Kanal verfügbar.') + '</div>';
                 return;
             }
 
@@ -2504,7 +2058,7 @@
                     }
                 } catch (searchErr) {
                     console.error('Failed to fetch search-index for fallback:', searchErr);
-                    sidebarContainer.innerHTML = '<p style="color: #888; font-size: 13px;">Unable to discover channels</p>';
+                    container.innerHTML = '<div class="no-related-channels">' + getLang('Unable to discover channels.', 'Kanäle konnten nicht ermittelt werden.') + '</div>';
                     return;
                 }
             }
@@ -2513,7 +2067,7 @@
             channelsToCheck = channelsToCheck.filter(c => c !== channel);
 
             if (channelsToCheck.length === 0) {
-                sidebarContainer.innerHTML = '<p style="color: #888; font-size: 13px;">No other channels found</p>';
+                container.innerHTML = '<div class="no-related-channels">' + getLang('No other channels found.', 'Keine anderen Kanäle gefunden.') + '</div>';
                 return;
             }
 
@@ -2546,36 +2100,18 @@
                 return a.channel.localeCompare(b.channel);
             });
 
-            // 6. Determine top 5 channels (or up to 10 if there are high ties)
-            let topChannels = [];
-            if (scoredChannels.length > 0) {
-                const maxScore = scoredChannels[0].score;
-                // Gather all channels with the max score
-                const topTier = scoredChannels.filter(c => c.score === maxScore);
-                let selected = [...topTier];
-                // If we haven't reached 5, continue down the list
-                if (selected.length < 5) {
-                    let i = topTier.length;
-                    while (selected.length < 10 && i < scoredChannels.length) {
-                        if (!selected.includes(scoredChannels[i])) {
-                            selected.push(scoredChannels[i]);
-                        }
-                        i++;
-                    }
-                }
-                // Limit to a maximum of 10
-                topChannels = selected.slice(0, 10);
-            }
-
-            if (topChannels.length === 0) {
-                sidebarContainer.innerHTML = '<p style="color: #888; font-size: 13px;">No similar channels found</p>';
+            if (scoredChannels.length === 0) {
+                container.innerHTML = '<div class="no-related-channels">' + getLang('No similar channels found.', 'Keine ähnlichen Kanäle gefunden.') + '</div>';
                 return;
             }
+
+            // 6. Determine top channels (all with score > 0, but cap at 20 for display)
+            const topChannels = scoredChannels.slice(0, 20);
 
             // 7. Render related channels
             const fragment = document.createDocumentFragment();
 
-            // Fetch existing subscriptions
+            // Fetch existing subscriptions for the current user
             let subs = {};
             try {
                 const userRes = await fetch(`/user-subscriptions/${encodeURIComponent(channel)}`);
@@ -2637,19 +2173,15 @@
                 fragment.appendChild(item);
             }
 
-            sidebarContainer.innerHTML = '';
-            sidebarContainer.appendChild(fragment);
+            container.innerHTML = '';
+            container.appendChild(fragment);
 
-            const relatedLabel = document.getElementById('relatedChannelsLabel');
-            if (relatedLabel) {
-                const lang = localStorage.getItem('language') || 'en';
-                if (lang === 'de') {
-                    relatedLabel.textContent = 'Angesagte Kanäle';
-                } else {
-                    relatedLabel.textContent = 'Related channels';
-                }
-                relatedLabel.style.visibility = 'visible';
+            // Update tab label translation
+            const label = document.getElementById('relatedTabLabel');
+            if (label) {
+                label.textContent = getLang('Related Channels', 'Ähnliche Kanäle');
             }
+            relatedChannelsLoaded = true;
         }
 
         // ======================================================================
@@ -2747,6 +2279,7 @@
                 document.querySelector('.tab[data-tab="about"]').textContent = getLang('About', 'Kanalinfo');
                 document.querySelector('.tab[data-tab="posts"]').textContent = document.body.classList.contains(
                 'classic-channel') ? getLang('Discussion', 'Diskussion') : getLang('Posts', 'Beiträge');
+                document.querySelector('.tab[data-tab="related"]').textContent = getLang('Related', 'Ähnlich');
 
                 const updatedSortLabels = {
                     newest: getLang('Date added (newest)', 'Hinzugefügt am... (neueste zuerst)'),
@@ -2770,6 +2303,12 @@
                 document.getElementById('shareBtnText').textContent = getLang('Share', 'Teilen');
                 document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
                 updateSubscribeButton();
+
+                // Related tab label
+                const relatedLabel = document.getElementById('relatedTabLabel');
+                if (relatedLabel) {
+                    relatedLabel.textContent = getLang('Related Channels', 'Ähnliche Kanäle');
+                }
             }
             updateUITranslations();
 
@@ -3047,6 +2586,11 @@
                         break;
                     case 'posts':
                         loadPosts();
+                        break;
+                    case 'related':
+                        if (!relatedChannelsLoaded) {
+                            loadRelatedChannels();
+                        }
                         break;
                     default:
                         break;
