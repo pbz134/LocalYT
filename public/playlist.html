@@ -712,6 +712,7 @@
                         <div class="sort-dropdown-item active" data-sort="alphabetical">Alphabetical</div>
                         <div class="sort-dropdown-item" data-sort="newest">Date added (newest)</div>
                         <div class="sort-dropdown-item" data-sort="popular">Most popular</div>
+                        <div class="sort-dropdown-item" data-sort="longest">Longest</div>
                         <div class="sort-dropdown-item" data-sort="oldest">Date added (oldest)</div>
                     </div>
                 </div>
@@ -870,12 +871,14 @@ document.addEventListener('DOMContentLoaded', () => {
         'alphabetical': getLang('Alphabetical', 'Alphabetisch'),
         'newest': getLang('Date added (newest)', 'Hinzugefügt am... (neueste zuerst)'),
         'popular': getLang('Most popular', 'Am beliebtesten'),
+        'longest': getLang('Longest', 'Längste'),
         'oldest': getLang('Date added (oldest)', 'Hinzugefügt am... (älteste zuerst)')
     };
     sortToggleLabel.textContent = sortLabels['alphabetical'];
     document.querySelector('.sort-dropdown-item[data-sort="alphabetical"]').textContent = sortLabels['alphabetical'];
     document.querySelector('.sort-dropdown-item[data-sort="newest"]').textContent = sortLabels['newest'];
     document.querySelector('.sort-dropdown-item[data-sort="popular"]').textContent = sortLabels['popular'];
+    document.querySelector('.sort-dropdown-item[data-sort="longest"]').textContent = sortLabels['longest'];
     document.querySelector('.sort-dropdown-item[data-sort="oldest"]').textContent = sortLabels['oldest'];
 
     sortToggle.addEventListener('click', (e) => {
@@ -1095,10 +1098,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetch(`/videolengths/${channel}/${encodeURIComponent(video.path.split('/').pop().replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, ''))}.txt`)
                     .then(response => response.text())
                     .then(length => {
-                        const videoElements = videosContainer.querySelectorAll('.video-item');
-                        
                         const secs = parseDurationString(length.trim());
                         totalPlaylistSeconds += secs;
+                        // Store duration in video object for sorting
+                        video._durationSecs = secs;
+                        video._lengthStr = length.trim();
 
                         const formattedTotal = formatTotalDuration(totalPlaylistSeconds);
                         playlistDurationEl.textContent = `${getLang('Total duration', 'Gesamtdauer')}: ${formattedTotal}`;
@@ -1290,6 +1294,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 'alphabetical': getLang('Alphabetical', 'Alphabetisch'),
                 'newest': getLang('Date added (newest)', 'Hinzugefügt am... (neueste zuerst)'),
                 'popular': getLang('Most popular', 'Am beliebtesten'),
+                'longest': getLang('Longest', 'Längste'),
                 'oldest': getLang('Date added (oldest)', 'Hinzugefügt am... (älteste zuerst)')
             };
             sortToggleLabelEl.textContent = labels[sortValue];
@@ -1305,6 +1310,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 sortedVideos.sort((a, b) => parseEuropeanDate(a.fileDate) - parseEuropeanDate(b.fileDate));
             } else if (sortValue === 'popular') {
                 sortedVideos.sort((a, b) => parseInt(String(b.viewCount).replace(/,/g, '')) - parseInt(String(a.viewCount).replace(/,/g, '')));
+            } else if (sortValue === 'longest') {
+                sortedVideos.sort((a, b) => (b._durationSecs || 0) - (a._durationSecs || 0));
             } else {
                 sortedVideos.sort((a, b) => parseEuropeanDate(b.fileDate) - parseEuropeanDate(a.fileDate));
             }
@@ -1316,6 +1323,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetch(`/videolengths/${channel}/${encodeURIComponent(video.path.split('/').pop().replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, ''))}.txt`)
                     .then(response => response.text())
                     .then(length => {
+                        const secs = parseDurationString(length.trim());
+                        // Store duration in video object for future sorting
+                        video._durationSecs = secs;
+                        video._lengthStr = length.trim();
+
                         const lengthElement = document.querySelector(`[data-video-path="${encodeURIComponent(videoPathWithoutExt)}"] .video-length`);
                         if (lengthElement && length.trim()) {
                             lengthElement.textContent = length.trim();
