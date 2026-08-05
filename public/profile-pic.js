@@ -58,6 +58,306 @@
         return getSetting('language', 'en') === 'de' ? de : en;
     }
 
+    // ======================================================================
+    // SETTINGS PAGE TRANSLATIONS
+    // ======================================================================
+    function translateSettingsPage() {
+        // Only run on settings page
+        if (!window.location.pathname.includes('settings.html')) return;
+
+        const lang = getSetting('language', 'en');
+        const isDe = lang === 'de';
+
+        // --- Tab content headings (the <h1> at the top of each panel) ---
+        const tabHeadings = {
+            'tab-profile': { en: 'Profile Picture', de: 'Profilbild' },
+            'tab-appearance': { en: 'Appearance', de: 'Erscheinungsbild' },
+            'tab-playback': { en: 'Playback', de: 'Wiedergabe' },
+            'tab-content': { en: 'Content & Recommendations', de: 'Inhalt & Empfehlungen' },
+            'tab-account': { en: 'Account', de: 'Konto' }
+        };
+
+        Object.keys(tabHeadings).forEach(tabId => {
+            const tabPanel = document.getElementById(tabId);
+            if (tabPanel) {
+                const h1 = tabPanel.querySelector('h1');
+                if (h1) {
+                    h1.textContent = tabHeadings[tabId][isDe ? 'de' : 'en'];
+                }
+            }
+        });
+
+        // Translation dictionary for settings page elements with IDs
+        const translations = {
+            // Sidebar tab titles
+            sidebarProfile: { en: 'Profile Picture', de: 'Profilbild' },
+            sidebarAppearance: { en: 'Appearance', de: 'Erscheinungsbild' },
+            sidebarPlayback: { en: 'Playback', de: 'Wiedergabe' },
+            sidebarContent: { en: 'Content', de: 'Inhalt' },
+            sidebarAccount: { en: 'Account', de: 'Konto' },
+
+            // Profile tab
+            uploadBtn: { en: 'Upload Picture', de: 'Bild hochladen' },
+            removeBtn: { en: 'Remove Picture', de: 'Bild entfernen' },
+
+            // Save buttons
+            saveAppearanceBtn: { en: 'Save Appearance Settings', de: 'Erscheinungsbild speichern' },
+            savePlaybackBtn: { en: 'Save Playback Settings', de: 'Wiedergabe speichern' },
+            saveContentBtn: { en: 'Save Content Settings', de: 'Inhaltseinstellungen speichern' },
+
+            // Account tab - buttons with IDs
+            renameBtn: { en: 'Rename', de: 'Umbenennen' },
+            changePassBtn: { en: 'Update', de: 'Aktualisieren' },
+            exportConfigBtn: { en: 'Export Config', de: 'Konfig. exportieren' },
+            logoutBtn: { en: 'Logout', de: 'Abmelden' },
+            toggleDeleteBtn: { en: 'Delete Account', de: 'Konto löschen' },
+            deleteAccountBtn: { en: 'Confirm Delete', de: 'Löschen bestätigen' },
+
+            // Algorithm preferences
+            algoPrefsHeading: { en: 'Algorithm Preferences', de: 'Algorithmus-Einstellungen' },
+            algoPrefsDesc: { en: 'Adjust scores to influence your recommendations. Higher = matching videos are more likely to appear.', de: 'Passe die Werte an, um deine Empfehlungen zu beeinflussen. Höher = passende Videos werden eher angezeigt.' },
+            addTagBtn: { en: 'Add Tag', de: 'Tag hinzufügen' },
+            resetPrefsBtn: { en: 'Reset All', de: 'Alle zurücksetzen' },
+
+            // Modal buttons
+            cancelCropBtn: { en: 'Cancel', de: 'Abbrechen' },
+            doneCropBtn: { en: 'Done', de: 'Fertig' }
+        };
+
+        // Apply translations to elements with matching IDs
+        Object.keys(translations).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                if (el.tagName === 'INPUT' && el.placeholder !== undefined) {
+                    el.placeholder = translations[id][isDe ? 'de' : 'en'];
+                } else {
+                    el.textContent = translations[id][isDe ? 'de' : 'en'];
+                }
+            }
+        });
+
+        // --- Translate Account tab sections ---
+        const accountTab = document.getElementById('tab-account');
+        if (accountTab) {
+            // Find all h2 elements in account sections
+            const h2s = accountTab.querySelectorAll('.account-section h2');
+            const h2Map = [
+                { en: 'Account Management', de: 'Kontoverwaltung' },
+                { en: 'Configuration', de: 'Konfiguration' },
+                { en: 'Danger Zone', de: 'Gefahrenzone' }
+            ];
+            h2s.forEach((h2, i) => {
+                if (h2Map[i]) {
+                    h2.textContent = isDe ? h2Map[i].de : h2Map[i].en;
+                }
+            });
+
+            // Find all h3 elements in account sections
+            const h3s = accountTab.querySelectorAll('h3');
+            const h3Map = [
+                { en: 'Rename Account', de: 'Konto umbenennen' },
+                { en: 'Change Password', de: 'Passwort ändern' },
+                { en: 'Logout', de: 'Abmelden' },
+                { en: 'Delete Account', de: 'Konto löschen' }
+            ];
+            h3s.forEach((h3, i) => {
+                if (h3Map[i]) {
+                    h3.textContent = isDe ? h3Map[i].de : h3Map[i].en;
+                }
+                if (i === 3) {
+                    h3.style.color = '#ff4444';
+                }
+            });
+
+            // Translate description paragraphs in account sections
+            const descPs = accountTab.querySelectorAll('.account-section p');
+            const descMap = [
+                { en: 'End your current session.', de: 'Beende deine aktuelle Sitzung.' },
+                { en: 'WARNING: Once deleted, you won\'t be able to recover it.', de: 'WARNUNG: Einmal gelöscht, kann das Konto nicht wiederhergestellt werden.' },
+                { en: 'Export or import your settings as a JSON file.', de: 'Exportiere oder importiere deine Einstellungen als JSON-Datei.' }
+            ];
+            descPs.forEach((p, i) => {
+                if (descMap[i]) {
+                    p.textContent = isDe ? descMap[i].de : descMap[i].en;
+                }
+            });
+
+            // Translate delete warning text (contains HTML)
+            const deleteWarning = accountTab.querySelector('#deleteWarningText');
+            if (deleteWarning) {
+                deleteWarning.innerHTML = isDe
+                    ? 'Gib dein aktuelles Passwort ein und tippe <strong style="color:#ff4444;">DELETE</strong>, um dein Konto permanent zu löschen.'
+                    : 'Enter your current password and type <strong style="color:#ff4444;">DELETE</strong> to permanently delete your account.';
+            }
+
+            // Translate input placeholders in account tab
+            const inputs = {
+                newUsername: { en: 'New Username', de: 'Neuer Benutzername' },
+                currentPassword: { en: 'Current Password', de: 'Aktuelles Passwort' },
+                newPassword: { en: 'New Password', de: 'Neues Passwort' },
+                deletePassword: { en: 'Current Password', de: 'Aktuelles Passwort' },
+                deleteConfirmInput: { en: 'Type DELETE', de: 'DELETE eingeben' }
+            };
+            Object.keys(inputs).forEach(inputId => {
+                const input = accountTab.querySelector('#' + inputId);
+                if (input) input.placeholder = inputs[inputId][isDe ? 'de' : 'en'];
+            });
+
+            // Translate import config label
+            const importLabel = accountTab.querySelector('label[for="importConfigInput"]');
+            if (importLabel) importLabel.textContent = isDe ? 'Konfig. importieren' : 'Import Config';
+        }
+
+        // --- Translate settings section headers (the grid section dividers) ---
+        const sectionHeaders = document.querySelectorAll('.settings-section-header');
+        const headerMap = {
+            'Video & Channel Layout': { en: 'Video & Channel Layout', de: 'Video & Kanal-Layout' },
+            'Playlist Layout': { en: 'Playlist Layout', de: 'Playlist-Layout' },
+            'Visual Style': { en: 'Visual Style', de: 'Visueller Stil' },
+            'Player': { en: 'Player', de: 'Player' },
+            'Autoplay': { en: 'Autoplay', de: 'Autoplay' },
+            'Playlist Behavior': { en: 'Playlist Behavior', de: 'Playlist-Verhalten' },
+            'Player Overlays': { en: 'Player Overlays', de: 'Player-Overlays' }
+        };
+        
+        sectionHeaders.forEach(header => {
+            const text = header.textContent.trim();
+            if (headerMap[text]) {
+                header.textContent = isDe ? headerMap[text].de : headerMap[text].en;
+            }
+        });
+
+        // --- Translate search input placeholder ---
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.placeholder = isDe ? 'Suchen' : 'Search';
+        }
+
+        // --- Translate tag input placeholder ---
+        const tagInput = document.getElementById('newTagInput');
+        if (tagInput) {
+            tagInput.placeholder = isDe ? 'Neuen Tag hinzufügen...' : 'Add new tag...';
+        }
+
+        // --- Translate card labels and descriptions ---
+        const cardTranslations = {
+            videoPageLayoutLabel: { en: 'Video page style', de: 'Videoseiten-Stil' },
+            videoPageLayoutDesc: { en: 'Modern or Classic layout (view count on right, buttons stacked)', de: 'Modernes oder klassisches Layout (Aufrufzahl rechts, Buttons gestapelt)' },
+            channelPageStyleLabel: { en: 'Channel page style', de: 'Kanalseiten-Stil' },
+            channelPageStyleDesc: { en: 'Modern rounded header or classic square-in-banner', de: 'Moderner abgerundeter Header oder klassisch (Quadrat im Banner)' },
+            channelDefaultViewLabel: { en: 'Default channel video layout', de: 'Standard-Kanalvideo-Layout' },
+            channelDefaultViewDesc: { en: 'Grid or list for channel videos tab', de: 'Raster oder Liste für Kanal-Videos' },
+            playlistPageLayoutLabel: { en: 'Default playlist layout', de: 'Standard-Playlist-Layout' },
+            playlistPageLayoutDesc: { en: 'Grid or list view for playlists', de: 'Raster- oder Listenansicht für Playlists' },
+            commenterProfileLabel: { en: 'Commenter avatar style', de: 'Avatar-Stil für Kommentatoren' },
+            commenterProfileDesc: { en: 'Letters & colors or classic placeholder', de: 'Buchstaben & Farben oder klassischer Platzhalter' },
+            titleColorSchemeLabel: { en: 'Title color scheme', de: 'Titel-Farbschema' },
+            titleColorSchemeDesc: { en: 'Video titles & channel names in white or blue', de: 'Videotitel & Kanalnamen in Weiß oder Blau' },
+            roundedCornersLabel: { en: 'Rounded corners', de: 'Abgerundete Ecken' },
+            roundedCornersDesc: { en: 'Subtle rounding on player & thumbnails', de: 'Leichte Abrundung an Player & Thumbnails' },
+            sidebarSvgIconsLabel: { en: 'Sidebar SVG icons', de: 'Seitenleisten-Symbole' },
+            sidebarSvgIconsDesc: { en: 'Show icons next to sidebar items', de: 'Symbole neben Seitenleisteneinträgen anzeigen' },
+            playerUIScaleLabel: { en: 'Player UI scale', de: 'Player-UI-Skalierung' },
+            playerUIScaleDesc: { en: 'Control size (+/- keys while playing)', de: 'Größe der Steuerung (+/- Tasten während der Wiedergabe)' },
+            autoplayEnabledLabel: { en: 'Enable Autoplay', de: 'Autoplay aktivieren' },
+            autoplayDesc: { en: 'Automatically play next video', de: 'Nächstes Video automatisch abspielen' },
+            playlistAutoplayLabel: { en: 'Autoplay next in playlist', de: 'Nächstes in Playlist abspielen' },
+            playlistAutoplayDesc: { en: 'Play next video in sequence', de: 'Nächstes Video in Reihenfolge abspielen' },
+            nonPlaylistModeLabel: { en: 'Non-playlist behavior', de: 'Verhalten außerhalb von Playlists' },
+            nonPlaylistDesc: { en: 'What plays after a standalone video ends', de: 'Was nach einem einzelnen Video abgespielt wird' },
+            playlistOrderLabel: { en: 'Invert playlist order', de: 'Playlist-Reihenfolge umkehren' },
+            playlistOrderDesc: { en: 'Newest videos first (oldest on the right)', de: 'Neueste Videos zuerst (älteste rechts)' },
+            channelProfilePicLabel: { en: 'Show channel profile pic', de: 'Kanal-Profilbild anzeigen' },
+            channelProfilePicDesc: { en: 'Bottom-right corner of player', de: 'Untere rechte Ecke des Players' },
+            showEndScreenGridLabel: { en: 'End screen recommendation grid', de: 'Empfehlungsraster am Ende' },
+            showEndScreenGridDesc: { en: '4×3 grid when autoplay is off', de: '4×3-Raster wenn Autoplay aus ist' },
+            showEndcardsLabel: { en: 'Show video endcards', de: 'Video-Endkarten anzeigen' },
+            showEndcardsDesc: { en: 'Two thumbnails in last 20 seconds', de: 'Zwei Vorschaubilder in den letzten 20 Sekunden' },
+            fuzzySubCountLabel: { en: 'Fuzzy subscription counts', de: 'Ungefähre Abonnentenzahlen' },
+            fuzzySubCountDesc: { en: 'Randomize last digits of rounded counts', de: 'Letzte Ziffern gerundeter Zahlen zufällig machen' },
+            hidePostImagesLabel: { en: 'Hide images in posts', de: 'Bilder in Beiträgen ausblenden' },
+            hidePostImagesDesc: { en: 'Save bandwidth & reduce loading times', de: 'Bandbreite sparen & Ladezeiten reduzieren' }
+        };
+
+        Object.keys(cardTranslations).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = cardTranslations[id][isDe ? 'de' : 'en'];
+            }
+        });
+
+        // --- Translate dropdown options ---
+        const dropdownTranslations = {
+            videoPageLayout: {
+                options: [
+                    { en: 'Modern', de: 'Modern' },
+                    { en: 'Classic', de: 'Klassisch' }
+                ]
+            },
+            channelPageStyle: {
+                options: [
+                    { en: 'Modern', de: 'Modern' },
+                    { en: 'Classic', de: 'Klassisch' }
+                ]
+            },
+            channelDefaultView: {
+                options: [
+                    { en: 'Grid', de: 'Raster' },
+                    { en: 'List', de: 'Liste' }
+                ]
+            },
+            playlistPageLayout: {
+                options: [
+                    { en: 'Grid', de: 'Raster' },
+                    { en: 'List', de: 'Liste' }
+                ]
+            },
+            commenterProfileStyle: {
+                options: [
+                    { en: 'Modern (Letters & Colors)', de: 'Modern (Buchstaben & Farben)' },
+                    { en: 'Classic (Placeholder)', de: 'Klassisch (Platzhalter)' }
+                ]
+            },
+            titleColorScheme: {
+                options: [
+                    { en: 'White (Default)', de: 'Weiß (Standard)' },
+                    { en: 'Blue', de: 'Blau' }
+                ]
+            },
+            autoplayNonPlaylistMode: {
+                options: [
+                    { en: 'First recommended', de: 'Erstes empfohlenes' },
+                    { en: 'Random recommended', de: 'Zufällig empfohlen' },
+                    { en: 'Random from database', de: 'Zufällig aus Datenbank' }
+                ]
+            },
+            playerUIScale: {
+                options: {
+                    5: { en: '100% (Default)', de: '100% (Standard)' }
+                }
+            }
+        };
+
+        Object.keys(dropdownTranslations).forEach(selectId => {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            const config = dropdownTranslations[selectId];
+            if (config.options && Array.isArray(config.options)) {
+                config.options.forEach((opt, i) => {
+                    if (select.options[i]) {
+                        select.options[i].text = isDe ? opt.de : opt.en;
+                    }
+                });
+            } else if (config.options && typeof config.options === 'object') {
+                Object.keys(config.options).forEach(idx => {
+                    if (select.options[idx]) {
+                        select.options[idx].text = isDe ? config.options[idx].de : config.options[idx].en;
+                    }
+                });
+            }
+        });
+    }
+
     function createMenuItem(icon, text, onClick) {
         const item = document.createElement('div');
         item.className = 'profile-menu-item';
@@ -736,6 +1036,9 @@
                 if (!img.id || img.id !== 'headerProfilePic') img.style.filter = '';
             });
         }
+        
+        // Re-translate settings page after appearance change
+        translateSettingsPage();
     }
 
     function updateAppearanceText(item) {
@@ -769,6 +1072,9 @@
                                   'Appearance: Dark';
             }
         }
+        
+        // Re-translate settings page if we're on it
+        translateSettingsPage();
         
         if (currentUserId) {
             saveSettingsToServerSync().then(() => {
@@ -859,6 +1165,9 @@
         if (relatedTabLabel) {
             relatedTabLabel.textContent = dict.relatedChannelsLabel[lang] || dict.relatedChannelsLabel['en'];
         }
+        
+        // Translate settings page elements
+        translateSettingsPage();
     }
 
     function applyAppearanceMode() {
@@ -1036,6 +1345,9 @@
         if (getSetting('language', 'en') === 'de') {
             applyLanguage();
         }
+        
+        // Apply settings page translations if on settings page
+        translateSettingsPage();
 
         userActions.style.position = 'relative';
 
@@ -1091,12 +1403,15 @@
                 if (userData && userData.username) {
                     initNotifications();
                 }
+                // Apply settings translations after everything is loaded
+                translateSettingsPage();
             })
             .catch(err => {
                 console.error('Error checking session:', err);
                 menuInstance.appendChild(createMenuItem('signout.svg', getLang('Sign In', 'Anmelden'), () => {
                     window.location.href = '/login.html';
                 }));
+                translateSettingsPage();
             });
 
         function buildMenu(userData) {

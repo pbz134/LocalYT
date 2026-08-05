@@ -16,7 +16,7 @@
             font-family: 'RobotoRegular', Arial, sans-serif;
         }
 
-        /* --- Settings Sidebar (styled like index.html sidebar) --- */
+        /* --- Settings Sidebar --- */
         .settings-sidebar {
             position: fixed;
             left: 0;
@@ -33,7 +33,7 @@
         .settings-sidebar a {
             padding: 8px 8px 8px 32px;
             text-decoration: none;
-            font-size: 25px;
+            font-size: 22px;
             color: #818181;
             display: block;
             transition: 0.3s;
@@ -60,7 +60,7 @@
 
         .tab-panel {
             display: none;
-            max-width: 800px;
+            max-width: 1100px;
             margin: 0 auto;
         }
 
@@ -68,7 +68,7 @@
             display: block;
         }
 
-        /* --- Profile Picture Tab --- */
+        /* --- Profile Picture Tab (unchanged mostly) --- */
         .profile-page-container {
             display: flex;
             flex-direction: column;
@@ -183,28 +183,259 @@
         .toast.error { background-color: #cc0000; color: #fff; }
         .toast.success { background-color: #2d7d32; color: #fff; }
 
-        /* --- Settings Tab --- */
-        .settings-section {
-            background-color: #1a1a1a;
-            border: 1px solid #333;
-            padding: 20px;
-            margin-bottom: 20px;
-
+        /* --- New Settings Grid Layout --- */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
         }
 
-        .settings-section h2 {
+        .setting-card {
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            transition: border-color 0.2s;
+        }
+
+        .setting-card:hover {
+            border-color: #555;
+        }
+
+        .setting-card .card-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .setting-card .card-label {
+            font-size: 14px;
+            color: #ccc;
+            margin-bottom: 2px;
+        }
+
+        .setting-card .card-desc {
+            font-size: 12px;
+            color: #777;
+            line-height: 1.3;
+        }
+
+        .setting-card .card-control {
+            flex-shrink: 0;
+        }
+
+        .settings-section-header {
+            grid-column: 1 / -1;
+            font-size: 14px;
+            font-weight: 600;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 16px 0 4px 0;
+            border-bottom: 1px solid #333;
+            margin: 8px 0 4px 0;
+        }
+
+        .settings-section-header:first-child {
+            margin-top: 0;
+            padding-top: 0;
+        }
+
+        /* --- Save Bar --- */
+        .save-bar {
+            position: sticky;
+            bottom: 0;
+            background: var(--main-bg-color);
+            padding: 16px 0;
+            border-top: 1px solid #333;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 24px;
+            z-index: 5;
+        }
+
+        .save-bar .btn-save {
+            background-color: #2196F3;
+            padding: 10px 28px;
+            font-size: 14px;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .save-bar .btn-save:hover {
+            background-color: #1e88e5;
+        }
+
+        .save-bar .status-msg {
+            font-size: 13px;
+        }
+
+        /* --- Toggle & Select Styles (unchanged) --- */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #444;
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #fff;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #2196F3;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        select.setting-select {
+            background-color: #222;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 6px 10px;
+            font-size: 13px;
+            cursor: pointer;
+            min-width: 200px;
+            border-radius: 4px;
+        }
+
+        select.setting-select:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
+        /* --- Account tab specific sections (still using a more block-like layout) --- */
+        .account-section {
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .account-section h2 {
             margin-top: 0;
             border-bottom: 1px solid #333;
             padding-bottom: 10px;
-            color: #fff;
         }
 
+        .inline-form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .btn {
+            background-color: #333;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 4px;
+        }
+
+        .btn:hover {
+            background-color: #444;
+        }
+
+        .btn-danger {
+            background-color: #aa0000;
+        }
+
+        .btn-danger:hover {
+            background-color: #cc0000;
+        }
+
+        .btn-logout {
+            background-color: #555;
+        }
+
+        .btn-logout:hover {
+            background-color: #666;
+        }
+
+        input[type="text"], input[type="password"] {
+            background: var(--main-bg-color);
+            border: 1px solid #444;
+            color: #fff;
+            padding: 8px;
+            border-radius: 4px;
+            min-width: 200px;
+        }
+
+        .delete-account-form {
+            display: none;
+            margin-top: 12px;
+            padding: 15px;
+            background-color: #1a0000;
+            border: 1px solid #440000;
+            border-radius: 6px;
+        }
+
+        .delete-account-form.active {
+            display: block;
+        }
+
+        .delete-account-form p {
+            font-size: 13px;
+            color: #ccc;
+            margin: 0 0 12px 0;
+        }
+
+        .status-msg {
+            font-size: 13px;
+            min-height: 20px;
+        }
+
+        .success { color: #4caf50; }
+        .error { color: #f44336; }
+
+        /* --- Algorithm Preferences (still needs its own list style) --- */
         .pref-list-container {
             max-height: 400px;
             overflow-y: auto;
             border: 1px solid #333;
             background: var(--main-bg-color);
             margin-bottom: 15px;
+            border-radius: 4px;
         }
 
         .pref-item {
@@ -260,228 +491,11 @@
             color: #ff4444;
         }
 
-        .btn {
-            background-color: #333;
-            color: #fff;
-            border: none;
-            padding: 8px 16px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .btn:hover {
-            background-color: #444;
-        }
-
-        .btn-danger {
-            background-color: #aa0000;
-        }
-
-        .btn-danger:hover {
-            background-color: #cc0000;
-        }
-
-        .btn-save {
-            background-color: #2196F3;
-        }
-
-        .btn-save:hover {
-            background-color: #1e88e5;
-        }
-
-        .btn-logout {
-            background-color: #555;
-        }
-
-        .btn-logout:hover {
-            background-color: #666;
-        }
-
-        input[type="text"], input[type="password"] {
-            background: var(--main-bg-color);
-            border: 1px solid #444;
-            color: #fff;
-            padding: 8px;
-            margin-right: 10px;
-            border-radius: 4px;
-        }
-
-        input[list] {
-            background: var(--main-bg-color);
-        }
-
-        .inline-form {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            align-items: center;
-        }
-
-        .status-msg {
-            margin-top: 10px;
-            font-size: 13px;
-            min-height: 20px;
-        }
-
-        .success { color: #4caf50; }
-        .error { color: #f44336; }
-
-        .pref-list-container::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .pref-list-container::-webkit-scrollbar-track {
-            background: #1a1a1a;
-        }
-
-        .pref-list-container::-webkit-scrollbar-thumb {
-            background: #444;
-            border-radius: 4px;
-        }
-
-        .delete-account-form {
-            display: none;
-            margin-top: 12px;
-            padding: 15px;
-            background-color: #1a0000;
-            border: 1px solid #440000;
-            border-radius: 6px;
-        }
-
-        .delete-account-form.active {
-            display: block;
-        }
-
-        .delete-account-form p {
-            font-size: 13px;
-            color: #ccc;
-            margin: 0 0 12px 0;
-        }
-
-        .delete-form-row {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .tab-panel h1 {
-            margin-top: 0;
-        }
-
-        /* --- Toggle Switch Styles --- */
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 24px;
-        }
-
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .toggle-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #444;
-            transition: 0.3s;
-            border-radius: 24px;
-        }
-
-        .toggle-slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background-color: #fff;
-            transition: 0.3s;
-            border-radius: 50%;
-        }
-
-        .toggle-switch input:checked + .toggle-slider {
-            background-color: #2196F3;
-        }
-
-        .toggle-switch input:checked + .toggle-slider:before {
-            transform: translateX(26px);
-        }
-
-        .setting-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #333;
-        }
-
-        .setting-row:last-child {
-            border-bottom: none;
-        }
-
-        .setting-label {
-            font-size: 14px;
-            color: #ccc;
-            flex-grow: 1;
-            margin-right: 15px;
-        }
-
-        .setting-description {
-            font-size: 12px;
-            color: #888;
-            margin-top: 4px;
-        }
-
-        .setting-control {
-            flex-shrink: 0;
-        }
-
-        .autoplay-sub-options {
-            margin-left: 30px;
-            padding-left: 15px;
-            border-left: 2px solid #333;
-            margin-top: 10px;
-            display: none;
-        }
-
-        .autoplay-sub-options.visible {
-            display: block;
-        }
-
-        .autoplay-sub-options .setting-row {
-            border-bottom: none;
-            padding: 8px 0;
-        }
-
-        select.setting-select {
-            background-color: #222;
-            border: 1px solid #444;
-            color: #fff;
-            padding: 6px 10px;
-            font-size: 13px;
-            cursor: pointer;
-            min-width: 200px;
-        }
-
-        select.setting-select:focus {
-            outline: none;
-            border-color: #2196F3;
-        }
-
-        /* --- Search Suggestions Visibility --- */
+        /* --- Search Suggestions --- */
         .search-suggestions {
-            display: none; /* Hidden by default when input is empty */
+            display: none;
         }
 
-        /* Show suggestions only when the search container (input) is focused/active */
         .search-container:focus-within .search-suggestions {
             display: block;
         }
@@ -501,14 +515,16 @@
     <!-- Left Sidebar -->
     <div class="settings-sidebar">
         <a data-tab="profile" class="active" id="sidebarProfile">Profile Picture</a>
-        <a data-tab="settings" id="sidebarSettings">Account</a>
-        <a data-tab="preferences" id="sidebarPreferences">Preferences</a>
+        <a data-tab="appearance" id="sidebarAppearance">Appearance</a>
+        <a data-tab="playback" id="sidebarPlayback">Playback</a>
+        <a data-tab="content" id="sidebarContent">Content</a>
+        <a data-tab="account" id="sidebarAccount">Account</a>
     </div>
 
     <!-- Content Area -->
     <div class="settings-content">
 
-        <!-- Profile Picture Tab -->
+        <!-- Profile Picture Tab (unchanged) -->
         <div class="tab-panel active" id="tab-profile">
             <h1 id="profileHeading">Profile Picture</h1>
             <div class="profile-page-container">
@@ -521,200 +537,19 @@
             </div>
         </div>
 
-        <!-- Settings Tab -->
-        <div class="tab-panel" id="tab-settings">
-            <h1 id="settingsHeading">Account</h1>
+        <!-- Appearance Tab -->
+        <div class="tab-panel" id="tab-appearance">
+            <h1>Appearance</h1>
+            <div class="settings-grid">
 
-            <!-- Algorithm Section -->
-            <div class="settings-section">
-                <h2 id="algoPrefsHeading">Algorithm Preferences</h2>
-                <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;" id="algoPrefsDesc">Adjust scores to influence your recommendations. Higher = matching videos are more likely to appear.</p>
+                <div class="settings-section-header">Video & Channel Layout</div>
 
-                <div id="preferencesContainer" class="pref-list-container">
-                </div>
-
-                <div class="inline-form" style="margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 15px;">
-                    <input type="text" id="newTagInput" list="allTagsList" placeholder="" style="flex-grow: 1;">
-                    <datalist id="allTagsList"></datalist>
-                    <button class="btn" id="addTagBtn">Add Tag</button>
-                </div>
-
-                <div class="inline-form">
-                    <button class="btn btn-save" id="savePrefsBtn">Save Preferences</button>
-                    <button class="btn btn-danger" id="resetPrefsBtn">Reset All</button>
-                </div>
-                <div id="prefStatus" class="status-msg"></div>
-            </div>
-
-            <!-- Account Management -->
-            <div class="settings-section">
-                <h2 id="accountMgmtHeading">Account Management</h2>
-
-                <div style="margin-bottom: 20px;">
-                    <h3 style="margin-bottom: 5px; font-size: 16px;" id="renameHeading">Rename Account</h3>
-                    <div class="inline-form">
-                        <input type="text" id="newUsername" placeholder="">
-                        <button class="btn" id="renameBtn">Rename</button>
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="videoPageLayoutLabel">Video page style</div>
+                        <div class="card-desc" id="videoPageLayoutDesc">Modern or Classic layout (view count on right, buttons stacked)</div>
                     </div>
-                    <div id="renameStatus" class="status-msg"></div>
-                </div>
-
-                <div>
-                    <h3 style="margin-bottom: 5px; font-size: 16px;" id="changePassHeading">Change Password</h3>
-                    <div class="inline-form" style="flex-wrap: wrap;">
-                        <input type="password" id="currentPassword" placeholder="">
-                        <input type="password" id="newPassword" placeholder="">
-                        <button class="btn" id="changePassBtn">Update</button>
-                    </div>
-                    <div id="passStatus" class="status-msg"></div>
-                </div>
-            </div>
-
-            <!-- Danger Zone -->
-            <div class="settings-section">
-                <h2 id="dangerZoneHeading">Danger Zone</h2>
-
-                <div style="margin-bottom: 20px;">
-                    <h3 style="margin-bottom: 5px; font-size: 16px;" id="logoutHeading">Logout</h3>
-                    <p style="font-size: 13px; color: #aaa;" id="logoutDesc">End your current session.</p>
-                    <div class="inline-form" style="justify-content: flex-start;">
-                        <button class="btn btn-logout" id="logoutBtn">Logout</button>
-                    </div>
-                </div>
-
-                <div>
-                    <h3 style="margin-bottom: 5px; font-size: 16px; color: #ff4444;" id="deleteAccHeading">Delete Account</h3>
-                    <p style="font-size: 13px; color: #aaa;" id="deleteAccDesc">WARNING: Once deleted, you won't be able to recover it.</p>
-                    <div class="inline-form" style="justify-content: flex-start;">
-                        <button class="btn btn-danger" id="toggleDeleteBtn">Delete Account</button>
-                    </div>
-
-                    <div id="deleteAccountForm" class="delete-account-form">
-                        <p id="deleteWarningText">Enter your current password and type <strong style="color:#ff4444;">DELETE</strong> to permanently delete your account.</p>
-                        <div class="delete-form-row">
-                            <input type="password" id="deletePassword" placeholder="">
-                            <input type="text" id="deleteConfirmInput" placeholder="">
-                            <button class="btn btn-danger" id="deleteAccountBtn">Confirm Delete</button>
-                        </div>
-                    </div>
-
-                    <div id="deleteStatus" class="status-msg"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Preferences Tab -->
-        <div class="tab-panel" id="tab-preferences">
-            <h1 id="preferencesHeading">Preferences</h1>
-
-            <!-- Autoplay Section -->
-            <div class="settings-section">
-                <h2 id="autoplayHeading">Autoplay Settings</h2>
-
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="autoplayEnabledLabel">Enable Autoplay</div>
-                        <div class="setting-description" id="autoplayDesc">Automatically play the next video when the current one ends</div>
-                    </div>
-                    <div class="setting-control">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="autoplayEnabled">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="autoplay-sub-options" id="autoplaySubOptions">
-                    <div class="setting-row">
-                        <div class="setting-label">
-                            <div id="playlistAutoplayLabel">Autoplay next video in playlist</div>
-                            <div class="setting-description" id="playlistAutoplayDesc">When watching a playlist, automatically play the next video in sequence</div>
-                        </div>
-                        <div class="setting-control">
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="autoplayPlaylistNext">
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="setting-row">
-                        <div class="setting-label">
-                            <div id="nonPlaylistModeLabel">Autoplay behavior when not in a playlist</div>
-                            <div class="setting-description" id="nonPlaylistDesc">Choose what happens after a video ends when you're not watching a playlist</div>
-                        </div>
-                        <div class="setting-control">
-                            <select class="setting-select" id="autoplayNonPlaylistMode">
-                                <option value="first-recommended" selected>Autoplay first recommended video from sidebar</option>
-                                <option value="random-recommended">Autoplay random recommended video from sidebar</option>
-                                <option value="random-database">Autoplay entirely random video from database</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="inline-form" style="margin-top: 15px;">
-                    <button class="btn btn-save" id="saveAutoplayBtn">Save Autoplay Settings</button>
-                </div>
-                <div id="autoplayStatus" class="status-msg"></div>
-            </div>
-
-            <!-- Commenter Profile Images Section -->
-            <div class="settings-section">
-                <h2 id="commenterProfileHeading">Commenter Profile Images</h2>
-
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="commenterProfileLabel">Commenter Avatar Style</div>
-                        <div class="setting-description" id="commenterProfileDesc">Choose how commenter profile pictures appear in comments</div>
-                    </div>
-                    <div class="setting-control">
-                        <select class="setting-select" id="commenterProfileStyle">
-                            <option value="modern">Modern (Letters & Colors)</option>
-                            <option value="classic">Classic (Placeholder Image)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="inline-form" style="margin-top: 15px;">
-                    <button class="btn btn-save" id="saveCommenterStyleBtn">Save Preference</button>
-                </div>
-                <div id="commenterStyleStatus" class="status-msg"></div>
-            </div>
-
-            <!-- Channel Default View Section -->
-            <div class="settings-section">
-                <h2 id="channelDefaultViewHeading">Channel Default View</h2>
-
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="channelDefaultViewLabel">Default channel video layout</div>
-                        <div class="setting-description" id="channelDefaultViewDesc">Choose how the Videos tab on channel pages loads by default</div>
-                    </div>
-                    <div class="setting-control">
-                        <select class="setting-select" id="channelDefaultView">
-                            <option value="grid">Grid</option>
-                            <option value="list">List</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="inline-form" style="margin-top: 15px;">
-                    <button class="btn btn-save" id="saveChannelDefaultViewBtn">Save Preference</button>
-                </div>
-                <div id="channelDefaultViewStatus" class="status-msg"></div>
-            </div>
-
-            <!-- Video Page Layout Section -->
-            <div class="settings-section">
-                <h2 id="videoPageLayoutHeading">Video Page Layout</h2>
-
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="videoPageLayoutLabel">Video page style</div>
-                        <div class="setting-description" id="videoPageLayoutDesc">Choose between Modern layout or Classic layout (view count on right, buttons stacked vertically)</div>
-                    </div>
-                    <div class="setting-control">
+                    <div class="card-control">
                         <select class="setting-select" id="videoPageLayout">
                             <option value="modern">Modern</option>
                             <option value="classic">Classic</option>
@@ -722,45 +557,12 @@
                     </div>
                 </div>
 
-                <div class="inline-form" style="margin-top: 15px;">
-                    <button class="btn btn-save" id="saveVideoPageLayoutBtn">Save Preference</button>
-                </div>
-                <div id="videoPageLayoutStatus" class="status-msg"></div>
-            </div>
-
-            <!-- Playlist Page Layout Section -->
-            <div class="settings-section">
-                <h2 id="playlistPageLayoutHeading">Playlist Page Layout</h2>
-
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="playlistPageLayoutLabel">Default playlist video layout</div>
-                        <div class="setting-description" id="playlistPageLayoutDesc">Choose how playlist pages load by default (Grid or List view)</div>
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="channelPageStyleLabel">Channel page style</div>
+                        <div class="card-desc" id="channelPageStyleDesc">Modern rounded header or classic square-in-banner</div>
                     </div>
-                    <div class="setting-control">
-                        <select class="setting-select" id="playlistPageLayout">
-                            <option value="grid">Grid</option>
-                            <option value="list">List</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="inline-form" style="margin-top: 15px;">
-                    <button class="btn btn-save" id="savePlaylistPageLayoutBtn">Save Preference</button>
-                </div>
-                <div id="playlistPageLayoutStatus" class="status-msg"></div>
-            </div>
-
-            <!-- Channel Page Style Section -->
-            <div class="settings-section">
-                <h2 id="channelPageStyleHeading">Channel Page Style</h2>
-
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="channelPageStyleLabel">Channel layout style</div>
-                        <div class="setting-description" id="channelPageStyleDesc">Choose between the modern rounded channel header or the classic square-in-banner style</div>
-                    </div>
-                    <div class="setting-control">
+                    <div class="card-control">
                         <select class="setting-select" id="channelPageStyle">
                             <option value="modern">Modern</option>
                             <option value="legacy">Classic</option>
@@ -768,68 +570,56 @@
                     </div>
                 </div>
 
-                <div class="inline-form" style="margin-top: 15px;">
-                    <button class="btn btn-save" id="saveChannelPageStyleBtn">Save Preference</button>
-                </div>
-                <div id="channelPageStyleStatus" class="status-msg"></div>
-            </div>
-
-            <!-- Fuzzy Subscription Counts Section -->
-            <div class="settings-section">
-                <h2 id="fuzzySubCountHeading">Subscription Counts</h2>
-
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="fuzzySubCountLabel">Fuzzy subscription counts</div>
-                        <div class="setting-description" id="fuzzySubCountDesc">Randomize the last digits of rounded channel subscription counts</div>
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="channelDefaultViewLabel">Default channel video layout</div>
+                        <div class="card-desc" id="channelDefaultViewDesc">Grid or list for channel videos tab</div>
                     </div>
-                    <div class="setting-control">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="fuzzySubCount">
-                            <span class="toggle-slider"></span>
-                        </label>
+                    <div class="card-control">
+                        <select class="setting-select" id="channelDefaultView">
+                            <option value="grid">Grid</option>
+                            <option value="list">List</option>
+                        </select>
                     </div>
                 </div>
 
-                <div class="inline-form" style="margin-top: 15px;">
-                    <button class="btn btn-save" id="saveFuzzySubCountBtn">Save Preference</button>
-                </div>
-                <div id="fuzzySubCountStatus" class="status-msg"></div>
-            </div>
+                <!-- NEW: Playlist layout moved here -->
+                <div class="settings-section-header">Playlist Layout</div>
 
-            <!-- Hide Post Images Section -->
-            <div class="settings-section">
-                <h2 id="hidePostImagesHeading">Channel Posts</h2>
-
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="hidePostImagesLabel">Hide images in posts</div>
-                        <div class="setting-description" id="hidePostImagesDesc">Hide image attachments in channel posts to save bandwidth and reduce loading times</div>
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="playlistPageLayoutLabel">Default playlist layout</div>
+                        <div class="card-desc" id="playlistPageLayoutDesc">Grid or list view for playlists</div>
                     </div>
-                    <div class="setting-control">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="hidePostImages">
-                            <span class="toggle-slider"></span>
-                        </label>
+                    <div class="card-control">
+                        <select class="setting-select" id="playlistPageLayout">
+                            <option value="grid">Grid</option>
+                            <option value="list">List</option>
+                        </select>
                     </div>
                 </div>
 
-                <div class="inline-form" style="margin-top: 15px;">
-                    <button class="btn btn-save" id="saveHidePostImagesBtn">Save Preference</button>
-                </div>
-                <div id="hidePostImagesStatus" class="status-msg"></div>
-            </div>
+                <div class="settings-section-header">Visual Style</div>
 
-            <!-- Title Color Scheme Section (SEPARATE, not nested) -->
-            <div class="settings-section">
-                <h2 id="titleColorSchemeHeading">Appearance</h2>
-
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="titleColorSchemeLabel">Title color scheme</div>
-                        <div class="setting-description" id="titleColorSchemeDesc">Make video titles and channel names appear in blue instead of white</div>
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="commenterProfileLabel">Commenter avatar style</div>
+                        <div class="card-desc" id="commenterProfileDesc">Letters & colors or classic placeholder</div>
                     </div>
-                    <div class="setting-control">
+                    <div class="card-control">
+                        <select class="setting-select" id="commenterProfileStyle">
+                            <option value="modern">Modern (Letters & Colors)</option>
+                            <option value="classic">Classic (Placeholder)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="titleColorSchemeLabel">Title color scheme</div>
+                        <div class="card-desc" id="titleColorSchemeDesc">Video titles & channel names in white or blue</div>
+                    </div>
+                    <div class="card-control">
                         <select class="setting-select" id="titleColorScheme">
                             <option value="white">White (Default)</option>
                             <option value="blue">Blue</option>
@@ -837,72 +627,40 @@
                     </div>
                 </div>
 
-                <div class="inline-form" style="margin-top: 15px;">
-                    <button class="btn btn-save" id="saveTitleColorSchemeBtn">Save Preference</button>
-                </div>
-                <div id="titleColorSchemeStatus" class="status-msg"></div>
-            </div>
-
-            <!-- Player Overlays Section -->
-            <div class="settings-section">
-                <h2 id="playerOverlayHeading">Player Overlays</h2>
-
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="channelProfilePicLabel">Show Channel Profile Picture</div>
-                        <div class="setting-description" id="channelProfilePicDesc">Display the channel's profile picture in the bottom-right corner of the video player</div>
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="roundedCornersLabel">Rounded corners</div>
+                        <div class="card-desc" id="roundedCornersDesc">Subtle rounding on player & thumbnails</div>
                     </div>
-                    <div class="setting-control">
+                    <div class="card-control">
                         <label class="toggle-switch">
-                            <input type="checkbox" id="showChannelProfilePic">
+                            <input type="checkbox" id="roundedCorners">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
                 </div>
 
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="showEndScreenGridLabel">Show End Screen Recommendation Grid</div>
-                        <div class="setting-description" id="showEndScreenGridDesc">Display a 4x3 grid of recommended videos when a video ends and autoplay is disabled</div>
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="sidebarSvgIconsLabel">Sidebar SVG icons</div>
+                        <div class="card-desc" id="sidebarSvgIconsDesc">Show icons next to sidebar items</div>
                     </div>
-                    <div class="setting-control">
+                    <div class="card-control">
                         <label class="toggle-switch">
-                            <input type="checkbox" id="showEndScreenGrid">
+                            <input type="checkbox" id="sidebarSvgIcons">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
                 </div>
 
-                <!-- NEW: Video Endcards Toggle -->
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="showEndcardsLabel">Show Video Endcards</div>
-                        <div class="setting-description" id="showEndcardsDesc">Display two video thumbnails with channel profile pic during the last 20 seconds of the video</div>
-                    </div>
-                    <div class="setting-control">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="showEndcards">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                </div>
+                <div class="settings-section-header">Player</div>
 
-                <div class="inline-form" style="margin-top: 15px;">
-                    <button class="btn btn-save" id="savePlayerOverlaysBtn">Save Preferences</button>
-                </div>
-                <div id="playerOverlaysStatus" class="status-msg"></div>
-            </div>
-
-            <!-- Player UI Scale Section -->
-            <div class="settings-section">
-                <h2 id="playerUIScaleHeading">Player UI Scale</h2>
-
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="playerUIScaleLabel">Player interface size</div>
-                        <div class="setting-description" id="playerUIScaleDesc">Scale the player controls and text. Use + and - keys while playing to adjust quickly.</div>
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="playerUIScaleLabel">Player UI scale</div>
+                        <div class="card-desc" id="playerUIScaleDesc">Control size (+/- keys while playing)</div>
                     </div>
-                    <div class="setting-control">
+                    <div class="card-control">
                         <select class="setting-select" id="playerUIScale">
                             <option value="0.5">50%</option>
                             <option value="0.6">60%</option>
@@ -923,45 +681,70 @@
                         </select>
                     </div>
                 </div>
-                <div class="inline-form" style="margin-top: 15px;">
-                    <button class="btn btn-save" id="savePlayerUIScaleBtn">Save Preference</button>
-                </div>
-                <div id="playerUIScaleStatus" class="status-msg"></div>
+
             </div>
 
-            <!-- Rounded Corners Section -->
-            <div class="settings-section">
-                <h2 id="roundedCornersHeading">Rounded Corners</h2>
+            <div class="save-bar">
+                <button class="btn btn-save" id="saveAppearanceBtn">Save Appearance Settings</button>
+                <span id="appearanceStatus" class="status-msg"></span>
+            </div>
+        </div>
 
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="roundedCornersLabel">Rounded corners</div>
-                        <div class="setting-description" id="roundedCornersDesc">Add subtle rounded corners to the video player and video thumbnails</div>
+        <!-- Playback Tab -->
+        <div class="tab-panel" id="tab-playback">
+            <h1>Playback</h1>
+            <div class="settings-grid">
+
+                <div class="settings-section-header">Autoplay</div>
+
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="autoplayEnabledLabel">Enable Autoplay</div>
+                        <div class="card-desc" id="autoplayDesc">Automatically play next video</div>
                     </div>
-                    <div class="setting-control">
+                    <div class="card-control">
                         <label class="toggle-switch">
-                            <input type="checkbox" id="roundedCorners">
+                            <input type="checkbox" id="autoplayEnabled">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
                 </div>
 
-                <div class="inline-form" style="margin-top: 15px;">
-                    <button class="btn btn-save" id="saveRoundedCornersBtn">Save Preference</button>
-                </div>
-                <div id="roundedCornersStatus" class="status-msg"></div>
-            </div>
-
-            <!-- Playlist Order Section -->
-            <div class="settings-section">
-                <h2 id="playlistOrderHeading">Playlist Order</h2>
-
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="playlistOrderLabel">Invert playlist video order</div>
-                        <div class="setting-description" id="playlistOrderDesc">Show newest videos first (oldest on the right). When disabled, oldest videos appear first (oldest on the left).</div>
+                <div class="setting-card" id="autoplayPlaylistCard">
+                    <div class="card-info">
+                        <div class="card-label" id="playlistAutoplayLabel">Autoplay next in playlist</div>
+                        <div class="card-desc" id="playlistAutoplayDesc">Play next video in sequence</div>
                     </div>
-                    <div class="setting-control">
+                    <div class="card-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="autoplayPlaylistNext">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="setting-card" id="autoplayModeCard">
+                    <div class="card-info">
+                        <div class="card-label" id="nonPlaylistModeLabel">Non-playlist behavior</div>
+                        <div class="card-desc" id="nonPlaylistDesc">What plays after a standalone video ends</div>
+                    </div>
+                    <div class="card-control">
+                        <select class="setting-select" id="autoplayNonPlaylistMode">
+                            <option value="first-recommended">First recommended</option>
+                            <option value="random-recommended">Random recommended</option>
+                            <option value="random-database">Random from database</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section-header">Playlist Behavior</div>
+
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="playlistOrderLabel">Invert playlist order</div>
+                        <div class="card-desc" id="playlistOrderDesc">Newest videos first (oldest on the right)</div>
+                    </div>
+                    <div class="card-control">
                         <label class="toggle-switch">
                             <input type="checkbox" id="invertPlaylistOrder">
                             <span class="toggle-slider"></span>
@@ -969,67 +752,172 @@
                     </div>
                 </div>
 
-                <div class="inline-form" style="margin-top: 15px;">
-                    <button class="btn btn-save" id="savePlaylistOrderBtn">Save Preference</button>
-                </div>
-                <div id="playlistOrderStatus" class="status-msg"></div>
-            </div>
+                <div class="settings-section-header">Player Overlays</div>
 
-            <!-- Sidebar SVG Icons Section -->
-            <div class="settings-section">
-                <h2 id="sidebarSvgIconsHeading">Sidebar Icons</h2>
-
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="sidebarSvgIconsLabel">Show SVG icons in sidebar</div>
-                        <div class="setting-description" id="sidebarSvgIconsDesc">Display SVG icons next to sidebar items like on the white screenshot</div>
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="channelProfilePicLabel">Show channel profile pic</div>
+                        <div class="card-desc" id="channelProfilePicDesc">Bottom-right corner of player</div>
                     </div>
-                    <div class="setting-control">
+                    <div class="card-control">
                         <label class="toggle-switch">
-                            <input type="checkbox" id="sidebarSvgIcons">
+                            <input type="checkbox" id="showChannelProfilePic">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
                 </div>
 
-                <div class="inline-form" style="margin-top: 15px;">
-                    <button class="btn btn-save" id="saveSidebarSvgIconsBtn">Save Preference</button>
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="showEndScreenGridLabel">End screen recommendation grid</div>
+                        <div class="card-desc" id="showEndScreenGridDesc">4×3 grid when autoplay is off</div>
+                    </div>
+                    <div class="card-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="showEndScreenGrid">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
                 </div>
-                <div id="sidebarSvgIconsStatus" class="status-msg"></div>
+
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="showEndcardsLabel">Show video endcards</div>
+                        <div class="card-desc" id="showEndcardsDesc">Two thumbnails in last 20 seconds</div>
+                    </div>
+                    <div class="card-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="showEndcards">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
             </div>
 
-            <!-- Configuration Import/Export Section -->
-            <div class="settings-section">
-                <h2 id="configImportExportHeading">Configuration</h2>
-                
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="configExportLabel">Export settings configuration</div>
-                        <div class="setting-description" id="configExportDesc">Download all current preference settings as a JSON file for backup</div>
+            <div class="save-bar">
+                <button class="btn btn-save" id="savePlaybackBtn">Save Playback Settings</button>
+                <span id="playbackStatus" class="status-msg"></span>
+            </div>
+        </div>
+
+        <!-- Content Tab -->
+        <div class="tab-panel" id="tab-content">
+            <h1>Content & Recommendations</h1>
+
+            <!-- Algorithm Preferences (still uses its own special layout) -->
+            <div class="account-section">
+                <h2 id="algoPrefsHeading">Algorithm Preferences</h2>
+                <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;" id="algoPrefsDesc">Adjust scores to influence your recommendations. Higher = matching videos are more likely to appear.</p>
+                <div id="preferencesContainer" class="pref-list-container"></div>
+                <div class="inline-form" style="margin-bottom: 15px;">
+                    <input type="text" id="newTagInput" list="allTagsList" placeholder="Add new tag..." style="flex-grow:1;">
+                    <datalist id="allTagsList"></datalist>
+                    <button class="btn" id="addTagBtn">Add Tag</button>
+                </div>
+                <div class="inline-form">
+                    <button class="btn btn-danger" id="resetPrefsBtn">Reset All</button>
+                </div>
+                <div id="prefStatus" class="status-msg" style="margin-top:10px;"></div>
+            </div>
+
+            <div class="settings-grid">
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="fuzzySubCountLabel">Fuzzy subscription counts</div>
+                        <div class="card-desc" id="fuzzySubCountDesc">Randomize last digits of rounded counts</div>
                     </div>
-                    <div class="setting-control">
-                        <button class="btn btn-save" id="exportConfigBtn">Export Config</button>
+                    <div class="card-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="fuzzySubCount">
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
                 </div>
 
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <div id="configImportLabel">Import settings configuration</div>
-                        <div class="setting-description" id="configImportDesc">Load preference settings from a previously exported JSON file</div>
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="hidePostImagesLabel">Hide images in posts</div>
+                        <div class="card-desc" id="hidePostImagesDesc">Save bandwidth & reduce loading times</div>
                     </div>
-                    <div class="setting-control">
-                        <label class="btn" for="importConfigInput" style="cursor: pointer; display: inline-block;" id="importConfigLabelBtn">Import Config</label>
-                        <input type="file" id="importConfigInput" accept=".json" style="display: none;">
+                    <div class="card-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="hidePostImages">
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
+                </div>
+            </div>
+
+            <div class="save-bar">
+                <button class="btn btn-save" id="saveContentBtn">Save Content Settings</button>
+                <span id="contentStatus" class="status-msg"></span>
+            </div>
+        </div>
+
+        <!-- Account Tab -->
+        <div class="tab-panel" id="tab-account">
+            <h1>Account</h1>
+
+            <div class="account-section">
+                <h2>Account Management</h2>
+                <div style="margin-bottom:20px;">
+                    <h3 style="font-size:16px; margin-bottom:5px;">Rename Account</h3>
+                    <div class="inline-form">
+                        <input type="text" id="newUsername" placeholder="New Username">
+                        <button class="btn" id="renameBtn">Rename</button>
+                    </div>
+                    <div id="renameStatus" class="status-msg"></div>
+                </div>
+                <div>
+                    <h3 style="font-size:16px; margin-bottom:5px;">Change Password</h3>
+                    <div class="inline-form" style="flex-wrap: wrap;">
+                        <input type="password" id="currentPassword" placeholder="Current Password">
+                        <input type="password" id="newPassword" placeholder="New Password">
+                        <button class="btn" id="changePassBtn">Update</button>
+                    </div>
+                    <div id="passStatus" class="status-msg"></div>
+                </div>
+            </div>
+
+            <div class="account-section">
+                <h2>Configuration</h2>
+                <div style="margin-bottom:15px;">
+                    <p style="font-size:13px; color:#aaa;">Export or import your settings as a JSON file.</p>
+                    <button class="btn btn-save" id="exportConfigBtn">Export Config</button>
+                    <label class="btn" for="importConfigInput" style="cursor:pointer; margin-left:10px;">Import Config</label>
+                    <input type="file" id="importConfigInput" accept=".json" style="display:none;">
                 </div>
                 <div id="configImportExportStatus" class="status-msg"></div>
             </div>
 
+            <div class="account-section">
+                <h2>Danger Zone</h2>
+                <div style="margin-bottom:20px;">
+                    <h3 style="font-size:16px; margin-bottom:5px;">Logout</h3>
+                    <p style="font-size:13px; color:#aaa;">End your current session.</p>
+                    <button class="btn btn-logout" id="logoutBtn">Logout</button>
+                </div>
+                <div>
+                    <h3 style="font-size:16px; color:#ff4444; margin-bottom:5px;">Delete Account</h3>
+                    <p style="font-size:13px; color:#aaa;">WARNING: Once deleted, you won't be able to recover it.</p>
+                    <button class="btn btn-danger" id="toggleDeleteBtn">Delete Account</button>
+                    <div id="deleteAccountForm" class="delete-account-form">
+                        <p id="deleteWarningText">Enter your current password and type <strong style="color:#ff4444;">DELETE</strong> to permanently delete your account.</p>
+                        <div class="delete-form-row" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                            <input type="password" id="deletePassword" placeholder="Current Password">
+                            <input type="text" id="deleteConfirmInput" placeholder="Type DELETE">
+                            <button class="btn btn-danger" id="deleteAccountBtn">Confirm Delete</button>
+                        </div>
+                    </div>
+                    <div id="deleteStatus" class="status-msg"></div>
+                </div>
+            </div>
         </div>
 
     </div>
 
-    <!-- Cropper Modal -->
+    <!-- Cropper Modal (unchanged) -->
     <div class="crop-modal-overlay" id="cropperModal">
         <div class="cropper-container-wrapper">
             <img id="imageToCrop" src="">
@@ -1047,2036 +935,585 @@
     <script src="profile-pic.js"></script>
 
     <script>
-
-// --- Language Helper ---
-function getLang(en, de) {
-    return localStorage.getItem('language') === 'de' ? de : en;
-}
-
-// ==============================
-// UI Translation
-// ==============================
-function applyTranslations() {
-    document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
-    
-    // Sidebar
-    document.getElementById('sidebarProfile').textContent = getLang('Profile Picture', 'Profilbild');
-    document.getElementById('sidebarSettings').textContent = getLang('Account', 'Konto');
-    document.getElementById('sidebarPreferences').textContent = getLang('Preferences', 'Einstellungen');
-    
-    // Profile tab
-    document.getElementById('profileHeading').textContent = getLang('Profile Picture', 'Profilbild');
-    document.getElementById('uploadBtn').textContent = getLang('Upload Picture', 'Bild hochladen');
-    document.getElementById('removeBtn').textContent = getLang('Remove Picture', 'Bild entfernen');
-    
-    // Settings tab
-    document.getElementById('settingsHeading').textContent = getLang('Account', 'Konto');
-    
-    // Preferences tab
-    document.getElementById('preferencesHeading').textContent = getLang('Preferences', 'Einstellungen');
-    
-    // Autoplay Section
-    document.getElementById('autoplayHeading').textContent = getLang('Autoplay Settings', 'Automatische Wiedergabe-Einstellungen');
-    document.getElementById('autoplayDesc').textContent = getLang('Automatically play the next video when the current one ends', 'Automatisch das nächste Video abspielen, wenn das aktuelle endet');
-    document.getElementById('autoplayEnabledLabel').textContent = getLang('Enable Autoplay', 'Automatische Wiedergabe aktivieren');
-    document.getElementById('playlistAutoplayLabel').textContent = getLang('Autoplay next video in playlist', 'Nächstes Video in Playlist abspielen');
-    document.getElementById('nonPlaylistModeLabel').textContent = getLang('Autoplay behavior when not in a playlist', 'Verhalten bei autom. Wiedergabe außerhalb von Playlists');
-    document.getElementById('playlistAutoplayDesc').textContent = getLang('When watching a playlist, automatically play the next video in sequence', 'Beim Ansehen einer Playlist automatisch das nächste Video abspielen');
-    document.getElementById('nonPlaylistDesc').textContent = getLang("Choose what happens after a video ends when you're not watching a playlist", 'Wähle, was passiert, wenn ein Video endet und du keine Playlist ansiehst');
-    
-    // Commenter Profile Section
-    document.getElementById('commenterProfileHeading').textContent = getLang('Commenter Profile Images', 'Kommentar-Profilbilder');
-    document.getElementById('commenterProfileLabel').textContent = getLang('Commenter Avatar Style', 'Avatar-Stil für Kommentatoren');
-    document.getElementById('commenterProfileDesc').textContent = getLang('Choose how commenter profile pictures appear in comments', 'Wähle, wie Kommentar-Profilbilder angezeigt werden');
-    document.getElementById('saveCommenterStyleBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
-
-    // Channel Default View Section
-    document.getElementById('channelDefaultViewHeading').textContent = getLang('Channel Default View', 'Standard-Kanalansicht');
-    document.getElementById('channelDefaultViewLabel').textContent = getLang('Default channel video layout', 'Standard-Video-Layout für Kanäle');
-    document.getElementById('channelDefaultViewDesc').textContent = getLang('Choose how the Videos tab on channel pages loads by default', 'Wähle, wie der Video-Tab auf Kanalseiten standardmäßig geladen wird');
-    document.getElementById('saveChannelDefaultViewBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
-
-    // Video Page Layout Translations
-    document.getElementById('videoPageLayoutHeading').textContent = getLang('Video Page Layout', 'Videoseiten-Layout');
-    document.getElementById('videoPageLayoutLabel').textContent = getLang('Video page style', 'Videoseiten-Stil');
-    document.getElementById('videoPageLayoutDesc').textContent = getLang('Choose between Modern layout or Classic layout (view count on right, buttons stacked vertically)', 'Wähle zwischen modernem Layout oder klassischem Layout (Aufrufzahl rechts, Buttons gestapelt)');
-    document.getElementById('saveVideoPageLayoutBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
-
-    // Player UI Scale Translations
-    document.getElementById('playerUIScaleHeading').textContent = getLang('Player UI Scale', 'Player-UI-Skalierung');
-    document.getElementById('playerUIScaleLabel').textContent = getLang('Player interface size', 'Größe der Player-Oberfläche');
-    document.getElementById('playerUIScaleDesc').textContent = getLang('Scale the player controls and text. Use + and - keys while playing to adjust quickly.', 'Skaliere die Player-Steuerung und Texte. Verwende die Tasten + und - während der Wiedergabe für schnelle Anpassung.');
-    document.getElementById('savePlayerUIScaleBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
-
-    const playerUIScaleSelect = document.getElementById('playerUIScale');
-    if (playerUIScaleSelect) {
-        playerUIScaleSelect.options[0].text = getLang('50%', '50%');
-        playerUIScaleSelect.options[1].text = getLang('60%', '60%');
-        playerUIScaleSelect.options[2].text = getLang('70%', '70%');
-        playerUIScaleSelect.options[3].text = getLang('80%', '80%');
-        playerUIScaleSelect.options[4].text = getLang('90%', '90%');
-        playerUIScaleSelect.options[5].text = getLang('100% (Default)', '100% (Standard)');
-        playerUIScaleSelect.options[6].text = getLang('110%', '110%');
-        playerUIScaleSelect.options[7].text = getLang('120%', '120%');
-        playerUIScaleSelect.options[8].text = getLang('130%', '130%');
-        playerUIScaleSelect.options[9].text = getLang('140%', '140%');
-        playerUIScaleSelect.options[10].text = getLang('150%', '150%');
-        playerUIScaleSelect.options[11].text = getLang('160%', '160%');
-        playerUIScaleSelect.options[12].text = getLang('170%', '170%');
-        playerUIScaleSelect.options[13].text = getLang('180%', '180%');
-        playerUIScaleSelect.options[14].text = getLang('190%', '190%');
-        playerUIScaleSelect.options[15].text = getLang('200%', '200%');
-    }
-
-    // Playlist Page Layout Translations
-    document.getElementById('playlistPageLayoutHeading').textContent = getLang('Playlist Page Layout', 'Playlistseiten-Layout');
-    document.getElementById('playlistPageLayoutLabel').textContent = getLang('Default playlist video layout', 'Standard-Video-Layout für Playlists');
-    document.getElementById('playlistPageLayoutDesc').textContent = getLang('Choose how playlist pages load by default (Grid or List view)', 'Wähle, wie Playlistseiten standardmäßig geladen werden (Raster- oder Listenansicht)');
-    document.getElementById('savePlaylistPageLayoutBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
-
-    // Playlist Order Translations
-    document.getElementById('playlistOrderHeading').textContent = getLang('Playlist Order', 'Playlist-Reihenfolge');
-    document.getElementById('playlistOrderLabel').textContent = getLang('Invert playlist video order', 'Playlist-Reihenfolge umkehren');
-    document.getElementById('playlistOrderDesc').textContent = getLang('Show newest videos first (oldest on the right). When disabled, oldest videos appear first (oldest on the left).', 'Zeige neueste Videos zuerst (älteste rechts). Wenn deaktiviert, erscheinen älteste Videos zuerst (älteste links).');
-    document.getElementById('savePlaylistOrderBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
-
-    // Update dropdown options text
-    const videoPageLayoutSelect = document.getElementById('videoPageLayout');
-    if (videoPageLayoutSelect) {
-        videoPageLayoutSelect.options[0].text = getLang('Modern', 'Modern');
-        videoPageLayoutSelect.options[1].text = getLang('Classic', 'Klassisch');
-    }
-
-    // Update dropdown options text for playlist layout
-    const playlistPageLayoutSelect = document.getElementById('playlistPageLayout');
-    if (playlistPageLayoutSelect) {
-        playlistPageLayoutSelect.options[0].text = getLang('Grid', 'Raster');
-        playlistPageLayoutSelect.options[1].text = getLang('List', 'Liste');
-    }
-
-    // Channel Page Style Section
-    document.getElementById('channelPageStyleHeading').textContent = getLang('Channel Page Style', 'Kanalseiten-Stil');
-    document.getElementById('channelPageStyleLabel').textContent = getLang('Channel layout style', 'Kanalseiten-Layout-Stil');
-    document.getElementById('channelPageStyleDesc').textContent = getLang('Choose between the modern rounded channel header or the classic square-in-banner style. NOTE: "Classic" locks the playlist view to "List"!', 'Wähle zwischen der modernen abgerundeten Kanalübersicht oder dem klassischen Stil mit quadratischem Bild im Banner. HINWEIS: Klassisch sperrt die Playlistenansicht auf "Liste"!');
-    document.getElementById('saveChannelPageStyleBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
-
-    // Fuzzy Subscription Counts Section
-    document.getElementById('fuzzySubCountHeading').textContent = getLang('Subscription Counts', 'Abonnentenzahlen');
-    document.getElementById('fuzzySubCountLabel').textContent = getLang('Fuzzy subscription counts', 'Ungefähre Abonnentenzahlen');
-    document.getElementById('fuzzySubCountDesc').textContent = getLang('Randomize the last digits of rounded channel subscription counts', 'Letzte Ziffern der abgerundeten Kanal-Abonnentenzahlen zufällig machen');
-    document.getElementById('saveFuzzySubCountBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
-
-    // Hide Post Images Translations
-    document.getElementById('hidePostImagesHeading').textContent = getLang('Channel Posts', 'Kanalbeiträge');
-    document.getElementById('hidePostImagesLabel').textContent = getLang('Hide images in posts', 'Bilder in Beiträgen ausblenden');
-    document.getElementById('hidePostImagesDesc').textContent = getLang('Hide image attachments in channel posts to save bandwidth and reduce loading times', 'Bildanhänge in Kanalbeiträgen ausblenden, um Bandbreite zu sparen und Ladezeiten zu reduzieren');
-    document.getElementById('saveHidePostImagesBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
-
-    // Title Color Scheme Translations
-    document.getElementById('titleColorSchemeHeading').textContent = getLang('Appearance', 'Erscheinungsbild');
-    document.getElementById('titleColorSchemeLabel').textContent = getLang('Title color scheme', 'Titel-Farbschema');
-    document.getElementById('titleColorSchemeDesc').textContent = getLang('Make video titles and channel names appear in blue instead of white', 'Video-Titel und Kanalnamen blau anstatt weiß anzeigen');
-    document.getElementById('saveTitleColorSchemeBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
-
-    // Update dropdown options
-    const titleColorSelect = document.getElementById('titleColorScheme');
-    if (titleColorSelect) {
-        titleColorSelect.options[0].text = getLang('White (Default)', 'Weiß (Standard)');
-        titleColorSelect.options[1].text = getLang('Blue', 'Blau');
-    }
-
-    // Update dropdown options text
-    const commenterSelect = document.getElementById('commenterProfileStyle');
-    if (commenterSelect) {
-        commenterSelect.options[0].text = getLang('Modern (Letters & Colors)', 'Modern (Buchstaben & Farben)');
-        commenterSelect.options[1].text = getLang('Classic (Placeholder Image)', 'Klassisch (Platzhalter-Bild)');
-    }
-
-    const channelViewSelect = document.getElementById('channelDefaultView');
-    if (channelViewSelect) {
-        channelViewSelect.options[0].text = getLang('Grid', 'Raster');
-        channelViewSelect.options[1].text = getLang('List', 'Liste');
-    }
-
-    const channelPageStyleSelect = document.getElementById('channelPageStyle');
-    if (channelPageStyleSelect) {
-        channelPageStyleSelect.options[0].text = 'Modern';
-        channelPageStyleSelect.options[1].text = getLang('Classic', 'Klassisch');
-    }
-
-    // Update dropdown options
-    const nonPlaylistSelect = document.getElementById('autoplayNonPlaylistMode');
-    if (nonPlaylistSelect) {
-        nonPlaylistSelect.options[0].text = getLang('Autoplay first recommended video from sidebar', 'Erstes empfohlenes Video aus der Seitenleiste abspielen');
-        nonPlaylistSelect.options[1].text = getLang('Autoplay random recommended video from sidebar', 'Zufälliges empfohlenes Video aus der Seitenleiste abspielen');
-        nonPlaylistSelect.options[2].text = getLang('Autoplay entirely random video from database', 'Völlig zufälliges Video aus der Datenbank abspielen');
-    }
-    
-    document.getElementById('saveAutoplayBtn').textContent = getLang('Save Autoplay Settings', 'Autoplay-Einstellungen speichern');
-    
-    // Algorithm Preferences
-    document.getElementById('algoPrefsHeading').textContent = getLang('Algorithm Preferences', 'Algorithmus-Einstellungen');
-    document.getElementById('algoPrefsDesc').textContent = getLang('Adjust scores to influence your recommendations. Higher = matching videos are more likely to appear.', 'Passe die Werte an, um deine Empfehlungen zu beeinflussen. Höher = passende Videos werden eher angezeigt.');
-    document.getElementById('newTagInput').placeholder = getLang('Add new tag...', 'Neuen Tag hinzufügen...');
-    document.getElementById('addTagBtn').textContent = getLang('Add Tag', 'Tag hinzufügen');
-    document.getElementById('savePrefsBtn').textContent = getLang('Save Preferences', 'Einstellungen speichern');
-    document.getElementById('resetPrefsBtn').textContent = getLang('Reset All', 'Alle zurücksetzen');
-    
-    // Account Management
-    document.getElementById('accountMgmtHeading').textContent = getLang('Account Management', 'Kontoverwaltung');
-    document.getElementById('renameHeading').textContent = getLang('Rename Account', 'Konto umbenennen');
-    document.getElementById('newUsername').placeholder = getLang('New Username', 'Neuer Benutzername');
-    document.getElementById('renameBtn').textContent = getLang('Rename', 'Umbenennen');
-    document.getElementById('changePassHeading').textContent = getLang('Change Password', 'Passwort ändern');
-    document.getElementById('currentPassword').placeholder = getLang('Current Password', 'Aktuelles Passwort');
-    document.getElementById('newPassword').placeholder = getLang('New Password', 'Neues Passwort');
-    document.getElementById('changePassBtn').textContent = getLang('Update', 'Aktualisieren');
-    
-    // Danger Zone
-    document.getElementById('dangerZoneHeading').textContent = getLang('Danger Zone', 'Gefahrenzone');
-    document.getElementById('logoutHeading').textContent = getLang('Logout', 'Abmelden');
-    document.getElementById('logoutDesc').textContent = getLang('End your current session.', 'Beende deine aktuelle Sitzung.');
-    document.getElementById('logoutBtn').textContent = getLang('Logout', 'Abmelden');
-    document.getElementById('deleteAccHeading').textContent = getLang('Delete Account', 'Konto löschen');
-    document.getElementById('deleteAccDesc').textContent = getLang("WARNING: Once deleted, you won't be able to recover it.", 'WARNUNG: Sobald gelöscht, kann es nicht wiederhergestellt werden.');
-    document.getElementById('toggleDeleteBtn').textContent = getLang('Delete Account', 'Konto löschen');
-    document.getElementById('deleteWarningText').innerHTML = getLang("Enter your current password and type <strong style='color:#ff4444;'>DELETE</strong> to permanently delete your account.", "Gib dein aktuelles Passwort ein und tippe <strong style='color:#ff4444;'>DELETE</strong>, um dein Konto permanent zu löschen.");
-    document.getElementById('deletePassword').placeholder = getLang('Current Password', 'Aktuelles Passwort');
-    document.getElementById('deleteConfirmInput').placeholder = getLang('Type DELETE', 'DELETE eingeben');
-    document.getElementById('deleteAccountBtn').textContent = getLang('Confirm Delete', 'Löschen bestätigen');
-    
-    // Modal buttons
-    document.getElementById('cancelCropBtn').textContent = getLang('Cancel', 'Abbrechen');
-    document.getElementById('doneCropBtn').textContent = getLang('Done', 'Fertig');
-    
-    // Configuration Import/Export Translations
-    document.getElementById('configImportExportHeading').textContent = getLang('Configuration', 'Konfiguration');
-    document.getElementById('configExportLabel').textContent = getLang('Export settings configuration', 'Einstellungen exportieren');
-    document.getElementById('configExportDesc').textContent = getLang('Download all current preference settings as a JSON file for backup', 'Alle aktuellen Einstellungen als JSON-Datei zum Sichern herunterladen');
-    document.getElementById('exportConfigBtn').textContent = getLang('Export Config', 'Konfiguration exportieren');
-    document.getElementById('configImportLabel').textContent = getLang('Import settings configuration', 'Einstellungen importieren');
-    document.getElementById('configImportDesc').textContent = getLang('Load preference settings from a previously exported JSON file', 'Einstellungen aus einer zuvor exportierten JSON-Datei laden');
-    document.getElementById('importConfigLabelBtn').textContent = getLang('Import Config', 'Konfiguration importieren');
-
-    // Player Overlay Translations
-    document.getElementById('playerOverlayHeading').textContent = getLang('Player Overlays', 'Player-Overlays');
-    document.getElementById('channelProfilePicLabel').textContent = getLang('Show Channel Profile Picture', 'Kanal-Profilbild anzeigen');
-    document.getElementById('channelProfilePicDesc').textContent = getLang("Display the channel's profile picture in the bottom-right corner of the video player", 'Zeigt das Profilbild des Kanals in der unteren rechten Ecke des Videoplayers an');
-    document.getElementById('showEndScreenGridLabel').textContent = getLang('Show End Screen Recommendation Grid', 'Empfehlungsraster am Ende anzeigen');
-    document.getElementById('showEndScreenGridDesc').textContent = getLang('Display a 4x3 grid of recommended videos when a video ends and autoplay is disabled', 'Ein 4x3-Raster mit empfohlenen Videos anzeigen, wenn ein Video endet und die automatische Wiedergabe deaktiviert ist');
-    document.getElementById('showEndcardsLabel').textContent = getLang('Show Video Endcards', 'Video-Endkarten anzeigen');
-    document.getElementById('showEndcardsDesc').textContent = getLang('Display two video thumbnails with channel profile pic during the last 20 seconds of the video', 'Zwei Video-Miniaturansichten mit Kanal-Profilbild in den letzten 20 Sekunden des Videos anzeigen');
-    document.getElementById('savePlayerOverlaysBtn').textContent = getLang('Save Preferences', 'Einstellungen speichern');
-
-    // Rounded Corners Translations
-    document.getElementById('roundedCornersHeading').textContent = getLang('Rounded Corners', 'Abgerundete Ecken');
-    document.getElementById('roundedCornersLabel').textContent = getLang('Rounded corners', 'Abgerundete Ecken');
-    document.getElementById('roundedCornersDesc').textContent = getLang('Add subtle rounded corners to the video player and video thumbnails', 'Leicht abgerundete Ecken zum Videoplayer und allen Video-Miniaturansichten hinzufügen');
-    document.getElementById('saveRoundedCornersBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
-
-    // Sidebar SVG Icons Translations
-    document.getElementById('sidebarSvgIconsHeading').textContent = getLang('Sidebar Icons', 'Seitenleistensymbole');
-    document.getElementById('sidebarSvgIconsLabel').textContent = getLang('Show SVG icons in sidebar', 'SVG-Symbole in der Seitenleiste anzeigen');
-    document.getElementById('sidebarSvgIconsDesc').textContent = getLang('Display SVG icons next to sidebar items like on the white screenshot', 'SVG-Symbole neben den Seitenleisteneinträgen wie auf dem weißen Screenshot anzeigen');
-    document.getElementById('saveSidebarSvgIconsBtn').textContent = getLang('Save Preference', 'Einstellung speichern');
-}
-
-// ==============================
-// Commenter Profile Style Logic
-// ==============================
-function loadCommenterProfileStyle() {
-    const savedLocal = JSON.parse(localStorage.getItem('commenterProfileStyle') || '{}');
-    const defaultStyle = 'modern';
-    const currentStyle = savedLocal.style || defaultStyle;
-    
-    document.getElementById('commenterProfileStyle').value = currentStyle;
-
-    fetch('/user-settings')
-        .then(res => {
-            if (!res.ok) throw new Error('Not authenticated');
-            return res.json();
-        })
-        .then(serverSettings => {
-            if (serverSettings && serverSettings.commenterProfileStyle) {
-                const serverStyle = serverSettings.commenterProfileStyle;
-                document.getElementById('commenterProfileStyle').value = serverStyle;
-                localStorage.setItem('commenterProfileStyle', JSON.stringify({ style: serverStyle }));
-            }
-        })
-        .catch(err => console.error('Could not load commenter style from server:', err));
-}
-
-function saveCommenterProfileStyle() {
-    const style = document.getElementById('commenterProfileStyle').value;
-    localStorage.setItem('commenterProfileStyle', JSON.stringify({ style: style }));
-
-    fetch('/user-settings')
-        .then(res => res.json())
-        .then(currentSettings => {
-            const updatedSettings = { ...currentSettings, commenterProfileStyle: style };
-            return fetch('/user-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings: updatedSettings })
-            });
-        })
-        .then(res => {
-            if (res.ok) {
-                showStatus('commenterStyleStatus', getLang('Commenter profile style saved!', 'Kommentar-Profilbildstil gespeichert!'), true);
-            } else {
-                showStatus('commenterStyleStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
-            }
-        })
-        .catch(() => {
-            showStatus('commenterStyleStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
-        });
-}
-
-// ==============================
-// Channel Default View Logic
-// ==============================
-function loadChannelDefaultView() {
-    const savedLocal = JSON.parse(localStorage.getItem('channelDefaultView') || '{}');
-    const defaultView = 'grid';
-    const currentView = savedLocal.view || defaultView;
-    
-    document.getElementById('channelDefaultView').value = currentView;
-
-    fetch('/user-settings')
-        .then(res => {
-            if (!res.ok) throw new Error('Not authenticated');
-            return res.json();
-        })
-        .then(serverSettings => {
-            if (serverSettings && serverSettings.channelDefaultView) {
-                const serverView = serverSettings.channelDefaultView;
-                document.getElementById('channelDefaultView').value = serverView;
-                localStorage.setItem('channelDefaultView', JSON.stringify({ view: serverView }));
-            }
-        })
-        .catch(err => console.error('Could not load channel default view from server:', err));
-}
-
-function saveChannelDefaultView() {
-    const view = document.getElementById('channelDefaultView').value;
-    localStorage.setItem('channelDefaultView', JSON.stringify({ view: view }));
-
-    fetch('/user-settings')
-        .then(res => res.json())
-        .then(currentSettings => {
-            const updatedSettings = { ...currentSettings, channelDefaultView: view };
-            return fetch('/user-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings: updatedSettings })
-            });
-        })
-        .then(res => {
-            if (res.ok) {
-                showStatus('channelDefaultViewStatus', getLang('Channel default view saved!', 'Standard-Kanalansicht gespeichert!'), true);
-            } else {
-                showStatus('channelDefaultViewStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
-            }
-        })
-        .catch(() => {
-            showStatus('channelDefaultViewStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
-        });
-}
-
-// ==============================
-// Video Page Layout Logic
-// ==============================
-function loadVideoPageLayout() {
-    const savedLocal = JSON.parse(localStorage.getItem('videoPageLayout') || '{}');
-    const defaultLayout = 'modern';
-    const currentLayout = savedLocal.layout || defaultLayout;
-    
-    document.getElementById('videoPageLayout').value = currentLayout;
-
-    fetch('/user-settings')
-        .then(res => {
-            if (!res.ok) throw new Error('Not authenticated');
-            return res.json();
-        })
-        .then(serverSettings => {
-            if (serverSettings && serverSettings.videoPageLayout) {
-                const serverLayout = serverSettings.videoPageLayout;
-                document.getElementById('videoPageLayout').value = serverLayout;
-                localStorage.setItem('videoPageLayout', JSON.stringify({ layout: serverLayout }));
-            }
-        })
-        .catch(err => console.error('Could not load video page layout from server:', err));
-}
-
-function saveVideoPageLayout() {
-    const layout = document.getElementById('videoPageLayout').value;
-    localStorage.setItem('videoPageLayout', JSON.stringify({ layout: layout }));
-
-    fetch('/user-settings')
-        .then(res => res.json())
-        .then(currentSettings => {
-            const updatedSettings = { ...currentSettings, videoPageLayout: layout };
-            return fetch('/user-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings: updatedSettings })
-            });
-        })
-        .then(res => {
-            if (res.ok) {
-                showStatus('videoPageLayoutStatus', getLang('Video page layout saved!', 'Video-Layout gespeichert!'), true);
-            } else {
-                showStatus('videoPageLayoutStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
-            }
-        })
-        .catch(() => {
-            showStatus('videoPageLayoutStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
-        });
-}
-
-// ==============================
-// Player UI Scale Logic
-// ==============================
-function loadPlayerUIScale() {
-    const savedLocal = JSON.parse(localStorage.getItem('playerUIScale') || '{}');
-    const defaultScale = 1;
-    const currentScale = savedLocal.scale !== undefined ? savedLocal.scale : defaultScale;
-    
-    document.getElementById('playerUIScale').value = currentScale;
-
-    fetch('/user-settings')
-        .then(res => {
-            if (!res.ok) throw new Error('Not authenticated');
-            return res.json();
-        })
-        .then(serverSettings => {
-            if (serverSettings && serverSettings.playerUIScale !== undefined) {
-                const serverValue = serverSettings.playerUIScale;
-                document.getElementById('playerUIScale').value = serverValue;
-                localStorage.setItem('playerUIScale', JSON.stringify({ scale: serverValue }));
-            }
-        })
-        .catch(err => console.error('Could not load player UI scale from server:', err));
-}
-
-function savePlayerUIScale() {
-    const scale = parseFloat(document.getElementById('playerUIScale').value);
-    localStorage.setItem('playerUIScale', JSON.stringify({ scale: scale }));
-
-    fetch('/user-settings')
-        .then(res => res.json())
-        .then(currentSettings => {
-            const updatedSettings = { ...currentSettings, playerUIScale: scale };
-            return fetch('/user-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings: updatedSettings })
-            });
-        })
-        .then(res => {
-            if (res.ok) {
-                showStatus('playerUIScaleStatus', getLang('Player UI scale saved!', 'Player-UI-Skalierung gespeichert!'), true);
-            } else {
-                showStatus('playerUIScaleStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
-            }
-        })
-        .catch(() => {
-            showStatus('playerUIScaleStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
-        });
-}
-
-// ==============================
-// Rounded Corners Logic
-// ==============================
-function loadRoundedCorners() {
-    const savedLocal = JSON.parse(localStorage.getItem('roundedCorners') || '{}');
-    const defaultValue = false;
-    const currentValue = savedLocal.enabled !== undefined ? savedLocal.enabled : defaultValue;
-    
-    document.getElementById('roundedCorners').checked = currentValue;
-
-    fetch('/user-settings')
-        .then(res => {
-            if (!res.ok) throw new Error('Not authenticated');
-            return res.json();
-        })
-        .then(serverSettings => {
-            if (serverSettings && serverSettings.roundedCorners !== undefined) {
-                const serverValue = serverSettings.roundedCorners;
-                document.getElementById('roundedCorners').checked = serverValue;
-                localStorage.setItem('roundedCorners', JSON.stringify({ enabled: serverValue }));
-            }
-        })
-        .catch(err => console.error('Could not load rounded corners setting from server:', err));
-}
-
-function saveRoundedCorners() {
-    const enabled = document.getElementById('roundedCorners').checked;
-    localStorage.setItem('roundedCorners', JSON.stringify({ enabled: enabled }));
-
-    fetch('/user-settings')
-        .then(res => res.json())
-        .then(currentSettings => {
-            const updatedSettings = { ...currentSettings, roundedCorners: enabled };
-            return fetch('/user-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings: updatedSettings })
-            });
-        })
-        .then(res => {
-            if (res.ok) {
-                showStatus('roundedCornersStatus', getLang('Rounded corners preference saved!', 'Einstellung für abgerundete Ecken gespeichert!'), true);
-            } else {
-                showStatus('roundedCornersStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
-            }
-        })
-        .catch(() => {
-            showStatus('roundedCornersStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
-        });
-}
-
-// ==============================
-// Playlist Page Layout Logic
-// ==============================
-function loadPlaylistPageLayout() {
-    const savedLocal = JSON.parse(localStorage.getItem('playlistPageLayout') || '{}');
-    const defaultView = 'grid';
-    const currentView = savedLocal.view || defaultView;
-    
-    document.getElementById('playlistPageLayout').value = currentView;
-
-    fetch('/user-settings')
-        .then(res => {
-            if (!res.ok) throw new Error('Not authenticated');
-            return res.json();
-        })
-        .then(serverSettings => {
-            if (serverSettings && serverSettings.playlistPageLayout) {
-                const serverView = serverSettings.playlistPageLayout;
-                document.getElementById('playlistPageLayout').value = serverView;
-                localStorage.setItem('playlistPageLayout', JSON.stringify({ view: serverView }));
-            }
-        })
-        .catch(err => console.error('Could not load playlist page layout from server:', err));
-}
-
-function savePlaylistPageLayout() {
-    const view = document.getElementById('playlistPageLayout').value;
-    localStorage.setItem('playlistPageLayout', JSON.stringify({ view: view }));
-
-    fetch('/user-settings')
-        .then(res => res.json())
-        .then(currentSettings => {
-            const updatedSettings = { ...currentSettings, playlistPageLayout: view };
-            return fetch('/user-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings: updatedSettings })
-            });
-        })
-        .then(res => {
-            if (res.ok) {
-                showStatus('playlistPageLayoutStatus', getLang('Playlist page layout saved!', 'Playlist-Layout gespeichert!'), true);
-            } else {
-                showStatus('playlistPageLayoutStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
-            }
-        })
-        .catch(() => {
-            showStatus('playlistPageLayoutStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
-        });
-}
-
-// ==============================
-// Playlist Order Logic
-// ==============================
-function loadPlaylistOrder() {
-    const savedLocal = JSON.parse(localStorage.getItem('invertPlaylistOrder') || '{}');
-    const defaultValue = true;
-    const currentValue = savedLocal.enabled !== undefined ? savedLocal.enabled : defaultValue;
-    
-    document.getElementById('invertPlaylistOrder').checked = currentValue;
-
-    fetch('/user-settings')
-        .then(res => {
-            if (!res.ok) throw new Error('Not authenticated');
-            return res.json();
-        })
-        .then(serverSettings => {
-            if (serverSettings && serverSettings.invertPlaylistOrder !== undefined) {
-                const serverValue = serverSettings.invertPlaylistOrder;
-                document.getElementById('invertPlaylistOrder').checked = serverValue;
-                localStorage.setItem('invertPlaylistOrder', JSON.stringify({ enabled: serverValue }));
-            }
-        })
-        .catch(err => console.error('Could not load playlist order setting from server:', err));
-}
-
-function savePlaylistOrder() {
-    const enabled = document.getElementById('invertPlaylistOrder').checked;
-    localStorage.setItem('invertPlaylistOrder', JSON.stringify({ enabled: enabled }));
-
-    fetch('/user-settings')
-        .then(res => res.json())
-        .then(currentSettings => {
-            const updatedSettings = { ...currentSettings, invertPlaylistOrder: enabled };
-            return fetch('/user-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings: updatedSettings })
-            });
-        })
-        .then(res => {
-            if (res.ok) {
-                showStatus('playlistOrderStatus', getLang('Playlist order preference saved!', 'Playlist-Reihenfolge gespeichert!'), true);
-            } else {
-                showStatus('playlistOrderStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
-            }
-        })
-        .catch(() => {
-            showStatus('playlistOrderStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
-        });
-}
-
-// ==============================
-// Channel Page Style Logic
-// ==============================
-function loadChannelPageStyle() {
-    const savedLocal = JSON.parse(localStorage.getItem('channelPageStyle') || '{}');
-    const defaultStyle = 'modern';
-    const currentStyle = savedLocal.style || defaultStyle;
-    
-    document.getElementById('channelPageStyle').value = currentStyle;
-
-    fetch('/user-settings')
-        .then(res => {
-            if (!res.ok) throw new Error('Not authenticated');
-            return res.json();
-        })
-        .then(serverSettings => {
-            if (serverSettings && serverSettings.channelPageStyle) {
-                const serverStyle = serverSettings.channelPageStyle;
-                document.getElementById('channelPageStyle').value = serverStyle;
-                localStorage.setItem('channelPageStyle', JSON.stringify({ style: serverStyle }));
-            }
-        })
-        .catch(err => console.error('Could not load channel page style from server:', err));
-}
-
-function saveChannelPageStyle() {
-    const style = document.getElementById('channelPageStyle').value;
-    localStorage.setItem('channelPageStyle', JSON.stringify({ style: style }));
-
-    fetch('/user-settings')
-        .then(res => res.json())
-        .then(currentSettings => {
-            const updatedSettings = { ...currentSettings, channelPageStyle: style };
-            return fetch('/user-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings: updatedSettings })
-            });
-        })
-        .then(res => {
-            if (res.ok) {
-                showStatus('channelPageStyleStatus', getLang('Channel page style saved!', 'Kanalseiten-Stil gespeichert!'), true);
-            } else {
-                showStatus('channelPageStyleStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
-            }
-        })
-        .catch(() => {
-            showStatus('channelPageStyleStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
-        });
-}
-
-// ==============================
-// Fuzzy Subscription Count Logic
-// ==============================
-function loadFuzzySubCount() {
-    const savedLocal = JSON.parse(localStorage.getItem('fuzzySubCount') || '{}');
-    const defaultValue = false;
-    const currentValue = savedLocal.enabled !== undefined ? savedLocal.enabled : defaultValue;
-    
-    document.getElementById('fuzzySubCount').checked = currentValue;
-
-    fetch('/user-settings')
-        .then(res => {
-            if (!res.ok) throw new Error('Not authenticated');
-            return res.json();
-        })
-        .then(serverSettings => {
-            if (serverSettings && serverSettings.fuzzySubCount !== undefined) {
-                const serverValue = serverSettings.fuzzySubCount;
-                document.getElementById('fuzzySubCount').checked = serverValue;
-                localStorage.setItem('fuzzySubCount', JSON.stringify({ enabled: serverValue }));
-            }
-        })
-        .catch(err => console.error('Could not load fuzzy sub count setting from server:', err));
-}
-
-function saveFuzzySubCount() {
-    const enabled = document.getElementById('fuzzySubCount').checked;
-    localStorage.setItem('fuzzySubCount', JSON.stringify({ enabled: enabled }));
-
-    fetch('/user-settings')
-        .then(res => res.json())
-        .then(currentSettings => {
-            const updatedSettings = { ...currentSettings, fuzzySubCount: enabled };
-            return fetch('/user-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings: updatedSettings })
-            });
-        })
-        .then(res => {
-            if (res.ok) {
-                showStatus('fuzzySubCountStatus', getLang('Subscription count preference saved!', 'Einstellung für Abonnentenzahlen gespeichert!'), true);
-            } else {
-                showStatus('fuzzySubCountStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
-            }
-        })
-        .catch(() => {
-            showStatus('fuzzySubCountStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
-        });
-}
-
-// ==============================
-// Hide Post Images Logic
-// ==============================
-function loadHidePostImages() {
-    const savedLocal = JSON.parse(localStorage.getItem('hidePostImages') || '{}');
-    const defaultValue = false;
-    const currentValue = savedLocal.enabled !== undefined ? savedLocal.enabled : defaultValue;
-    
-    document.getElementById('hidePostImages').checked = currentValue;
-
-    fetch('/user-settings')
-        .then(res => {
-            if (!res.ok) throw new Error('Not authenticated');
-            return res.json();
-        })
-        .then(serverSettings => {
-            if (serverSettings && serverSettings.hidePostImages !== undefined) {
-                const serverValue = serverSettings.hidePostImages;
-                document.getElementById('hidePostImages').checked = serverValue;
-                localStorage.setItem('hidePostImages', JSON.stringify({ enabled: serverValue }));
-            }
-        })
-        .catch(err => console.error('Could not load hide post images setting from server:', err));
-}
-
-function saveHidePostImages() {
-    const enabled = document.getElementById('hidePostImages').checked;
-    localStorage.setItem('hidePostImages', JSON.stringify({ enabled: enabled }));
-
-    fetch('/user-settings')
-        .then(res => res.json())
-        .then(currentSettings => {
-            const updatedSettings = { ...currentSettings, hidePostImages: enabled };
-            return fetch('/user-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings: updatedSettings })
-            });
-        })
-        .then(res => {
-            if (res.ok) {
-                showStatus('hidePostImagesStatus', getLang('Post image preference saved!', 'Einstellung für Kanalbeiträge gespeichert!'), true);
-            } else {
-                showStatus('hidePostImagesStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
-            }
-        })
-        .catch(() => {
-            showStatus('hidePostImagesStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
-        });
-}
-
-// ==============================
-// Title Color Scheme Logic
-// ==============================
-function loadTitleColorScheme() {
-    const savedLocal = JSON.parse(localStorage.getItem('titleColorScheme') || '{}');
-    const defaultValue = 'white';
-    const currentValue = savedLocal.scheme || defaultValue;
-    
-    document.getElementById('titleColorScheme').value = currentValue;
-
-    fetch('/user-settings')
-        .then(res => {
-            if (!res.ok) throw new Error('Not authenticated');
-            return res.json();
-        })
-        .then(serverSettings => {
-            if (serverSettings && serverSettings.titleColorScheme) {
-                const serverValue = serverSettings.titleColorScheme;
-                document.getElementById('titleColorScheme').value = serverValue;
-                localStorage.setItem('titleColorScheme', JSON.stringify({ scheme: serverValue }));
-            }
-        })
-        .catch(err => console.error('Could not load title color scheme setting from server:', err));
-}
-
-function saveTitleColorScheme() {
-    const scheme = document.getElementById('titleColorScheme').value;
-    localStorage.setItem('titleColorScheme', JSON.stringify({ scheme: scheme }));
-
-    fetch('/user-settings')
-        .then(res => res.json())
-        .then(currentSettings => {
-            const updatedSettings = { ...currentSettings, titleColorScheme: scheme };
-            return fetch('/user-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings: updatedSettings })
-            });
-        })
-        .then(res => {
-            if (res.ok) {
-                showStatus('titleColorSchemeStatus', getLang('Title color scheme saved!', 'Titel-Farbschema gespeichert!'), true);
-            } else {
-                showStatus('titleColorSchemeStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
-            }
-        })
-        .catch(() => {
-            showStatus('titleColorSchemeStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
-        });
-}
-
-// ==============================
-// Channel Profile Pic in Player Logic
-// ==============================
-function loadShowChannelProfilePic() {
-    const savedLocal = JSON.parse(localStorage.getItem('showChannelProfilePic') || '{}');
-    const defaultValue = false;
-    const currentValue = savedLocal.enabled !== undefined ? savedLocal.enabled : defaultValue;
-    
-    document.getElementById('showChannelProfilePic').checked = currentValue;
-
-    fetch('/user-settings')
-        .then(res => {
-            if (!res.ok) throw new Error('Not authenticated');
-            return res.json();
-        })
-        .then(serverSettings => {
-            if (serverSettings && serverSettings.showChannelProfilePic !== undefined) {
-                const serverValue = serverSettings.showChannelProfilePic;
-                document.getElementById('showChannelProfilePic').checked = serverValue;
-                localStorage.setItem('showChannelProfilePic', JSON.stringify({ enabled: serverValue }));
-            }
-        })
-        .catch(err => console.error('Could not load channel profile pic setting from server:', err));
-}
-
-function saveShowChannelProfilePic() {
-    const enabled = document.getElementById('showChannelProfilePic').checked;
-    localStorage.setItem('showChannelProfilePic', JSON.stringify({ enabled: enabled }));
-
-    fetch('/user-settings')
-        .then(res => res.json())
-        .then(currentSettings => {
-            const updatedSettings = { ...currentSettings, showChannelProfilePic: enabled };
-            return fetch('/user-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings: updatedSettings })
-            });
-        })
-        .then(res => {
-            if (res.ok) {
-                showStatus('playerOverlaysStatus', getLang('Preference saved!', 'Einstellung gespeichert!'), true);
-            } else {
-                showStatus('playerOverlaysStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
-            }
-        })
-        .catch(() => {
-            showStatus('playerOverlaysStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
-        });
-}
-
-// ==============================
-// End Screen Recommendation Grid Logic
-// ==============================
-function loadShowEndScreenGrid() {
-    const savedLocal = JSON.parse(localStorage.getItem('showEndScreenGrid') || '{}');
-    const defaultValue = true; // Enabled by default
-    const currentValue = savedLocal.enabled !== undefined ? savedLocal.enabled : defaultValue;
-    
-    document.getElementById('showEndScreenGrid').checked = currentValue;
-
-    fetch('/user-settings')
-        .then(res => {
-            if (!res.ok) throw new Error('Not authenticated');
-            return res.json();
-        })
-        .then(serverSettings => {
-            if (serverSettings && serverSettings.showEndScreenGrid !== undefined) {
-                const serverValue = serverSettings.showEndScreenGrid;
-                document.getElementById('showEndScreenGrid').checked = serverValue;
-                localStorage.setItem('showEndScreenGrid', JSON.stringify({ enabled: serverValue }));
-            }
-        })
-        .catch(err => console.error('Could not load end screen grid setting from server:', err));
-}
-
-function saveShowEndScreenGrid() {
-    const enabled = document.getElementById('showEndScreenGrid').checked;
-    localStorage.setItem('showEndScreenGrid', JSON.stringify({ enabled: enabled }));
-
-    fetch('/user-settings')
-        .then(res => res.json())
-        .then(currentSettings => {
-            const updatedSettings = { ...currentSettings, showEndScreenGrid: enabled };
-            return fetch('/user-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings: updatedSettings })
-            });
-        })
-        .then(res => {
-            if (res.ok) {
-                showStatus('playerOverlaysStatus', getLang('Preference saved!', 'Einstellung gespeichert!'), true);
-            } else {
-                showStatus('playerOverlaysStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
-            }
-        })
-        .catch(() => {
-            showStatus('playerOverlaysStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
-        });
-}
-
-// ==============================
-// Video Endcards Logic (NEW)
-// ==============================
-function loadShowEndcards() {
-    const savedLocal = JSON.parse(localStorage.getItem('showEndcards') || '{}');
-    const defaultValue = true; // Enabled by default
-    const currentValue = savedLocal.enabled !== undefined ? savedLocal.enabled : defaultValue;
-    
-    document.getElementById('showEndcards').checked = currentValue;
-
-    fetch('/user-settings')
-        .then(res => {
-            if (!res.ok) throw new Error('Not authenticated');
-            return res.json();
-        })
-        .then(serverSettings => {
-            if (serverSettings && serverSettings.showEndcards !== undefined) {
-                const serverValue = serverSettings.showEndcards;
-                document.getElementById('showEndcards').checked = serverValue;
-                localStorage.setItem('showEndcards', JSON.stringify({ enabled: serverValue }));
-            }
-        })
-        .catch(err => console.error('Could not load endcards setting from server:', err));
-}
-
-function saveShowEndcards() {
-    const enabled = document.getElementById('showEndcards').checked;
-    localStorage.setItem('showEndcards', JSON.stringify({ enabled: enabled }));
-
-    fetch('/user-settings')
-        .then(res => res.json())
-        .then(currentSettings => {
-            const updatedSettings = { ...currentSettings, showEndcards: enabled };
-            return fetch('/user-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings: updatedSettings })
-            });
-        })
-        .then(res => {
-            if (res.ok) {
-                showStatus('playerOverlaysStatus', getLang('Preference saved!', 'Einstellung gespeichert!'), true);
-            } else {
-                showStatus('playerOverlaysStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
-            }
-        })
-        .catch(() => {
-            showStatus('playerOverlaysStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
-        });
-}
-
-// Combined save for Player Overlays
-function savePlayerOverlays() {
-    saveShowChannelProfilePic();
-    saveShowEndScreenGrid();
-    saveShowEndcards();
-}
-
-// ==============================
-// Sidebar SVG Icons Logic
-// ==============================
-function loadSidebarSvgIcons() {
-    const savedLocal = JSON.parse(localStorage.getItem('sidebarSvgIcons') || '{}');
-    const defaultValue = true;
-    const currentValue = savedLocal.enabled !== undefined ? savedLocal.enabled : defaultValue;
-    
-    document.getElementById('sidebarSvgIcons').checked = currentValue;
-
-    fetch('/user-settings')
-        .then(res => {
-            if (!res.ok) throw new Error('Not authenticated');
-            return res.json();
-        })
-        .then(serverSettings => {
-            if (serverSettings && serverSettings.sidebarSvgIcons !== undefined) {
-                const serverValue = serverSettings.sidebarSvgIcons;
-                document.getElementById('sidebarSvgIcons').checked = serverValue;
-                localStorage.setItem('sidebarSvgIcons', JSON.stringify({ enabled: serverValue }));
-            }
-        })
-        .catch(err => console.error('Could not load sidebar SVG icons setting from server:', err));
-}
-
-function saveSidebarSvgIcons() {
-    const enabled = document.getElementById('sidebarSvgIcons').checked;
-    localStorage.setItem('sidebarSvgIcons', JSON.stringify(enabled));
-
-    // Dispatch custom event for sidebar.js to listen to
-    window.dispatchEvent(new CustomEvent('sidebarSvgIconsChanged', { detail: enabled }));
-
-    fetch('/user-settings')
-        .then(res => res.json())
-        .then(currentSettings => {
-            const updatedSettings = { ...currentSettings, sidebarSvgIcons: enabled };
-            return fetch('/user-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings: updatedSettings })
-            });
-        })
-        .then(res => {
-            if (res.ok) {
-                showStatus('sidebarSvgIconsStatus', getLang('Sidebar SVG icons preference saved!', 'Einstellung für Seitenleistensymbole gespeichert!'), true);
-            } else {
-                showStatus('sidebarSvgIconsStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
-            }
-        })
-        .catch(() => {
-            showStatus('sidebarSvgIconsStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
-        });
-}
-
-// ==============================
-// Tab Switching
-// ==============================
-const sidebarLinks = document.querySelectorAll('.settings-sidebar a');
-const tabPanels = document.querySelectorAll('.tab-panel');
-
-sidebarLinks.forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetTab = link.dataset.tab;
-
-        sidebarLinks.forEach(l => l.classList.remove('active'));
-        link.classList.add('active');
-
-        tabPanels.forEach(panel => panel.classList.remove('active'));
-        document.getElementById('tab-' + targetTab).classList.add('active');
-
-        if (targetTab === 'settings') {
-            loadPreferences();
-            loadAllTags();
+        // --- Language Helper ---
+        function getLang(en, de) {
+            return localStorage.getItem('language') === 'de' ? de : en;
         }
 
-        if (targetTab === 'preferences') {
-            loadAutoplaySettings();
-            loadCommenterProfileStyle();
-            loadChannelDefaultView();
-            loadVideoPageLayout();
-            loadPlaylistPageLayout();
-            loadChannelPageStyle();
-            loadFuzzySubCount();
-            loadHidePostImages();
-            loadTitleColorScheme();
-            loadShowChannelProfilePic();
-            loadShowEndScreenGrid();
-            loadShowEndcards();
-            loadPlayerUIScale();
-            loadRoundedCorners();
-            loadPlaylistOrder();
-            loadSidebarSvgIcons();
-        }
-    });
-});
+        // --- UI Translations (updated for new tabs) ---
+        function applyTranslations() {
+            document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
 
-// ==============================
-// Auth Check
-// ==============================
-document.addEventListener('DOMContentLoaded', () => {
-    applyTranslations();
-    
-    const mainLogo = document.getElementById('mainLogo');
-    if (mainLogo) {
-        mainLogo.addEventListener('click', (e) => {
-            if (e.button === 0) window.location.href = 'index.html';
-        });
-        mainLogo.addEventListener('mouseup', (e) => {
-            if (e.button === 1) { e.preventDefault(); window.open('index.html', '_blank'); }
-        });
-        mainLogo.addEventListener('contextmenu', (e) => {
-            e.preventDefault(); window.open('index.html', '_blank');
-        });
-        mainLogo.title = 'Go to homepage';
-        mainLogo.style.cursor = 'pointer';
-    }
+            // Sidebar
+            document.getElementById('sidebarProfile').textContent = getLang('Profile Picture', 'Profilbild');
+            document.getElementById('sidebarAppearance').textContent = getLang('Appearance', 'Erscheinungsbild');
+            document.getElementById('sidebarPlayback').textContent = getLang('Playback', 'Wiedergabe');
+            document.getElementById('sidebarContent').textContent = getLang('Content', 'Inhalt');
+            document.getElementById('sidebarAccount').textContent = getLang('Account', 'Konto');
 
-    // --- Search Navigation Logic ---
-    const searchInput = document.getElementById('searchInput');
+            // Profile tab
+            document.getElementById('profileHeading').textContent = getLang('Profile Picture', 'Profilbild');
+            document.getElementById('uploadBtn').textContent = getLang('Upload Picture', 'Bild hochladen');
+            document.getElementById('removeBtn').textContent = getLang('Remove Picture', 'Bild entfernen');
 
-    searchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') window.location.href = 'search.html?q=' + encodeURIComponent(searchInput.value);
-    });
+            // Appearance labels
+            document.getElementById('videoPageLayoutLabel').textContent = getLang('Video page style', 'Videoseiten-Stil');
+            document.getElementById('videoPageLayoutDesc').textContent = getLang('Modern or Classic layout (view count on right, buttons stacked)', 'Modernes oder klassisches Layout');
+            document.getElementById('channelPageStyleLabel').textContent = getLang('Channel page style', 'Kanalseiten-Stil');
+            document.getElementById('channelPageStyleDesc').textContent = getLang('Modern rounded header or classic square-in-banner', 'Moderner abgerundeter Header oder klassisch');
+            document.getElementById('channelDefaultViewLabel').textContent = getLang('Default channel video layout', 'Standard-Kanalvideo-Layout');
+            document.getElementById('channelDefaultViewDesc').textContent = getLang('Grid or list for channel videos tab', 'Raster oder Liste für Kanal-Videos');
+            document.getElementById('commenterProfileLabel').textContent = getLang('Commenter avatar style', 'Avatar-Stil für Kommentatoren');
+            document.getElementById('commenterProfileDesc').textContent = getLang('Letters & colors or classic placeholder', 'Buchstaben & Farben oder klassisch');
+            document.getElementById('titleColorSchemeLabel').textContent = getLang('Title color scheme', 'Titel-Farbschema');
+            document.getElementById('titleColorSchemeDesc').textContent = getLang('Video titles & channel names in white or blue', 'Videotitel & Kanalnamen in Weiß oder Blau');
+            document.getElementById('roundedCornersLabel').textContent = getLang('Rounded corners', 'Abgerundete Ecken');
+            document.getElementById('roundedCornersDesc').textContent = getLang('Subtle rounding on player & thumbnails', 'Leichte Abrundung an Player & Thumbnails');
+            document.getElementById('sidebarSvgIconsLabel').textContent = getLang('Sidebar SVG icons', 'Seitenleisten-Symbole');
+            document.getElementById('sidebarSvgIconsDesc').textContent = getLang('Show icons next to sidebar items', 'Symbole neben Einträgen anzeigen');
+            document.getElementById('playerUIScaleLabel').textContent = getLang('Player UI scale', 'Player-UI-Skalierung');
+            document.getElementById('playerUIScaleDesc').textContent = getLang('Control size (+/- keys while playing)', 'Größe der Steuerung (+/- Tasten während der Wiedergabe)');
+            document.getElementById('saveAppearanceBtn').textContent = getLang('Save Appearance Settings', 'Erscheinungsbild speichern');
 
-    document.getElementById('searchIcon').addEventListener('click', () => {
-        const q = searchInput.value.trim();
-        if (q) window.location.href = 'search.html?q=' + encodeURIComponent(q);
-        else searchInput.focus();
-    });
+            // Playback labels
+            document.getElementById('autoplayEnabledLabel').textContent = getLang('Enable Autoplay', 'Autoplay aktivieren');
+            document.getElementById('autoplayDesc').textContent = getLang('Automatically play next video', 'Nächstes Video automatisch abspielen');
+            document.getElementById('playlistAutoplayLabel').textContent = getLang('Autoplay next in playlist', 'Nächstes in Playlist');
+            document.getElementById('playlistAutoplayDesc').textContent = getLang('Play next video in sequence', 'Nächstes Video in Reihenfolge abspielen');
+            document.getElementById('nonPlaylistModeLabel').textContent = getLang('Non-playlist behavior', 'Verhalten außerhalb von Playlists');
+            document.getElementById('nonPlaylistDesc').textContent = getLang('What plays after a standalone video ends', 'Was nach einem einzelnen Video abgespielt wird');
+            document.getElementById('playlistPageLayoutLabel').textContent = getLang('Default playlist layout', 'Standard-Playlist-Layout');
+            document.getElementById('playlistPageLayoutDesc').textContent = getLang('Grid or list view for playlists', 'Raster- oder Listenansicht');
+            document.getElementById('playlistOrderLabel').textContent = getLang('Invert playlist order', 'Playlist-Reihenfolge umkehren');
+            document.getElementById('playlistOrderDesc').textContent = getLang('Newest videos first (oldest on the right)', 'Neueste zuerst (älteste rechts)');
+            document.getElementById('channelProfilePicLabel').textContent = getLang('Show channel profile pic', 'Kanal-Profilbild anzeigen');
+            document.getElementById('channelProfilePicDesc').textContent = getLang('Bottom-right corner of player', 'Untere rechte Ecke des Players');
+            document.getElementById('showEndScreenGridLabel').textContent = getLang('End screen recommendation grid', 'Empfehlungsraster am Ende');
+            document.getElementById('showEndScreenGridDesc').textContent = getLang('4×3 grid when autoplay is off', '4×3-Raster wenn Autoplay aus');
+            document.getElementById('showEndcardsLabel').textContent = getLang('Show video endcards', 'Video-Endkarten anzeigen');
+            document.getElementById('showEndcardsDesc').textContent = getLang('Two thumbnails in last 20 seconds', 'Zwei Vorschaubilder in den letzten 20 Sekunden');
+            document.getElementById('savePlaybackBtn').textContent = getLang('Save Playback Settings', 'Wiedergabe-Einstellungen speichern');
 
-    // Initialize autoplay UI event listeners
-    initAutoplayUI();
+            // Content labels
+            document.getElementById('algoPrefsHeading').textContent = getLang('Algorithm Preferences', 'Algorithmus-Einstellungen');
+            document.getElementById('algoPrefsDesc').textContent = getLang('Adjust scores to influence your recommendations.', 'Passe Werte an, um Empfehlungen zu beeinflussen.');
+            document.getElementById('fuzzySubCountLabel').textContent = getLang('Fuzzy subscription counts', 'Ungefähre Abonnentenzahlen');
+            document.getElementById('fuzzySubCountDesc').textContent = getLang('Randomize last digits of rounded counts', 'Letzte Ziffern zufällig machen');
+            document.getElementById('hidePostImagesLabel').textContent = getLang('Hide images in posts', 'Bilder in Beiträgen ausblenden');
+            document.getElementById('hidePostImagesDesc').textContent = getLang('Save bandwidth & reduce loading times', 'Bandbreite sparen & Ladezeiten reduzieren');
+            document.getElementById('saveContentBtn').textContent = getLang('Save Content Settings', 'Inhaltseinstellungen speichern');
+            document.getElementById('addTagBtn').textContent = getLang('Add Tag', 'Tag hinzufügen');
+            document.getElementById('resetPrefsBtn').textContent = getLang('Reset All', 'Alle zurücksetzen');
 
-    // Initialize save buttons for preferences tab
-    document.getElementById('saveCommenterStyleBtn')?.addEventListener('click', saveCommenterProfileStyle);
-    document.getElementById('saveChannelDefaultViewBtn')?.addEventListener('click', saveChannelDefaultView);
-    document.getElementById('saveVideoPageLayoutBtn')?.addEventListener('click', saveVideoPageLayout);
-    document.getElementById('savePlaylistPageLayoutBtn')?.addEventListener('click', savePlaylistPageLayout);
-    document.getElementById('saveChannelPageStyleBtn')?.addEventListener('click', saveChannelPageStyle);
-    document.getElementById('saveFuzzySubCountBtn')?.addEventListener('click', saveFuzzySubCount);
-    document.getElementById('saveHidePostImagesBtn')?.addEventListener('click', saveHidePostImages);
-    document.getElementById('saveTitleColorSchemeBtn')?.addEventListener('click', saveTitleColorScheme);
-    document.getElementById('savePlayerOverlaysBtn')?.addEventListener('click', savePlayerOverlays);
-    document.getElementById('savePlayerUIScaleBtn')?.addEventListener('click', savePlayerUIScale);
-    document.getElementById('saveRoundedCornersBtn')?.addEventListener('click', saveRoundedCorners);
-    document.getElementById('savePlaylistOrderBtn')?.addEventListener('click', savePlaylistOrder);
-    document.getElementById('saveSidebarSvgIconsBtn')?.addEventListener('click', saveSidebarSvgIcons);
+            // Account tab
+            document.getElementById('renameBtn').textContent = getLang('Rename', 'Umbenennen');
+            document.getElementById('changePassBtn').textContent = getLang('Update', 'Aktualisieren');
+            document.getElementById('exportConfigBtn').textContent = getLang('Export Config', 'Konfiguration exportieren');
+            document.querySelector('label[for="importConfigInput"]').textContent = getLang('Import Config', 'Konfiguration importieren');
+            document.getElementById('logoutBtn').textContent = getLang('Logout', 'Abmelden');
+            document.getElementById('toggleDeleteBtn').textContent = getLang('Delete Account', 'Konto löschen');
+            document.getElementById('deleteAccountBtn').textContent = getLang('Confirm Delete', 'Löschen bestätigen');
+            document.getElementById('cancelCropBtn').textContent = getLang('Cancel', 'Abbrechen');
+            document.getElementById('doneCropBtn').textContent = getLang('Done', 'Fertig');
 
-    // Initialize config import/export buttons
-    initConfigImportExport();
-
-    // Wait for profile-pic.js to finish its session check before loading settings
-    function waitForSessionCheck() {
-        const headerPic = document.getElementById('headerProfilePic');
-        if (headerPic && headerPic.src && !headerPic.src.includes('user-profile-placeholder.jpg')) {
-            loadProfilePic();
-            loadPreferences();
-            loadAllTags();
-        } else {
-            setTimeout(() => {
-                fetch('/session-user')
-                    .then(res => {
-                        if (!res.ok) throw new Error('Not logged in');
-                        return res.json();
-                    })
-                    .then(data => {
-                        if (!data.username) {
-                            window.location.href = 'login.html';
-                        } else {
-                            loadProfilePic();
-                            loadPreferences();
-                            loadAllTags();
-                        }
-                    })
-                    .catch(() => window.location.href = 'login.html');
-            }, 150);
-        }
-    }
-    
-    waitForSessionCheck();
-});
-
-// ==============================
-// Autoplay Settings Logic
-// ==============================
-function initAutoplayUI() {
-    const autoplayEnabled = document.getElementById('autoplayEnabled');
-    const subOptions = document.getElementById('autoplaySubOptions');
-
-    autoplayEnabled.addEventListener('change', () => {
-        if (autoplayEnabled.checked) {
-            subOptions.classList.add('visible');
-        } else {
-            subOptions.classList.remove('visible');
-        }
-    });
-
-    document.getElementById('saveAutoplayBtn').addEventListener('click', saveAutoplaySettings);
-}
-
-function loadAutoplaySettings() {
-    const savedLocal = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
-    
-    const defaults = {
-        enabled: false,
-        playlistNext: true,
-        nonPlaylistMode: 'first-recommended'
-    };
-
-    const localMerged = { ...defaults, ...savedLocal };
-    const validModes = ['first-recommended', 'random-recommended', 'random-database'];
-    if (!validModes.includes(localMerged.nonPlaylistMode)) {
-        localMerged.nonPlaylistMode = 'first-recommended';
-    }
-
-    document.getElementById('autoplayEnabled').checked = localMerged.enabled;
-    document.getElementById('autoplayPlaylistNext').checked = localMerged.playlistNext;
-    document.getElementById('autoplayNonPlaylistMode').value = localMerged.nonPlaylistMode;
-
-    const subOptions = document.getElementById('autoplaySubOptions');
-    if (localMerged.enabled) {
-        subOptions.classList.add('visible');
-    } else {
-        subOptions.classList.remove('visible');
-    }
-
-    fetch('/autoplay-settings')
-        .then(res => {
-            if (!res.ok) throw new Error('Not authenticated');
-            return res.json();
-        })
-        .then(serverSettings => {
-            if (Object.keys(serverSettings).length > 0) {
-                const serverMerged = { ...defaults, ...serverSettings };
-                
-                if (!validModes.includes(serverMerged.nonPlaylistMode)) {
-                    serverMerged.nonPlaylistMode = 'first-recommended';
-                }
-
-                document.getElementById('autoplayEnabled').checked = serverMerged.enabled;
-                document.getElementById('autoplayPlaylistNext').checked = serverMerged.playlistNext;
-                document.getElementById('autoplayNonPlaylistMode').value = serverMerged.nonPlaylistMode;
-
-                if (serverMerged.enabled) {
-                    subOptions.classList.add('visible');
-                } else {
-                    subOptions.classList.remove('visible');
-                }
-
-                localStorage.setItem('autoplaySettings', JSON.stringify(serverMerged));
-            }
-        })
-        .catch(err => console.error('Could not load autoplay settings from server:', err));
-}
-
-function saveAutoplaySettings() {
-    const settings = {
-        enabled: document.getElementById('autoplayEnabled').checked,
-        playlistNext: document.getElementById('autoplayPlaylistNext').checked,
-        nonPlaylistMode: document.getElementById('autoplayNonPlaylistMode').value
-    };
-
-    localStorage.setItem('autoplaySettings', JSON.stringify(settings));
-
-    fetch('/autoplay-settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ autoplay: settings })
-    })
-    .then(res => {
-        if (res.ok) {
-            showStatus('autoplayStatus', getLang('Autoplay settings saved successfully!', 'Autoplay-Einstellungen erfolgreich gespeichert!'), true);
-        } else {
-            showStatus('autoplayStatus', getLang('Error saving to server.', 'Fehler beim Speichern auf dem Server.'), false);
-        }
-    })
-    .catch(() => {
-        showStatus('autoplayStatus', getLang('Saved locally, but failed to sync to server.', 'Lokal gespeichert, aber Server-Synchronisierung fehlgeschlagen.'), false);
-    });
-}
-
-// ==============================
-// Profile Picture Logic
-// ==============================
-var PLACEHOLDER_SRC = '/LocalYT-Rev-Files/user-profile-placeholder.jpg';
-var profilePicDisplay = document.getElementById('profilePicDisplay');
-var uploadBtn = document.getElementById('uploadBtn');
-var removeBtn = document.getElementById('removeBtn');
-var fileInput = document.getElementById('fileInput');
-var profileStatus = document.getElementById('profileStatus');
-var errorToast = document.getElementById('errorToast');
-var successToast = document.getElementById('successToast');
-
-var cropperModal = document.getElementById('cropperModal');
-var imageToCrop = document.getElementById('imageToCrop');
-var cancelCropBtn = document.getElementById('cancelCropBtn');
-var doneCropBtn = document.getElementById('doneCropBtn');
-
-var cropper = null;
-var currentFile = null;
-
-function showToast(el, msg) {
-    el.textContent = msg;
-    el.classList.add('visible');
-    setTimeout(function() { el.classList.remove('visible'); }, 3000);
-}
-
-function loadProfilePic() {
-    profilePicDisplay.src = PLACEHOLDER_SRC;
-    removeBtn.classList.add('hidden');
-    profileStatus.textContent = getLang('Using default profile picture', 'Standard-Profilbild wird verwendet');
-
-    fetch('/user-profile-pic')
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-            if (data.hasCustomPic && data.picUrl) {
-                profilePicDisplay.src = data.picUrl + '?t=' + Date.now();
-                removeBtn.classList.remove('hidden');
-                profileStatus.textContent = getLang('Custom profile picture set', 'Eigenes Profilbild festgelegt');
-            }
-        })
-        .catch(function() {});
-}
-
-function refreshHeaderPic() {
-    fetch('/user-profile-pic')
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-            var headerPic = document.getElementById('headerProfilePic');
-            if (!headerPic) return;
-            if (data.hasCustomPic && data.picUrl) {
-                headerPic.src = data.picUrl + '?t=' + Date.now();
-            } else {
-                headerPic.src = PLACEHOLDER_SRC;
-            }
-        })
-        .catch(function() {});
-}
-
-uploadBtn.addEventListener('click', function() { fileInput.click(); });
-
-fileInput.addEventListener('change', function(e) {
-    var file = e.target.files[0];
-    if (!file) return;
-
-    var allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (allowedTypes.indexOf(file.type) === -1) {
-        showToast(errorToast, getLang('Only JPEG, PNG, and WebP images are allowed', 'Nur JPEG-, PNG- und WebP-Bilder sind zulässig'));
-        fileInput.value = '';
-        return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-        showToast(errorToast, getLang('Image must be under 5MB', 'Bild muss unter 5 MB sein'));
-        fileInput.value = '';
-        return;
-    }
-
-    var reader = new FileReader();
-    reader.onload = function(event) {
-        imageToCrop.src = event.target.result;
-        cropperModal.classList.add('active');
-
-        if (cropper) {
-            cropper.destroy();
+            // Dropdown translations
+            const videoPageLayout = document.getElementById('videoPageLayout');
+            if (videoPageLayout) { videoPageLayout.options[0].text = getLang('Modern', 'Modern'); videoPageLayout.options[1].text = getLang('Classic', 'Klassisch'); }
+            const channelPageStyle = document.getElementById('channelPageStyle');
+            if (channelPageStyle) { channelPageStyle.options[0].text = 'Modern'; channelPageStyle.options[1].text = getLang('Classic', 'Klassisch'); }
+            const channelDefaultView = document.getElementById('channelDefaultView');
+            if (channelDefaultView) { channelDefaultView.options[0].text = getLang('Grid', 'Raster'); channelDefaultView.options[1].text = getLang('List', 'Liste'); }
+            const commenterSelect = document.getElementById('commenterProfileStyle');
+            if (commenterSelect) { commenterSelect.options[0].text = getLang('Modern (Letters & Colors)', 'Modern (Buchstaben & Farben)'); commenterSelect.options[1].text = getLang('Classic (Placeholder)', 'Klassisch (Platzhalter)'); }
+            const titleColor = document.getElementById('titleColorScheme');
+            if (titleColor) { titleColor.options[0].text = getLang('White (Default)', 'Weiß (Standard)'); titleColor.options[1].text = getLang('Blue', 'Blau'); }
+            const playlistLayout = document.getElementById('playlistPageLayout');
+            if (playlistLayout) { playlistLayout.options[0].text = getLang('Grid', 'Raster'); playlistLayout.options[1].text = getLang('List', 'Liste'); }
+            const nonPlaylist = document.getElementById('autoplayNonPlaylistMode');
+            if (nonPlaylist) { nonPlaylist.options[0].text = getLang('First recommended', 'Erstes empfohlenes'); nonPlaylist.options[1].text = getLang('Random recommended', 'Zufällig empfohlen'); nonPlaylist.options[2].text = getLang('Random from database', 'Zufällig aus Datenbank'); }
+            const playerScale = document.getElementById('playerUIScale');
+            if (playerScale) { playerScale.options[5].text = getLang('100% (Default)', '100% (Standard)'); }
         }
 
-        cropper = new Cropper(imageToCrop, {
-            aspectRatio: 1 / 1,
-            viewMode: 1,
-            autoCropArea: 0.9,
-            responsive: true
-        });
-    };
-    reader.readAsDataURL(file);
-    currentFile = file;
-});
+        // ==================== Tab Switching ====================
+        const sidebarLinks = document.querySelectorAll('.settings-sidebar a');
+        const tabPanels = document.querySelectorAll('.tab-panel');
 
-cancelCropBtn.addEventListener('click', function() {
-    cropperModal.classList.remove('active');
-    if (cropper) {
-        cropper.destroy();
-        cropper = null;
-    }
-    fileInput.value = '';
-    currentFile = null;
-});
+        sidebarLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetTab = link.dataset.tab;
+                sidebarLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                tabPanels.forEach(panel => panel.classList.remove('active'));
+                const targetPanel = document.getElementById('tab-' + targetTab);
+                if (targetPanel) targetPanel.classList.add('active');
 
-doneCropBtn.addEventListener('click', function() {
-    if (!cropper || !currentFile) return;
-
-    var canvasData = cropper.getData();
-
-    var formData = new FormData();
-    formData.append('profilePic', currentFile);
-    formData.append('x', Math.round(canvasData.x));
-    formData.append('y', Math.round(canvasData.y));
-    formData.append('width', Math.round(canvasData.width));
-    formData.append('height', Math.round(canvasData.height));
-
-    doneCropBtn.disabled = true;
-    doneCropBtn.textContent = getLang('Processing...', 'Verarbeitung...');
-
-    fetch('/user-profile-pic', {
-        method: 'POST',
-        body: formData
-    })
-    .then(async function(res) {
-        var text = await res.text();
-        if (!res.ok) throw new Error(text);
-
-        showToast(successToast, getLang('Profile picture updated!', 'Profilbild aktualisiert!'));
-        loadProfilePic();
-        refreshHeaderPic();
-
-        cropperModal.classList.remove('active');
-        if (cropper) {
-            cropper.destroy();
-            cropper = null;
-        }
-        fileInput.value = '';
-        currentFile = null;
-    })
-    .catch(function(err) {
-        console.error(err);
-        showToast(errorToast, err.message || getLang('Error uploading', 'Fehler beim Hochladen'));
-    })
-    .finally(function() {
-        doneCropBtn.disabled = false;
-        doneCropBtn.textContent = getLang('Done', 'Fertig');
-    });
-});
-
-removeBtn.addEventListener('click', function() {
-    fetch('/user-profile-pic', { method: 'DELETE' })
-        .then(function(res) {
-            if (!res.ok) throw new Error(getLang('Failed to remove', 'Entfernen fehlgeschlagen'));
-            showToast(successToast, getLang('Profile picture removed', 'Profilbild entfernt'));
-            profilePicDisplay.src = PLACEHOLDER_SRC;
-            removeBtn.classList.add('hidden');
-            profileStatus.textContent = getLang('Using default profile picture', 'Standard-Profilbild wird verwendet');
-            refreshHeaderPic();
-        })
-        .catch(function(err) { showToast(errorToast, err.message); });
-});
-
-// ==============================
-// Settings Logic
-// ==============================
-var allAvailableTags = [];
-
-function loadAllTags() {
-    fetch('/get-all-tags')
-        .then(function(res) { return res.json(); })
-        .then(function(tags) {
-            allAvailableTags = tags;
-            var datalist = document.getElementById('allTagsList');
-            datalist.innerHTML = '';
-            tags.forEach(function(tag) {
-                var option = document.createElement('option');
-                option.value = tag;
-                datalist.appendChild(option);
-            });
-        })
-        .catch(function() {});
-}
-
-function loadPreferences() {
-    fetch('/get-preferences')
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-            var container = document.getElementById('preferencesContainer');
-            container.innerHTML = '';
-
-            if (Object.keys(data).length === 0) {
-                container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">' + getLang('No preferences found. Watch videos to build your algorithm!', 'Keine Einstellungen gefunden. Schau Videos, um deinen Algorithmus aufzubauen!') + '</div>';
-                return;
-            }
-
-            var sorted = Object.entries(data).sort(function(a, b) { return b[1] - a[1]; });
-
-            sorted.forEach(function(entry) {
-                createPrefItem(entry[0], entry[1], container);
-            });
-        })
-        .catch(function() {});
-}
-
-function createPrefItem(tag, value, container) {
-    var div = document.createElement('div');
-    div.className = 'pref-item';
-    div.dataset.tag = tag;
-    div.innerHTML =
-        '<span class="pref-tag" title="' + tag + '">' + tag + '</span>' +
-        '<div class="pref-controls">' +
-            '<input type="number" class="pref-value" data-tag="' + tag + '" value="' + value + '">' +
-            '<button class="btn-remove" title="Remove Tag">&times;</button>' +
-        '</div>';
-
-    div.querySelector('.btn-remove').addEventListener('click', function() {
-        div.remove();
-    });
-
-    container.appendChild(div);
-}
-
-document.getElementById('addTagBtn').addEventListener('click', function() {
-    var input = document.getElementById('newTagInput');
-    var tagName = input.value.trim();
-
-    if (!tagName) return;
-
-    var container = document.getElementById('preferencesContainer');
-
-    var existing = container.querySelector('[data-tag="' + tagName + '"]');
-    if (existing) {
-        showStatus('prefStatus', getLang('Tag already in list.', 'Tag bereits in der Liste.'), false);
-        return;
-    }
-
-    createPrefItem(tagName, 50, container);
-    input.value = '';
-    showStatus('prefStatus', getLang('Tag added. Click Save to confirm.', 'Tag hinzugefügt. Klicke Speichern zum Bestätigen.'), true);
-});
-
-document.getElementById('savePrefsBtn').addEventListener('click', function() {
-    var container = document.getElementById('preferencesContainer');
-    var items = container.querySelectorAll('.pref-item');
-    var newPrefs = {};
-
-    items.forEach(function(item) {
-        var tag = item.dataset.tag;
-        var inputEl = item.querySelector('.pref-value');
-        var value = parseInt(inputEl.value) || 0;
-        newPrefs[tag] = value;
-    });
-
-    fetch('/save-preferences', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ preferences: newPrefs })
-    })
-    .then(function(res) {
-        if (res.ok) {
-            showStatus('prefStatus', getLang('Preferences saved successfully!', 'Einstellungen erfolgreich gespeichert!'), true);
-            loadPreferences();
-        } else {
-            showStatus('prefStatus', getLang('Error saving preferences.', 'Fehler beim Speichern der Einstellungen.'), false);
-        }
-    })
-    .catch(function() { showStatus('prefStatus', getLang('Error saving preferences.', 'Fehler beim Speichern der Einstellungen.'), false); });
-});
-
-document.getElementById('resetPrefsBtn').addEventListener('click', function() {
-    if (confirm(getLang('Are you sure you want to clear all your viewing preferences?', 'Bist du sicher, dass du alle deine Ansichtseinstellungen löschen möchtest?'))) {
-        fetch('/reset-preferences', { method: 'POST' })
-            .then(function(res) {
-                if (res.ok) {
-                    showStatus('prefStatus', getLang('All preferences have been reset.', 'Alle Einstellungen wurden zurückgesetzt.'), true);
-                    loadPreferences();
+                // Load appropriate settings when tab is shown
+                if (targetTab === 'appearance') {
+                    loadAppearanceSettings();
+                } else if (targetTab === 'playback') {
+                    loadPlaybackSettings();
+                } else if (targetTab === 'content') {
+                    loadContentSettings();
+                    loadAllTags();
+                } else if (targetTab === 'account') {
+                    // nothing special to preload
                 }
             });
-    }
-});
+        });
 
-document.getElementById('logoutBtn').addEventListener('click', function() {
-    window.location.href = '/logout';
-});
-
-document.getElementById('renameBtn').addEventListener('click', function() {
-    var newUsername = document.getElementById('newUsername').value;
-    if (!newUsername) return;
-
-    fetch('/rename-account', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newUsername: newUsername })
-    })
-    .then(function(res) { return res.text(); })
-    .then(function(msg) {
-        if (msg === 'OK') {
-            showStatus('renameStatus', getLang('Account renamed! Refreshing...', 'Konto umbenannt! Seite wird neu geladen...'), true);
-            setTimeout(function() { location.reload(); }, 1000);
-        } else {
-            showStatus('renameStatus', msg, false);
+        // ==================== Save helpers ====================
+        function showStatus(elementId, message, success) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            el.textContent = message;
+            el.className = 'status-msg ' + (success ? 'success' : 'error');
+            setTimeout(() => { el.textContent = ''; }, 3000);
         }
-    });
-});
 
-document.getElementById('changePassBtn').addEventListener('click', function() {
-    var currentPwd = document.getElementById('currentPassword').value;
-    var newPwd = document.getElementById('newPassword').value;
-    if (!currentPwd || !newPwd) return;
-
-    fetch('/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword: currentPwd, newPassword: newPwd })
-    })
-    .then(function(res) { return res.text(); })
-    .then(function(msg) {
-        if (msg === 'OK') {
-            showStatus('passStatus', getLang('Password changed successfully.', 'Passwort erfolgreich geändert.'), true);
-            document.getElementById('currentPassword').value = '';
-            document.getElementById('newPassword').value = '';
-        } else {
-            showStatus('passStatus', msg, false);
-        }
-    });
-});
-
-document.getElementById('toggleDeleteBtn').addEventListener('click', function() {
-    document.getElementById('deleteAccountForm').classList.toggle('active');
-});
-
-document.getElementById('deleteAccountBtn').addEventListener('click', function() {
-    var pwd = document.getElementById('deletePassword').value;
-    var confirmVal = document.getElementById('deleteConfirmInput').value;
-
-    if (!pwd) {
-        showStatus('deleteStatus', getLang('Please enter your current password.', 'Bitte gib dein aktuelles Passwort ein.'), false);
-        return;
-    }
-
-    if (confirmVal !== 'DELETE') {
-        showStatus('deleteStatus', getLang("Please type 'DELETE' to confirm.", "Bitte tippe 'DELETE' zur Bestätigung."), false);
-        return;
-    }
-
-    fetch('/delete-account', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pwd })
-    })
-    .then(function(res) {
-        if (res.ok) {
-            alert(getLang('Account deleted.', 'Konto gelöscht.'));
-            window.location.href = 'index.html';
-        } else {
-            return res.text().then(function(msg) {
-                showStatus('deleteStatus', msg, false);
-            });
-        }
-    })
-    .catch(function() { showStatus('deleteStatus', getLang('Error deleting account.', 'Fehler beim Löschen des Kontos.'), false); });
-});
-
-function showStatus(elementId, message, success) {
-    var el = document.getElementById(elementId);
-    el.textContent = message;
-    el.className = 'status-msg ' + (success ? 'success' : 'error');
-    setTimeout(function() { el.textContent = ''; }, 3000);
-}
-
-// ==============================
-// Configuration Import/Export Logic
-// ==============================
-function initConfigImportExport() {
-    // Export button handler
-    document.getElementById('exportConfigBtn').addEventListener('click', exportConfiguration);
-    
-    // Import input handler
-    document.getElementById('importConfigInput').addEventListener('change', importConfiguration);
-}
-
-function gatherCurrentSettings() {
-    // Gather all current preference settings from the UI and localStorage
-    const config = {};
-    
-    // Autoplay settings
-    const autoplaySettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
-    config.autoplaySettings = {
-        enabled: document.getElementById('autoplayEnabled').checked,
-        playlistNext: document.getElementById('autoplayPlaylistNext').checked,
-        nonPlaylistMode: document.getElementById('autoplayNonPlaylistMode').value
-    };
-    
-    // Commenter profile style
-    config.commenterProfileStyle = document.getElementById('commenterProfileStyle').value;
-    
-    // Channel default view
-    config.channelDefaultView = document.getElementById('channelDefaultView').value;
-    
-    // Video page layout
-    config.videoPageLayout = document.getElementById('videoPageLayout').value;
-    
-    // Playlist page layout
-    config.playlistPageLayout = document.getElementById('playlistPageLayout').value;
-    
-    // Channel page style
-    config.channelPageStyle = document.getElementById('channelPageStyle').value;
-    
-    // Fuzzy subscription count
-    config.fuzzySubCount = document.getElementById('fuzzySubCount').checked;
-    
-    // Hide post images
-    config.hidePostImages = document.getElementById('hidePostImages').checked;
-    
-    // Title color scheme
-    config.titleColorScheme = document.getElementById('titleColorScheme').value;
-
-    // Channel Profile Pic in Player
-    config.showChannelProfilePic = document.getElementById('showChannelProfilePic').checked;
-
-    // End Screen Grid
-    config.showEndScreenGrid = document.getElementById('showEndScreenGrid').checked;
-
-    // NEW: Video Endcards
-    config.showEndcards = document.getElementById('showEndcards').checked;
-
-    // Player UI Scale
-    config.playerUIScale = parseFloat(document.getElementById('playerUIScale').value);
-
-    // Rounded Corners
-    config.roundedCorners = document.getElementById('roundedCorners').checked;
-
-    // Playlist Order
-    config.invertPlaylistOrder = document.getElementById('invertPlaylistOrder').checked;
-
-    // Sidebar SVG Icons
-    config.sidebarSvgIcons = document.getElementById('sidebarSvgIcons').checked;
-    
-    return config;
-}
-
-function exportConfiguration() {
-    try {
-        const config = gatherCurrentSettings();
-        const jsonString = JSON.stringify(config, null, 2);
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'localyt-config.json';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        showStatus('configImportExportStatus', getLang('Configuration exported successfully!', 'Konfiguration erfolgreich exportiert!'), true);
-    } catch (error) {
-        console.error('Export error:', error);
-        showStatus('configImportExportStatus', getLang('Error exporting configuration.', 'Fehler beim Exportieren der Konfiguration.'), false);
-    }
-}
-
-function importConfiguration(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const config = JSON.parse(e.target.result);
-            
-            // Validate the configuration structure
-            if (!validateConfig(config)) {
-                showStatus('configImportExportStatus', getLang('Invalid configuration file. The configuration appears to be tampered with or contains invalid values.', 'Ungültige Konfigurationsdatei. Die Konfiguration scheint manipuliert zu sein oder enthält ungültige Werte.'), false);
-                return;
-            }
-            
-            // Apply all settings from the imported configuration
-            applyConfiguration(config);
-            
-            // Save all settings to server
-            saveImportedConfiguration(config);
-            
-            showStatus('configImportExportStatus', getLang('Configuration imported successfully! All settings have been applied.', 'Konfiguration erfolgreich importiert! Alle Einstellungen wurden angewendet.'), true);
-            
-        } catch (error) {
-            console.error('Import error:', error);
-            showStatus('configImportExportStatus', getLang('Invalid configuration file. The configuration appears to be tampered with or contains invalid values.', 'Ungültige Konfigurationsdatei. Die Konfiguration scheint manipuliert zu sein oder enthält ungültige Werte.'), false);
-        }
-        
-        // Reset the file input so the same file can be imported again if needed
-        event.target.value = '';
-    };
-    reader.readAsText(file);
-}
-
-function validateConfig(config) {
-    // Check if config is an object
-    if (!config || typeof config !== 'object' || Array.isArray(config)) {
-        return false;
-    }
-    
-    // Validate autoplay settings
-    if (config.autoplaySettings) {
-        const autoplay = config.autoplaySettings;
-        if (typeof autoplay.enabled !== 'boolean') return false;
-        if (typeof autoplay.playlistNext !== 'boolean') return false;
-        const validModes = ['first-recommended', 'random-recommended', 'random-database'];
-        if (!validModes.includes(autoplay.nonPlaylistMode)) return false;
-    }
-    
-    // Validate commenter profile style
-    if (config.commenterProfileStyle && !['modern', 'classic'].includes(config.commenterProfileStyle)) {
-        return false;
-    }
-    
-    // Validate channel default view
-    if (config.channelDefaultView && !['grid', 'list'].includes(config.channelDefaultView)) {
-        return false;
-    }
-    
-    // Validate video page layout
-    if (config.videoPageLayout && !['modern', 'classic'].includes(config.videoPageLayout)) {
-        return false;
-    }
-    
-    // Validate playlist page layout
-    if (config.playlistPageLayout && !['grid', 'list'].includes(config.playlistPageLayout)) {
-        return false;
-    }
-    
-    // Validate channel page style
-    if (config.channelPageStyle && !['modern', 'legacy'].includes(config.channelPageStyle)) {
-        return false;
-    }
-    
-    // Validate boolean settings
-    if (config.fuzzySubCount !== undefined && typeof config.fuzzySubCount !== 'boolean') {
-        return false;
-    }
-    
-    if (config.hidePostImages !== undefined && typeof config.hidePostImages !== 'boolean') {
-        return false;
-    }
-
-    if (config.showChannelProfilePic !== undefined && typeof config.showChannelProfilePic !== 'boolean') {
-        return false;
-    }
-    
-    if (config.showEndScreenGrid !== undefined && typeof config.showEndScreenGrid !== 'boolean') {
-        return false;
-    }
-
-    // NEW: Validate showEndcards
-    if (config.showEndcards !== undefined && typeof config.showEndcards !== 'boolean') {
-        return false;
-    }
-    
-    // Validate player UI scale
-    if (config.playerUIScale !== undefined && (typeof config.playerUIScale !== 'number' || config.playerUIScale < 0.5 || config.playerUIScale > 2.0)) {
-        return false;
-    }
-
-    // Validate title color scheme
-    if (config.titleColorScheme && !['white', 'blue'].includes(config.titleColorScheme)) {
-        return false;
-    }
-
-    // Validate rounded corners
-    if (config.roundedCorners !== undefined && typeof config.roundedCorners !== 'boolean') {
-        return false;
-    }
-
-    // Validate playlist order
-    if (config.invertPlaylistOrder !== undefined && typeof config.invertPlaylistOrder !== 'boolean') {
-        return false;
-    }
-
-    // Validate sidebar SVG icons
-    if (config.sidebarSvgIcons !== undefined && typeof config.sidebarSvgIcons !== 'boolean') {
-        return false;
-    }
-    
-    return true;
-}
-
-function applyConfiguration(config) {
-    // Apply autoplay settings
-    if (config.autoplaySettings) {
-        document.getElementById('autoplayEnabled').checked = config.autoplaySettings.enabled;
-        document.getElementById('autoplayPlaylistNext').checked = config.autoplaySettings.playlistNext;
-        document.getElementById('autoplayNonPlaylistMode').value = config.autoplaySettings.nonPlaylistMode;
-        
-        // Update sub-options visibility
-        const subOptions = document.getElementById('autoplaySubOptions');
-        if (config.autoplaySettings.enabled) {
-            subOptions.classList.add('visible');
-        } else {
-            subOptions.classList.remove('visible');
-        }
-        
-        // Save to localStorage
-        localStorage.setItem('autoplaySettings', JSON.stringify(config.autoplaySettings));
-    }
-    
-    // Apply commenter profile style
-    if (config.commenterProfileStyle) {
-        document.getElementById('commenterProfileStyle').value = config.commenterProfileStyle;
-        localStorage.setItem('commenterProfileStyle', JSON.stringify({ style: config.commenterProfileStyle }));
-    }
-    
-    // Apply channel default view
-    if (config.channelDefaultView) {
-        document.getElementById('channelDefaultView').value = config.channelDefaultView;
-        localStorage.setItem('channelDefaultView', JSON.stringify({ view: config.channelDefaultView }));
-    }
-    
-    // Apply video page layout
-    if (config.videoPageLayout) {
-        document.getElementById('videoPageLayout').value = config.videoPageLayout;
-        localStorage.setItem('videoPageLayout', JSON.stringify({ layout: config.videoPageLayout }));
-    }
-    
-    // Apply playlist page layout
-    if (config.playlistPageLayout) {
-        document.getElementById('playlistPageLayout').value = config.playlistPageLayout;
-        localStorage.setItem('playlistPageLayout', JSON.stringify({ view: config.playlistPageLayout }));
-    }
-    
-    // Apply channel page style
-    if (config.channelPageStyle) {
-        document.getElementById('channelPageStyle').value = config.channelPageStyle;
-        localStorage.setItem('channelPageStyle', JSON.stringify({ style: config.channelPageStyle }));
-    }
-    
-    // Apply fuzzy subscription count
-    if (config.fuzzySubCount !== undefined) {
-        document.getElementById('fuzzySubCount').checked = config.fuzzySubCount;
-        localStorage.setItem('fuzzySubCount', JSON.stringify({ enabled: config.fuzzySubCount }));
-    }
-    
-    // Apply hide post images
-    if (config.hidePostImages !== undefined) {
-        document.getElementById('hidePostImages').checked = config.hidePostImages;
-        localStorage.setItem('hidePostImages', JSON.stringify({ enabled: config.hidePostImages }));
-    }
-    
-    // Apply title color scheme
-    if (config.titleColorScheme) {
-        document.getElementById('titleColorScheme').value = config.titleColorScheme;
-        localStorage.setItem('titleColorScheme', JSON.stringify({ scheme: config.titleColorScheme }));
-    }
-
-    // Apply Channel Profile Pic in Player
-    if (config.showChannelProfilePic !== undefined) {
-        document.getElementById('showChannelProfilePic').checked = config.showChannelProfilePic;
-        localStorage.setItem('showChannelProfilePic', JSON.stringify({ enabled: config.showChannelProfilePic }));
-    }
-
-    // Apply End Screen Grid
-    if (config.showEndScreenGrid !== undefined) {
-        document.getElementById('showEndScreenGrid').checked = config.showEndScreenGrid;
-        localStorage.setItem('showEndScreenGrid', JSON.stringify({ enabled: config.showEndScreenGrid }));
-    }
-
-    // NEW: Apply Video Endcards
-    if (config.showEndcards !== undefined) {
-        document.getElementById('showEndcards').checked = config.showEndcards;
-        localStorage.setItem('showEndcards', JSON.stringify({ enabled: config.showEndcards }));
-    }
-
-    // Apply Player UI Scale
-    if (config.playerUIScale !== undefined) {
-        document.getElementById('playerUIScale').value = config.playerUIScale;
-        localStorage.setItem('playerUIScale', JSON.stringify({ scale: config.playerUIScale }));
-    }
-    // Apply Rounded Corners
-    if (config.roundedCorners !== undefined) {
-        document.getElementById('roundedCorners').checked = config.roundedCorners;
-        localStorage.setItem('roundedCorners', JSON.stringify({ enabled: config.roundedCorners }));
-    }
-    // Apply Playlist Order
-    if (config.invertPlaylistOrder !== undefined) {
-        document.getElementById('invertPlaylistOrder').checked = config.invertPlaylistOrder;
-        localStorage.setItem('invertPlaylistOrder', JSON.stringify({ enabled: config.invertPlaylistOrder }));
-    }
-    // Apply Sidebar SVG Icons
-    if (config.sidebarSvgIcons !== undefined) {
-        document.getElementById('sidebarSvgIcons').checked = config.sidebarSvgIcons;
-        localStorage.setItem('sidebarSvgIcons', JSON.stringify({ enabled: config.sidebarSvgIcons }));
-        // Notify sidebar.js of the change
-        window.dispatchEvent(new StorageEvent('storage', {
-            key: 'sidebarSvgIcons',
-            newValue: JSON.stringify(config.sidebarSvgIcons)
-        }));
-    }
-}
-
-function saveImportedConfiguration(config) {
-    // Fetch current settings from server and merge with imported config
-    fetch('/user-settings')
-        .then(res => res.json())
-        .then(currentSettings => {
-            const updatedSettings = { ...currentSettings };
-            
-            // Merge imported settings
-            if (config.autoplaySettings) {
-                // Autoplay settings are saved separately
-                fetch('/autoplay-settings', {
+        async function updateUserSettings(partial) {
+            try {
+                const res = await fetch('/user-settings');
+                if (!res.ok) throw new Error('Not authenticated');
+                const currentSettings = await res.json();
+                const merged = { ...currentSettings, ...partial };
+                const saveRes = await fetch('/user-settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ autoplay: config.autoplaySettings })
-                }).catch(err => console.error('Error saving autoplay settings:', err));
+                    body: JSON.stringify({ settings: merged })
+                });
+                if (!saveRes.ok) throw new Error('Save failed');
+                return true;
+            } catch (err) {
+                console.error('updateUserSettings error:', err);
+                return false;
             }
-            
-            if (config.commenterProfileStyle) {
-                updatedSettings.commenterProfileStyle = config.commenterProfileStyle;
-            }
-            
-            if (config.channelDefaultView) {
-                updatedSettings.channelDefaultView = config.channelDefaultView;
-            }
-            
-            if (config.videoPageLayout) {
-                updatedSettings.videoPageLayout = config.videoPageLayout;
-            }
-            
-            if (config.playlistPageLayout) {
-                updatedSettings.playlistPageLayout = config.playlistPageLayout;
-            }
-            
-            if (config.channelPageStyle) {
-                updatedSettings.channelPageStyle = config.channelPageStyle;
-            }
-            
-            if (config.fuzzySubCount !== undefined) {
-                updatedSettings.fuzzySubCount = config.fuzzySubCount;
-            }
-            
-            if (config.hidePostImages !== undefined) {
-                updatedSettings.hidePostImages = config.hidePostImages;
-            }
-            
-            if (config.titleColorScheme) {
-                updatedSettings.titleColorScheme = config.titleColorScheme;
-            }
+        }
 
-            if (config.roundedCorners !== undefined) {
-                updatedSettings.roundedCorners = config.roundedCorners;
-            }
+        // --- Appearance Save ---
+        async function saveAppearance() {
+            const settings = {
+                videoPageLayout: document.getElementById('videoPageLayout').value,
+                channelPageStyle: document.getElementById('channelPageStyle').value,
+                channelDefaultView: document.getElementById('channelDefaultView').value,
+                commenterProfileStyle: document.getElementById('commenterProfileStyle').value,
+                titleColorScheme: document.getElementById('titleColorScheme').value,
+                roundedCorners: document.getElementById('roundedCorners').checked,
+                sidebarSvgIcons: document.getElementById('sidebarSvgIcons').checked,
+                playerUIScale: parseFloat(document.getElementById('playerUIScale').value)
+            };
+            // Save to localStorage immediately for consistency
+            localStorage.setItem('videoPageLayout', JSON.stringify({ layout: settings.videoPageLayout }));
+            localStorage.setItem('channelPageStyle', JSON.stringify({ style: settings.channelPageStyle }));
+            localStorage.setItem('channelDefaultView', JSON.stringify({ view: settings.channelDefaultView }));
+            localStorage.setItem('commenterProfileStyle', JSON.stringify({ style: settings.commenterProfileStyle }));
+            localStorage.setItem('titleColorScheme', JSON.stringify({ scheme: settings.titleColorScheme }));
+            localStorage.setItem('roundedCorners', JSON.stringify({ enabled: settings.roundedCorners }));
+            localStorage.setItem('sidebarSvgIcons', JSON.stringify(settings.sidebarSvgIcons));
+            localStorage.setItem('playerUIScale', JSON.stringify({ scale: settings.playerUIScale }));
 
-            if (config.invertPlaylistOrder !== undefined) {
-                updatedSettings.invertPlaylistOrder = config.invertPlaylistOrder;
+            if (await updateUserSettings(settings)) {
+                showStatus('appearanceStatus', getLang('Appearance settings saved!', 'Erscheinungsbild gespeichert!'), true);
+            } else {
+                showStatus('appearanceStatus', getLang('Error saving to server.', 'Fehler beim Speichern.'), false);
             }
+        }
 
-            if (config.showChannelProfilePic !== undefined) {
-                updatedSettings.showChannelProfilePic = config.showChannelProfilePic;
-            }
-            
-            if (config.showEndScreenGrid !== undefined) {
-                updatedSettings.showEndScreenGrid = config.showEndScreenGrid;
-            }
+        // --- Playback Save ---
+        async function savePlayback() {
+            const autoplaySettings = {
+                enabled: document.getElementById('autoplayEnabled').checked,
+                playlistNext: document.getElementById('autoplayPlaylistNext').checked,
+                nonPlaylistMode: document.getElementById('autoplayNonPlaylistMode').value
+            };
+            localStorage.setItem('autoplaySettings', JSON.stringify(autoplaySettings));
 
-            // NEW: Show Endcards
-            if (config.showEndcards !== undefined) {
-                updatedSettings.showEndcards = config.showEndcards;
-            }
-            
-            // Save Player UI Scale
-            if (config.playerUIScale !== undefined) {
-                updatedSettings.playerUIScale = config.playerUIScale;
-            }
+            const userPart = {
+                playlistPageLayout: document.getElementById('playlistPageLayout').value,
+                invertPlaylistOrder: document.getElementById('invertPlaylistOrder').checked,
+                showChannelProfilePic: document.getElementById('showChannelProfilePic').checked,
+                showEndScreenGrid: document.getElementById('showEndScreenGrid').checked,
+                showEndcards: document.getElementById('showEndcards').checked
+            };
+            localStorage.setItem('playlistPageLayout', JSON.stringify({ view: userPart.playlistPageLayout }));
+            localStorage.setItem('invertPlaylistOrder', JSON.stringify({ enabled: userPart.invertPlaylistOrder }));
+            localStorage.setItem('showChannelProfilePic', JSON.stringify({ enabled: userPart.showChannelProfilePic }));
+            localStorage.setItem('showEndScreenGrid', JSON.stringify({ enabled: userPart.showEndScreenGrid }));
+            localStorage.setItem('showEndcards', JSON.stringify({ enabled: userPart.showEndcards }));
 
-            // Save Sidebar SVG Icons
-            if (config.sidebarSvgIcons !== undefined) {
-                updatedSettings.sidebarSvgIcons = config.sidebarSvgIcons;
+            let success = true;
+            try {
+                await fetch('/autoplay-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ autoplay: autoplaySettings })
+                });
+            } catch (e) {
+                success = false;
             }
+            if (!(await updateUserSettings(userPart))) success = false;
 
-            // Save merged settings to server
-            return fetch('/user-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings: updatedSettings })
+            showStatus('playbackStatus', success ? getLang('Playback settings saved!', 'Wiedergabe-Einstellungen gespeichert!') : getLang('Error saving.', 'Fehler beim Speichern.'), success);
+        }
+
+        // --- Content Save ---
+        async function saveContent() {
+            const userPart = {
+                fuzzySubCount: document.getElementById('fuzzySubCount').checked,
+                hidePostImages: document.getElementById('hidePostImages').checked
+            };
+            localStorage.setItem('fuzzySubCount', JSON.stringify({ enabled: userPart.fuzzySubCount }));
+            localStorage.setItem('hidePostImages', JSON.stringify({ enabled: userPart.hidePostImages }));
+
+            // Save algorithm preferences separately
+            const container = document.getElementById('preferencesContainer');
+            const items = container.querySelectorAll('.pref-item');
+            const newPrefs = {};
+            items.forEach(item => {
+                const tag = item.dataset.tag;
+                const inputEl = item.querySelector('.pref-value');
+                newPrefs[tag] = parseInt(inputEl.value) || 0;
             });
-        })
-        .catch(err => console.error('Error saving imported configuration to server:', err));
-}
+
+            let success = true;
+            try {
+                const prefRes = await fetch('/save-preferences', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ preferences: newPrefs })
+                });
+                if (!prefRes.ok) success = false;
+            } catch (e) { success = false; }
+
+            if (!(await updateUserSettings(userPart))) success = false;
+
+            showStatus('contentStatus', success ? getLang('Content settings saved!', 'Inhaltseinstellungen gespeichert!') : getLang('Error saving.', 'Fehler beim Speichern.'), success);
+            if (success) loadPreferences(); // refresh list
+        }
+
+        // --- Loading functions for each tab ---
+        function loadAppearanceSettings() {
+            const videoPageLayout = JSON.parse(localStorage.getItem('videoPageLayout') || '{}');
+            document.getElementById('videoPageLayout').value = videoPageLayout.layout || 'modern';
+            const channelPageStyle = JSON.parse(localStorage.getItem('channelPageStyle') || '{}');
+            document.getElementById('channelPageStyle').value = channelPageStyle.style || 'modern';
+            const channelDefaultView = JSON.parse(localStorage.getItem('channelDefaultView') || '{}');
+            document.getElementById('channelDefaultView').value = channelDefaultView.view || 'grid';
+            const commenterStyle = JSON.parse(localStorage.getItem('commenterProfileStyle') || '{}');
+            document.getElementById('commenterProfileStyle').value = commenterStyle.style || 'modern';
+            const titleColor = JSON.parse(localStorage.getItem('titleColorScheme') || '{}');
+            document.getElementById('titleColorScheme').value = titleColor.scheme || 'white';
+            const roundedCorners = JSON.parse(localStorage.getItem('roundedCorners') || '{}');
+            document.getElementById('roundedCorners').checked = roundedCorners.enabled !== undefined ? roundedCorners.enabled : false;
+            const sidebarSvg = JSON.parse(localStorage.getItem('sidebarSvgIcons') || '{}');
+            document.getElementById('sidebarSvgIcons').checked = sidebarSvg.enabled !== undefined ? sidebarSvg.enabled : true;
+            const playerScale = JSON.parse(localStorage.getItem('playerUIScale') || '{}');
+            document.getElementById('playerUIScale').value = playerScale.scale !== undefined ? playerScale.scale : 1;
+
+            // Sync with server if available
+            fetch('/user-settings').then(res => res.json()).then(data => {
+                if (data.videoPageLayout) document.getElementById('videoPageLayout').value = data.videoPageLayout;
+                if (data.channelPageStyle) document.getElementById('channelPageStyle').value = data.channelPageStyle;
+                if (data.channelDefaultView) document.getElementById('channelDefaultView').value = data.channelDefaultView;
+                if (data.commenterProfileStyle) document.getElementById('commenterProfileStyle').value = data.commenterProfileStyle;
+                if (data.titleColorScheme) document.getElementById('titleColorScheme').value = data.titleColorScheme;
+                if (data.roundedCorners !== undefined) document.getElementById('roundedCorners').checked = data.roundedCorners;
+                if (data.sidebarSvgIcons !== undefined) document.getElementById('sidebarSvgIcons').checked = data.sidebarSvgIcons;
+                if (data.playerUIScale !== undefined) document.getElementById('playerUIScale').value = data.playerUIScale;
+            }).catch(() => {});
+        }
+
+        function loadPlaybackSettings() {
+            // Autoplay from localStorage / server
+            const autoplayLocal = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
+            document.getElementById('autoplayEnabled').checked = autoplayLocal.enabled || false;
+            document.getElementById('autoplayPlaylistNext').checked = autoplayLocal.playlistNext !== false;
+            document.getElementById('autoplayNonPlaylistMode').value = autoplayLocal.nonPlaylistMode || 'first-recommended';
+            toggleAutoplayCards();
+
+            fetch('/autoplay-settings').then(res => res.json()).then(data => {
+                if (Object.keys(data).length > 0) {
+                    document.getElementById('autoplayEnabled').checked = data.enabled || false;
+                    document.getElementById('autoplayPlaylistNext').checked = data.playlistNext !== false;
+                    if (data.nonPlaylistMode) document.getElementById('autoplayNonPlaylistMode').value = data.nonPlaylistMode;
+                    toggleAutoplayCards();
+                    localStorage.setItem('autoplaySettings', JSON.stringify(data));
+                }
+            }).catch(() => {});
+
+            // Other playback settings
+            const playlistLayout = JSON.parse(localStorage.getItem('playlistPageLayout') || '{}');
+            document.getElementById('playlistPageLayout').value = playlistLayout.view || 'grid';
+            const invertOrder = JSON.parse(localStorage.getItem('invertPlaylistOrder') || '{}');
+            document.getElementById('invertPlaylistOrder').checked = invertOrder.enabled !== undefined ? invertOrder.enabled : true;
+            const showPic = JSON.parse(localStorage.getItem('showChannelProfilePic') || '{}');
+            document.getElementById('showChannelProfilePic').checked = showPic.enabled || false;
+            const endScreenGrid = JSON.parse(localStorage.getItem('showEndScreenGrid') || '{}');
+            document.getElementById('showEndScreenGrid').checked = endScreenGrid.enabled !== undefined ? endScreenGrid.enabled : true;
+            const endcards = JSON.parse(localStorage.getItem('showEndcards') || '{}');
+            document.getElementById('showEndcards').checked = endcards.enabled !== undefined ? endcards.enabled : true;
+
+            fetch('/user-settings').then(res => res.json()).then(data => {
+                if (data.playlistPageLayout) document.getElementById('playlistPageLayout').value = data.playlistPageLayout;
+                if (data.invertPlaylistOrder !== undefined) document.getElementById('invertPlaylistOrder').checked = data.invertPlaylistOrder;
+                if (data.showChannelProfilePic !== undefined) document.getElementById('showChannelProfilePic').checked = data.showChannelProfilePic;
+                if (data.showEndScreenGrid !== undefined) document.getElementById('showEndScreenGrid').checked = data.showEndScreenGrid;
+                if (data.showEndcards !== undefined) document.getElementById('showEndcards').checked = data.showEndcards;
+            }).catch(() => {});
+        }
+
+        function loadContentSettings() {
+            loadPreferences();
+            const fuzzy = JSON.parse(localStorage.getItem('fuzzySubCount') || '{}');
+            document.getElementById('fuzzySubCount').checked = fuzzy.enabled || false;
+            const hidePosts = JSON.parse(localStorage.getItem('hidePostImages') || '{}');
+            document.getElementById('hidePostImages').checked = hidePosts.enabled || false;
+
+            fetch('/user-settings').then(res => res.json()).then(data => {
+                if (data.fuzzySubCount !== undefined) document.getElementById('fuzzySubCount').checked = data.fuzzySubCount;
+                if (data.hidePostImages !== undefined) document.getElementById('hidePostImages').checked = data.hidePostImages;
+            }).catch(() => {});
+        }
+
+        function toggleAutoplayCards() {
+            const enabled = document.getElementById('autoplayEnabled').checked;
+            document.getElementById('autoplayPlaylistCard').style.display = enabled ? '' : 'none';
+            document.getElementById('autoplayModeCard').style.display = enabled ? '' : 'none';
+        }
+
+        // --- Algorithm Preferences (same as before) ---
+        var allAvailableTags = [];
+        function loadAllTags() {
+            fetch('/get-all-tags').then(res => res.json()).then(tags => {
+                allAvailableTags = tags;
+                const datalist = document.getElementById('allTagsList');
+                datalist.innerHTML = '';
+                tags.forEach(tag => {
+                    const option = document.createElement('option');
+                    option.value = tag;
+                    datalist.appendChild(option);
+                });
+            }).catch(() => {});
+        }
+
+        function loadPreferences() {
+            fetch('/get-preferences').then(res => res.json()).then(data => {
+                const container = document.getElementById('preferencesContainer');
+                container.innerHTML = '';
+                if (Object.keys(data).length === 0) {
+                    container.innerHTML = '<div style="padding:20px;text-align:center;color:#666;">' + getLang('No preferences found.', 'Keine Einstellungen gefunden.') + '</div>';
+                    return;
+                }
+                const sorted = Object.entries(data).sort((a,b) => b[1] - a[1]);
+                sorted.forEach(([tag, value]) => createPrefItem(tag, value, container));
+            }).catch(() => {});
+        }
+
+        function createPrefItem(tag, value, container) {
+            const div = document.createElement('div');
+            div.className = 'pref-item';
+            div.dataset.tag = tag;
+            div.innerHTML = `
+                <span class="pref-tag" title="${tag}">${tag}</span>
+                <div class="pref-controls">
+                    <input type="number" class="pref-value" data-tag="${tag}" value="${value}">
+                    <button class="btn-remove" title="Remove Tag">&times;</button>
+                </div>`;
+            div.querySelector('.btn-remove').addEventListener('click', () => div.remove());
+            container.appendChild(div);
+        }
+
+        // --- Configuration Import/Export ---
+        function gatherCurrentSettings() {
+            return {
+                autoplaySettings: {
+                    enabled: document.getElementById('autoplayEnabled').checked,
+                    playlistNext: document.getElementById('autoplayPlaylistNext').checked,
+                    nonPlaylistMode: document.getElementById('autoplayNonPlaylistMode').value
+                },
+                videoPageLayout: document.getElementById('videoPageLayout').value,
+                channelPageStyle: document.getElementById('channelPageStyle').value,
+                channelDefaultView: document.getElementById('channelDefaultView').value,
+                commenterProfileStyle: document.getElementById('commenterProfileStyle').value,
+                titleColorScheme: document.getElementById('titleColorScheme').value,
+                roundedCorners: document.getElementById('roundedCorners').checked,
+                sidebarSvgIcons: document.getElementById('sidebarSvgIcons').checked,
+                playerUIScale: parseFloat(document.getElementById('playerUIScale').value),
+                playlistPageLayout: document.getElementById('playlistPageLayout').value,
+                invertPlaylistOrder: document.getElementById('invertPlaylistOrder').checked,
+                showChannelProfilePic: document.getElementById('showChannelProfilePic').checked,
+                showEndScreenGrid: document.getElementById('showEndScreenGrid').checked,
+                showEndcards: document.getElementById('showEndcards').checked,
+                fuzzySubCount: document.getElementById('fuzzySubCount').checked,
+                hidePostImages: document.getElementById('hidePostImages').checked
+            };
+        }
+
+        function exportConfig() {
+            try {
+                const config = gatherCurrentSettings();
+                const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'localyt-config.json';
+                a.click();
+                URL.revokeObjectURL(url);
+                showStatus('configImportExportStatus', getLang('Configuration exported!', 'Konfiguration exportiert!'), true);
+            } catch (e) {
+                showStatus('configImportExportStatus', getLang('Export failed.', 'Export fehlgeschlagen.'), false);
+            }
+        }
+
+        function importConfig(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const config = JSON.parse(e.target.result);
+                    // Apply all values to UI
+                    if (config.autoplaySettings) {
+                        document.getElementById('autoplayEnabled').checked = config.autoplaySettings.enabled;
+                        document.getElementById('autoplayPlaylistNext').checked = config.autoplaySettings.playlistNext;
+                        document.getElementById('autoplayNonPlaylistMode').value = config.autoplaySettings.nonPlaylistMode || 'first-recommended';
+                        toggleAutoplayCards();
+                    }
+                    if (config.videoPageLayout) document.getElementById('videoPageLayout').value = config.videoPageLayout;
+                    if (config.channelPageStyle) document.getElementById('channelPageStyle').value = config.channelPageStyle;
+                    if (config.channelDefaultView) document.getElementById('channelDefaultView').value = config.channelDefaultView;
+                    if (config.commenterProfileStyle) document.getElementById('commenterProfileStyle').value = config.commenterProfileStyle;
+                    if (config.titleColorScheme) document.getElementById('titleColorScheme').value = config.titleColorScheme;
+                    if (config.roundedCorners !== undefined) document.getElementById('roundedCorners').checked = config.roundedCorners;
+                    if (config.sidebarSvgIcons !== undefined) document.getElementById('sidebarSvgIcons').checked = config.sidebarSvgIcons;
+                    if (config.playerUIScale !== undefined) document.getElementById('playerUIScale').value = config.playerUIScale;
+                    if (config.playlistPageLayout) document.getElementById('playlistPageLayout').value = config.playlistPageLayout;
+                    if (config.invertPlaylistOrder !== undefined) document.getElementById('invertPlaylistOrder').checked = config.invertPlaylistOrder;
+                    if (config.showChannelProfilePic !== undefined) document.getElementById('showChannelProfilePic').checked = config.showChannelProfilePic;
+                    if (config.showEndScreenGrid !== undefined) document.getElementById('showEndScreenGrid').checked = config.showEndScreenGrid;
+                    if (config.showEndcards !== undefined) document.getElementById('showEndcards').checked = config.showEndcards;
+                    if (config.fuzzySubCount !== undefined) document.getElementById('fuzzySubCount').checked = config.fuzzySubCount;
+                    if (config.hidePostImages !== undefined) document.getElementById('hidePostImages').checked = config.hidePostImages;
+                    showStatus('configImportExportStatus', getLang('Configuration imported! Save each tab to apply.', 'Konfiguration importiert! Speichere die Tabs, um anzuwenden.'), true);
+                } catch (err) {
+                    showStatus('configImportExportStatus', getLang('Invalid file.', 'Ungültige Datei.'), false);
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        // --- Event Listeners Setup ---
+        document.addEventListener('DOMContentLoaded', () => {
+            applyTranslations();
+
+            // Logo navigation
+            document.getElementById('mainLogo').addEventListener('click', (e) => { if(e.button===0) window.location.href='index.html'; });
+            document.getElementById('mainLogo').addEventListener('mouseup', (e) => { if(e.button===1){ e.preventDefault(); window.open('index.html','_blank'); } });
+            document.getElementById('mainLogo').addEventListener('contextmenu', (e) => { e.preventDefault(); window.open('index.html','_blank'); });
+            document.getElementById('mainLogo').style.cursor='pointer';
+
+            // Search
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('keydown', (e) => { if(e.key==='Enter') window.location.href='search.html?q='+encodeURIComponent(searchInput.value); });
+            document.getElementById('searchIcon').addEventListener('click', () => { const q=searchInput.value.trim(); if(q) window.location.href='search.html?q='+encodeURIComponent(q); else searchInput.focus(); });
+
+            // Autoplay toggle cascading
+            document.getElementById('autoplayEnabled').addEventListener('change', toggleAutoplayCards);
+
+            // Save buttons
+            document.getElementById('saveAppearanceBtn').addEventListener('click', saveAppearance);
+            document.getElementById('savePlaybackBtn').addEventListener('click', savePlayback);
+            document.getElementById('saveContentBtn').addEventListener('click', saveContent);
+
+            // Algorithm tag add/reset
+            document.getElementById('addTagBtn').addEventListener('click', () => {
+                const input = document.getElementById('newTagInput');
+                const tagName = input.value.trim();
+                if (!tagName) return;
+                const container = document.getElementById('preferencesContainer');
+                if (container.querySelector(`[data-tag="${tagName}"]`)) {
+                    showStatus('prefStatus', getLang('Tag already in list.', 'Tag bereits vorhanden.'), false);
+                    return;
+                }
+                createPrefItem(tagName, 50, container);
+                input.value = '';
+            });
+            document.getElementById('resetPrefsBtn').addEventListener('click', () => {
+                if (confirm(getLang('Clear all viewing preferences?', 'Alle Ansichtseinstellungen löschen?'))) {
+                    fetch('/reset-preferences', { method:'POST' }).then(res => { if(res.ok) { showStatus('prefStatus', getLang('Reset!','Zurückgesetzt!'), true); loadPreferences(); } });
+                }
+            });
+
+            // Account actions
+            document.getElementById('logoutBtn').addEventListener('click', () => { window.location.href='/logout'; });
+            document.getElementById('renameBtn').addEventListener('click', () => {
+                const newUsername = document.getElementById('newUsername').value;
+                if (!newUsername) return;
+                fetch('/rename-account', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({newUsername}) })
+                .then(res => res.text())
+                .then(msg => { if(msg==='OK'){ showStatus('renameStatus', getLang('Renamed! Refreshing...','Umbenannt! Aktualisiere...'), true); setTimeout(()=>location.reload(),1000); } else showStatus('renameStatus', msg, false); });
+            });
+            document.getElementById('changePassBtn').addEventListener('click', () => {
+                const curr = document.getElementById('currentPassword').value;
+                const newP = document.getElementById('newPassword').value;
+                if(!curr||!newP) return;
+                fetch('/reset-password', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({currentPassword:curr, newPassword:newP}) })
+                .then(res => res.text())
+                .then(msg => { if(msg==='OK'){ showStatus('passStatus', getLang('Password changed!','Passwort geändert!'), true); document.getElementById('currentPassword').value=''; document.getElementById('newPassword').value=''; } else showStatus('passStatus', msg, false); });
+            });
+            document.getElementById('toggleDeleteBtn').addEventListener('click', () => { document.getElementById('deleteAccountForm').classList.toggle('active'); });
+            document.getElementById('deleteAccountBtn').addEventListener('click', () => {
+                const pwd = document.getElementById('deletePassword').value;
+                const confirmVal = document.getElementById('deleteConfirmInput').value;
+                if(!pwd) { showStatus('deleteStatus', getLang('Enter password.','Passwort eingeben.'), false); return; }
+                if(confirmVal!=='DELETE') { showStatus('deleteStatus', getLang("Type 'DELETE' to confirm.","'DELETE' zur Bestätigung."), false); return; }
+                fetch('/delete-account', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pwd}) })
+                .then(res => { if(res.ok){ alert(getLang('Account deleted.','Konto gelöscht.')); window.location.href='index.html'; } else return res.text().then(msg => showStatus('deleteStatus', msg, false)); })
+                .catch(() => showStatus('deleteStatus', getLang('Error.','Fehler.'), false));
+            });
+            document.getElementById('exportConfigBtn').addEventListener('click', exportConfig);
+            document.getElementById('importConfigInput').addEventListener('change', importConfig);
+
+            // Profile picture upload/remove (same as original, using profile-pic.js global functions)
+            // The profile-pic.js script will handle its own logic; we just ensure the DOM elements exist.
+
+            // Initial load for the default active tab (profile) is done by profile-pic.js after session check.
+            // Also load account tab's general settings (nothing needed).
+            // Wait for session check from profile-pic.js and then load initial data if needed.
+            function waitForSessionCheck() {
+                const headerPic = document.getElementById('headerProfilePic');
+                if (headerPic && headerPic.src && !headerPic.src.includes('user-profile-placeholder.jpg')) {
+                    // Already logged in, profile-pic.js likely loaded pic.
+                    // No further loading needed for profile tab.
+                } else {
+                    setTimeout(() => {
+                        fetch('/session-user').then(res => { if(!res.ok) window.location.href='login.html'; }).catch(() => window.location.href='login.html');
+                    }, 150);
+                }
+            }
+            waitForSessionCheck();
+        });
+
+        // ==================== Keep Profile Picture functions global for profile-pic.js compatibility ====================
+        var PLACEHOLDER_SRC = '/LocalYT-Rev-Files/user-profile-placeholder.jpg';
+        var profilePicDisplay = document.getElementById('profilePicDisplay');
+        var uploadBtn = document.getElementById('uploadBtn');
+        var removeBtn = document.getElementById('removeBtn');
+        var fileInput = document.getElementById('fileInput');
+        var profileStatus = document.getElementById('profileStatus');
+        var errorToast = document.getElementById('errorToast');
+        var successToast = document.getElementById('successToast');
+        var cropperModal = document.getElementById('cropperModal');
+        var imageToCrop = document.getElementById('imageToCrop');
+        var cancelCropBtn = document.getElementById('cancelCropBtn');
+        var doneCropBtn = document.getElementById('doneCropBtn');
+        var cropper = null;
+        var currentFile = null;
+
+        function showToast(el, msg) { el.textContent = msg; el.classList.add('visible'); setTimeout(() => el.classList.remove('visible'), 3000); }
     </script>
-    <!-- External Search Suggestion Script (Handles dropdown logic) -->
     <script src="search-suggestions.js"></script>
     <script src="sidebar.js"></script>
 </body>
