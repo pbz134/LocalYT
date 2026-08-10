@@ -269,13 +269,16 @@
     // ==============================
     // GLOBAL MODALS & TOAST
     // ==============================
+    // === inside thumbnail-context-menu.js ===
+
+    // Previous static HTML block replaced with this dynamic version
     document.body.insertAdjacentHTML('beforeend', `
         <div id="tcmShareOverlay" class="tcm-overlay">
             <div class="tcm-share-modal">
                 <button class="tcm-modal-close" id="tcmShareClose">&times;</button>
-                <h2 id="tcmShareTitle">Share Video</h2>
-                <button class="tcm-share-btn" id="tcmCopyWithTimestamp">Copy Link + Timestamp</button>
-                <button class="tcm-share-btn" id="tcmCopyLink">Copy Link</button>
+                <h2 id="tcmShareTitle"></h2>
+                <button class="tcm-share-btn" id="tcmCopyWithTimestamp"></button>
+                <button class="tcm-share-btn" id="tcmCopyLink"></button>
             </div>
         </div>
         <div id="tcmSaveOverlay" class="tcm-overlay">
@@ -292,6 +295,11 @@
         </div>
         <div id="tcmToast" class="tcm-toast"></div>
     `);
+
+// --- Apply translations immediately after insertion ---
+document.getElementById('tcmShareTitle').textContent = getLang('Share Video', 'Video teilen');
+document.getElementById('tcmCopyWithTimestamp').textContent = getLang('Copy Link + Timestamp', 'Link + Zeitstempel kopieren');
+document.getElementById('tcmCopyLink').textContent = getLang('Copy Link', 'Link kopieren');
 
     // ==============================
     // STATE
@@ -457,7 +465,7 @@
     function openShareModal(videoPath) {
         closeContextMenu();
         const videoTitle = getVideoTitleFromDOM(videoPath) || getLang('Video', 'Video');
-        document.getElementById('tcmShareTitle').textContent = `${getLang('Share', 'Teilen')} ${videoTitle}`;
+        document.getElementById('tcmShareTitle').textContent = `${getLang('Share video', 'Video teilen')}`;
         document.getElementById('tcmShareOverlay').style.display = 'flex';
     }
 
