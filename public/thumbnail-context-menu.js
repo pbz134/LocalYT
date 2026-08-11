@@ -1,7 +1,7 @@
 /**
  * thumbnail-context-menu.js
  * Adds a 3-dot menu to video thumbnails on hover across all pages.
- * Options: Add to playlist, Share
+ * Options: Add to Watch later, Add to playlist, Share (copy link)
  */
 (function() {
     // ==============================
@@ -101,7 +101,7 @@
             z-index: 3000;
         }
 
-        /* Share Modal */
+        /* Share Modal – kept for reference but no longer used */
         .tcm-share-modal {
             background-color: #1a1a1a;
             padding: 20px;
@@ -269,18 +269,7 @@
     // ==============================
     // GLOBAL MODALS & TOAST
     // ==============================
-    // === inside thumbnail-context-menu.js ===
-
-    // Previous static HTML block replaced with this dynamic version
     document.body.insertAdjacentHTML('beforeend', `
-        <div id="tcmShareOverlay" class="tcm-overlay">
-            <div class="tcm-share-modal">
-                <button class="tcm-modal-close" id="tcmShareClose">&times;</button>
-                <h2 id="tcmShareTitle"></h2>
-                <button class="tcm-share-btn" id="tcmCopyWithTimestamp"></button>
-                <button class="tcm-share-btn" id="tcmCopyLink"></button>
-            </div>
-        </div>
         <div id="tcmSaveOverlay" class="tcm-overlay">
             <div class="tcm-save-modal">
                 <button class="tcm-modal-close" id="tcmSaveClose">&times;</button>
@@ -295,11 +284,6 @@
         </div>
         <div id="tcmToast" class="tcm-toast"></div>
     `);
-
-// --- Apply translations immediately after insertion ---
-document.getElementById('tcmShareTitle').textContent = getLang('Share Video', 'Video teilen');
-document.getElementById('tcmCopyWithTimestamp').textContent = getLang('Copy Link + Timestamp', 'Link + Zeitstempel kopieren');
-document.getElementById('tcmCopyLink').textContent = getLang('Copy Link', 'Link kopieren');
 
     // ==============================
     // STATE
@@ -340,7 +324,6 @@ document.getElementById('tcmCopyLink').textContent = getLang('Copy Link', 'Link 
     }
 
     function closeAllModals() {
-        document.getElementById('tcmShareOverlay').style.display = 'none';
         document.getElementById('tcmSaveOverlay').style.display = 'none';
         closeContextMenu();
     }
@@ -350,12 +333,8 @@ document.getElementById('tcmCopyLink').textContent = getLang('Copy Link', 'Link 
         if (!src) return null;
         try {
             const u = new URL(src, window.location.origin);
-            // Match /thumbnails/... or /thumbnails-small/...
             const m = u.pathname.match(/^\/thumbnails(?:-small)?\/(.+)\.jpg$/);
             if (!m) return null;
-            
-            // The captured group is the encoded video path without extension
-            // Decode it to restore slashes (%2F -> /)
             let encodedPath = m[1];
             let decodedPath;
             try {
@@ -363,8 +342,6 @@ document.getElementById('tcmCopyLink').textContent = getLang('Copy Link', 'Link 
             } catch(e) {
                 decodedPath = encodedPath;
             }
-            
-            // Add the extension back
             return decodedPath + '.mp4';
         } catch(e) { return null; }
     }
@@ -390,7 +367,6 @@ document.getElementById('tcmCopyLink').textContent = getLang('Copy Link', 'Link 
     }
 
     function openContextMenu(btn, videoPath) {
-        // If clicking the same 3-dot button that opened the current menu, just close it
         if (activeContextMenu && activeMenuBtn === btn) {
             closeContextMenu();
             return;
@@ -403,7 +379,7 @@ document.getElementById('tcmCopyLink').textContent = getLang('Copy Link', 'Link 
         const menu = document.createElement('div');
         menu.className = 'thumbnail-context-menu';
 
-        // 1. Add to Watch Later Item (Top Position)
+        // 1. Add to Watch Later Item
         const watchLaterItem = document.createElement('div');
         watchLaterItem.className = 'thumbnail-context-menu-item';
         watchLaterItem.innerHTML = `${CLOCK_SVG} <span>${getLang('Add to Watch later', 'Zu "Später ansehen" hinzufügen')}</span>`;
@@ -421,16 +397,15 @@ document.getElementById('tcmCopyLink').textContent = getLang('Copy Link', 'Link 
             openSaveModal(videoPath);
         });
 
-        // 3. Share Item
+        // 3. Share Item – copies link directly, no modal
         const shareItem = document.createElement('div');
         shareItem.className = 'thumbnail-context-menu-item';
         shareItem.innerHTML = `${SHARE_SVG} <span>${getLang('Share', 'Teilen')}</span>`;
-        shareItem.addEventListener('click', (e) => {
+        shareItem.addEventListener('click', async (e) => {
             e.stopPropagation();
-            openShareModal(videoPath);
+            await copyShareLink(videoPath);
         });
 
-        // Append in order: Watch Later, Playlist, Share
         menu.appendChild(watchLaterItem);
         menu.appendChild(addPlaylistItem);
         menu.appendChild(shareItem);
@@ -452,7 +427,6 @@ document.getElementById('tcmCopyLink').textContent = getLang('Copy Link', 'Link 
         menu.style.left = `${left}px`;
     }
 
-    // Close context menu on click outside
     document.addEventListener('click', (e) => {
         if (activeContextMenu && !activeContextMenu.contains(e.target) && e.target !== activeMenuBtn) {
             closeContextMenu();
@@ -460,60 +434,17 @@ document.getElementById('tcmCopyLink').textContent = getLang('Copy Link', 'Link 
     });
 
     // ==============================
-    // SHARE MODAL LOGIC
+    // SHARE – direct copy (no modal)
     // ==============================
-    function openShareModal(videoPath) {
+    async function copyShareLink(videoPath) {
         closeContextMenu();
-        const videoTitle = getVideoTitleFromDOM(videoPath) || getLang('Video', 'Video');
-        document.getElementById('tcmShareTitle').textContent = `${getLang('Share video', 'Video teilen')}`;
-        document.getElementById('tcmShareOverlay').style.display = 'flex';
+        const url = await buildVideoUrl(videoPath);
+        copyToClipboard(url);
     }
 
-    document.getElementById('tcmShareClose').addEventListener('click', closeAllModals);
-    document.getElementById('tcmShareOverlay').addEventListener('click', (e) => {
-        if (e.target === document.getElementById('tcmShareOverlay')) closeAllModals();
-    });
-
-    document.getElementById('tcmCopyWithTimestamp').addEventListener('click', async () => {
-        const videoPath = currentMenuVideoPath;
-        if (!videoPath) return;
-        
-        const videoUrl = await buildVideoUrl(videoPath);
-        
-        // Try to get current timestamp if we are on the video page for this exact video
-        let seconds = 0;
-        if (window.location.pathname.includes('video.html')) {
-            const urlParams = new URLSearchParams(window.location.search);
-            let currentSrc = '';
-            try { currentSrc = decodeURIComponent(urlParams.get('src') || ''); } catch(e) { currentSrc = urlParams.get('src') || ''; }
-            
-            if (currentSrc === videoPath) {
-                const player = document.getElementById('videoPlayer');
-                if (player) seconds = Math.floor(player.currentTime);
-            }
-        }
-        
-        const finalUrl = seconds > 0 ? `${videoUrl}&t=${seconds}` : videoUrl;
-        copyToClipboard(finalUrl);
-        closeAllModals();
-    });
-
-    document.getElementById('tcmCopyLink').addEventListener('click', async () => {
-        const videoPath = currentMenuVideoPath;
-        if (!videoPath) return;
-        
-        const videoUrl = await buildVideoUrl(videoPath);
-        copyToClipboard(videoUrl);
-        closeAllModals();
-    });
-
-    function getVideoTitleFromDOM(videoPath) {
-        const encoded = encodeURIComponent(videoPath);
-        const el = document.querySelector(`.video-title[onclick*="${encoded}"]`) || 
-                   document.querySelector(`.suggestion-title[onclick*="${encoded}"]`);
-        return el ? el.textContent.trim() : null;
-    }
-
+    // ==============================
+    // VIDEO URL HELPERS
+    // ==============================
     async function buildVideoUrl(videoPath) {
         let url = `${window.location.origin}/video.html?src=${encodeURIComponent(videoPath)}`;
         
@@ -622,7 +553,7 @@ document.getElementById('tcmCopyLink').textContent = getLang('Copy Link', 'Link 
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ playlist: playlistName, video: currentMenuVideoPath })
             });
-            if (response.status === 409) return; // Already saved
+            if (response.status === 409) return;
             if (!response.ok) {
                 alert(getLang('Error saving to playlist.', 'Fehler beim Speichern in der Playlist.'));
                 return;
@@ -639,14 +570,12 @@ document.getElementById('tcmCopyLink').textContent = getLang('Copy Link', 'Link 
         const watchLaterName = getLang('Watch later', 'Später ansehen');
 
         try {
-            // 1. Try to save directly (fast path if playlist already exists)
             let saveRes = await fetch('/save-to-playlist', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ playlist: watchLaterName, video: videoPath })
             });
 
-            // 2. If the playlist doesn't exist yet, create it and try saving again
             if (saveRes.status === 404) {
                 const createRes = await fetch('/create-playlist', {
                     method: 'POST',
@@ -703,8 +632,8 @@ document.getElementById('tcmCopyLink').textContent = getLang('Copy Link', 'Link 
                 return;
             }
             input.value = '';
-            await fetchPlaylists(); // Refresh the list
-            await saveToPlaylist(name); // Save the video to it
+            await fetchPlaylists();
+            await saveToPlaylist(name);
         } catch (e) {
             console.error('Error creating playlist:', e);
         }
@@ -727,16 +656,13 @@ document.getElementById('tcmCopyLink').textContent = getLang('Copy Link', 'Link 
             const videoTitleEl = videoItem.querySelector('.video-title');
             if (!videoTitleEl) return;
             
-            // 1. Try extracting from onclick attribute
             const onclickAttr = videoTitleEl.getAttribute('onclick') || '';
             let videoPath = null;
             
-            // Check for openVideo('...') used on channel.html & video.html
             const openVideoMatch = onclickAttr.match(/openVideo\(['"]([^'"]+)['"]\)/);
             if (openVideoMatch) {
                 try { videoPath = decodeURIComponent(openVideoMatch[1]); } catch(e) { videoPath = openVideoMatch[1]; }
             } else {
-                // Check for src=... used on index.html
                 const srcMatch = onclickAttr.match(/src=([^&'"]+)/);
                 if (srcMatch) {
                     try { videoPath = decodeURIComponent(srcMatch[1]); } catch(e) { videoPath = srcMatch[1]; }
@@ -746,7 +672,6 @@ document.getElementById('tcmCopyLink').textContent = getLang('Copy Link', 'Link 
             if (videoPath) {
                 addMenuButtonToThumbnail(container, videoPath);
             } else {
-                // 2. Fallback: reconstruct path from thumbnail src URL
                 const imgEl = container.querySelector('img.video-thumbnail');
                 if (imgEl) {
                     const fallbackPath = pathFromThumbnailSrc(imgEl.src);
@@ -777,14 +702,12 @@ document.getElementById('tcmCopyLink').textContent = getLang('Copy Link', 'Link 
         });
     }
 
-    // Run on DOM ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', processThumbnails);
     } else {
         processThumbnails();
     }
 
-    // Re-process when new content is dynamically loaded (Infinite scroll, tab switching, etc.)
     const observer = new MutationObserver((mutations) => {
         let shouldProcess = false;
         for (const mutation of mutations) {
@@ -799,7 +722,6 @@ document.getElementById('tcmCopyLink').textContent = getLang('Copy Link', 'Link 
             if (shouldProcess) break;
         }
         if (shouldProcess) {
-            // Debounce slightly to avoid processing multiple mutations in a row
             clearTimeout(observer._timer);
             observer._timer = setTimeout(processThumbnails, 50);
         }
