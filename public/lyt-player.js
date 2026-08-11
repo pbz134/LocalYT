@@ -136,7 +136,7 @@
             this._eqSaveTimer = null; // for debouncing server saves
 
             // Current LYT Player version
-            this.version = 'v2.7.3';
+            this.version = 'v2.7.5';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -1328,7 +1328,7 @@
                         cursor: default;
                     }
                     
-                    /* Chapter title display */
+                    /* Chapter title display - updated to be clickable */
                     .lyt_chapter_title {
                         color: rgba(255, 255, 255, 0.9);
                         font-size: calc(var(--lyt-time-font-size) * var(--lyt-ui-scale));
@@ -1342,12 +1342,14 @@
                         text-overflow: ellipsis;
                         min-width: 0;
                         flex: 0 1 auto;
+                        transition: color 0.15s ease;
                     }
                     .lyt_chapter_title:not(:empty)::before {
                         content: '•';
                         margin-right: 6px;
                         opacity: 0.5;
                     }
+
                     
                     /* Popup menus */
                     .lyt_popup_menu {
@@ -4447,30 +4449,65 @@
             }
         }
         
-        /**
+         /**
          * Update the chapter title display based on current playback position.
+         * Also makes the chapter title clickable to toggle the chapter manager.
          */
         updateChapterTitle() {
             if (this.chapters.length === 0) {
                 this.dom.chapterTitle.textContent = '';
+                this.dom.chapterTitle.style.cursor = 'default';
+                this.dom.chapterTitle.style.pointerEvents = 'none';
                 return;
             }
-
+        
             const currentTime = this.video.currentTime;
             let currentChapter = null;
-
+            let currentIndex = -1;
+        
             // Find the chapter we're currently in
             for (let i = this.chapters.length - 1; i >= 0; i--) {
                 if (this.chapters[i].time <= currentTime + 0.5) {
                     currentChapter = this.chapters[i];
+                    currentIndex = i;
                     break;
                 }
             }
-
+        
             if (currentChapter) {
                 this.dom.chapterTitle.textContent = currentChapter.title;
+                this.dom.chapterTitle.style.cursor = 'pointer';
+                this.dom.chapterTitle.style.pointerEvents = 'auto';
+                this.dom.chapterTitle.style.color = '#fff';
+                
+                // Store the current chapter data for the click handler
+                this.dom.chapterTitle.dataset.chapterTitle = currentChapter.title;
+                this.dom.chapterTitle.dataset.chapterTime = currentChapter.time;
+                this.dom.chapterTitle.dataset.chapterIndex = currentIndex;
+                
+                // Ensure click handler is bound only once
+                if (!this.dom.chapterTitle._clickBound) {
+                    this.dom.chapterTitle._clickBound = true;
+                    this.dom.chapterTitle.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        // Dispatch a custom event that video.html can listen for
+                        const event = new CustomEvent('lyt-chapter-title-click', {
+                            detail: {
+                                chapters: this.chapters,
+                                currentTime: this.video.currentTime,
+                                currentChapter: this.dom.chapterTitle.dataset.chapterTitle,
+                                currentIndex: parseInt(this.dom.chapterTitle.dataset.chapterIndex)
+                            }
+                        });
+                        this.video.dispatchEvent(event);
+                        // Also dispatch on the wrapper for broader listening
+                        this.wrapper.dispatchEvent(event);
+                    });
+                }
             } else {
                 this.dom.chapterTitle.textContent = '';
+                this.dom.chapterTitle.style.cursor = 'default';
+                this.dom.chapterTitle.style.pointerEvents = 'none';
             }
         }
         
