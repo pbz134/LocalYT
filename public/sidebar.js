@@ -112,6 +112,52 @@ sidebarCSS.textContent = `
     .openbtn:hover {
         background-color: #444;
     }
+
+    /* ===== LIGHT MODE SIDEBAR OVERRIDES ===== */
+    body.light-mode .sidebar {
+        background-color: #f5f5f5 !important;
+        border-right: 1px solid #d0d0d0 !important;
+    }
+    body.light-mode .sidebar a {
+        color: #555555 !important;
+    }
+    body.light-mode .sidebar a:hover {
+        color: #000000 !important;
+    }
+    body.light-mode .sidebar .sidebar-divider {
+        background-color: #d0d0d0 !important;
+    }
+    body.light-mode .sidebar .genre-label {
+        color: #888888 !important;
+    }
+    body.light-mode .sidebar .sidebar-item {
+        color: #555555 !important;
+    }
+    body.light-mode .sidebar .sidebar-item:hover {
+        color: #000000 !important;
+    }
+    body.light-mode .sidebar .sidebar-item img.sidebar-icon {
+        filter: invert(40%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(60%) contrast(90%) !important;
+    }
+    body.light-mode .sidebar .sidebar-item:hover img.sidebar-icon {
+        filter: invert(0%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(0%) contrast(100%) !important;
+    }
+    body.light-mode .sidebar .genre-link img {
+        filter: invert(40%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(60%) contrast(90%) !important;
+    }
+    body.light-mode .openbtn {
+        background-color: transparent !important;
+        color: #333333 !important;
+        filter: none !important;
+    }
+    body.light-mode .openbtn:hover {
+        background-color: rgba(0, 0, 0, 0.08) !important;
+        color: #000000 !important;
+        filter: none !important;
+    }
+    body.light-mode .openbtn:focus {
+        outline: none !important;
+    }
 `;
 document.head.appendChild(sidebarCSS);
 
@@ -165,6 +211,14 @@ function initSidebar() {
             </a>
         </div>
     `;
+
+    // Apply light mode class to body if needed
+    const appearanceMode = localStorage.getItem('appearanceMode');
+    if (appearanceMode === 'light') {
+        document.body.classList.add('light-mode');
+    } else {
+        document.body.classList.remove('light-mode');
+    }
 
     // 3. Create and inject the ☰ toggle button into the header
     const topBar = document.querySelector('.top-bar');
@@ -285,6 +339,24 @@ function initSidebar() {
             applySvgIconVisibility(e.detail);
         }
     });
+
+    // 10. Listen for appearance mode changes
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'appearanceMode') {
+            const mode = e.newValue;
+            if (mode === 'light') {
+                document.body.classList.add('light-mode');
+            } else {
+                document.body.classList.remove('light-mode');
+            }
+        }
+    });
+
+    // 11. Check initial appearance mode from localStorage
+    const initialMode = localStorage.getItem('appearanceMode');
+    if (initialMode === 'light') {
+        document.body.classList.add('light-mode');
+    }
 }
 
 // Function to load sidebar SVG icon setting

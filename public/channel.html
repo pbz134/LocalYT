@@ -449,15 +449,15 @@
             width: 100%;
             max-width: 100%;
         }
-/* Videos tab: 5 items per row, except when in list view */
-#videosTab .channel-videos:not(.list-view) {
-    gap: 16px;
-}
-#videosTab .channel-videos:not(.list-view) .video-item {
-    flex: 0 0 calc((100% - 4 * 16px) / 5);
-    max-width: calc((100% - 4 * 16px) / 5);
-    width: auto;
-}
+        /* Videos tab: 5 items per row, except when in list view */
+        #videosTab .channel-videos:not(.list-view) {
+            gap: 16px;
+        }
+        #videosTab .channel-videos:not(.list-view) .video-item {
+            flex: 0 0 calc((100% - 3 * 16px) / 4);
+            max-width: calc((100% - 3 * 16px) / 4);
+            width: auto;
+        }
         /* Ensure thumbnails keep 16:9 */
         #videosTab .channel-videos .video-item .video-thumbnail {
             height: auto;

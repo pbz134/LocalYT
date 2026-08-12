@@ -270,7 +270,7 @@
             channelProfilePicLabel: { en: 'Show channel profile pic', de: 'Kanal-Profilbild anzeigen' },
             channelProfilePicDesc: { en: 'Bottom-right corner of player', de: 'Untere rechte Ecke des Players' },
             showEndScreenGridLabel: { en: 'End screen recommendation grid', de: 'Empfehlungsraster am Ende' },
-            showEndScreenGridDesc: { en: '4×3 grid when autoplay is off', de: '4×3-Raster wenn Autoplay aus ist' },
+            showEndScreenGridDesc: { en: '4×3 grid when autoplay is off', de: '4×3-Raster wenn Autoplay deaktiviert ist' },
             showEndcardsLabel: { en: 'Show video endcards', de: 'Video-Endkarten anzeigen' },
             showEndcardsDesc: { en: 'Two thumbnails in last 20 seconds', de: 'Zwei Vorschaubilder in den letzten 20 Sekunden' },
             fuzzySubCountLabel: { en: 'Fuzzy subscription counts', de: 'Ungefähre Abonnentenzahlen' },
@@ -320,7 +320,7 @@
             },
             titleColorScheme: {
                 options: [
-                    { en: 'White (Default)', de: 'Weiß (Standard)' },
+                    { en: 'Default', de: 'Standard' },
                     { en: 'Blue', de: 'Blau' }
                 ]
             },
@@ -531,6 +531,12 @@
                 background-color: #FFFFFF !important;
             }
             
+            /* Force .video-info background to transparent */
+            .video-info {
+                background: transparent !important;
+                background-color: transparent !important;
+            }
+            
             [style*="color: rgb(136, 136, 136)"],
             [style*="color: #888888"],
             .video-description,
@@ -546,6 +552,14 @@
             .suggestion-channel,
             .view-count {
                 color: #555555 !important;
+            }
+            
+            /* Channel name link - darker for better contrast in light mode */
+            .channel-name-link {
+                color: #1a1a1a !important;
+            }
+            .channel-name-link:hover {
+                color: #065fd4 !important;
             }
 
             .subscriber-count {
@@ -616,6 +630,54 @@
     
             .playlist-section-header, .playlist-section-header a {
                 color: #333 !important;
+            }
+
+            /* Playlists page light mode fixes */
+            .playlists-header {
+                color: #000000 !important;
+            }
+            .playlist-title {
+                color: #000000 !important;
+            }
+            .playlist-video-count,
+            .playlist-total-duration {
+                color: #555555 !important;
+            }
+            .playlist-section {
+                border-bottom-color: #e0e0e0 !important;
+            }
+            .playlist-btn {
+                color: #555555 !important;
+                border-color: #cccccc !important;
+            }
+            .playlist-btn:hover {
+                color: #000000 !important;
+                border-color: #999999 !important;
+                background: rgba(0, 0, 0, 0.05) !important;
+            }
+            .playlist-delete-btn:hover {
+                color: #ff4444 !important;
+                border-color: #ff4444 !important;
+                background: rgba(255, 68, 68, 0.05) !important;
+            }
+            .playlist-share-btn:hover {
+                color: #3ea6ff !important;
+                border-color: #3ea6ff !important;
+                background: rgba(62, 166, 255, 0.05) !important;
+            }
+            .playlist-video-item .video-description {
+                background-color: transparent !important;
+            }
+            .scroll-arrow {
+                background: rgba(255, 255, 255, 0.8) !important;
+                border-color: #cccccc !important;
+            }
+            .scroll-arrow svg {
+                fill: #333333 !important;
+            }
+            .scroll-arrow:hover {
+                background: rgba(255, 255, 255, 0.95) !important;
+                border-color: #999999 !important;
             }
     
             .suggestion-item {
@@ -790,6 +852,241 @@
             .top-bar .logo {
                 filter: none !important;
             }
+
+            /* ===== EDIT TOPICS PAGE LIGHT MODE ===== */
+            .edit-topics-title,
+            .modal-title,
+            .topic-card-name {
+                color: #000000 !important;
+            }
+            .edit-topics-subtitle,
+            .topic-card-meta,
+            .form-group .hint {
+                color: #555555 !important;
+            }
+            .topic-card {
+                background: #f5f5f5 !important;
+                border-color: #e0e0e0 !important;
+            }
+            .topic-card:hover {
+                background: #eeeeee !important;
+            }
+            .topic-card-pic {
+                background: #ddd !important;
+            }
+            .modal-content {
+                background: #ffffff !important;
+                border-color: #d0d0d0 !important;
+                color: #333333 !important;
+            }
+            .form-group label {
+                color: #555555 !important;
+            }
+            .form-group input[type="text"],
+            .form-group input[type="number"],
+            .form-group textarea {
+                background: #f0f0f0 !important;
+                border-color: #cccccc !important;
+                color: #000000 !important;
+            }
+            .form-group input:focus,
+            .form-group textarea:focus {
+                border-color: #3ea6ff !important;
+            }
+            .tag-input-wrapper {
+                background: #f0f0f0 !important;
+                border-color: #cccccc !important;
+            }
+            .tag-input-field {
+                color: #000000 !important;
+            }
+            .tag-pill {
+                background: #3ea6ff33 !important;
+                color: #065fd4 !important;
+                border-color: #3ea6ff66 !important;
+            }
+            .tag-suggestion {
+                background: #e8e8e8 !important;
+                color: #333333 !important;
+                border-color: #cccccc !important;
+            }
+            .tag-suggestion:hover {
+                background: #d0d0d0 !important;
+                color: #000000 !important;
+                border-color: #aaaaaa !important;
+            }
+            .btn-secondary {
+                background: #e0e0e0 !important;
+                color: #222222 !important;
+            }
+            .btn-secondary:hover {
+                background: #cccccc !important;
+            }
+            .image-preview {
+                background: #f0f0f0 !important;
+                border-color: #cccccc !important;
+            }
+            .image-preview .placeholder-text {
+                color: #888888 !important;
+            }
+            .add-topic-card {
+                border-color: #cccccc !important;
+            }
+            .add-topic-card:hover {
+                border-color: #3ea6ff !important;
+                background: rgba(62, 166, 255, 0.08) !important;
+            }
+            .add-topic-card .plus-icon {
+                color: #888888 !important;
+            }
+            .add-topic-card .add-text {
+                color: #666666 !important;
+            }
+            .cropper-modal {
+                background: #ffffff !important;
+                border-color: #d0d0d0 !important;
+            }
+            .cropper-modal-title {
+                color: #000000 !important;
+            }
+            .modal-overlay {
+                background: rgba(0,0,0,0.5) !important;
+            }
+            .cropper-modal-overlay {
+                background: rgba(0,0,0,0.6) !important;
+            }
+
+            /* ===== SETTINGS PAGE LIGHT MODE ===== */
+            .setting-card {
+                background-color: #f5f5f5 !important;
+                border-color: #d0d0d0 !important;
+            }
+            .setting-card:hover {
+                border-color: #999999 !important;
+            }
+            .setting-card .card-label {
+                color: #222222 !important;
+            }
+            .setting-card .card-desc {
+                color: #666666 !important;
+            }
+            .settings-section-header {
+                color: #555555 !important;
+                border-bottom-color: #d0d0d0 !important;
+            }
+            .account-section {
+                background-color: #f5f5f5 !important;
+                border-color: #d0d0d0 !important;
+            }
+            .account-section h2 {
+                border-bottom-color: #d0d0d0 !important;
+                color: #000000 !important;
+            }
+            select.setting-select {
+                background-color: #ffffff !important;
+                border-color: #cccccc !important;
+                color: #000000 !important;
+            }
+            select.setting-select:focus {
+                border-color: #3ea6ff !important;
+            }
+            .pref-item {
+                border-bottom-color: #d0d0d0 !important;
+            }
+            .pref-tag {
+                color: #222222 !important;
+            }
+            .pref-value {
+                background-color: #ffffff !important;
+                border-color: #cccccc !important;
+                color: #000000 !important;
+            }
+            .pref-list-container {
+                border-color: #d0d0d0 !important;
+                background: #fafafa !important;
+            }
+            .btn {
+                background-color: #e0e0e0 !important;
+                color: #222222 !important;
+            }
+            .btn:hover {
+                background-color: #cccccc !important;
+            }
+            .btn-danger {
+                background-color: #cc0000 !important;
+                color: #ffffff !important;
+            }
+            .btn-danger:hover {
+                background-color: #ff2222 !important;
+            }
+            .btn-logout {
+                background-color: #d0d0d0 !important;
+                color: #222222 !important;
+            }
+            .btn-logout:hover {
+                background-color: #bbbbbb !important;
+            }
+            .btn-save {
+                background-color: #2196F3 !important;
+                color: #ffffff !important;
+            }
+            .btn-save:hover {
+                background-color: #1e88e5 !important;
+            }
+            .delete-account-form {
+                background-color: #1a0000 !important;
+                border-color: #440000 !important;
+            }
+            .delete-account-form p {
+                color: #cccccc !important;
+            }
+            input[type="text"], input[type="password"] {
+                background: #f0f0f0 !important;
+                border-color: #cccccc !important;
+                color: #000000 !important;
+            }
+            .save-bar {
+                background: #f5f5f5 !important;
+                border-top-color: #d0d0d0 !important;
+            }
+            .save-bar .status-msg {
+                color: #555555 !important;
+            }
+            .settings-sidebar {
+                background: #f5f5f5 !important;
+                border-right: 1px solid #d0d0d0 !important;
+            }
+            .settings-sidebar a {
+                color: #555555 !important;
+            }
+            .settings-sidebar a:hover {
+                color: #000000 !important;
+            }
+            .settings-sidebar a.active {
+                color: #000000 !important;
+                background-color: rgba(0, 0, 0, 0.05) !important;
+                border-left-color: #000000 !important;
+            }
+            .settings-content h1 {
+                color: #000000 !important;
+            }
+            .settings-content .profile-status {
+                color: #666666 !important;
+            }
+            .settings-content .profile-btn.secondary {
+                background-color: #e0e0e0 !important;
+                color: #222222 !important;
+            }
+            .settings-content .profile-btn.secondary:hover {
+                background-color: #cccccc !important;
+            }
+            .settings-content .profile-btn.primary {
+                background-color: #cc0000 !important;
+                color: #ffffff !important;
+            }
+            .settings-content .profile-btn.primary:hover {
+                background-color: #ff2222 !important;
+            }
         `;
     
         // Only force title colors to black if blue titles are OFF
@@ -804,7 +1101,11 @@
             .comment-author,
             .comment-text,
             .comments-count,
-            #commentsTotalAmount {
+            #commentsTotalAmount,
+            .video-item .video-title,
+            .video-info .video-title,
+            .video-details .video-title,
+            #videoContainer .video-title {
                 color: #000000 !important;
             }
             `;
@@ -812,8 +1113,12 @@
             // Blue titles ON – make suggestion-title and current-video-title darker grey
             styleText += `
             .suggestion-title,
-            .current-video-title {
-                color: #444444 !important;
+            .current-video-title,
+            .video-item .video-title,
+            .video-info .video-title,
+            .video-details .video-title,
+            #videoContainer .video-title {
+                color: #128ee9 !important;
             }
             `;
         }

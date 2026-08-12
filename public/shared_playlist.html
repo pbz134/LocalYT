@@ -108,6 +108,14 @@
             color: #aaa; 
         }
 
+        /* Blue Titles Mode */
+        body.blue-titles .video-meta .title {
+            color: #128ee9 !important;
+        }
+        body.light-mode.blue-titles .video-meta .title {
+            color: #128ee9 !important;
+        }
+
         /* Error State */
         .error-msg { 
             text-align: center; 
@@ -142,6 +150,45 @@
         /* Show suggestions only when the search container (input) is focused/active */
         .search-container:focus-within .search-suggestions {
             display: block;
+        }
+
+        /* ===== LIGHT MODE OVERRIDES ===== */
+        body.light-mode {
+            background: #f5f5f5 !important;
+        }
+        body.light-mode .container {
+            color: #222222 !important;
+        }
+        body.light-mode .header-info {
+            border-bottom-color: #d0d0d0 !important;
+        }
+        body.light-mode .header-info h1 {
+            color: #000000 !important;
+        }
+        body.light-mode .header-info p {
+            color: #666666 !important;
+        }
+        body.light-mode .video-meta .title {
+            color: #000000 !important;
+        }
+        body.light-mode .video-meta .meta {
+            color: #666666 !important;
+        }
+        body.light-mode .thumbnail-container {
+            background: #e0e0e0 !important;
+        }
+        body.light-mode .error-msg {
+            color: #666666 !important;
+        }
+        body.light-mode .loader {
+            border-color: #d0d0d0 !important;
+            border-top-color: #333333 !important;
+        }
+        body.light-mode .back-link {
+            color: #065fd4 !important;
+        }
+        body.light-mode .back-link:hover {
+            color: #0645a0 !important;
         }
     </style>
 </head>
@@ -182,9 +229,47 @@
             return d.innerHTML;
         }
 
+        // --- Apply Appearance Mode ---
+        function applyAppearanceMode() {
+            const mode = localStorage.getItem('appearanceMode');
+            if (mode === 'light') {
+                document.body.classList.add('light-mode');
+            } else {
+                document.body.classList.remove('light-mode');
+            }
+        }
+
+        // --- Apply Title Color Scheme ---
+        function applyTitleColorScheme() {
+            const titleScheme = JSON.parse(localStorage.getItem('titleColorScheme') || '{}');
+            const isBlue = titleScheme.scheme === 'blue';
+            
+            if (isBlue) {
+                document.body.classList.add('blue-titles');
+            } else {
+                document.body.classList.remove('blue-titles');
+            }
+        }
+
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
             
+            // Apply appearance mode
+            applyAppearanceMode();
+
+            // Apply title color scheme
+            applyTitleColorScheme();
+
+            // Listen for appearance mode changes
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'appearanceMode') {
+                    applyAppearanceMode();
+                }
+                if (e.key === 'titleColorScheme') {
+                    applyTitleColorScheme();
+                }
+            });
+
             // Setup Logo
             const mainLogo = document.getElementById('mainLogo');
             if (mainLogo) {

@@ -621,7 +621,7 @@
                     </div>
                     <div class="card-control">
                         <select class="setting-select" id="titleColorScheme">
-                            <option value="white">White (Default)</option>
+                            <option value="white">Default</option>
                             <option value="blue">Blue</option>
                         </select>
                     </div>
@@ -989,7 +989,7 @@
             document.getElementById('channelProfilePicLabel').textContent = getLang('Show channel profile pic', 'Kanal-Profilbild anzeigen');
             document.getElementById('channelProfilePicDesc').textContent = getLang('Bottom-right corner of player', 'Untere rechte Ecke des Players');
             document.getElementById('showEndScreenGridLabel').textContent = getLang('End screen recommendation grid', 'Empfehlungsraster am Ende');
-            document.getElementById('showEndScreenGridDesc').textContent = getLang('4×3 grid when autoplay is off', '4×3-Raster wenn Autoplay aus');
+            document.getElementById('showEndScreenGridDesc').textContent = getLang('4×3 grid when autoplay is off', '4×3-Raster wenn Autoplay deaktiviert ist');
             document.getElementById('showEndcardsLabel').textContent = getLang('Show video endcards', 'Video-Endkarten anzeigen');
             document.getElementById('showEndcardsDesc').textContent = getLang('Two thumbnails in last 20 seconds', 'Zwei Vorschaubilder in den letzten 20 Sekunden');
             document.getElementById('savePlaybackBtn').textContent = getLang('Save Playback Settings', 'Wiedergabe-Einstellungen speichern');
@@ -1026,7 +1026,7 @@
             const commenterSelect = document.getElementById('commenterProfileStyle');
             if (commenterSelect) { commenterSelect.options[0].text = getLang('Modern (Letters & Colors)', 'Modern (Buchstaben & Farben)'); commenterSelect.options[1].text = getLang('Classic (Placeholder)', 'Klassisch (Platzhalter)'); }
             const titleColor = document.getElementById('titleColorScheme');
-            if (titleColor) { titleColor.options[0].text = getLang('White (Default)', 'Weiß (Standard)'); titleColor.options[1].text = getLang('Blue', 'Blau'); }
+            if (titleColor) { titleColor.options[0].text = getLang('Default', 'Standard'); titleColor.options[1].text = getLang('Blue', 'Blau'); }
             const playlistLayout = document.getElementById('playlistPageLayout');
             if (playlistLayout) { playlistLayout.options[0].text = getLang('Grid', 'Raster'); playlistLayout.options[1].text = getLang('List', 'Liste'); }
             const nonPlaylist = document.getElementById('autoplayNonPlaylistMode');
