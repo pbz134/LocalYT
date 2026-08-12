@@ -93,5 +93,4 @@ What if I only have the video files and no metadata?
 
 ## TO DO
 - Finish implementing mobile support
-- Finish implementing Light Mode
 - Find a local music genre classification model
