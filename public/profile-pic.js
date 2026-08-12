@@ -957,6 +957,59 @@
             }
 
             /* ===== SETTINGS PAGE LIGHT MODE ===== */
+            .settings-sidebar {
+                background: #f5f5f5 !important;
+                border-right: 1px solid #d0d0d0 !important;
+            }
+            .settings-sidebar a {
+                color: #555555 !important;
+            }
+            .settings-sidebar a:hover {
+                color: #000000 !important;
+            }
+            .settings-sidebar a.active {
+                color: #000000 !important;
+                background-color: rgba(0, 0, 0, 0.05) !important;
+                border-left-color: #000000 !important;
+            }
+            .settings-content h1 {
+                color: #000000 !important;
+            }
+            .settings-content .profile-status {
+                color: #666666 !important;
+            }
+            .settings-content .profile-btn.secondary {
+                background-color: #e0e0e0 !important;
+                color: #222222 !important;
+            }
+            .settings-content .profile-btn.secondary:hover {
+                background-color: #cccccc !important;
+            }
+            .settings-content .profile-btn.primary {
+                background-color: #cc0000 !important;
+                color: #ffffff !important;
+            }
+            .settings-content .profile-btn.primary:hover {
+                background-color: #ff2222 !important;
+            }
+            .preset-card {
+                background-color: #f5f5f5 !important;
+                border-color: #d0d0d0 !important;
+            }
+            .preset-card .preset-label {
+                color: #222222 !important;
+            }
+            .preset-card .preset-desc {
+                color: #666666 !important;
+            }
+            .preset-select {
+                background-color: #ffffff !important;
+                border-color: #cccccc !important;
+                color: #000000 !important;
+            }
+            .preset-select:focus {
+                border-color: #3ea6ff !important;
+            }
             .setting-card {
                 background-color: #f5f5f5 !important;
                 border-color: #d0d0d0 !important;
@@ -1052,40 +1105,17 @@
             .save-bar .status-msg {
                 color: #555555 !important;
             }
-            .settings-sidebar {
-                background: #f5f5f5 !important;
-                border-right: 1px solid #d0d0d0 !important;
-            }
-            .settings-sidebar a {
-                color: #555555 !important;
-            }
-            .settings-sidebar a:hover {
-                color: #000000 !important;
-            }
-            .settings-sidebar a.active {
-                color: #000000 !important;
-                background-color: rgba(0, 0, 0, 0.05) !important;
-                border-left-color: #000000 !important;
-            }
-            .settings-content h1 {
-                color: #000000 !important;
-            }
-            .settings-content .profile-status {
-                color: #666666 !important;
-            }
-            .settings-content .profile-btn.secondary {
-                background-color: #e0e0e0 !important;
-                color: #222222 !important;
-            }
-            .settings-content .profile-btn.secondary:hover {
+            .toggle-slider {
                 background-color: #cccccc !important;
             }
-            .settings-content .profile-btn.primary {
-                background-color: #cc0000 !important;
-                color: #ffffff !important;
+            .toggle-switch input:checked + .toggle-slider {
+                background-color: #2196F3 !important;
             }
-            .settings-content .profile-btn.primary:hover {
-                background-color: #ff2222 !important;
+            .toggle-slider:before {
+                background-color: #ffffff !important;
+            }
+            .profile-pic-display {
+                border-color: #cccccc !important;
             }
         `;
     

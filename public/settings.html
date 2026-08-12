@@ -499,6 +499,49 @@
         .search-container:focus-within .search-suggestions {
             display: block;
         }
+
+        /* --- Presets dropdown styling (matches other selects) --- */
+        .preset-select {
+            background-color: #222;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 8px 12px;
+            font-size: 14px;
+            cursor: pointer;
+            min-width: 200px;
+            border-radius: 4px;
+        }
+        .preset-select:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+        .preset-card {
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        .preset-card .preset-info {
+            flex: 1;
+        }
+        .preset-card .preset-label {
+            font-size: 15px;
+            color: #eee;
+            font-weight: 500;
+        }
+        .preset-card .preset-desc {
+            font-size: 13px;
+            color: #888;
+            margin-top: 2px;
+        }
+        .preset-card .preset-control {
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body>
@@ -540,6 +583,22 @@
         <!-- Appearance Tab -->
         <div class="tab-panel" id="tab-appearance">
             <h1>Appearance</h1>
+
+            <!-- PRESETS SECTION - above all other controls -->
+            <div class="preset-card">
+                <div class="preset-info">
+                    <div class="preset-label" id="presetLabel">Presets</div>
+                    <div class="preset-desc" id="presetDesc">Apply a predefined set of appearance settings</div>
+                </div>
+                <div class="preset-control">
+                    <select class="preset-select" id="presetSelector">
+                        <option value="none">None</option>
+                        <option value="modern">Modern</option>
+                        <option value="classic">Classic</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="settings-grid">
 
                 <div class="settings-section-header">Video & Channel Layout</div>
@@ -614,6 +673,7 @@
                     </div>
                 </div>
 
+                <!-- Title color scheme - not affected by presets -->
                 <div class="setting-card">
                     <div class="card-info">
                         <div class="card-label" id="titleColorSchemeLabel">Title color scheme</div>
@@ -956,6 +1016,13 @@
             document.getElementById('uploadBtn').textContent = getLang('Upload Picture', 'Bild hochladen');
             document.getElementById('removeBtn').textContent = getLang('Remove Picture', 'Bild entfernen');
 
+            // Presets
+            document.getElementById('presetLabel').textContent = getLang('Presets', 'Voreinstellungen');
+            document.getElementById('presetDesc').textContent = getLang('Apply a predefined set of appearance settings', 'Wenden Sie einen vordefinierten Satz von Erscheinungseinstellungen an');
+            document.querySelector('#presetSelector option[value="none"]').textContent = getLang('None', 'Keine');
+            document.querySelector('#presetSelector option[value="modern"]').textContent = getLang('Modern', 'Modern');
+            document.querySelector('#presetSelector option[value="classic"]').textContent = getLang('Classic', 'Klassisch');
+
             // Appearance labels
             document.getElementById('videoPageLayoutLabel').textContent = getLang('Video page style', 'Videoseiten-Stil');
             document.getElementById('videoPageLayoutDesc').textContent = getLang('Modern or Classic layout (view count on right, buttons stacked)', 'Modernes oder klassisches Layout');
@@ -1221,6 +1288,8 @@
                 if (data.roundedCorners !== undefined) document.getElementById('roundedCorners').checked = data.roundedCorners;
                 if (data.sidebarSvgIcons !== undefined) document.getElementById('sidebarSvgIcons').checked = data.sidebarSvgIcons;
                 if (data.playerUIScale !== undefined) document.getElementById('playerUIScale').value = data.playerUIScale;
+                // reset preset selector to "none" after loading (since we're not in a preset state)
+                document.getElementById('presetSelector').value = 'none';
             }).catch(() => {});
         }
 
@@ -1404,6 +1473,57 @@
             reader.readAsText(file);
         }
 
+        // ============ PRESETS LOGIC ============
+        function applyPreset(presetName) {
+            // Do not change titleColorScheme
+            let settings = {};
+
+            if (presetName === 'modern') {
+                settings = {
+                    videoPageLayout: 'modern',
+                    channelPageStyle: 'modern',
+                    channelDefaultView: 'grid',
+                    commenterProfileStyle: 'modern',
+                    roundedCorners: true,
+                    sidebarSvgIcons: false,
+                    playlistPageLayout: 'grid'
+                    // titleColorScheme is left unchanged
+                };
+            } else if (presetName === 'classic') {
+                settings = {
+                    videoPageLayout: 'classic',
+                    channelPageStyle: 'legacy',
+                    channelDefaultView: 'list',
+                    commenterProfileStyle: 'classic',
+                    roundedCorners: false,
+                    sidebarSvgIcons: true,
+                    playlistPageLayout: 'list'
+                    // titleColorScheme is left unchanged
+                };
+            } else {
+                // 'none' or unknown: do nothing
+                return;
+            }
+
+            // Apply to UI elements
+            if (settings.videoPageLayout) document.getElementById('videoPageLayout').value = settings.videoPageLayout;
+            if (settings.channelPageStyle) document.getElementById('channelPageStyle').value = settings.channelPageStyle;
+            if (settings.channelDefaultView) document.getElementById('channelDefaultView').value = settings.channelDefaultView;
+            if (settings.commenterProfileStyle) document.getElementById('commenterProfileStyle').value = settings.commenterProfileStyle;
+            if (settings.roundedCorners !== undefined) document.getElementById('roundedCorners').checked = settings.roundedCorners;
+            if (settings.sidebarSvgIcons !== undefined) document.getElementById('sidebarSvgIcons').checked = settings.sidebarSvgIcons;
+            if (settings.playlistPageLayout) document.getElementById('playlistPageLayout').value = settings.playlistPageLayout;
+
+            // Also store in localStorage immediately to keep consistency
+            if (settings.videoPageLayout) localStorage.setItem('videoPageLayout', JSON.stringify({ layout: settings.videoPageLayout }));
+            if (settings.channelPageStyle) localStorage.setItem('channelPageStyle', JSON.stringify({ style: settings.channelPageStyle }));
+            if (settings.channelDefaultView) localStorage.setItem('channelDefaultView', JSON.stringify({ view: settings.channelDefaultView }));
+            if (settings.commenterProfileStyle) localStorage.setItem('commenterProfileStyle', JSON.stringify({ style: settings.commenterProfileStyle }));
+            if (settings.roundedCorners !== undefined) localStorage.setItem('roundedCorners', JSON.stringify({ enabled: settings.roundedCorners }));
+            if (settings.sidebarSvgIcons !== undefined) localStorage.setItem('sidebarSvgIcons', JSON.stringify(settings.sidebarSvgIcons));
+            if (settings.playlistPageLayout) localStorage.setItem('playlistPageLayout', JSON.stringify({ view: settings.playlistPageLayout }));
+        }
+
         // --- Event Listeners Setup ---
         document.addEventListener('DOMContentLoaded', () => {
             applyTranslations();
@@ -1475,6 +1595,26 @@
             });
             document.getElementById('exportConfigBtn').addEventListener('click', exportConfig);
             document.getElementById('importConfigInput').addEventListener('change', importConfig);
+
+            // PRESETS: listen to dropdown change
+            document.getElementById('presetSelector').addEventListener('change', function(e) {
+                const selected = this.value;
+                if (selected === 'none') {
+                    // do nothing, just reset the dropdown
+                    return;
+                }
+                applyPreset(selected);
+                // after applying, reset dropdown to "none" to indicate no preset is actively selected
+                // but we want to keep the current selection visible? Better to reset to none so user knows it's not sticky.
+                // But we want to allow applying again if needed. We'll reset it to "none" after applying.
+                // However we want the user to be able to re-apply the same preset if they want.
+                // We'll keep it as is but we'll set to none after a short delay to avoid confusion.
+                // Actually, better to leave it so user sees which preset was applied. But we'll set to none after the change.
+                // We'll use a timeout to reset.
+                setTimeout(() => {
+                    document.getElementById('presetSelector').value = 'none';
+                }, 100);
+            });
 
             // Profile picture upload/remove (same as original, using profile-pic.js global functions)
             // The profile-pic.js script will handle its own logic; we just ensure the DOM elements exist.
