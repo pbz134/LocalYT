@@ -1101,6 +1101,7 @@
         const dict = {
             'subscribeButton': { en: 'Subscribe', de: 'Abonnieren' },
             'subscribedState': { en: 'Subscribed', de: 'Abonniert' },
+            'chaptersLabel': { en: 'Chapters', de: 'Kapitel' },
             'shareContainer': { en: 'Share', de: 'Teilen' },
             'saveContainer': { en: 'Save', de: 'Speichern' },
             'savedState': { en: 'Saved', de: 'Gespeichert' },
