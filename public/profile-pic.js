@@ -695,6 +695,16 @@
                 color: #000 !important;
             }
 
+            .category-button {
+                background-color: #ffffff !important;
+                color: #0f0f0f !important;
+                border-color: #cccccc !important;
+            }
+
+            .category-button:hover {
+                background-color: #e0e0e0 !important;
+            }
+
             /* ===== DIVIDER BELOW MINI PLAYER LIGHT MODE ===== */
             .home-others-label {
                 border-top-color: #e0e0e0 !important;
