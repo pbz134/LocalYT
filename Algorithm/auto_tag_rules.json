@@ -293,27 +293,6 @@
       "match_value": "bootleg",
       "case_sensitive": false,
       "tags": ["Music", "Remix"]
-    },
-    {
-      "name": "MP3 Music Rule",
-      "match_type": "extension",
-      "match_value": ".mp3",
-      "case_sensitive": false,
-      "tags": ["Music"]
-    },
-    {
-      "name": "FLAC Music Rule",
-      "match_type": "extension",
-      "match_value": ".flac",
-      "case_sensitive": false,
-      "tags": ["Music"]
-    },
-    {
-      "name": "WAV Music Rule",
-      "match_type": "extension",
-      "match_value": ".wav",
-      "case_sensitive": false,
-      "tags": ["Music"]
     }
   ]
 }
