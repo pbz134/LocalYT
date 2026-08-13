@@ -1391,7 +1391,7 @@
         const textSpan = item.querySelector('.profile-menu-text');
         
         if (currentMode === 'light') {
-            textSpan.textContent = getLang('Appearance: Light (BETA)', 'Erscheinungsbild: Hell (BETA)');
+            textSpan.textContent = getLang('Appearance: Light', 'Erscheinungsbild: Hell');
         } else if (currentMode === 'oled') {
             textSpan.textContent = getLang('Appearance: OLED', 'Erscheinungsbild: OLED');
         } else {
