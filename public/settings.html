@@ -68,7 +68,7 @@
             display: block;
         }
 
-        /* --- Profile Picture Tab (unchanged mostly) --- */
+        /* --- Profile Picture Tab (unchanged) --- */
         .profile-page-container {
             display: flex;
             flex-direction: column;
@@ -277,7 +277,7 @@
             font-size: 13px;
         }
 
-        /* --- Toggle & Select Styles (unchanged) --- */
+        /* --- Toggle & Select Styles --- */
         .toggle-switch {
             position: relative;
             display: inline-block;
@@ -339,7 +339,7 @@
             border-color: #2196F3;
         }
 
-        /* --- Account tab specific sections (still using a more block-like layout) --- */
+        /* --- Account tab specific sections --- */
         .account-section {
             background-color: #1a1a1a;
             border: 1px solid #333;
@@ -428,7 +428,7 @@
         .success { color: #4caf50; }
         .error { color: #f44336; }
 
-        /* --- Algorithm Preferences (still needs its own list style) --- */
+        /* --- Algorithm Preferences --- */
         .pref-list-container {
             max-height: 400px;
             overflow-y: auto;
@@ -500,7 +500,7 @@
             display: block;
         }
 
-        /* --- Presets dropdown styling (matches other selects) --- */
+        /* --- Presets dropdown --- */
         .preset-select {
             background-color: #222;
             border: 1px solid #444;
@@ -567,7 +567,7 @@
     <!-- Content Area -->
     <div class="settings-content">
 
-        <!-- Profile Picture Tab (unchanged) -->
+        <!-- Profile Picture Tab -->
         <div class="tab-panel active" id="tab-profile">
             <h1 id="profileHeading">Profile Picture</h1>
             <div class="profile-page-container">
@@ -584,7 +584,7 @@
         <div class="tab-panel" id="tab-appearance">
             <h1>Appearance</h1>
 
-            <!-- PRESETS SECTION - above all other controls -->
+            <!-- PRESETS -->
             <div class="preset-card">
                 <div class="preset-info">
                     <div class="preset-label" id="presetLabel">Presets</div>
@@ -642,7 +642,6 @@
                     </div>
                 </div>
 
-                <!-- NEW: Playlist layout moved here -->
                 <div class="settings-section-header">Playlist Layout</div>
 
                 <div class="setting-card">
@@ -673,7 +672,7 @@
                     </div>
                 </div>
 
-                <!-- Title color scheme - not affected by presets -->
+                <!-- Title color scheme -->
                 <div class="setting-card">
                     <div class="card-info">
                         <div class="card-label" id="titleColorSchemeLabel">Title color scheme</div>
@@ -812,7 +811,8 @@
                     </div>
                 </div>
 
-                <div class="settings-section-header">Player Overlays</div>
+                <!-- ===== RENAMED SECTION: "LYT PLAYER" instead of "Player Overlays" ===== -->
+                <div class="settings-section-header">LYT PLAYER</div>
 
                 <div class="setting-card">
                     <div class="card-info">
@@ -853,6 +853,20 @@
                     </div>
                 </div>
 
+                <!-- ===== NEW SETTING: Disable recommendation popups ===== -->
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="showRecommendationPopupsLabel">Show recommendation popups</div>
+                        <div class="card-desc" id="showRecommendationPopupsDesc">Popups with recommended videos during playback</div>
+                    </div>
+                    <div class="card-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="showRecommendationPopups">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
             </div>
 
             <div class="save-bar">
@@ -865,7 +879,7 @@
         <div class="tab-panel" id="tab-content">
             <h1>Content & Recommendations</h1>
 
-            <!-- Algorithm Preferences (still uses its own special layout) -->
+            <!-- Algorithm Preferences -->
             <div class="account-section">
                 <h2 id="algoPrefsHeading">Algorithm Preferences</h2>
                 <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;" id="algoPrefsDesc">Adjust scores to influence your recommendations. Higher = matching videos are more likely to appear.</p>
@@ -977,7 +991,7 @@
 
     </div>
 
-    <!-- Cropper Modal (unchanged) -->
+    <!-- Cropper Modal -->
     <div class="crop-modal-overlay" id="cropperModal">
         <div class="cropper-container-wrapper">
             <img id="imageToCrop" src="">
@@ -1000,7 +1014,7 @@
             return localStorage.getItem('language') === 'de' ? de : en;
         }
 
-        // --- UI Translations (updated for new tabs) ---
+        // --- UI Translations (updated for new setting) ---
         function applyTranslations() {
             document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
 
@@ -1059,6 +1073,11 @@
             document.getElementById('showEndScreenGridDesc').textContent = getLang('4×3 grid when autoplay is off', '4×3-Raster wenn Autoplay deaktiviert ist');
             document.getElementById('showEndcardsLabel').textContent = getLang('Show video endcards', 'Video-Endkarten anzeigen');
             document.getElementById('showEndcardsDesc').textContent = getLang('Two thumbnails in last 20 seconds', 'Zwei Vorschaubilder in den letzten 20 Sekunden');
+
+            // NEW: recommendation popups
+            document.getElementById('showRecommendationPopupsLabel').textContent = getLang('Show recommendation popups', 'Empfehlungs-Popups anzeigen');
+            document.getElementById('showRecommendationPopupsDesc').textContent = getLang('Popups with recommended videos during playback', 'Popups mit empfohlenen Videos während der Wiedergabe');
+
             document.getElementById('savePlaybackBtn').textContent = getLang('Save Playback Settings', 'Wiedergabe-Einstellungen speichern');
 
             // Content labels
@@ -1116,7 +1135,6 @@
                 const targetPanel = document.getElementById('tab-' + targetTab);
                 if (targetPanel) targetPanel.classList.add('active');
 
-                // Load appropriate settings when tab is shown
                 if (targetTab === 'appearance') {
                     loadAppearanceSettings();
                 } else if (targetTab === 'playback') {
@@ -1125,7 +1143,7 @@
                     loadContentSettings();
                     loadAllTags();
                 } else if (targetTab === 'account') {
-                    // nothing special to preload
+                    // nothing special
                 }
             });
         });
@@ -1170,7 +1188,6 @@
                 sidebarSvgIcons: document.getElementById('sidebarSvgIcons').checked,
                 playerUIScale: parseFloat(document.getElementById('playerUIScale').value)
             };
-            // Save to localStorage immediately for consistency
             localStorage.setItem('videoPageLayout', JSON.stringify({ layout: settings.videoPageLayout }));
             localStorage.setItem('channelPageStyle', JSON.stringify({ style: settings.channelPageStyle }));
             localStorage.setItem('channelDefaultView', JSON.stringify({ view: settings.channelDefaultView }));
@@ -1187,7 +1204,7 @@
             }
         }
 
-        // --- Playback Save ---
+        // --- Playback Save (updated with new setting) ---
         async function savePlayback() {
             const autoplaySettings = {
                 enabled: document.getElementById('autoplayEnabled').checked,
@@ -1201,13 +1218,15 @@
                 invertPlaylistOrder: document.getElementById('invertPlaylistOrder').checked,
                 showChannelProfilePic: document.getElementById('showChannelProfilePic').checked,
                 showEndScreenGrid: document.getElementById('showEndScreenGrid').checked,
-                showEndcards: document.getElementById('showEndcards').checked
+                showEndcards: document.getElementById('showEndcards').checked,
+                showRecommendationPopups: document.getElementById('showRecommendationPopups').checked   // NEW
             };
             localStorage.setItem('playlistPageLayout', JSON.stringify({ view: userPart.playlistPageLayout }));
             localStorage.setItem('invertPlaylistOrder', JSON.stringify({ enabled: userPart.invertPlaylistOrder }));
             localStorage.setItem('showChannelProfilePic', JSON.stringify({ enabled: userPart.showChannelProfilePic }));
             localStorage.setItem('showEndScreenGrid', JSON.stringify({ enabled: userPart.showEndScreenGrid }));
             localStorage.setItem('showEndcards', JSON.stringify({ enabled: userPart.showEndcards }));
+            localStorage.setItem('showRecommendationPopups', JSON.stringify({ enabled: userPart.showRecommendationPopups }));   // NEW
 
             let success = true;
             try {
@@ -1233,7 +1252,6 @@
             localStorage.setItem('fuzzySubCount', JSON.stringify({ enabled: userPart.fuzzySubCount }));
             localStorage.setItem('hidePostImages', JSON.stringify({ enabled: userPart.hidePostImages }));
 
-            // Save algorithm preferences separately
             const container = document.getElementById('preferencesContainer');
             const items = container.querySelectorAll('.pref-item');
             const newPrefs = {};
@@ -1256,10 +1274,10 @@
             if (!(await updateUserSettings(userPart))) success = false;
 
             showStatus('contentStatus', success ? getLang('Content settings saved!', 'Inhaltseinstellungen gespeichert!') : getLang('Error saving.', 'Fehler beim Speichern.'), success);
-            if (success) loadPreferences(); // refresh list
+            if (success) loadPreferences();
         }
 
-        // --- Loading functions for each tab ---
+        // --- Loading functions ---
         function loadAppearanceSettings() {
             const videoPageLayout = JSON.parse(localStorage.getItem('videoPageLayout') || '{}');
             document.getElementById('videoPageLayout').value = videoPageLayout.layout || 'modern';
@@ -1278,7 +1296,6 @@
             const playerScale = JSON.parse(localStorage.getItem('playerUIScale') || '{}');
             document.getElementById('playerUIScale').value = playerScale.scale !== undefined ? playerScale.scale : 1;
 
-            // Sync with server if available
             fetch('/user-settings').then(res => res.json()).then(data => {
                 if (data.videoPageLayout) document.getElementById('videoPageLayout').value = data.videoPageLayout;
                 if (data.channelPageStyle) document.getElementById('channelPageStyle').value = data.channelPageStyle;
@@ -1288,13 +1305,12 @@
                 if (data.roundedCorners !== undefined) document.getElementById('roundedCorners').checked = data.roundedCorners;
                 if (data.sidebarSvgIcons !== undefined) document.getElementById('sidebarSvgIcons').checked = data.sidebarSvgIcons;
                 if (data.playerUIScale !== undefined) document.getElementById('playerUIScale').value = data.playerUIScale;
-                // reset preset selector to "none" after loading (since we're not in a preset state)
                 document.getElementById('presetSelector').value = 'none';
             }).catch(() => {});
         }
 
         function loadPlaybackSettings() {
-            // Autoplay from localStorage / server
+            // Autoplay
             const autoplayLocal = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
             document.getElementById('autoplayEnabled').checked = autoplayLocal.enabled || false;
             document.getElementById('autoplayPlaylistNext').checked = autoplayLocal.playlistNext !== false;
@@ -1322,6 +1338,9 @@
             document.getElementById('showEndScreenGrid').checked = endScreenGrid.enabled !== undefined ? endScreenGrid.enabled : true;
             const endcards = JSON.parse(localStorage.getItem('showEndcards') || '{}');
             document.getElementById('showEndcards').checked = endcards.enabled !== undefined ? endcards.enabled : true;
+            // NEW: recommendation popups
+            const recPopups = JSON.parse(localStorage.getItem('showRecommendationPopups') || '{}');
+            document.getElementById('showRecommendationPopups').checked = recPopups.enabled !== undefined ? recPopups.enabled : true;
 
             fetch('/user-settings').then(res => res.json()).then(data => {
                 if (data.playlistPageLayout) document.getElementById('playlistPageLayout').value = data.playlistPageLayout;
@@ -1329,6 +1348,7 @@
                 if (data.showChannelProfilePic !== undefined) document.getElementById('showChannelProfilePic').checked = data.showChannelProfilePic;
                 if (data.showEndScreenGrid !== undefined) document.getElementById('showEndScreenGrid').checked = data.showEndScreenGrid;
                 if (data.showEndcards !== undefined) document.getElementById('showEndcards').checked = data.showEndcards;
+                if (data.showRecommendationPopups !== undefined) document.getElementById('showRecommendationPopups').checked = data.showRecommendationPopups;
             }).catch(() => {});
         }
 
@@ -1351,7 +1371,7 @@
             document.getElementById('autoplayModeCard').style.display = enabled ? '' : 'none';
         }
 
-        // --- Algorithm Preferences (same as before) ---
+        // --- Algorithm Preferences ---
         var allAvailableTags = [];
         function loadAllTags() {
             fetch('/get-all-tags').then(res => res.json()).then(tags => {
@@ -1414,6 +1434,7 @@
                 showChannelProfilePic: document.getElementById('showChannelProfilePic').checked,
                 showEndScreenGrid: document.getElementById('showEndScreenGrid').checked,
                 showEndcards: document.getElementById('showEndcards').checked,
+                showRecommendationPopups: document.getElementById('showRecommendationPopups').checked,
                 fuzzySubCount: document.getElementById('fuzzySubCount').checked,
                 hidePostImages: document.getElementById('hidePostImages').checked
             };
@@ -1442,7 +1463,6 @@
             reader.onload = (e) => {
                 try {
                     const config = JSON.parse(e.target.result);
-                    // Apply all values to UI
                     if (config.autoplaySettings) {
                         document.getElementById('autoplayEnabled').checked = config.autoplaySettings.enabled;
                         document.getElementById('autoplayPlaylistNext').checked = config.autoplaySettings.playlistNext;
@@ -1462,6 +1482,7 @@
                     if (config.showChannelProfilePic !== undefined) document.getElementById('showChannelProfilePic').checked = config.showChannelProfilePic;
                     if (config.showEndScreenGrid !== undefined) document.getElementById('showEndScreenGrid').checked = config.showEndScreenGrid;
                     if (config.showEndcards !== undefined) document.getElementById('showEndcards').checked = config.showEndcards;
+                    if (config.showRecommendationPopups !== undefined) document.getElementById('showRecommendationPopups').checked = config.showRecommendationPopups;
                     if (config.fuzzySubCount !== undefined) document.getElementById('fuzzySubCount').checked = config.fuzzySubCount;
                     if (config.hidePostImages !== undefined) document.getElementById('hidePostImages').checked = config.hidePostImages;
                     showStatus('configImportExportStatus', getLang('Configuration imported! Save each tab to apply.', 'Konfiguration importiert! Speichere die Tabs, um anzuwenden.'), true);
@@ -1475,7 +1496,6 @@
 
         // ============ PRESETS LOGIC ============
         function applyPreset(presetName) {
-            // Do not change titleColorScheme
             let settings = {};
 
             if (presetName === 'modern') {
@@ -1487,7 +1507,6 @@
                     roundedCorners: true,
                     sidebarSvgIcons: false,
                     playlistPageLayout: 'grid'
-                    // titleColorScheme is left unchanged
                 };
             } else if (presetName === 'classic') {
                 settings = {
@@ -1498,14 +1517,11 @@
                     roundedCorners: false,
                     sidebarSvgIcons: true,
                     playlistPageLayout: 'list'
-                    // titleColorScheme is left unchanged
                 };
             } else {
-                // 'none' or unknown: do nothing
                 return;
             }
 
-            // Apply to UI elements
             if (settings.videoPageLayout) document.getElementById('videoPageLayout').value = settings.videoPageLayout;
             if (settings.channelPageStyle) document.getElementById('channelPageStyle').value = settings.channelPageStyle;
             if (settings.channelDefaultView) document.getElementById('channelDefaultView').value = settings.channelDefaultView;
@@ -1514,7 +1530,6 @@
             if (settings.sidebarSvgIcons !== undefined) document.getElementById('sidebarSvgIcons').checked = settings.sidebarSvgIcons;
             if (settings.playlistPageLayout) document.getElementById('playlistPageLayout').value = settings.playlistPageLayout;
 
-            // Also store in localStorage immediately to keep consistency
             if (settings.videoPageLayout) localStorage.setItem('videoPageLayout', JSON.stringify({ layout: settings.videoPageLayout }));
             if (settings.channelPageStyle) localStorage.setItem('channelPageStyle', JSON.stringify({ style: settings.channelPageStyle }));
             if (settings.channelDefaultView) localStorage.setItem('channelDefaultView', JSON.stringify({ view: settings.channelDefaultView }));
@@ -1599,34 +1614,19 @@
             // PRESETS: listen to dropdown change
             document.getElementById('presetSelector').addEventListener('change', function(e) {
                 const selected = this.value;
-                if (selected === 'none') {
-                    // do nothing, just reset the dropdown
-                    return;
-                }
+                if (selected === 'none') return;
                 applyPreset(selected);
-                // after applying, reset dropdown to "none" to indicate no preset is actively selected
-                // but we want to keep the current selection visible? Better to reset to none so user knows it's not sticky.
-                // But we want to allow applying again if needed. We'll reset it to "none" after applying.
-                // However we want the user to be able to re-apply the same preset if they want.
-                // We'll keep it as is but we'll set to none after a short delay to avoid confusion.
-                // Actually, better to leave it so user sees which preset was applied. But we'll set to none after the change.
-                // We'll use a timeout to reset.
                 setTimeout(() => {
                     document.getElementById('presetSelector').value = 'none';
                 }, 100);
             });
 
-            // Profile picture upload/remove (same as original, using profile-pic.js global functions)
-            // The profile-pic.js script will handle its own logic; we just ensure the DOM elements exist.
+            // Profile picture upload/remove handled by profile-pic.js
 
-            // Initial load for the default active tab (profile) is done by profile-pic.js after session check.
-            // Also load account tab's general settings (nothing needed).
-            // Wait for session check from profile-pic.js and then load initial data if needed.
             function waitForSessionCheck() {
                 const headerPic = document.getElementById('headerProfilePic');
                 if (headerPic && headerPic.src && !headerPic.src.includes('user-profile-placeholder.jpg')) {
                     // Already logged in, profile-pic.js likely loaded pic.
-                    // No further loading needed for profile tab.
                 } else {
                     setTimeout(() => {
                         fetch('/session-user').then(res => { if(!res.ok) window.location.href='login.html'; }).catch(() => window.location.href='login.html');
@@ -1636,7 +1636,7 @@
             waitForSessionCheck();
         });
 
-        // ==================== Keep Profile Picture functions global for profile-pic.js compatibility ====================
+        // ==================== Keep Profile Picture functions global ====================
         var PLACEHOLDER_SRC = '/LocalYT-Rev-Files/user-profile-placeholder.jpg';
         var profilePicDisplay = document.getElementById('profilePicDisplay');
         var uploadBtn = document.getElementById('uploadBtn');

@@ -187,6 +187,9 @@
             // --- End grid setting ---
             this._showEndScreenGrid = true;
 
+            // --- Recommendation popups setting ---
+            this._showRecommendationPopups = true;
+
             this.init();
         }
 
@@ -229,6 +232,7 @@
             this.loadTimelinePreview();
             this.loadPlayerUIScale();
             this.loadRoundedCornersSetting();
+            this.loadRecommendationPopupsSetting();
 
             // Set initial volume display
             this.updateVolumeIcon();
@@ -309,6 +313,46 @@
                         } else {
                             this.wrapper.classList.remove('rounded-corners');
                         }
+                    } catch (err) {}
+                }
+            });
+        }
+
+        /**
+         * Load the recommendation popups setting from localStorage and server.
+         */
+        loadRecommendationPopupsSetting() {
+            // Default to true
+            this._showRecommendationPopups = true;
+        
+            // 1. Load from localStorage
+            try {
+                const local = JSON.parse(localStorage.getItem('showRecommendationPopups') || '{}');
+                if (local.enabled !== undefined) {
+                    this._showRecommendationPopups = local.enabled;
+                }
+            } catch (e) {}
+        
+            // 2. Override with server settings if available
+            fetch('/user-settings')
+                .then(res => {
+                    if (!res.ok) throw new Error('Not authenticated');
+                    return res.json();
+                })
+                .then(settings => {
+                    if (settings.showRecommendationPopups !== undefined) {
+                        this._showRecommendationPopups = settings.showRecommendationPopups;
+                        localStorage.setItem('showRecommendationPopups', JSON.stringify({ enabled: this._showRecommendationPopups }));
+                    }
+                })
+                .catch(() => {});
+        
+            // 3. Listen for storage changes from other tabs
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'showRecommendationPopups') {
+                    try {
+                        const newVal = JSON.parse(e.newValue || '{}');
+                        this._showRecommendationPopups = newVal.enabled !== undefined ? newVal.enabled : true;
                     } catch (err) {}
                 }
             });
@@ -2810,6 +2854,16 @@
 
             // Trigger recommendation after playback reaches threshold
             this.video.addEventListener('timeupdate', () => {
+                // --- Check if popups are enabled ---
+                if (!this._showRecommendationPopups) {
+                    // If disabled, ensure any pending popup is hidden and reset state
+                    if (this._recTriggered) {
+                        this._recTriggered = false;
+                        this.hideRecommendationPopup();
+                    }
+                    return;
+                }
+
                 if (this._recShownCount >= this._recMaxShows) return;
                 if (this._recTriggered) return;
                 // 45s cooldown after last dismissal
@@ -2832,6 +2886,14 @@
                 this.dom.recPopup.classList.remove('lyt_rec_slide_in');
                 this.dom.recThumbnail.classList.remove('lyt_rec_thumb_show');
                 this._endScreenShown = false;
+                
+                // If popups are disabled, make sure any existing popup is hidden
+                if (!this._showRecommendationPopups) {
+                    this.hideRecommendationPopup();
+                    this._recTriggered = false;
+                    this._recShownCount = 0;
+                }
+                
                 // Reset endcards state
                 this._endcardsFetched = false;
                 this._endcardsData = [];
@@ -3055,6 +3117,9 @@
          * Show the recommendation popup (slide in from right).
          */
         async showRecommendationPopup() {
+            // If popups are disabled, do nothing
+            if (!this._showRecommendationPopups) return;
+
             const video = await this.fetchChannelRecommendation();
             if (!video) {
                 // Fetch failed or no other videos in channel — don't retry this trigger
