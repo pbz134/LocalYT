@@ -767,6 +767,17 @@
                 background-color: #e0e0e0 !important;
             }
 
+            /* ===== SKELETON LIGHT MODE ===== */
+            .skeleton-item .skeleton-thumbnail,
+            .skeleton-item .skeleton-channel-pic,
+            .skeleton-item .skeleton-title,
+            .skeleton-item .skeleton-metadata,
+            .skeleton-item .playlist-thumbnail,
+            .skeleton-item .playlist-title,
+            .skeleton-item .playlist-channel-name {
+                background-color: #e0e0e0 !important;
+            }
+
             /* ===== DIVIDER BELOW MINI PLAYER LIGHT MODE ===== */
             .home-others-label {
                 border-top-color: #e0e0e0 !important;
