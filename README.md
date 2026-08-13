@@ -45,7 +45,9 @@ From then on, I regularly worked on the program to further improve it, and 15 mo
   - Add videos to your own custom playlists
   - Resume your session on a different computer
 - **Complete customization**
-  - Customize page appearances, layouts, rounded corners or autoplay mechanics
+  - Customize page appearances, layouts, rounded corners and several player features
+  - Switch between a "Modern" and a "2017" layout
+ 
 ---
 
 ## Prerequisites
