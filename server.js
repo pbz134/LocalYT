@@ -1767,9 +1767,15 @@ app.post('/save-preferences', (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('Not authenticated');
     try {
+        const filteredPreferences = {};
+        for (const [tag, value] of Object.entries(preferences || {})) {
+            const cleanTag = String(tag).trim();
+            if (!cleanTag || cleanTag.toLowerCase() === 'uncategorized') continue;
+            filteredPreferences[cleanTag] = value;
+        }
         const data = fs.readFileSync(preferencesFilePath, 'utf8');
         const allPrefs = JSON.parse(data);
-        allPrefs[userId] = preferences;
+        allPrefs[userId] = filteredPreferences;
         if (preferenceUpdateQueue.has(userId)) {
             preferenceUpdateQueue.delete(userId);
         }
@@ -1839,7 +1845,9 @@ app.post('/api/save-initial-preferences', (req, res) => {
         const allPrefs = JSON.parse(data);
         if (!allPrefs[userId]) allPrefs[userId] = {};
         tags.forEach(tag => {
-            allPrefs[userId][tag] = (allPrefs[userId][tag] || 0) + 100;
+            const cleanTag = String(tag).trim();
+            if (!cleanTag || cleanTag.toLowerCase() === 'uncategorized') return;
+            allPrefs[userId][cleanTag] = (allPrefs[userId][cleanTag] || 0) + 100;
         });
         if (preferenceUpdateQueue.has(userId)) {
             preferenceUpdateQueue.delete(userId);
@@ -2518,13 +2526,16 @@ let preferenceUpdateTimer = null;
 
 function batchUpdatePreferences() {
     if (preferenceUpdateQueue.size === 0) return;
+    const IGNORED_TAGS = new Set(['uncategorized']);
     fs.readFile(preferencesFilePath, 'utf8', (err, data) => {
         let preferencesData = {};
         if (!err) preferencesData = JSON.parse(data);
         preferenceUpdateQueue.forEach((tags, userId) => {
             if (!preferencesData[userId]) preferencesData[userId] = {};
             tags.forEach(tag => {
-                preferencesData[userId][tag] = (preferencesData[userId][tag] || 0) + 1;
+                const cleanTag = String(tag).trim();
+                if (!cleanTag || IGNORED_TAGS.has(cleanTag.toLowerCase())) return;
+                preferencesData[userId][cleanTag] = (preferencesData[userId][cleanTag] || 0) + 1;
             });
         });
         fs.writeFile(preferencesFilePath, JSON.stringify(preferencesData, null, 2), (err) => {
