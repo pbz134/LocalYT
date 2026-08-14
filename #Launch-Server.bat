@@ -24,11 +24,34 @@ if not "%NODE_PATH%"=="%NODE_PATH:%%SCRIPT_DIR%%=%" (
     set "NODE_PATH=!NODE_PATH:%%SCRIPT_DIR%%=%SCRIPT_DIR%!"
 )
 
-REM Determine final node command
+REM Determine final node command with fallback
 if /i "%USE_INTEGRATED_NODE%"=="yes" (
-    set "NODE_CMD=%NODE_PATH%"
+    REM Check if integrated node.exe exists
+    if exist "%NODE_PATH%" (
+        set "NODE_CMD=%NODE_PATH%"
+        echo Using integrated Node.js: %NODE_PATH%
+    ) else (
+        echo WARNING: Integrated Node.js not found at: %NODE_PATH%
+        echo Falling back to system Node.js...
+        set "NODE_CMD=node"
+        set "USE_INTEGRATED_NODE=no"
+    )
 ) else (
     set "NODE_CMD=node"
+    echo Using system Node.js
+)
+
+REM Verify system Node is available if using it
+if /i "%USE_INTEGRATED_NODE%"=="no" (
+    where node >nul 2>&1
+    if errorlevel 1 (
+        echo ERROR: System Node.js not found in PATH!
+        echo Please install Node.js or check your PATH configuration.
+        echo.
+        echo Press any key to exit...
+        pause >nul
+        exit /b 1
+    )
 )
 
 REM If browser launch is set to "no", relaunch minimized (original behaviour)
