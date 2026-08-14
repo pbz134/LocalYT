@@ -1,26 +1,37 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM Read from #Setup.env
-set "LAUNCH_BROWSER="
-if exist "#Setup.env" (
-    for /f "usebackq tokens=1,2 delims==" %%a in ("#Setup.env") do (
+REM Get the script's directory
+set "SCRIPT_DIR=%~dp0"
+set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
+
+REM Defaults (integrated Node)
+set "USE_INTEGRATED_NODE=yes"
+set "NODE_PATH=%SCRIPT_DIR%\LocalYT-Rev-Files\nodejs\node.exe"
+set "LAUNCH_BROWSER=yes"
+
+REM Read from #Setup.env – override defaults if present
+if exist "%SCRIPT_DIR%\#Setup.env" (
+    for /f "usebackq tokens=1,2 delims==" %%a in ("%SCRIPT_DIR%\#Setup.env") do (
         if /i "%%a"=="LAUNCH_BROWSER" set "LAUNCH_BROWSER=%%b"
+        if /i "%%a"=="NODE_PATH" set "NODE_PATH=%%b"
+        if /i "%%a"=="USE_INTEGRATED_NODE" set "USE_INTEGRATED_NODE=%%b"
     )
 )
 
-REM Ask user if setting doesn't exist in the file
-if not defined LAUNCH_BROWSER (
-    set /p userInput="Automatically launch browser when server is ready? (Y/N): "
-    if /i "!userInput!"=="N" (
-        set "LAUNCH_BROWSER=no"
-    ) else (
-        set "LAUNCH_BROWSER=yes"
-    )
-    echo LAUNCH_BROWSER=!LAUNCH_BROWSER!>>"#Setup.env"
+REM Expand portable placeholder if needed
+if not "%NODE_PATH%"=="%NODE_PATH:%%SCRIPT_DIR%%=%" (
+    set "NODE_PATH=!NODE_PATH:%%SCRIPT_DIR%%=%SCRIPT_DIR%!"
 )
 
-REM If user chose No, relaunch this script minimized to the taskbar
+REM Determine final node command
+if /i "%USE_INTEGRATED_NODE%"=="yes" (
+    set "NODE_CMD=%NODE_PATH%"
+) else (
+    set "NODE_CMD=node"
+)
+
+REM If browser launch is set to "no", relaunch minimized (original behaviour)
 if /i "%LAUNCH_BROWSER%"=="no" (
     if /i not "%~1"=="min" (
         start /min cmd /c "%~f0" min
@@ -28,27 +39,26 @@ if /i "%LAUNCH_BROWSER%"=="no" (
     )
 )
 
-REM Start the server in a new command prompt window with ASCII art
-start cmd /k "echo. & echo. & echo       :::        ::::::::   ::::::::      :::     :::     :::   ::: ::::::::::: & echo      :+:       :+:    :+: :+:    :+:   :+: :+:   :+:     :+:   :+:     :+:      & echo     +:+       +:+    +:+ +:+         +:+   +:+  +:+      +:+ +:+      +:+       & echo    +#+       +#+    +:+ +#+        +#++:++#++: +#+       +#++:       +#+        & echo   +#+       +#+    +#+ +#+        +#+     +#+ +#+        +#+        +#+         & echo  #+#       #+#    #+# #+#    #+# #+#     #+# #+#        #+#        #+#          & echo ########## ########   ########  ###     ### ########## ###        ### & echo. & echo. & echo https://github.com/pbz134/LocalYT & npm start"
+REM Start the server in a new window
+start cmd /k "echo. & echo. & echo       :::        ::::::::   ::::::::      :::     :::     :::   ::: ::::::::::: & echo      :+:       :+:    :+: :+:    :+:   :+: :+:   :+:     :+:   :+:     :+:      & echo     +:+       +:+    +:+ +:+         +:+   +:+  +:+      +:+ +:+      +:+       & echo    +#+       +#+    +#+ +#+        +#++:++#++: +#+       +#++:       +#+        & echo   +#+       +#+    +#+ +#+        +#+     +#+ +#+        +#+        +#+         & echo  #+#       #+#    #+# #+#    #+# #+#     #+# #+#        #+#        #+#          & echo ########## ########   ########  ###     ### ########## ###        ### & echo. & echo. & echo https://github.com/pbz134/LocalYT & echo Using Node: %NODE_CMD% & %NODE_CMD% server.js"
 
-REM Wait for the server to accept connections (caching/startup)
+REM Wait for server to accept connections
 echo Waiting for server to start...
 :wait_loop
 ping -n 1 -w 1000 127.0.0.1 >nul
-REM Use PowerShell to check if port 3000 is listening. If error, loop again.
 powershell -Command "(New-Object Net.Sockets.TcpClient).Connect('127.0.0.1', 3000)" >nul 2>&1
 if errorlevel 1 goto wait_loop
 
-REM Small buffer to ensure file handles are released after the cache updates
+REM Small buffer for cache
 echo Server is up. Waiting for cache file to fully save...
 timeout /t 3 /nobreak >nul
 
-REM Generate home previews after the cache has refreshed
+REM Generate home previews
 echo Generating home previews...
-.\venv\python.exe .\LocalYT-Rev-Files\generate_home_previews.py
+"%SCRIPT_DIR%\venv\python.exe" "%SCRIPT_DIR%\LocalYT-Rev-Files\generate_home_previews.py"
 echo Preview generation complete.
 
-REM Open the browser only if the user chose Yes
+REM Open browser if configured
 if /i "%LAUNCH_BROWSER%"=="yes" (
     start http://localhost:3000
     echo.
