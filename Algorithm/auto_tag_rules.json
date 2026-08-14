@@ -1,6 +1,13 @@
 {
   "auto_tag_rules": [
     {
+      "name": "Terra X Rule",
+      "match_type": "contains",
+      "match_value": "terra x",
+      "case_sensitive": false,
+      "tags": ["Documentary", "History", "Geography", "Science", "Education"]
+    },
+    {
       "name": "Tetris Rule",
       "match_type": "contains",
       "match_value": "tetris",
