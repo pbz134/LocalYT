@@ -618,6 +618,44 @@ function getLang(en, de) {
     return localStorage.getItem('language') === 'de' ? de : en;
 }
 
+// Check if relative dates are enabled (reads fresh each time)
+function isRelativeDatesEnabled() {
+    const setting = JSON.parse(localStorage.getItem('relativeDates') || '{"enabled":true}');
+    return setting.enabled !== false;
+}
+
+// Helper function to convert DD.MM.YYYY to relative time
+function getRelativeTime(dateStr, lang) {
+    const parts = dateStr.split('.');
+    if (parts.length !== 3) return dateStr; // fallback to original if parsing fails
+
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const year = parseInt(parts[2], 10);
+    const date = new Date(year, month, day);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // compare dates only
+
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return dateStr; // future date
+    if (diffDays === 0) return lang === 'de' ? 'heute' : 'today';
+    if (diffDays < 7) {
+        return lang === 'de' ? `vor ${diffDays} ${diffDays === 1 ? 'Tag' : 'Tagen'}` : `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+    }
+    if (diffDays < 30) {
+        const weeks = Math.floor(diffDays / 7);
+        return lang === 'de' ? `vor ${weeks} ${weeks === 1 ? 'Woche' : 'Wochen'}` : `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+    }
+    if (diffDays < 365) {
+        const months = Math.floor(diffDays / 30);
+        return lang === 'de' ? `vor ${months} ${months === 1 ? 'Monat' : 'Monaten'}` : `${months} month${months === 1 ? '' : 's'} ago`;
+    }
+    const years = Math.floor(diffDays / 365);
+    return lang === 'de' ? `vor ${years} ${years === 1 ? 'Jahr' : 'Jahren'}` : `${years} year${years === 1 ? '' : 's'} ago`;
+}
+
 // Handle logo clicks
 document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
@@ -974,13 +1012,15 @@ function createVideoElement(video, container) {
             formattedViewCount = parseInt(viewCount).toLocaleString();
         }
         
-        if (localStorage.getItem('language') === 'de') {
+        const lang = localStorage.getItem('language');
+        if (lang === 'de') {
             formattedViewCount = formattedViewCount.replace(/,/g, '.');
         }
 
         const cleanFileDate = fileDate.replace(/\s+/g, ' ').trim();
+        const dateToShow = isRelativeDatesEnabled() ? getRelativeTime(cleanFileDate, lang) : cleanFileDate;
         
-        metadataDiv.textContent = `${formattedViewCount} ${getLang('views', 'Aufrufe')} • ${cleanFileDate}`;
+        metadataDiv.textContent = `${formattedViewCount} ${getLang('views', 'Aufrufe')} • ${dateToShow}`;
     })
     .catch(error => {
         console.error('Error fetching metadata:', error);

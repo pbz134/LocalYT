@@ -169,6 +169,57 @@ function getLang(en, de) {
     return localStorage.getItem('language') === 'de' ? de : en;
 }
 
+// Check if relative dates are enabled (reads fresh each time)
+function isRelativeDatesEnabled() {
+    const setting = JSON.parse(localStorage.getItem('relativeDates') || '{"enabled":true}');
+    return setting.enabled !== false;
+}
+
+// Helper function to convert DD.MM.YYYY to relative time
+function getRelativeTime(dateStr, lang) {
+    const parts = dateStr.split('.');
+    if (parts.length !== 3) return dateStr; // fallback to original if parsing fails
+
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const year = parseInt(parts[2], 10);
+    const date = new Date(year, month, day);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // compare dates only
+
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return dateStr; // future date
+    if (diffDays === 0) return lang === 'de' ? 'heute' : 'today';
+    if (diffDays < 7) {
+        return lang === 'de' ? `vor ${diffDays} ${diffDays === 1 ? 'Tag' : 'Tagen'}` : `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+    }
+    if (diffDays < 30) {
+        const weeks = Math.floor(diffDays / 7);
+        return lang === 'de' ? `vor ${weeks} ${weeks === 1 ? 'Woche' : 'Wochen'}` : `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+    }
+    if (diffDays < 365) {
+        const months = Math.floor(diffDays / 30);
+        return lang === 'de' ? `vor ${months} ${months === 1 ? 'Monat' : 'Monaten'}` : `${months} month${months === 1 ? '' : 's'} ago`;
+    }
+    const years = Math.floor(diffDays / 365);
+    return lang === 'de' ? `vor ${years} ${years === 1 ? 'Jahr' : 'Jahren'}` : `${years} year${years === 1 ? '' : 's'} ago`;
+}
+
+// Helper function to strip file extension for thumbnail and metadata paths
+function stripExtension(filename) {
+    return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+}
+
+// ==============================
+// Lazy Loading Variables
+// ==============================
+let likedVideosList = [];
+let displayedVideosCount = 0;
+const BATCH_SIZE = 20;
+let isLoadingMoreLiked = false;
+
 // Handle logo clicks
 document.addEventListener('DOMContentLoaded', () => {
     const mainLogo = document.getElementById('mainLogo');
@@ -216,17 +267,11 @@ document.addEventListener('DOMContentLoaded', () => {
             searchInput.focus();
         }
     });
-});
 
-// Helper function to strip file extension for thumbnail and metadata paths
-function stripExtension(filename) {
-    return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
-}
-
-document.addEventListener('DOMContentLoaded', () => {
+    // --- LOAD LIKED VIDEOS WITH LAZY LOADING ---
     const container = document.getElementById('videoContainer');
-
-    // Show skeletons while loading
+    
+    // Show skeletons while loading initial batch
     showSkeletons(12, 'videoContainer', 'video');
 
     // Fetch search index and liked videos simultaneously
@@ -265,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Get video objects for liked paths
-        const likedVideosList = [];
+        likedVideosList = [];
         likedPaths.forEach(path => {
             const video = videoMap[path];
             if (video) {
@@ -279,120 +324,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // Display videos (most recent likes first)
-        likedVideosList.reverse().forEach(video => {
-            const videoElement = document.createElement('div');
-            videoElement.className = 'video-item';
-            
-            const videoTitle = video.displayName || video.path.split('/').pop().replace(/\.(mp4|mp3|mkv)$/i, '');
-            const videoPathWithoutExt = stripExtension(video.path);
-            const channel = video.path.split('/')[0];
-            
-            // Use standard thumbnail and channel pic paths
-            const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
-            const channelPicSrc = `/channelpic/${encodeURIComponent(channel)}.jpg`;
-
-            videoElement.innerHTML = `
-                <div class="thumbnail-container">
-                    <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy" onerror="this.src='LocalYT-Rev-Files/default-thumbnail.jpg'">
-                    <div class="video-length"></div>
-                </div>
-                <div class="video-info">
-                    <img src="${channelPicSrc}" alt="${channel}" class="channel-pic" loading="lazy" onerror="this.src='LocalYT-Rev-Files/default-channel.jpg'">
-                    <div class="video-details">
-                        <div class="video-title">${videoTitle}</div>
-                        <div class="channel-name">${channel}</div>
-                        <div class="video-description">${getLang('Loading views...', 'Aufrufe werden geladen...')}</div>
-                    </div>
-                </div>
-            `;
-            container.appendChild(videoElement);
-
-            // --- FETCH METADATA (View Count & Date) ---
-            const descriptionDiv = videoElement.querySelector('.video-description');
-            
-            Promise.all([
-                fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(res => 
-                    res.ok ? res.text() : '0'
-                ).catch(() => '0'),
-                fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(res => 
-                    res.ok ? res.text() : 'Unknown date'
-                ).catch(() => 'Unknown date')
-            ])
-            .then(([viewCount, fileDate]) => {
-                let formattedViewCount = viewCount;
-                if (!isNaN(viewCount) && viewCount !== '0') {
-                    formattedViewCount = parseInt(viewCount).toLocaleString();
-                }
-                
-                const lang = localStorage.getItem('language');
-                let viewsText = getLang('views', 'Aufrufe');
-                let uploadedText = getLang('Uploaded on', 'Hochgeladen am');
-
-                if (lang === 'de') {
-                    formattedViewCount = formattedViewCount.replace(/,/g, '.');
-                }
-
-                const cleanFileDate = fileDate.replace(/\s+/g, ' ').trim();
-                
-                descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${cleanFileDate}`;
-            })
-            .catch(error => {
-                console.error('Error fetching metadata:', error);
-                descriptionDiv.textContent = 'Metadata unavailable';
-            });
-
-            // Add click handlers
-            const thumbnail = videoElement.querySelector('.thumbnail-container');
-            const title = videoElement.querySelector('.video-title');
-            const channelName = videoElement.querySelector('.channel-name');
-            
-            const videoUrl = `video.html?src=${encodeURIComponent(video.path)}`;
-            const channelUrl = `channel.html?channel=${encodeURIComponent(channel)}`;
-
-            thumbnail.addEventListener('click', () => {
-                window.location.href = videoUrl;
-            });
-            
-            title.addEventListener('click', () => {
-                window.location.href = videoUrl;
-            });
-            
-            channelName.addEventListener('click', () => {
-                window.location.href = channelUrl;
-            });
-
-            // Right-click and middle-click handlers
-            const setupContextMenu = (element, url) => {
-                element.addEventListener('contextmenu', (event) => {
-                    event.preventDefault();
-                    window.open(url, '_blank');
-                });
-                element.addEventListener('mouseup', (event) => {
-                    if (event.button === 1) {
-                        event.preventDefault();
-                        window.open(url, '_blank');
-                    }
-                });
-            };
-
-            setupContextMenu(title, videoUrl);
-            setupContextMenu(thumbnail, videoUrl);
-            setupContextMenu(channelName, channelUrl);
-
-            // Fetch video length
-            const videoFilename = video.path.split('/').pop();
-            const videoNameWithoutExt = stripExtension(videoFilename);
-            fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
-                .then(response => response.text())
-                .then(length => {
-                    const lengthElement = videoElement.querySelector('.video-length');
-                    if (lengthElement) lengthElement.textContent = length;
-                })
-                .catch(error => {
-                    console.error('Error fetching video length:', error);
-                });
-        });
+        // Reverse to show most recent likes first
+        likedVideosList.reverse();
+        displayedVideosCount = 0;
+        
+        // Load first batch
+        loadMoreLikedVideos();
+        
+        // Setup scroll listener for infinite scroll
+        setupInfiniteScroll();
     })
     .catch(error => {
         console.error('Error loading liked videos:', error);
@@ -405,6 +345,178 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     });
 });
+
+// ==============================
+// Lazy Loading Functions
+// ==============================
+function loadMoreLikedVideos() {
+    if (isLoadingMoreLiked) return;
+    
+    const container = document.getElementById('videoContainer');
+    const remainingVideos = likedVideosList.length - displayedVideosCount;
+    
+    if (remainingVideos <= 0) {
+        // No more videos to load
+        return;
+    }
+    
+    isLoadingMoreLiked = true;
+    
+    // Calculate how many videos to load in this batch
+    const videosToLoad = Math.min(BATCH_SIZE, remainingVideos);
+    
+    // Show skeletons at the bottom for the next batch
+    showSkeletons(Math.min(videosToLoad, 12), 'videoContainer', 'video');
+    
+    // Simulate a small delay to allow skeletons to render
+    setTimeout(() => {
+        hideSkeletons();
+        
+        const batchEnd = displayedVideosCount + videosToLoad;
+        const batchVideos = likedVideosList.slice(displayedVideosCount, batchEnd);
+        
+        renderLikedVideos(batchVideos);
+        
+        displayedVideosCount = batchEnd;
+        isLoadingMoreLiked = false;
+    }, 300);
+}
+
+function setupInfiniteScroll() {
+    window.addEventListener('scroll', () => {
+        // Check if user is near the bottom of the page
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 400) {
+            if (!isLoadingMoreLiked && displayedVideosCount < likedVideosList.length) {
+                loadMoreLikedVideos();
+            }
+        }
+    });
+}
+
+function renderLikedVideos(videos) {
+    const container = document.getElementById('videoContainer');
+    
+    videos.forEach(video => {
+        const videoElement = document.createElement('div');
+        videoElement.className = 'video-item';
+        videoElement.style.transition = 'opacity 0.3s';
+        
+        const videoTitle = video.displayName || video.path.split('/').pop().replace(/\.(mp4|mp3|mkv)$/i, '');
+        const videoPathWithoutExt = stripExtension(video.path);
+        const channel = video.path.split('/')[0];
+        
+        // Use standard thumbnail and channel pic paths
+        const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
+        const channelPicSrc = `/channelpic/${encodeURIComponent(channel)}.jpg`;
+
+        videoElement.innerHTML = `
+            <div class="thumbnail-container">
+                <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy" onerror="this.src='LocalYT-Rev-Files/default-thumbnail.jpg'">
+                <div class="video-length"></div>
+            </div>
+            <div class="video-info">
+                <img src="${channelPicSrc}" alt="${channel}" class="channel-pic" loading="lazy" onerror="this.src='LocalYT-Rev-Files/default-channel.jpg'">
+                <div class="video-details">
+                    <div class="video-title">${videoTitle}</div>
+                    <div class="channel-name">${channel}</div>
+                    <div class="video-description">${getLang('Loading views...', 'Aufrufe werden geladen...')}</div>
+                </div>
+            </div>
+        `;
+        container.appendChild(videoElement);
+
+        // --- FETCH METADATA (View Count & Date) ---
+        const descriptionDiv = videoElement.querySelector('.video-description');
+        
+        Promise.all([
+            fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(res => 
+                res.ok ? res.text() : '0'
+            ).catch(() => '0'),
+            fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(res => 
+                res.ok ? res.text() : 'Unknown date'
+            ).catch(() => 'Unknown date')
+        ])
+        .then(([viewCount, fileDate]) => {
+            let formattedViewCount = viewCount;
+            if (!isNaN(viewCount) && viewCount !== '0') {
+                formattedViewCount = parseInt(viewCount).toLocaleString();
+            }
+            
+            const lang = localStorage.getItem('language');
+            let viewsText = getLang('views', 'Aufrufe');
+            let uploadedText = getLang('Uploaded on', 'Hochgeladen am');
+
+            if (lang === 'de') {
+                formattedViewCount = formattedViewCount.replace(/,/g, '.');
+            }
+
+            const cleanFileDate = fileDate.replace(/\s+/g, ' ').trim();
+            
+            const dateToShow = isRelativeDatesEnabled() ? getRelativeTime(cleanFileDate, lang) : cleanFileDate;
+            
+            if (isRelativeDatesEnabled()) {
+                descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${dateToShow}`;
+            } else {
+                descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${dateToShow}`;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching metadata:', error);
+            descriptionDiv.textContent = 'Metadata unavailable';
+        });
+
+        // Add click handlers
+        const thumbnail = videoElement.querySelector('.thumbnail-container');
+        const title = videoElement.querySelector('.video-title');
+        const channelName = videoElement.querySelector('.channel-name');
+        
+        const videoUrl = `video.html?src=${encodeURIComponent(video.path)}`;
+        const channelUrl = `channel.html?channel=${encodeURIComponent(channel)}`;
+
+        thumbnail.addEventListener('click', () => {
+            window.location.href = videoUrl;
+        });
+        
+        title.addEventListener('click', () => {
+            window.location.href = videoUrl;
+        });
+        
+        channelName.addEventListener('click', () => {
+            window.location.href = channelUrl;
+        });
+
+        // Right-click and middle-click handlers
+        const setupContextMenu = (element, url) => {
+            element.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+                window.open(url, '_blank');
+            });
+            element.addEventListener('mouseup', (event) => {
+                if (event.button === 1) {
+                    event.preventDefault();
+                    window.open(url, '_blank');
+                }
+            });
+        };
+
+        setupContextMenu(title, videoUrl);
+        setupContextMenu(thumbnail, videoUrl);
+        setupContextMenu(channelName, channelUrl);
+
+        // Fetch video length
+        const videoFilename = video.path.split('/').pop();
+        const videoNameWithoutExt = stripExtension(videoFilename);
+        fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
+            .then(response => response.text())
+            .then(length => {
+                const lengthElement = videoElement.querySelector('.video-length');
+                if (lengthElement) lengthElement.textContent = length;
+            })
+            .catch(error => {
+                console.error('Error fetching video length:', error);
+            });
+    });
+}
     </script>
     <!-- External Scripts -->
     <script src="search-suggestions.js"></script>

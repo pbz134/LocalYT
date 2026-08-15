@@ -144,6 +144,52 @@ function getLang(en, de) {
     return localStorage.getItem('language') === 'de' ? de : en;
 }
 
+// Check if relative dates are enabled (reads fresh each time)
+function isRelativeDatesEnabled() {
+    const setting = JSON.parse(localStorage.getItem('relativeDates') || '{"enabled":true}');
+    return setting.enabled !== false;
+}
+
+// Helper function to convert DD.MM.YYYY to relative time
+function getRelativeTime(dateStr, lang) {
+    const parts = dateStr.split('.');
+    if (parts.length !== 3) return dateStr; // fallback to original if parsing fails
+
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const year = parseInt(parts[2], 10);
+    const date = new Date(year, month, day);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // compare dates only
+
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return dateStr; // future date
+    if (diffDays === 0) return lang === 'de' ? 'heute' : 'today';
+    if (diffDays < 7) {
+        return lang === 'de' ? `vor ${diffDays} ${diffDays === 1 ? 'Tag' : 'Tagen'}` : `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+    }
+    if (diffDays < 30) {
+        const weeks = Math.floor(diffDays / 7);
+        return lang === 'de' ? `vor ${weeks} ${weeks === 1 ? 'Woche' : 'Wochen'}` : `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+    }
+    if (diffDays < 365) {
+        const months = Math.floor(diffDays / 30);
+        return lang === 'de' ? `vor ${months} ${months === 1 ? 'Monat' : 'Monaten'}` : `${months} month${months === 1 ? '' : 's'} ago`;
+    }
+    const years = Math.floor(diffDays / 365);
+    return lang === 'de' ? `vor ${years} ${years === 1 ? 'Jahr' : 'Jahren'}` : `${years} year${years === 1 ? '' : 's'} ago`;
+}
+
+// ==============================
+// Lazy Loading Variables
+// ==============================
+let watchHistoryVideos = [];
+let displayedVideosCount = 0;
+const BATCH_SIZE = 20;
+let isLoadingMoreHistory = false;
+
 document.addEventListener('DOMContentLoaded', () => {
     
     // --- 1. LOGO SETUP ---
@@ -171,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mainLogo.style.cursor = 'pointer';
     }
 
-    // --- 2. SEARCH NAVIGATION LOGIC (FIX ADDED HERE) ---
+    // --- 2. SEARCH NAVIGATION LOGIC ---
     const searchInput = document.getElementById('searchInput');
     
     searchInput.addEventListener('keydown', (event) => {
@@ -189,10 +235,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- 3. LOAD HISTORY WITH SKELETONS ---
+    // --- 3. LOAD HISTORY WITH LAZY LOADING ---
     const container = document.getElementById('videoContainer');
     
-    // Show skeletons while loading
+    // Show skeletons while loading initial batch
     showSkeletons(12, 'videoContainer', 'video');
 
     fetch('/user-history')
@@ -207,113 +253,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            videos.forEach(video => {
-                const videoElement = document.createElement('div');
-                videoElement.className = 'video-item';
-                videoElement.style.transition = 'opacity 0.3s';
-                
-                const videoTitle = video.displayName;
-                const videoPathWithoutExt = stripExtension(video.path);
-                const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
-                const channel = video.path.split('/')[0];
-                const channelPicSrc = `/channelpic/${encodeURIComponent(channel)}.jpg`;
-
-                videoElement.innerHTML = `
-                    <div class="thumbnail-container">
-                        <button class="remove-video-btn" title="${getLang('Remove', 'Entfernen')}">&times;</button>
-                        <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
-                        <div class="video-length"></div>
-                    </div>
-                    <div class="video-info">
-                        <img src="${channelPicSrc}" alt="${channel}" class="channel-pic" loading="lazy">
-                        <div class="video-details">
-                            <div class="video-title">${videoTitle}</div>
-                            <div class="channel-name">${channel}</div>
-                            <div class="video-description">${localStorage.getItem('language') === 'de' ? video.viewCount.replace(/,/g, '.') : video.viewCount} ${localStorage.getItem('language') === 'de' ? 'Aufrufe' : 'views'} • ${video.fileDate}</div>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(videoElement);
-
-                // Remove Button Logic
-                const removeBtn = videoElement.querySelector('.remove-video-btn');
-                removeBtn.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    try {
-                        const res = await fetch('/remove-from-history', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({ video: video.path })
-                        });
-                        if (res.ok) {
-                            videoElement.style.opacity = '0';
-                            setTimeout(() => videoElement.remove(), 300);
-                        } else {
-                            console.error('Failed to remove from history');
-                        }
-                    } catch (err) {
-                        console.error('Error removing from history:', err);
-                    }
-                });
-
-                // Thumbnail Click Handlers
-                const thumbContainer = videoElement.querySelector('.thumbnail-container');
-                thumbContainer.addEventListener('click', () => {
-                    window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
-                });
-
-                // Video Title Click Handlers
-                const videoLink = videoElement.querySelector('.video-title');
-                
-                // Left click
-                videoLink.addEventListener('click', () => {
-                    window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
-                });
-
-                videoLink.addEventListener('contextmenu', (event) => {
-                    event.preventDefault();
-                    window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
-                });
-
-                videoLink.addEventListener('mouseup', (event) => {
-                    if (event.button === 1) {
-                        event.preventDefault();
-                        window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
-                    }
-                });
-
-                // Channel Name Click Handlers
-                const channelLink = videoElement.querySelector('.channel-name');
-                
-                // Left click
-                channelLink.addEventListener('click', () => {
-                    window.location.href = `channel.html?channel=${encodeURIComponent(channel)}`;
-                });
-
-                channelLink.addEventListener('contextmenu', (event) => {
-                    event.preventDefault();
-                    window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
-                });
-
-                channelLink.addEventListener('mouseup', (event) => {
-                    if (event.button === 1) {
-                        event.preventDefault();
-                        window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
-                    }
-                });
-
-                // Fetch video length
-                const videoFilename = video.path.split('/').pop();
-                const videoNameWithoutExt = stripExtension(videoFilename);
-                fetch(`/videolengths/${channel}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
-                    .then(response => response.text())
-                    .then(length => {
-                        videoElement.querySelector('.video-length').textContent = length;
-                    })
-                    .catch(error => {
-                        console.error('Error fetching video length:', error);
-                    });
-            });
+            // Store all videos in memory
+            watchHistoryVideos = videos;
+            displayedVideosCount = 0;
+            
+            // Load first batch
+            loadMoreHistoryVideos();
+            
+            // Setup scroll listener for infinite scroll
+            setupInfiniteScroll();
         })
         .catch(error => {
             console.error('Error loading watch history:', error);
@@ -326,6 +274,174 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         });
 });
+
+// ==============================
+// Lazy Loading Functions
+// ==============================
+function loadMoreHistoryVideos() {
+    if (isLoadingMoreHistory) return;
+    
+    const container = document.getElementById('videoContainer');
+    const remainingVideos = watchHistoryVideos.length - displayedVideosCount;
+    
+    if (remainingVideos <= 0) {
+        // No more videos to load
+        return;
+    }
+    
+    isLoadingMoreHistory = true;
+    
+    // Calculate how many videos to load in this batch
+    const videosToLoad = Math.min(BATCH_SIZE, remainingVideos);
+    
+    // Show skeletons at the bottom for the next batch
+    showSkeletons(Math.min(videosToLoad, 12), 'videoContainer', 'video');
+    
+    // Simulate a small delay to allow skeletons to render
+    setTimeout(() => {
+        hideSkeletons();
+        
+        const batchEnd = displayedVideosCount + videosToLoad;
+        const batchVideos = watchHistoryVideos.slice(displayedVideosCount, batchEnd);
+        
+        renderHistoryVideos(batchVideos);
+        
+        displayedVideosCount = batchEnd;
+        isLoadingMoreHistory = false;
+    }, 300);
+}
+
+function setupInfiniteScroll() {
+    window.addEventListener('scroll', () => {
+        // Check if user is near the bottom of the page
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 400) {
+            if (!isLoadingMoreHistory && displayedVideosCount < watchHistoryVideos.length) {
+                loadMoreHistoryVideos();
+            }
+        }
+    });
+}
+
+function renderHistoryVideos(videos) {
+    const container = document.getElementById('videoContainer');
+    
+    videos.forEach(video => {
+        const videoElement = document.createElement('div');
+        videoElement.className = 'video-item';
+        videoElement.style.transition = 'opacity 0.3s';
+        
+        const videoTitle = video.displayName;
+        const videoPathWithoutExt = stripExtension(video.path);
+        const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
+        const channel = video.path.split('/')[0];
+        const channelPicSrc = `/channelpic/${encodeURIComponent(channel)}.jpg`;
+        const lang = localStorage.getItem('language');
+        const dateToShow = isRelativeDatesEnabled() ? getRelativeTime(video.fileDate, lang) : video.fileDate;
+
+        videoElement.innerHTML = `
+            <div class="thumbnail-container">
+                <button class="remove-video-btn" title="${getLang('Remove', 'Entfernen')}">&times;</button>
+                <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
+                <div class="video-length"></div>
+            </div>
+            <div class="video-info">
+                <img src="${channelPicSrc}" alt="${channel}" class="channel-pic" loading="lazy">
+                <div class="video-details">
+                    <div class="video-title">${videoTitle}</div>
+                    <div class="channel-name">${channel}</div>
+                    <div class="video-description">${lang === 'de' ? video.viewCount.replace(/,/g, '.') : video.viewCount} ${lang === 'de' ? 'Aufrufe' : 'views'} • ${dateToShow}</div>
+                </div>
+            </div>
+        `;
+        container.appendChild(videoElement);
+
+        // Remove Button Logic
+        const removeBtn = videoElement.querySelector('.remove-video-btn');
+        removeBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            try {
+                const res = await fetch('/remove-from-history', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ video: video.path })
+                });
+                if (res.ok) {
+                    videoElement.style.opacity = '0';
+                    setTimeout(() => videoElement.remove(), 300);
+                    
+                    // Remove from the array
+                    const videoIndex = watchHistoryVideos.indexOf(video);
+                    if (videoIndex > -1) {
+                        watchHistoryVideos.splice(videoIndex, 1);
+                        displayedVideosCount--;
+                    }
+                } else {
+                    console.error('Failed to remove from history');
+                }
+            } catch (err) {
+                console.error('Error removing from history:', err);
+            }
+        });
+
+        // Thumbnail Click Handlers
+        const thumbContainer = videoElement.querySelector('.thumbnail-container');
+        thumbContainer.addEventListener('click', () => {
+            window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
+        });
+
+        // Video Title Click Handlers
+        const videoLink = videoElement.querySelector('.video-title');
+        
+        // Left click
+        videoLink.addEventListener('click', () => {
+            window.location.href = `video.html?src=${encodeURIComponent(video.path)}`;
+        });
+
+        videoLink.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+        });
+
+        videoLink.addEventListener('mouseup', (event) => {
+            if (event.button === 1) {
+                event.preventDefault();
+                window.open(`video.html?src=${encodeURIComponent(video.path)}`, '_blank');
+            }
+        });
+
+        // Channel Name Click Handlers
+        const channelLink = videoElement.querySelector('.channel-name');
+        
+        // Left click
+        channelLink.addEventListener('click', () => {
+            window.location.href = `channel.html?channel=${encodeURIComponent(channel)}`;
+        });
+
+        channelLink.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
+        });
+
+        channelLink.addEventListener('mouseup', (event) => {
+            if (event.button === 1) {
+                event.preventDefault();
+                window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
+            }
+        });
+
+        // Fetch video length
+        const videoFilename = video.path.split('/').pop();
+        const videoNameWithoutExt = stripExtension(videoFilename);
+        fetch(`/videolengths/${channel}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
+            .then(response => response.text())
+            .then(length => {
+                videoElement.querySelector('.video-length').textContent = length;
+            })
+            .catch(error => {
+                console.error('Error fetching video length:', error);
+            });
+    });
+}
 
 // ==============================
 // Apply Rounded Corners Preference

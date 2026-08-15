@@ -222,6 +222,44 @@
             return localStorage.getItem('language') === 'de' ? de : en;
         }
 
+        // Check if relative dates are enabled (reads fresh each time)
+        function isRelativeDatesEnabled() {
+            const setting = JSON.parse(localStorage.getItem('relativeDates') || '{"enabled":true}');
+            return setting.enabled !== false;
+        }
+
+        // Helper function to convert DD.MM.YYYY to relative time
+        function getRelativeTime(dateStr, lang) {
+            const parts = dateStr.split('.');
+            if (parts.length !== 3) return dateStr; // fallback to original if parsing fails
+
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+            const date = new Date(year, month, day);
+            const now = new Date();
+            now.setHours(0, 0, 0, 0); // compare dates only
+
+            const diffMs = now.getTime() - date.getTime();
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+            if (diffDays < 0) return dateStr; // future date
+            if (diffDays === 0) return lang === 'de' ? 'heute' : 'today';
+            if (diffDays < 7) {
+                return lang === 'de' ? `vor ${diffDays} ${diffDays === 1 ? 'Tag' : 'Tagen'}` : `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+            }
+            if (diffDays < 30) {
+                const weeks = Math.floor(diffDays / 7);
+                return lang === 'de' ? `vor ${weeks} ${weeks === 1 ? 'Woche' : 'Wochen'}` : `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+            }
+            if (diffDays < 365) {
+                const months = Math.floor(diffDays / 30);
+                return lang === 'de' ? `vor ${months} ${months === 1 ? 'Monat' : 'Monaten'}` : `${months} month${months === 1 ? '' : 's'} ago`;
+            }
+            const years = Math.floor(diffDays / 365);
+            return lang === 'de' ? `vor ${years} ${years === 1 ? 'Jahr' : 'Jahren'}` : `${years} year${years === 1 ? '' : 's'} ago`;
+        }
+
         // Helper to escape HTML entities
         function escapeHtml(text) {
             const d = document.createElement('div');
@@ -347,6 +385,11 @@
                     const thumbPath = '/thumbnails/' + encodeURIComponent(video.path.replace(/\.(mp4|mp3|mkv)$/, '')) + '.jpg';
                     const channel = video.path.split('/')[0];
 
+                    const lang = localStorage.getItem('language');
+                    const viewCount = lang === 'de' ? video.viewCount.replace(/,/g, '.') : video.viewCount;
+                    const viewsText = getLang('views', 'Aufrufe');
+                    const dateToShow = video.fileDate ? (isRelativeDatesEnabled() ? getRelativeTime(video.fileDate, lang) : video.fileDate) : '';
+
                     card.innerHTML = `
                         <div class="thumbnail-container">
                             <img src="${thumbPath}" alt="" class="video-thumb" onerror="this.style.display='none'">
@@ -354,7 +397,7 @@
                         </div>
                         <div class="video-meta">
                             <div class="title">${escapeHtml(video.displayName || video.path)}</div>
-                            <div class="meta">${escapeHtml(channel)} &bull; ${localStorage.getItem('language') === 'de' ? video.viewCount.replace(/,/g, '.') : video.viewCount} ${getLang('views', 'Aufrufe')}</div>
+                            <div class="meta">${escapeHtml(channel)} &bull; ${viewCount} ${viewsText}${dateToShow ? ' &bull; ' + dateToShow : ''}</div>
                         </div>
                     `;
                     

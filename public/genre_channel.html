@@ -521,6 +521,44 @@ function getLang(en, de) {
     return localStorage.getItem('language') === 'de' ? de : en;
 }
 
+// Check if relative dates are enabled (reads fresh each time)
+function isRelativeDatesEnabled() {
+    const setting = JSON.parse(localStorage.getItem('relativeDates') || '{"enabled":true}');
+    return setting.enabled !== false;
+}
+
+// Helper function to convert DD.MM.YYYY to relative time
+function getRelativeTime(dateStr, lang) {
+    const parts = dateStr.split('.');
+    if (parts.length !== 3) return dateStr; // fallback to original if parsing fails
+
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const year = parseInt(parts[2], 10);
+    const date = new Date(year, month, day);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // compare dates only
+
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return dateStr; // future date
+    if (diffDays === 0) return lang === 'de' ? 'heute' : 'today';
+    if (diffDays < 7) {
+        return lang === 'de' ? `vor ${diffDays} ${diffDays === 1 ? 'Tag' : 'Tagen'}` : `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+    }
+    if (diffDays < 30) {
+        const weeks = Math.floor(diffDays / 7);
+        return lang === 'de' ? `vor ${weeks} ${weeks === 1 ? 'Woche' : 'Wochen'}` : `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+    }
+    if (diffDays < 365) {
+        const months = Math.floor(diffDays / 30);
+        return lang === 'de' ? `vor ${months} ${months === 1 ? 'Monat' : 'Monaten'}` : `${months} month${months === 1 ? '' : 's'} ago`;
+    }
+    const years = Math.floor(diffDays / 365);
+    return lang === 'de' ? `vor ${years} ${years === 1 ? 'Jahr' : 'Jahren'}` : `${years} year${years === 1 ? '' : 's'} ago`;
+}
+
 function parseDurationToSeconds(durationStr) {
     if (!durationStr || typeof durationStr !== 'string') return 0;
     const trimmed = durationStr.trim();
@@ -1059,7 +1097,8 @@ document.addEventListener('DOMContentLoaded', () => {
             let viewsText = getLang('views', 'Aufrufe');
             if (lang === 'de') formattedViewCount = formattedViewCount.replace(/,/g, '.');
 
-            descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${video.fileDate || getLang('Unknown date', 'Unbekanntes Datum')}`;
+            const dateToShow = video.fileDate ? (isRelativeDatesEnabled() ? getRelativeTime(video.fileDate, lang) : video.fileDate) : getLang('Unknown date', 'Unbekanntes Datum');
+            descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${dateToShow}`;
 
             // Fetch video length only if not provided
             if (!video.videoLength) {
@@ -1089,7 +1128,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 let viewsText = getLang('views', 'Aufrufe');
                 if (lang === 'de') formattedViewCount = formattedViewCount.replace(/,/g, '.');
 
-                descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${video.fileDate || getLang('Unknown date', 'Unbekanntes Datum')}`;
+                const dateToShow = video.fileDate ? (isRelativeDatesEnabled() ? getRelativeTime(video.fileDate, lang) : video.fileDate) : getLang('Unknown date', 'Unbekanntes Datum');
+                descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${dateToShow}`;
 
                 // Store fetched metadata back to the video object
                 video.viewCount = viewCount.trim() || '0';
@@ -1099,7 +1139,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             })
             .catch(() => {
-                descriptionDiv.textContent = video.fileDate || getLang('Unknown date', 'Unbekanntes Datum');
+                const lang = localStorage.getItem('language');
+                const dateToShow = video.fileDate ? (isRelativeDatesEnabled() ? getRelativeTime(video.fileDate, lang) : video.fileDate) : getLang('Unknown date', 'Unbekanntes Datum');
+                descriptionDiv.textContent = dateToShow;
             });
         }
 

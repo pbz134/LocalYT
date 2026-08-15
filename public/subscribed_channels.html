@@ -105,7 +105,6 @@
             width: 100%;
             padding-top: 56.25%;
             background: #181818;
-
             overflow: hidden;
         }
 
@@ -287,7 +286,6 @@
             <img src="LocalYT-Rev-Files/search_icon.svg" id="searchIcon" class="search-icon" alt="Search" draggable="false">
             <div id="searchSuggestions" class="search-suggestions"></div>
         </div>
-
     </header>
 
     <div id="main">
@@ -334,6 +332,44 @@
             return localStorage.getItem('language') === 'de' ? de : en;
         }
 
+        // Check if relative dates are enabled (reads fresh each time)
+        function isRelativeDatesEnabled() {
+            const setting = JSON.parse(localStorage.getItem('relativeDates') || '{"enabled":true}');
+            return setting.enabled !== false;
+        }
+
+        // Helper function to convert DD.MM.YYYY to relative time
+        function getRelativeTime(dateStr, lang) {
+            const parts = dateStr.split('.');
+            if (parts.length !== 3) return dateStr;
+
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+            const date = new Date(year, month, day);
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+
+            const diffMs = now.getTime() - date.getTime();
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+            if (diffDays < 0) return dateStr;
+            if (diffDays === 0) return lang === 'de' ? 'heute' : 'today';
+            if (diffDays < 7) {
+                return lang === 'de' ? `vor ${diffDays} ${diffDays === 1 ? 'Tag' : 'Tagen'}` : `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+            }
+            if (diffDays < 30) {
+                const weeks = Math.floor(diffDays / 7);
+                return lang === 'de' ? `vor ${weeks} ${weeks === 1 ? 'Woche' : 'Wochen'}` : `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+            }
+            if (diffDays < 365) {
+                const months = Math.floor(diffDays / 30);
+                return lang === 'de' ? `vor ${months} ${months === 1 ? 'Monat' : 'Monaten'}` : `${months} month${months === 1 ? '' : 's'} ago`;
+            }
+            const years = Math.floor(diffDays / 365);
+            return lang === 'de' ? `vor ${years} ${years === 1 ? 'Jahr' : 'Jahren'}` : `${years} year${years === 1 ? '' : 's'} ago`;
+        }
+
         function stripExtension(filename) {
             return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
         }
@@ -365,42 +401,41 @@
             element.style.cursor = 'pointer';
         }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const mainLogo = document.getElementById('mainLogo');
-    if (mainLogo) {
-        mainLogo.addEventListener('click', (e) => {
-            if (e.button === 0) window.location.href = 'index.html';
-        });
-        mainLogo.addEventListener('mouseup', (e) => {
-            if (e.button === 1) { e.preventDefault(); window.open('index.html', '_blank'); }
-        });
-        mainLogo.addEventListener('contextmenu', (e) => {
-            e.preventDefault(); window.open('index.html', '_blank');
-        });
-        mainLogo.title = "Go to homepage";
-        mainLogo.style.cursor = 'pointer';
-    }
+        document.addEventListener('DOMContentLoaded', () => {
+            const mainLogo = document.getElementById('mainLogo');
+            if (mainLogo) {
+                mainLogo.addEventListener('click', (e) => {
+                    if (e.button === 0) window.location.href = 'index.html';
+                });
+                mainLogo.addEventListener('mouseup', (e) => {
+                    if (e.button === 1) { e.preventDefault(); window.open('index.html', '_blank'); }
+                });
+                mainLogo.addEventListener('contextmenu', (e) => {
+                    e.preventDefault(); window.open('index.html', '_blank');
+                });
+                mainLogo.title = "Go to homepage";
+                mainLogo.style.cursor = 'pointer';
+            }
 
-    // --- Search Navigation Logic ---
-    const searchInput = document.getElementById('searchInput');
-    
-    searchInput.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-            window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
-        }
-    });
+            // --- Search Navigation Logic ---
+            const searchInput = document.getElementById('searchInput');
+            
+            searchInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    window.location.href = `search.html?q=${encodeURIComponent(searchInput.value)}`;
+                }
+            });
 
-    document.getElementById('searchIcon').addEventListener('click', () => {
-        const query = searchInput.value.trim();
-        if (query) {
-            window.location.href = `search.html?q=${encodeURIComponent(query)}`;
-        } else {
-            searchInput.focus();
-        }
-    });
+            document.getElementById('searchIcon').addEventListener('click', () => {
+                const query = searchInput.value.trim();
+                if (query) {
+                    window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+                } else {
+                    searchInput.focus();
+                }
+            });
 
             document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
-
         });
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -548,6 +583,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const channel = video.path.split('/')[0];
                 const channelPicSrc = `/channelpic/${encodeURIComponent(channel)}.jpg`;
                 const videoUrl = `video.html?src=${encodeURIComponent(video.path)}`;
+                const lang = localStorage.getItem('language');
+                const dateToShow = isRelativeDatesEnabled() ? getRelativeTime(video.fileDate, lang) : video.fileDate;
 
                 el.innerHTML = `
                     <div class="thumbnail-container">
@@ -559,19 +596,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="video-details">
                             <div class="video-title" onclick="window.location.href='${videoUrl}'">${videoTitle}</div>
                             <div class="channel-name">${channel}</div>
-                            <div class="video-description">${localStorage.getItem('language') === 'de' ? video.viewCount.replace(/,/g, '.') : video.viewCount} ${getLang('views', 'Aufrufe')} &bull; ${video.fileDate}</div>
+                            <div class="video-description">${lang === 'de' ? video.viewCount.replace(/,/g, '.') : video.viewCount} ${getLang('views', 'Aufrufe')} &bull; ${dateToShow}</div>
                         </div>
                     </div>
                 `;
 
                 const thumbContainer = el.querySelector('.thumbnail-container');
                 thumbContainer.addEventListener('mouseup', (e) => {
-                    // Ignore clicks if they happened on the 3-dot context menu button
                     if (e.target.closest('.thumbnail-menu-btn')) return; 
                     
-                    if (e.button === 0) { // Left click
+                    if (e.button === 0) {
                         window.location.href = videoUrl;
-                    } else if (e.button === 1) { // Middle click
+                    } else if (e.button === 1) {
                         e.preventDefault();
                         window.open(videoUrl, '_blank');
                     }
@@ -601,25 +637,25 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-// ==============================
-// Apply Rounded Corners Preference
-// ==============================
-(function applyRoundedCorners() {
-    const setting = JSON.parse(localStorage.getItem('roundedCorners') || '{}');
-    const enabled = setting.enabled || false;
-    
-    if (enabled) {
-        const style = document.createElement('style');
-        style.id = 'rounded-corners-style';
-        style.textContent = `
-            .thumbnail-container {
-                border-radius: 12px !important;
-                overflow: hidden !important;
+        // ==============================
+        // Apply Rounded Corners Preference
+        // ==============================
+        (function applyRoundedCorners() {
+            const setting = JSON.parse(localStorage.getItem('roundedCorners') || '{}');
+            const enabled = setting.enabled || false;
+            
+            if (enabled) {
+                const style = document.createElement('style');
+                style.id = 'rounded-corners-style';
+                style.textContent = `
+                    .thumbnail-container {
+                        border-radius: 12px !important;
+                        overflow: hidden !important;
+                    }
+                `;
+                document.head.appendChild(style);
             }
-        `;
-        document.head.appendChild(style);
-    }
-})();
+        })();
     </script>
     
     <script src="search-suggestions.js"></script>

@@ -686,6 +686,20 @@
                     </div>
                 </div>
 
+                <!-- NEW: Relative dates setting -->
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="relativeDatesLabel">Relative dates</div>
+                        <div class="card-desc" id="relativeDatesDesc">Show time ago instead of fixed date</div>
+                    </div>
+                    <div class="card-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="relativeDates">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
                 <div class="setting-card">
                     <div class="card-info">
                         <div class="card-label" id="roundedCornersLabel">Rounded corners</div>
@@ -1048,6 +1062,9 @@
             document.getElementById('commenterProfileDesc').textContent = getLang('Letters & colors or classic placeholder', 'Buchstaben & Farben oder klassisch');
             document.getElementById('titleColorSchemeLabel').textContent = getLang('Title color scheme', 'Titel-Farbschema');
             document.getElementById('titleColorSchemeDesc').textContent = getLang('Video titles & channel names in white or blue', 'Videotitel & Kanalnamen in Weiß oder Blau');
+            // NEW: relative dates
+            document.getElementById('relativeDatesLabel').textContent = getLang('Relative dates', 'Relative Zeitangaben');
+            document.getElementById('relativeDatesDesc').textContent = getLang('Show time ago instead of fixed date', 'Zeitabstand statt festem Datum anzeigen');
             document.getElementById('roundedCornersLabel').textContent = getLang('Rounded corners', 'Abgerundete Ecken');
             document.getElementById('roundedCornersDesc').textContent = getLang('Subtle rounding on player & thumbnails', 'Leichte Abrundung an Player & Thumbnails');
             document.getElementById('sidebarSvgIconsLabel').textContent = getLang('Sidebar SVG icons', 'Seitenleisten-Symbole');
@@ -1184,6 +1201,7 @@
                 channelDefaultView: document.getElementById('channelDefaultView').value,
                 commenterProfileStyle: document.getElementById('commenterProfileStyle').value,
                 titleColorScheme: document.getElementById('titleColorScheme').value,
+                relativeDates: document.getElementById('relativeDates').checked,  // NEW
                 roundedCorners: document.getElementById('roundedCorners').checked,
                 sidebarSvgIcons: document.getElementById('sidebarSvgIcons').checked,
                 playerUIScale: parseFloat(document.getElementById('playerUIScale').value)
@@ -1193,6 +1211,7 @@
             localStorage.setItem('channelDefaultView', JSON.stringify({ view: settings.channelDefaultView }));
             localStorage.setItem('commenterProfileStyle', JSON.stringify({ style: settings.commenterProfileStyle }));
             localStorage.setItem('titleColorScheme', JSON.stringify({ scheme: settings.titleColorScheme }));
+            localStorage.setItem('relativeDates', JSON.stringify({ enabled: settings.relativeDates }));  // NEW
             localStorage.setItem('roundedCorners', JSON.stringify({ enabled: settings.roundedCorners }));
             localStorage.setItem('sidebarSvgIcons', JSON.stringify(settings.sidebarSvgIcons));
             localStorage.setItem('playerUIScale', JSON.stringify({ scale: settings.playerUIScale }));
@@ -1289,6 +1308,9 @@
             document.getElementById('commenterProfileStyle').value = commenterStyle.style || 'modern';
             const titleColor = JSON.parse(localStorage.getItem('titleColorScheme') || '{}');
             document.getElementById('titleColorScheme').value = titleColor.scheme || 'white';
+            // NEW: relativeDates
+            const relativeDates = JSON.parse(localStorage.getItem('relativeDates') || '{}');
+            document.getElementById('relativeDates').checked = relativeDates.enabled !== undefined ? relativeDates.enabled : true;
             const roundedCorners = JSON.parse(localStorage.getItem('roundedCorners') || '{}');
             document.getElementById('roundedCorners').checked = roundedCorners.enabled !== undefined ? roundedCorners.enabled : false;
             const sidebarSvg = JSON.parse(localStorage.getItem('sidebarSvgIcons') || '{}');
@@ -1302,6 +1324,8 @@
                 if (data.channelDefaultView) document.getElementById('channelDefaultView').value = data.channelDefaultView;
                 if (data.commenterProfileStyle) document.getElementById('commenterProfileStyle').value = data.commenterProfileStyle;
                 if (data.titleColorScheme) document.getElementById('titleColorScheme').value = data.titleColorScheme;
+                // NEW: relativeDates
+                if (data.relativeDates !== undefined) document.getElementById('relativeDates').checked = data.relativeDates;
                 if (data.roundedCorners !== undefined) document.getElementById('roundedCorners').checked = data.roundedCorners;
                 if (data.sidebarSvgIcons !== undefined) document.getElementById('sidebarSvgIcons').checked = data.sidebarSvgIcons;
                 if (data.playerUIScale !== undefined) document.getElementById('playerUIScale').value = data.playerUIScale;
@@ -1426,6 +1450,7 @@
                 channelDefaultView: document.getElementById('channelDefaultView').value,
                 commenterProfileStyle: document.getElementById('commenterProfileStyle').value,
                 titleColorScheme: document.getElementById('titleColorScheme').value,
+                relativeDates: document.getElementById('relativeDates').checked,  // NEW
                 roundedCorners: document.getElementById('roundedCorners').checked,
                 sidebarSvgIcons: document.getElementById('sidebarSvgIcons').checked,
                 playerUIScale: parseFloat(document.getElementById('playerUIScale').value),
@@ -1474,6 +1499,8 @@
                     if (config.channelDefaultView) document.getElementById('channelDefaultView').value = config.channelDefaultView;
                     if (config.commenterProfileStyle) document.getElementById('commenterProfileStyle').value = config.commenterProfileStyle;
                     if (config.titleColorScheme) document.getElementById('titleColorScheme').value = config.titleColorScheme;
+                    // NEW: relativeDates
+                    if (config.relativeDates !== undefined) document.getElementById('relativeDates').checked = config.relativeDates;
                     if (config.roundedCorners !== undefined) document.getElementById('roundedCorners').checked = config.roundedCorners;
                     if (config.sidebarSvgIcons !== undefined) document.getElementById('sidebarSvgIcons').checked = config.sidebarSvgIcons;
                     if (config.playerUIScale !== undefined) document.getElementById('playerUIScale').value = config.playerUIScale;
