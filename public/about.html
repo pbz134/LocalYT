@@ -171,7 +171,6 @@
                 <span class="credit-label" id="creditMetadataFetcherLabel">Metadata Fetcher</span>
                 <span class="credit-value" id="creditMetadataFetcherValue">yt-dlp</span>
 
-                <!-- NEW ENTRY: Metadata Processing - FFmpeg -->
                 <span class="credit-label" id="creditMetadataProcessingLabel">Metadata Processing</span>
                 <span class="credit-value" id="creditMetadataProcessingValue">FFmpeg (<a href="/LocalYT-Rev-Files/GNU-LICENSE.txt" style="color: inherit; text-decoration: underline;">GNU LICENSE</a>)</span>
 
@@ -236,14 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('creditMetadataFetcherLabel').textContent = getLang('Metadata Fetcher', 'Metadaten-Downloader');
     document.getElementById('creditMetadataFetcherValue').textContent = getLang('yt-dlp', 'yt-dlp');
 
-    // Translate the new Metadata Processing entry
     document.getElementById('creditMetadataProcessingLabel').textContent = getLang('Metadata Processing', 'Metadatenverarbeitung');
-    // Keep FFmpeg and the GNU link as-is, but we need to update the innerHTML to keep the link.
-    // The link is already in the HTML, but if language changes we want to keep "FFmpeg" and the link.
-    // We'll set the text content for the value to be "FFmpeg" with the link, but since we have a link inside,
-    // we need to preserve it. We'll just set the label and leave the value HTML as-is.
-    // However, the label is separate, so we only change the label.
-    // The value already contains "FFmpeg (<a href=...>GNU LICENSE</a>)" and we keep it.
 
     document.getElementById('creditCreatedByLabel').textContent = getLang('Created by', 'Erstellt von');
 
