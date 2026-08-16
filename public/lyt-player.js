@@ -2583,6 +2583,17 @@
             this.dom.qualityMenu.querySelector('.lyt_menu_content').innerHTML = html;
         }
 
+        // ----- setDescription method - ADD THIS -----
+        setDescription(descriptionText) {
+            console.log('===== setDescription CALLED =====');
+            console.log('Description text length:', descriptionText ? descriptionText.length : 0);
+            console.log('First 300 chars:', descriptionText ? descriptionText.substring(0, 300) : 'null');
+            console.log('Full description:', descriptionText);
+            
+            this.parseChapters(descriptionText);
+            this.renderChapterMarkers();
+        }
+
         bindEvents() {
             // Video Events (unchanged)
             this.video.addEventListener('play', () => {
@@ -4375,6 +4386,11 @@
          * @param {string} descriptionText - The raw video description text.
          */
         setDescription(descriptionText) {
+            console.log('===== setDescription CALLED =====');
+            console.log('Description text length:', descriptionText ? descriptionText.length : 0);
+            console.log('First 300 chars:', descriptionText ? descriptionText.substring(0, 300) : 'null');
+            console.log('Full description:', descriptionText);
+            
             this.parseChapters(descriptionText);
             this.renderChapterMarkers();
         }
@@ -4385,15 +4401,30 @@
          * Ignores timestamps that have text on both sides in the same line.
          */
         parseChapters(descriptionText) {
+            console.log('===== PARSE CHAPTERS CALLED =====');
+            console.log('Description text length:', descriptionText ? descriptionText.length : 0);
+            
             this.chapters = [];
-            if (!descriptionText || typeof descriptionText !== 'string') return;
+            if (!descriptionText || typeof descriptionText !== 'string') {
+                console.log('No description text provided');
+                return;
+            }
 
             const timestampRegex = /(\d{1,2}:\d{2}(?::\d{2})?)/g;
             const lines = descriptionText.split('\n');
+            console.log('Total lines:', lines.length);
+            console.log('First 10 lines:', lines.slice(0, 10));
+
+            let lineNumber = 0;
+            let timestampFound = 0;
+            let chaptersAdded = 0;
 
             for (const line of lines) {
+                lineNumber++;
                 const trimmedLine = line.trim();
                 if (!trimmedLine) continue;
+
+                console.log(`\n--- Line ${lineNumber}: "${trimmedLine}" ---`);
 
                 // Collect all timestamp matches with their positions
                 const matches = [];
@@ -4402,46 +4433,111 @@
                     matches.push({ ts: match[0], index: match.index, endIndex: match.index + match[0].length });
                 }
 
+                if (matches.length === 0) {
+                    console.log('  No timestamp found');
+                    continue;
+                }
+
+                console.log(`  Found ${matches.length} timestamp(s):`, matches.map(m => m.ts));
+
                 for (const m of matches) {
-                    const hasTextBefore = trimmedLine.substring(0, m.index).trim().length > 0;
-                    const hasTextAfter = trimmedLine.substring(m.endIndex).trim().length > 0;
+                    timestampFound++;
+                    const beforeText = trimmedLine.substring(0, m.index).trim();
+                    const afterText = trimmedLine.substring(m.endIndex).trim();
+                    const hasTextBefore = beforeText.length > 0;
+                    const hasTextAfter = afterText.length > 0;
 
-                    // Skip if timestamp has text on BOTH sides
-                    if (hasTextBefore && hasTextAfter) continue;
+                    console.log(`  Timestamp: "${m.ts}" at position ${m.index}`);
+                    console.log(`    before: "${beforeText}" (${hasTextBefore ? 'has text' : 'empty'})`);
+                    console.log(`    after:  "${afterText}" (${hasTextAfter ? 'has text' : 'empty'})`);
 
-                    const seconds = this.parseTimestamp(m.ts);
-                    if (isNaN(seconds) || seconds < 0) continue;
+                    // Check for separators before the timestamp
+                    const hasSeparatorBefore = /[–—\-:]\s*$/.test(beforeText);
+                    const timestampAtStart = m.index === 0;
+                    const timestampAtEnd = !hasTextAfter;
+
+                    console.log(`    hasSeparatorBefore: ${hasSeparatorBefore}`);
+                    console.log(`    timestampAtStart: ${timestampAtStart}`);
+                    console.log(`    timestampAtEnd: ${timestampAtEnd}`);
 
                     let title = '';
-                    if (hasTextBefore) {
-                        // Format: "TEXT TIMESTAMP"
-                        title = trimmedLine.substring(0, m.index).trim();
-                    } else if (hasTextAfter) {
-                        // Format: "TIMESTAMP TEXT"
-                        title = trimmedLine.substring(m.endIndex).trim();
-                    } else {
-                        // Just a timestamp alone on the line
-                        title = m.ts;
+                    let shouldInclude = false;
+                    let reason = '';
+
+                    // CASE 1: Timestamp at end of line (most common for chapters)
+                    if (timestampAtEnd) {
+                        title = beforeText;
+                        shouldInclude = true;
+                        reason = 'timestamp at end of line';
+                    }
+                    // CASE 2: Timestamp at start of line (format: "00:00 Title")
+                    else if (timestampAtStart && hasTextAfter) {
+                        title = afterText;
+                        shouldInclude = true;
+                        reason = 'timestamp at start of line';
+                    }
+                    // CASE 3: Title before timestamp with separator (format: "Title - 00:00")
+                    else if (hasTextBefore && hasSeparatorBefore) {
+                        title = beforeText.replace(/[–—\-:]\s*$/, '').trim();
+                        shouldInclude = true;
+                        reason = 'separator before timestamp';
+                    }
+                    // CASE 4: Title before timestamp (format: "Title 00:00")
+                    else if (hasTextBefore && !hasTextAfter) {
+                        title = beforeText;
+                        shouldInclude = true;
+                        reason = 'text before timestamp only';
+                    }
+                    // CASE 5: Timestamp in middle of sentence - SKIP
+                    else if (hasTextBefore && hasTextAfter) {
+                        shouldInclude = false;
+                        reason = 'SKIPPED: timestamp in middle of sentence (text on both sides)';
                     }
 
-                    // Remove common prefix separators (dash, colon, etc.)
-                    title = title.replace(/^[-–—:\s]+/, '').trim();
+                    console.log(`    Result: ${shouldInclude ? '✅ INCLUDE' : '❌ SKIP'} - ${reason}`);
+
+                    if (!shouldInclude) continue;
+
+                    // Clean up the title
+                    // Remove number prefixes like "#01.", "01.", "1-"
+                    const cleanedTitle = title.replace(/^[#]?\d+[\.\-\)]\s*/, '').trim();
+                    if (cleanedTitle !== title) {
+                        console.log(`    Title cleaned: "${title}" -> "${cleanedTitle}"`);
+                        title = cleanedTitle;
+                    }
+
+                    // Remove trailing separators
+                    title = title.replace(/[–—\-:]\s*$/, '').trim();
                     if (!title) title = m.ts;
 
+                    const seconds = this.parseTimestamp(m.ts);
+                    console.log(`    Parsed time: ${m.ts} -> ${seconds} seconds`);
+                    
+                    if (isNaN(seconds) || seconds < 0) {
+                        console.log(`    ❌ Invalid time, skipping`);
+                        continue;
+                    }
+
+                    // Check for duplicate timestamps
+                    if (this.chapters.some(ch => ch.time === seconds)) {
+                        console.log(`    ⚠️ Duplicate timestamp ${seconds}s, skipping`);
+                        continue;
+                    }
+
+                    chaptersAdded++;
+                    console.log(`    ✅ CHAPTER ${chaptersAdded}: ${seconds}s - "${title}"`);
                     this.chapters.push({ time: seconds, title: title });
                 }
             }
 
+            console.log('\n===== CHAPTER PARSING COMPLETE =====');
+            console.log(`Total lines processed: ${lineNumber}`);
+            console.log(`Total timestamps found: ${timestampFound}`);
+            console.log(`Total chapters added: ${chaptersAdded}`);
+            console.log('Final chapters:', this.chapters);
+
             // Sort chapters by time
             this.chapters.sort((a, b) => a.time - b.time);
-
-            // Remove duplicate timestamps (keep first occurrence)
-            const seen = new Set();
-            this.chapters = this.chapters.filter(ch => {
-                if (seen.has(ch.time)) return false;
-                seen.add(ch.time);
-                return true;
-            });
         }
 
         /**

@@ -2685,6 +2685,7 @@
                                 descriptionWithLinks;
 
                             // Pass description to LYT Player for chapter parsing
+                            console.log('Description passed to player:', description);
                             if (myFP && typeof myFP.setDescription === 'function') {
                                 myFP.setDescription(description);
                             }
