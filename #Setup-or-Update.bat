@@ -1,6 +1,76 @@
 @echo off
 setlocal enabledelayedexpansion
 
+:: Temporarily override PATH to use bundled ffmpeg on all scripts
+set "BUNDLED_FFMPEG_DIR=%~dp0LocalYT-Rev-Files\FFmpeg"
+set "FFMPEG_AVAILABLE=0"
+set "FFPROBE_AVAILABLE=0"
+set "MISSING_TOOLS="
+
+:: Check for ffmpeg
+where ffmpeg >nul 2>nul
+if %errorlevel% equ 0 (
+    echo Found ffmpeg in system PATH.
+    set "FFMPEG_AVAILABLE=1"
+) else (
+    echo ffmpeg not found in system PATH.
+    if exist "%BUNDLED_FFMPEG_DIR%\ffmpeg.exe" (
+        echo Using bundled ffmpeg from %BUNDLED_FFMPEG_DIR%
+        set "PATH=%BUNDLED_FFMPEG_DIR%;%PATH%"
+        set "FFMPEG_AVAILABLE=1"
+    )
+)
+
+:: Check for ffprobe
+where ffprobe >nul 2>nul
+if %errorlevel% equ 0 (
+    echo Found ffprobe in system PATH.
+    set "FFPROBE_AVAILABLE=1"
+) else (
+    echo ffprobe not found in system PATH.
+    if exist "%BUNDLED_FFMPEG_DIR%\ffprobe.exe" (
+        echo Using bundled ffprobe from %BUNDLED_FFMPEG_DIR%
+        set "PATH=%BUNDLED_FFMPEG_DIR%;%PATH%"
+        set "FFPROBE_AVAILABLE=1"
+    )
+)
+
+:: Check if both are available
+if !FFMPEG_AVAILABLE! equ 0 set "MISSING_TOOLS=ffmpeg"
+if !FFPROBE_AVAILABLE! equ 0 (
+    if defined MISSING_TOOLS (
+        set "MISSING_TOOLS=!MISSING_TOOLS! and ffprobe"
+    ) else (
+        set "MISSING_TOOLS=ffprobe"
+    )
+)
+
+if defined MISSING_TOOLS (
+    echo.
+    echo ================================================================================
+    echo ERROR: Required tools are missing: !MISSING_TOOLS!
+    echo ================================================================================
+    echo.
+    echo Neither system PATH nor bundled location contains the required tools:
+    echo   System PATH: ffmpeg and ffprobe not found
+    echo   Bundled location: %BUNDLED_FFMPEG_DIR%
+    echo.
+    if !FFMPEG_AVAILABLE! equ 0 echo   - ffmpeg.exe is missing
+    if !FFPROBE_AVAILABLE! equ 0 echo   - ffprobe.exe is missing
+    echo.
+    echo Please ensure the following are available:
+    echo   1. Install FFmpeg and add it to your system PATH, OR
+    echo   2. Place both ffmpeg.exe and ffprobe.exe in: %BUNDLED_FFMPEG_DIR%
+    echo.
+    echo Many operations in this script require these tools to function properly.
+    echo Press any key to exit...
+    pause >nul
+    exit /b 1
+)
+
+echo All required FFmpeg tools are available.
+echo.
+
 :: Clear variables first – we'll read them from file or prompt
 set "LLM_TAGGING="
 set "SEEKBAR_PREVIEWS="
