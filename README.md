@@ -51,7 +51,7 @@ From then on, I regularly worked on the program to further improve it, and 15 mo
 ---
 
 ## Prerequisites
-- [FFmpeg](https://www.ffmpeg.org/download.html) (must be added to PATH!)
+- Optional: [FFmpeg](https://www.ffmpeg.org/download.html) and [node.js](https://nodejs.org/en) (must be added to PATH!)
 - A few, or a lot of videos :)
 
 ---
