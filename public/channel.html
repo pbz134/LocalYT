@@ -385,6 +385,7 @@
             flex-direction: column;
             align-items: stretch;
             padding: 0 20px;
+            gap: 0;
         }
         .channel-videos.list-view .video-thumbnail {
             width: 100%;
@@ -396,7 +397,7 @@
             grid-template-rows: auto auto;
             width: 100%;
             max-width: 800px;
-            margin: 0 auto;
+            margin: 0 auto -20px auto !important;
             gap: 0 16px;
             align-items: start;
             background: transparent;
@@ -422,6 +423,7 @@
             grid-row: 2;
             padding: 0;
             margin: 0 !important;
+            margin-top: -75px !important;
             min-height: 0 !important;
             line-height: 1.4;
         }
@@ -432,7 +434,7 @@
         }
 
         .channel-videos.list-view .video-item {
-            margin: 4px auto !important;
+            margin: 0 auto -50px auto !important;
         }
         .channel-videos.list-view .video-length {
             position: absolute;
