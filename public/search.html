@@ -1383,106 +1383,88 @@ async function applyMetadataFilters(results) {
     const items = container.querySelectorAll('.search-result-item');
     const channelItems = container.querySelectorAll('.channel-result');
     
-    // Check if we have any filters that require async operations
     const hasLengthFilter = !!searchFilters.length;
     const hasResolutionFilter = searchFilters.properties.some(p => ['4k', '2k', '1080p', '720p'].includes(p));
     const hasSubtitleFilter = searchFilters.properties.includes('subtitles');
 
-    // Apply filetype filter immediately (synchronous)
+    // Filetype filter (synchronous)
     if (searchFilters.filetype) {
         items.forEach((item, index) => {
             if (!results[index]) return;
-            
             const ext = results[index].path.split('.').pop().toLowerCase();
             const videoExts = ['mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm'];
             const audioExts = ['wav', 'flac', 'mp3', 'aac', 'ogg'];
-            
             let keep = true;
             if (searchFilters.filetype === 'video' && !videoExts.includes(ext)) keep = false;
             if (searchFilters.filetype === 'audio' && !audioExts.includes(ext)) keep = false;
-            
             if (!keep) {
                 item.style.display = 'none';
                 item.dataset.filteredOut = 'true';
             }
         });
-        
         if (searchFilters.type === 'video') {
             channelItems.forEach(el => el.style.display = 'none');
         }
     }
     
-    // Only proceed if we have async filters (length or resolution)
     if (!hasLengthFilter && !hasResolutionFilter && !hasSubtitleFilter) return;
     
-    // Create array of promises for all visible items
     const filterPromises = Array.from(items).map(async (item, index) => {
-        // Skip if already hidden by filetype filter
         if (item.style.display === 'none' || !results[index]) return { index, keep: true };
-        
         const video = results[index];
         const videoPath = video.path;
         const basePath = stripExtension(videoPath);
-        
         const pathParts = basePath.split('/');
         const channelName = pathParts[0];
         const videoName = pathParts[pathParts.length - 1];
-        
         let shouldKeep = true;
         
         try {
-            // 1. LENGTH CHECK (if enabled)
+            // Length check
             if (hasLengthFilter) {
                 const lengthResponse = await fetch(`/videolengths/${encodeURIComponent(basePath)}.txt`);
                 const lengthText = lengthResponse.ok ? await lengthResponse.text() : '';
                 const seconds = parseDurationToSeconds(lengthText);
-                
                 if (searchFilters.length === 'short' && seconds >= 180) shouldKeep = false;
                 if (searchFilters.length === 'medium' && (seconds < 180 || seconds > 1200)) shouldKeep = false;
                 if (searchFilters.length === 'long' && seconds <= 1200) shouldKeep = false;
             }
             
-            // 2. RESOLUTION CHECK (if enabled)
+            // Resolution check – UPDATED to read only the first line
             if (shouldKeep && hasResolutionFilter) {
                 const resResponse = await fetch(`/videoresolutions/${encodeURIComponent(basePath)}.txt`);
-                const resolutionText = resResponse.ok ? (await resResponse.text()).trim().toLowerCase() : '';
+                const resolutionText = resResponse.ok ? (await resResponse.text()).trim() : '';
+                const resolution = resolutionText.split('\n')[0].trim().toLowerCase(); // <-- NEW
                 
                 const selectedResolutions = searchFilters.properties.filter(p => ['4k', '2k', '1080p', '720p'].includes(p));
-                
-                if (selectedResolutions.length > 0 && resolutionText) {
+                if (selectedResolutions.length > 0 && resolution) {
                     const match = selectedResolutions.some(selRes => {
                         switch(selRes) {
-                            case '4k': return ['4k', '2160p', '3840x2160'].includes(resolutionText);
-                            case '2k': return ['2k', '1440p', '2560x1440', 'qhd'].includes(resolutionText);
-                            case '1080p': return ['1080p', 'hd', '1920x1080', 'fullhd', 'fhd'].includes(resolutionText);
-                            case '720p': return ['720p', 'sd', '1280x720', 'hdready'].includes(resolutionText);
+                            case '4k': return ['4k', '2160p', '3840x2160'].includes(resolution);
+                            case '2k': return ['2k', '1440p', '2560x1440', 'qhd'].includes(resolution);
+                            case '1080p': return ['1080p', 'hd', '1920x1080', 'fullhd', 'fhd'].includes(resolution);
+                            case '720p': return ['720p', 'sd', '1280x720', 'hdready'].includes(resolution);
                             default: return false;
                         }
                     });
-                    
                     if (!match) shouldKeep = false;
-                } else if (selectedResolutions.length > 0 && !resolutionText) {
+                } else if (selectedResolutions.length > 0 && !resolution) {
                     shouldKeep = false;
                 }
             }
-            
         } catch (e) {
             console.warn(`Error filtering ${videoPath}:`, e);
         }
         
-        // Apply visibility
         if (!shouldKeep) {
             item.style.display = 'none';
             item.dataset.filteredOut = 'true';
         }
-        
         return { index, keep: shouldKeep };
     });
     
-    // Wait for all filters to complete
     await Promise.all(filterPromises);
     
-    // Update result count or show "no results" message if all filtered out
     const visibleItems = container.querySelectorAll('.search-result-item:not([style*="display: none"])');
     if (visibleItems.length === 0 && items.length > 0) {
         console.log('All results filtered out by current filter settings');

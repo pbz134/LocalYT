@@ -3931,24 +3931,24 @@
 
         toggleStatsOverlay() {
             let overlay = this.wrapper.querySelector('.lyt_stats_overlay');
-
+        
             if (overlay) {
                 overlay.remove();
                 if (this._statsInterval) clearInterval(this._statsInterval);
                 if (this._fpsFrameId) cancelAnimationFrame(this._fpsFrameId);
                 return;
             }
-
+        
             overlay = document.createElement('div');
             overlay.className = 'lyt_stats_overlay';
             this.wrapper.appendChild(overlay);
-
+        
             const video = this.video;
             
             let fpsFrames = 0;
             let fpsLastTime = performance.now();
             let fpsCurrentValue = '...';
-
+        
             const fpsLoop = () => {
                 if (!document.body.contains(overlay)) {
                      cancelAnimationFrame(this._fpsFrameId);
@@ -3966,41 +3966,45 @@
                 this._fpsFrameId = requestAnimationFrame(fpsLoop);
             };
             this._fpsFrameId = requestAnimationFrame(fpsLoop);
-
-            const updateStats = () => {
+        
+            const updateStats = async () => {
                 if (!video || !document.body.contains(overlay)) {
                     clearInterval(this._statsInterval);
                     if (this._fpsFrameId) cancelAnimationFrame(this._fpsFrameId);
                     return;
                 }
-
+        
                 let html = '';
                 html += this.createStatRow('Resolution', `${video.videoWidth} x ${video.videoHeight}`);
                 html += this.createStatRow('FPS (Current)', `${fpsCurrentValue}`);
-                html += this.createStatRow('Codec', this.getCodecInfo());
+                
+                // Now async
+                const codec = await this.getCodecInfo();
+                html += this.createStatRow('Codec', codec);
+                
                 html += this.createStatRow('Buffer Speed', this.calculateBitrate());
-
+        
                 let volStr = Math.round(video.volume * 100) + '%';
                 if (video.muted || video.volume === 0) volStr += ' (Muted)';
                 html += this.createStatRow('Volume', volStr);
-
+        
                 let speedVal = video.playbackRate.toFixed(2);
                 if (speedVal === '1.00') speedVal = '1';
                 html += this.createStatRow('Speed', speedVal + 'x');
-
+        
                 if (video.buffered.length > 0) {
                     const buffered = video.buffered.end(video.buffered.length - 1) - video.currentTime;
                     html += this.createStatRow('Buffer', this.formatTimeStat(buffered));
                 }
-
+        
                 if (video.mozDecodedFrames !== undefined) {
                     const dropped = video.mozParsedFrames - video.mozDecodedFrames;
                     html += this.createStatRow('Dropped Frames', dropped);
                 }
-
+        
                 overlay.innerHTML = html;
             };
-
+        
             updateStats();
             this._statsInterval = setInterval(updateStats, 1000);
         }
@@ -4015,35 +4019,87 @@
             return `${m < 10 ? '0' + m : m}:${sec < 10 ? '0' + sec : sec}`;
         }
 
-        getCodecInfo() {
+        async getCodecInfo() {
             const video = this.video;
-            if (window.Hls && video.hlsPlayer && video.hlsPlayer.levels) {
-                const level = video.hlsPlayer.levels[video.hlsPlayer.currentLevel];
-                if(level && level.codecSet) return level.codecSet;
+            
+            // 1. Check if we already have a cached codec
+            if (this._cachedCodec) {
+                return this._cachedCodec;
             }
-            if (video.currentSrc) {
-                const sources = video.querySelectorAll('source');
-                for (let i=0; i<sources.length; i++) {
-                    if (sources[i].src === video.currentSrc) {
-                        const typeAttr = sources[i].type;
-                        if (typeAttr && typeAttr.includes('codecs=')) {
-                            return typeAttr.split('codecs=')[1].replace(/"/g, '');
-                        }
+            
+            // 2. Try to fetch from the .txt file
+            try {
+                const src = video.currentSrc || video.src;
+                if (!src) return 'Unknown';
+                
+                // Extract the base path from the video URL
+                // Example: /videos/MVG/Xbox/video.mp4 -> MVG/Xbox/video
+                const urlObj = new URL(src, window.location.origin);
+                let pathname = urlObj.pathname;
+                
+                // Remove leading /videos/ if present
+                if (pathname.startsWith('/videos/')) {
+                    pathname = pathname.substring(8); // Remove '/videos/'
+                }
+                
+                // Remove query parameters and hash
+                pathname = pathname.split('?')[0].split('#')[0];
+                
+                // Remove file extension
+                const basePath = pathname.replace(/\.[^.]+$/, '');
+                
+                // Construct the path to the .txt file
+                const txtPath = `/videoresolutions/${basePath}.txt`;
+                
+                const response = await fetch(txtPath);
+                if (response.ok) {
+                    const text = await response.text();
+                    const lines = text.split('\n').filter(line => line.trim() !== '');
+                    
+                    // Second line is the codec (if it exists)
+                    if (lines.length >= 2) {
+                        const codec = lines[1].trim();
+                        this._cachedCodec = codec;
+                        return codec;
                     }
                 }
+            } catch (error) {
+                // Silent fail - will fall back to guessing
+                console.debug('Could not fetch codec from file:', error);
             }
+            
+            // 3. Fallback: Guess from file extension
+            const codec = this.guessCodecFromExtension();
+            this._cachedCodec = codec;
+            return codec;
+        }
+        
+        /**
+         * Fallback: Guess codec from file extension
+         */
+        guessCodecFromExtension() {
+            const video = this.video;
             const src = video.currentSrc || video.src;
-            if (src) {
-                const ext = src.split('?')[0].split('#')[0].split('.').pop().toLowerCase();
-                if (['mp4', 'm4v', 'mov'].includes(ext)) return 'H.264 (Likely)';
-                if (['webm'].includes(ext)) return 'VP9/AV1 (Likely)';
-                if (['ogg', 'ogv'].includes(ext)) return 'Theora/Vorbis';
-            }
-            if (video.canPlayType) {
-                 if (video.canPlayType('video/mp4; codecs="avc1.42E01E"') !== '') return 'H.264 (Guessed)';
-                 if (video.canPlayType('video/webm; codecs="vp9"') !== '') return 'VP9 (Guessed)';
-            }
-            return 'Unknown';
+            if (!src) return 'Unknown';
+            
+            // Clean up the source URL
+            const cleanSrc = src.split('?')[0].split('#')[0];
+            const ext = cleanSrc.split('.').pop().toLowerCase();
+            
+            const codecMap = {
+                'mp4': 'H.264 (guessed)',
+                'm4v': 'H.264 (guessed)',
+                'mov': 'H.264 (guessed)',
+                'mkv': 'H.264/HEVC (guessed)',
+                'webm': 'VP9/AV1 (guessed)',
+                'ogg': 'Theora/Vorbis (guessed)',
+                'ogv': 'Theora/Vorbis (guessed)',
+                'avi': 'Unknown (guessed)',
+                'wmv': 'WMV (guessed)',
+                'flv': 'H.264 (guessed)'
+            };
+            
+            return codecMap[ext] || 'Unknown (guessed)';
         }
 
         calculateBitrate() {
