@@ -2196,6 +2196,7 @@
             _chapterManagerVisible = !_chapterManagerVisible;
 
             if (_chapterManagerVisible) {
+                _lastCurrentChapterIndex = -1;
                 // Render chapters
                 renderChapterList(currentTime);
                 manager.classList.add('lyt_chapter_visible');
@@ -2246,6 +2247,9 @@
                 setTimeout(() => {
                     currentItem.scrollIntoView({ block: 'center', behavior: 'smooth' });
                 }, 50);
+                _lastCurrentChapterIndex = parseInt(currentItem.dataset.index);
+            } else {
+                _lastCurrentChapterIndex = -1;
             }
 
             // Bind click events
@@ -2298,6 +2302,7 @@
             if (manager) {
                 manager.classList.remove('lyt_chapter_visible');
                 _chapterManagerVisible = false;
+                _lastCurrentChapterIndex = -1;
             }
         }
 
@@ -2307,27 +2312,29 @@
         function updateChapterManagerHighlight(currentTime) {
             if (!_chapterManagerVisible) return;
             if (!_chapterManagerChapters || _chapterManagerChapters.length === 0) return;
-
+        
             const list = document.getElementById('chapterList');
             if (!list) return;
-
-            // Update current class on items
+        
             const items = list.querySelectorAll('.chapter-item');
+            let currentIndex = -1;
+        
+            // Update classes and find the new current chapter index
             items.forEach((item, index) => {
                 const time = parseFloat(item.dataset.time);
                 if (isNaN(time)) return;
                 const isCurrent = time <= currentTime &&
                     (index === items.length - 1 || _chapterManagerChapters[index + 1].time > currentTime);
                 item.classList.toggle('current', isCurrent);
+                if (isCurrent) currentIndex = index;
             });
-
-            // Scroll to current if it's not visible
-            const currentItem = list.querySelector('.chapter-item.current');
-            if (currentItem) {
-                const rect = currentItem.getBoundingClientRect();
-                const containerRect = list.getBoundingClientRect();
-                if (rect.top < containerRect.top || rect.bottom > containerRect.bottom) {
+        
+            // Only scroll if the current chapter actually changed
+            if (currentIndex !== -1 && currentIndex !== _lastCurrentChapterIndex) {
+                const currentItem = list.querySelector('.chapter-item.current');
+                if (currentItem) {
                     currentItem.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    _lastCurrentChapterIndex = currentIndex;
                 }
             }
         }
@@ -2785,7 +2792,6 @@
                 await fetch(`/playlist-videos/${encodeURIComponent(currentChannel)}/${playlistName}`)
                     .then(response => response.json())
                     .then(videos => {
-                        // ADD THIS LINE RIGHT HERE to sort the videos:
                         videos.sort(naturalCompare);
 
                         // If more than 6 videos, make the container scrollable
@@ -4258,7 +4264,6 @@
                 // If message offset is in the future, stop
                 if (msg.offsetMs > currentMs) break;
 
-                // Add this message
                 addChatMessageToDOM(msg.author, msg.message);
                 processedIndices.add(i);
                 lastSyncedIndex = i; // Update our position
