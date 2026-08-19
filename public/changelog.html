@@ -240,6 +240,11 @@
                             <li>A new script (createPlaylistorders.py) creates .jsonl files that represent all of your channel playlist orders</li>
                             <li>You can modify these .jsonl files to customize the default sorting of playlists</li>
                         </ul>
+                    <li>Fixed video + metadata special character stripping
+                        <ul>
+                            <li>Due to an issue with how certain special characters in metadata files were handled, many of them were not appearing on videos in LocalYT</li>
+                            <li>For anyone having issues with this currently, please execute ".\venv\python.exe LocalYT-Rev-Files\FixMetadataDuplicates.py" to permanently resolve this</li>
+                        </ul>
                 </ul>
             </section>
             <section class="doc-section" id="v4.80">

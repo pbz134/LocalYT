@@ -6,7 +6,17 @@ Simple Filename Cleaner for LocalYT Video Library
 import os
 import re
 import shutil
+import sys
 from pathlib import Path
+
+def get_progress_bar(current, total, width=20):
+    """Generate a simple progress bar string."""
+    if total == 0:
+        return "[" + " " * width + "]"
+    
+    filled = int((current / total) * width)
+    bar = "=" * filled + " " * (width - filled)
+    return f"[{bar}]"
 
 def load_blacklist(filepath):
     """Load blacklist characters from a file."""
@@ -39,10 +49,7 @@ def clean_filename(filename, remove_chars, space_chars):
     for char in remove_chars:
         filename = filename.replace(char, '')
     
-    # Replace triple spaces with " - " (common separator pattern)
-    filename = re.sub(r'\s{3,}', ' - ', filename)
-    
-    # Clean up any remaining double spaces
+    # Clean up any multiple spaces (caused by removing separators) to a single space
     filename = re.sub(r'\s{2,}', ' ', filename).strip()
     
     return filename
@@ -68,39 +75,94 @@ def clean_all_files():
         'videos',
         'videolengths', 
         'thumbnails',
+        'thumbnails-small',
         'filedates',
         'descriptions',
         'videostats',
+        'viewcounts',
+        'videoresolutions',
+        'filenames',
         'subtitles'
     ]
     
-    total_renamed = 0
+    # Pre-scan to count all files for progress
+    sys.stdout.write("Scanning files...".ljust(70) + "\r")
+    sys.stdout.flush()
     
+    files_to_check = []
     for dir_name in dirs_to_process:
         dir_path = root_dir / dir_name
         
         if not dir_path.exists():
             continue
         
-        # Process all files
         for item in dir_path.rglob('*'):
             if item.is_file() and not item.name.startswith('.'):
-                original_stem = item.stem
-                extension = item.suffix
-                
-                cleaned_stem = clean_filename(original_stem, remove_chars, space_chars)
-                
-                if cleaned_stem != original_stem:
-                    new_path = item.parent / f"{cleaned_stem}{extension}"
-                    
-                    if not new_path.exists():
-                        shutil.move(str(item), str(new_path))
-                        print(f"Renamed: {original_stem}{extension} -> {cleaned_stem}{extension}")
-                        total_renamed += 1
-                    else:
-                        print(f"Skipped (exists): {new_path.name}")
+                files_to_check.append(item)
     
-    print(f"\nTotal files renamed: {total_renamed}")
+    total_files = len(files_to_check)
+    
+    if total_files == 0:
+        print("No files found to scan.                                    ")
+        return
+    
+    print(f"LocalYT Filename Cleaner")
+    print(f"Scanning: {total_files} files")
+    print(f"Remove chars: {len(remove_chars)} | Space chars: {len(space_chars)}")
+    
+    # Stats tracking
+    renamed_count = 0
+    conflict_skipped = 0
+    error_count = 0
+    
+    # Process each file
+    for i, item in enumerate(files_to_check, 1):
+        
+        # Build status message with progress bar
+        progress_bar = get_progress_bar(i, total_files)
+        status_msg = f"{progress_bar} {i}/{total_files} (Cleaned: {renamed_count})"
+        sys.stdout.write(status_msg.ljust(70) + "\r")
+        sys.stdout.flush()
+        
+        original_stem = item.stem
+        extension = item.suffix
+        
+        cleaned_stem = clean_filename(original_stem, remove_chars, space_chars)
+        
+        if cleaned_stem != original_stem:
+            new_path = item.parent / f"{cleaned_stem}{extension}"
+            
+            if not new_path.exists():
+                try:
+                    shutil.move(str(item), str(new_path))
+                    renamed_count += 1
+                except Exception as e:
+                    error_count += 1
+                    print(f"\nError renaming '{original_stem}{extension}': {e}")
+                    sys.stdout.write(status_msg.ljust(70) + "\r")
+                    sys.stdout.flush()
+            else:
+                # Target already exists, likely a duplicate from a previous run.
+                # Delete the source to clean up duplicates instead of skipping.
+                try:
+                    os.remove(str(item))
+                    conflict_skipped += 1
+                except Exception:
+                    pass
+
+    # Clear status line and print final summary
+    sys.stdout.write(" " * 70 + "\r")
+    sys.stdout.flush()
+    
+    print(f"Filename Cleaning Complete:")
+    print(f"  Total Files Scanned:   {total_files}")
+    print(f"  Files Cleaned:         {renamed_count}")
+    
+    if conflict_skipped > 0:
+        print(f"  Skipped (Conflict):    {conflict_skipped}")
+    
+    if error_count > 0:
+        print(f"  Errors:                 {error_count} (Check warnings above)")
 
 if __name__ == "__main__":
     clean_all_files()
