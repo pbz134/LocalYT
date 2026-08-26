@@ -3981,8 +3981,6 @@
                 // Now async
                 const codec = await this.getCodecInfo();
                 html += this.createStatRow('Codec', codec);
-                
-                html += this.createStatRow('Buffer Speed', this.calculateBitrate());
         
                 let volStr = Math.round(video.volume * 100) + '%';
                 if (video.muted || video.volume === 0) volStr += ' (Muted)';
@@ -3996,6 +3994,8 @@
                     const buffered = video.buffered.end(video.buffered.length - 1) - video.currentTime;
                     html += this.createStatRow('Buffer', this.formatTimeStat(buffered));
                 }
+        
+                html += this.createStatRow('Buffer Speed', this.calculateBitrate());
         
                 if (video.mozDecodedFrames !== undefined) {
                     const dropped = video.mozParsedFrames - video.mozDecodedFrames;
