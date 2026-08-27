@@ -326,6 +326,43 @@ function savePlaylistLinksToFile() {
     }
 }
 
+// --- VIDEO TAGS API ---
+app.get('/api/video-tags', (req, res) => {
+    const video = req.query.video;
+    if (!video) {
+        return res.status(400).json({ error: 'Missing video parameter' });
+    }
+
+    // Decode the video path (it may be URL-encoded)
+    let decodedVideo;
+    try {
+        decodedVideo = decodeURIComponent(video);
+    } catch (e) {
+        decodedVideo = video;
+    }
+
+    // Look up in cache or read the tags file directly
+    const cached = videoCache.get(decodedVideo);
+    if (cached && cached.tags && cached.tags.length) {
+        return res.json({ tags: cached.tags });
+    }
+
+    // Fallback: read the tags file from disk
+    const basePath = decodedVideo.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+    const tagsFilePath = path.join(__dirname, 'videos', `${basePath}.txt`);
+    if (fs.existsSync(tagsFilePath)) {
+        try {
+            const content = fs.readFileSync(tagsFilePath, 'utf8');
+            const tags = content.split(',').map(t => t.trim()).filter(Boolean);
+            return res.json({ tags });
+        } catch (e) {
+            return res.status(500).json({ error: 'Error reading tags file' });
+        }
+    }
+
+    res.json({ tags: [] });
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cookieParser());
 app.use(express.json());

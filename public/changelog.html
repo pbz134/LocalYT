@@ -234,7 +234,7 @@
                         <ul>
                             <li>This helps the LYT Player stats overlay to correctly determine the current video codec</li>
                         </ul>
-                </ul>
+                    </ul>
                     <li>Added a way to customize playlist video orders
                         <ul>
                             <li>A new script (createPlaylistorders.py) creates .jsonl files that represent all of your channel playlist orders</li>
@@ -249,6 +249,11 @@
                     <li>Fixed .video-length size on the video.html Videos tab</li>
                     <li>Moved the Buffer Speed entry below the Buffer entry on Stats for Nerds</li>
                     <li>Added a @ channel handle fallback to comments so that the uploader's profile pic will be shown regardless of the IsUploader: True" entry</li>
+                    <li>New "Not interested" and "Don't recommend channel" button in thumbnail context menu
+                        <ul>
+                            <li>Click the "Not interested button" to reduce the video's respective second tag weight by 50%</li>
+                            <li>YClick the "Don't recommend channel" to set the video's respective channel tag weight to zero</li>
+                        </ul>
                 </ul>
             </section>
             <section class="doc-section" id="v4.80">
