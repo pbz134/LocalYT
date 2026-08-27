@@ -2041,16 +2041,24 @@
                     fetch('/api/comments?video=' + encodeURIComponent(videoSrc)),
                     fetch('/user-comment-likes')
                 ]);
-
+        
                 if (!commentsRes.ok) return renderComments([], channelPicUrl);
                 const comments = await commentsRes.json();
-
+        
+                // Mark uploaders by handle if they match the video's channel
+                const channel = videoSrc.split('/')[0];
+                comments.forEach(comment => {
+                    if (!comment.is_uploader && comment.author && comment.author.startsWith('@') && comment.author.substring(1) === channel) {
+                        comment.is_uploader = true;
+                    }
+                });
+        
                 // Parse user likes (returns {} if not logged in or error)
                 let userCommentLikes = {};
                 if (likesRes.ok) {
                     userCommentLikes = await likesRes.json();
                 }
-
+        
                 renderComments(comments, channelPicUrl, userCommentLikes);
             } catch (e) {
                 console.error('Error loading comments:', e);
