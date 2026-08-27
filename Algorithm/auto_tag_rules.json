@@ -246,11 +246,11 @@
       "tags": ["Sonic", "Sega", "Gaming"]
     },
     {
-      "name": "Wii Rule",
+      "name": "Nintendo Consoles Rule",
       "match_type": "contains",
-      "match_value": "wii",
-      "case_sensitive": false,
-      "tags": ["Wii", "Nintendo", "Gaming"]
+      "match_value": ["NES", "SNES", "GBA", "GBC", "Gameboy", "GameBoy", "Gamecube", "GameCube", "N64", "3DS", "DS", "Switch 2", "Wii", "Mii"],
+      "case_sensitive": true,
+      "tags": ["Nintendo", "Gaming"]
     },
     {
       "name": "Nintendo Rule",
