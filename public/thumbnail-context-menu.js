@@ -1,7 +1,8 @@
 /**
  * thumbnail-context-menu.js
  * Adds a 3-dot menu to video thumbnails on hover across all pages.
- * Options: Add to Watch later, Add to playlist, Share (copy link)
+ * Options: Add to Watch later, Add to playlist, Share (copy link),
+ *          Not interested, Don't recommend channel
  */
 (function() {
     // ==============================
@@ -265,6 +266,10 @@
     const SAVE_SVG = `<svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2zm0 15l-5-2.18L7 18V5h10v13z"/></svg>`;
     const SHARE_SVG = `<svg viewBox="0 0 24 24"><path d="M14 9V3L22 12 14 21v-6c-5 0-8.5 1.5-11 5 1-5 4-10 11-11z"/></svg>`;
     const CLOCK_SVG = `<svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg>`;
+    
+    // Icons for "Not interested" and "Don't recommend channel"
+    const NOT_INTERESTED_SVG = `<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-11v4h2V9h-2zm0 6v2h2v-2h-2z"/></svg>`;
+    const BLOCK_CHANNEL_SVG = `<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-5h-2v2h2v-2zm0-8h-2v6h2V7z"/></svg>`;
 
     // ==============================
     // GLOBAL MODALS & TOAST
@@ -347,6 +352,121 @@
     }
 
     // ==============================
+    // Fetch video tags from server
+    // ==============================
+    async function fetchVideoTags(videoPath) {
+        try {
+            const resp = await fetch(`/api/video-tags?video=${encodeURIComponent(videoPath)}`);
+            if (!resp.ok) throw new Error('Failed to fetch tags');
+            const data = await resp.json();
+            return data.tags || [];
+        } catch (e) {
+            console.error('Error fetching video tags:', e);
+            return [];
+        }
+    }
+
+    // ==============================
+    // Get user preference for a tag
+    // ==============================
+    async function getUserPreferences() {
+        try {
+            const resp = await fetch('/get-preferences');
+            if (!resp.ok) throw new Error('Failed to fetch preferences');
+            return await resp.json();
+        } catch (e) {
+            console.error('Error fetching preferences:', e);
+            return {};
+        }
+    }
+
+    // ==============================
+    // Update a single tag weight
+    // ==============================
+    async function updateTagWeight(tag, weight) {
+        try {
+            const resp = await fetch('/update-preference-tag', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tag, value: Math.floor(weight) })
+            });
+            if (!resp.ok) throw new Error('Failed to update tag');
+            return true;
+        } catch (e) {
+            console.error('Error updating tag weight:', e);
+            return false;
+        }
+    }
+
+    // ==============================
+    // "Not interested" handler
+    // ==============================
+    async function handleNotInterested(videoPath) {
+        closeContextMenu();
+        
+        // Check if user is logged in
+        try {
+            const sessionResp = await fetch('/session-user');
+            if (!sessionResp.ok) {
+                showToast(getLang('Please log in to use this feature.', 'Bitte melde dich an, um diese Funktion zu nutzen.'));
+                return;
+            }
+        } catch (e) {
+            showToast(getLang('Please log in to use this feature.', 'Bitte melde dich an, um diese Funktion zu nutzen.'));
+            return;
+        }
+
+        const tags = await fetchVideoTags(videoPath);
+        if (tags.length < 2) {
+            showToast(getLang('Video has no second tag.', 'Video hat keinen zweiten Tag.'));
+            return;
+        }
+        const secondTag = tags[1]; // second tag (index 1)
+        const prefs = await getUserPreferences();
+        const currentWeight = prefs[secondTag] || 0;
+        
+        // Reduce by 50%, round down (whole numbers only)
+        const newWeight = Math.floor(currentWeight / 2);
+        const ok = await updateTagWeight(secondTag, newWeight);
+        if (ok) {
+            showToast(getLang(`Not interested: "${secondTag}" weight reduced to ${newWeight}`, `Nicht interessiert: Gewicht von "${secondTag}" auf ${newWeight} reduziert`));
+        } else {
+            showToast(getLang('Failed to update preference.', 'Fehler beim Aktualisieren der Präferenz.'));
+        }
+    }
+
+    // ==============================
+    // "Don't recommend channel" handler
+    // ==============================
+    async function handleDontRecommendChannel(videoPath) {
+        closeContextMenu();
+        
+        // Check if user is logged in
+        try {
+            const sessionResp = await fetch('/session-user');
+            if (!sessionResp.ok) {
+                showToast(getLang('Please log in to use this feature.', 'Bitte melde dich an, um diese Funktion zu nutzen.'));
+                return;
+            }
+        } catch (e) {
+            showToast(getLang('Please log in to use this feature.', 'Bitte melde dich an, um diese Funktion zu nutzen.'));
+            return;
+        }
+
+        const channel = videoPath.split('/')[0]; // first part is channel name
+        if (!channel) {
+            showToast(getLang('Could not determine channel.', 'Kanal konnte nicht ermittelt werden.'));
+            return;
+        }
+        const ok = await updateTagWeight(channel, 0);
+        if (ok) {
+            showToast(getLang(`Channel "${channel}" will no longer be recommended.`, `Kanal "${channel}" wird nicht mehr empfohlen.`));
+        } else {
+            showToast(getLang('Failed to update preference.', 'Fehler beim Aktualisieren der Präferenz.'));
+        }
+    }
+
+    // ==============================
     // 3-DOT MENU LOGIC
     // ==============================
     function addMenuButtonToThumbnail(container, videoPath) {
@@ -397,7 +517,7 @@
             openSaveModal(videoPath);
         });
 
-        // 3. Share Item – copies link directly, no modal
+        // 3. Share Item – copies link directly
         const shareItem = document.createElement('div');
         shareItem.className = 'thumbnail-context-menu-item';
         shareItem.innerHTML = `${SHARE_SVG} <span>${getLang('Share', 'Teilen')}</span>`;
@@ -406,9 +526,29 @@
             await copyShareLink(videoPath);
         });
 
+        // 4. Not interested
+        const notInterestedItem = document.createElement('div');
+        notInterestedItem.className = 'thumbnail-context-menu-item';
+        notInterestedItem.innerHTML = `${NOT_INTERESTED_SVG} <span>${getLang('Not interested', 'Nicht interessiert')}</span>`;
+        notInterestedItem.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleNotInterested(videoPath);
+        });
+
+        // 5. Don't recommend channel
+        const blockChannelItem = document.createElement('div');
+        blockChannelItem.className = 'thumbnail-context-menu-item';
+        blockChannelItem.innerHTML = `${BLOCK_CHANNEL_SVG} <span>${getLang('Don\'t recommend channel', 'Kanal nicht empfehlen')}</span>`;
+        blockChannelItem.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleDontRecommendChannel(videoPath);
+        });
+
         menu.appendChild(watchLaterItem);
         menu.appendChild(addPlaylistItem);
         menu.appendChild(shareItem);
+        menu.appendChild(notInterestedItem);
+        menu.appendChild(blockChannelItem);
         
         document.body.appendChild(menu);
         activeContextMenu = menu;
