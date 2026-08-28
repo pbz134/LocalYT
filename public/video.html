@@ -2035,16 +2035,16 @@
         }
 
         async function loadComments(videoSrc, channelPicUrl) {
+            const container = document.getElementById('commentsContainer');
+            // Show loading indicator with text next to spinner
+            container.innerHTML = '<div id="commentsLoading" style="display:flex;justify-content:center;align-items:center;padding:20px;gap:12px;"><img src="LocalYT-Rev-Files/Loading-Small.gif" alt="Loading comments"><span style="color:#aaa;font-size:14px;font-family:\'RobotoRegular\',Arial,sans-serif;">Loading...</span></div>';
             try {
-                // Fetch comments and user's liked comments in parallel
                 const [commentsRes, likesRes] = await Promise.all([
                     fetch('/api/comments?video=' + encodeURIComponent(videoSrc)),
                     fetch('/user-comment-likes')
                 ]);
-        
                 if (!commentsRes.ok) return renderComments([], channelPicUrl);
                 const comments = await commentsRes.json();
-        
                 // Mark uploaders by handle if they match the video's channel
                 const channel = videoSrc.split('/')[0];
                 comments.forEach(comment => {
@@ -2052,13 +2052,10 @@
                         comment.is_uploader = true;
                     }
                 });
-        
-                // Parse user likes (returns {} if not logged in or error)
                 let userCommentLikes = {};
                 if (likesRes.ok) {
                     userCommentLikes = await likesRes.json();
                 }
-        
                 renderComments(comments, channelPicUrl, userCommentLikes);
             } catch (e) {
                 console.error('Error loading comments:', e);
