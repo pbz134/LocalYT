@@ -333,7 +333,6 @@ app.get('/api/video-tags', (req, res) => {
         return res.status(400).json({ error: 'Missing video parameter' });
     }
 
-    // Decode the video path (it may be URL-encoded)
     let decodedVideo;
     try {
         decodedVideo = decodeURIComponent(video);
@@ -341,13 +340,11 @@ app.get('/api/video-tags', (req, res) => {
         decodedVideo = video;
     }
 
-    // Look up in cache or read the tags file directly
     const cached = videoCache.get(decodedVideo);
     if (cached && cached.tags && cached.tags.length) {
         return res.json({ tags: cached.tags });
     }
 
-    // Fallback: read the tags file from disk
     const basePath = decodedVideo.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
     const tagsFilePath = path.join(__dirname, 'videos', `${basePath}.txt`);
     if (fs.existsSync(tagsFilePath)) {
@@ -367,7 +364,6 @@ app.get('/api/video-tags', (req, res) => {
 app.get('/channel.html', (req, res) => {
     const channel = req.query.channel;
     if (!channel) {
-        // No channel parameter: serve the page as-is (without custom meta tags)
         return res.sendFile(path.join(__dirname, 'public', 'channel.html'));
     }
 
@@ -378,10 +374,8 @@ app.get('/channel.html', (req, res) => {
         decodedChannel = channel;
     }
 
-    // The base channel name is the first path segment (e.g., "ChannelName" from "ChannelName/videos")
     const baseChannel = decodedChannel.split('/')[0];
 
-    // Read channel description (if available)
     const descPath = path.join(__dirname, 'channeldesc', `${baseChannel}.txt`);
     let description = 'LocalYT channel';
     if (fs.existsSync(descPath)) {
@@ -606,7 +600,6 @@ let videoCache = new Map();
 let videoArray = [];
 let recommendationIndex = {};
 
-// Versionen der Ordner laden
 function loadFolderVersions() {
     if (fs.existsSync(folderVersionsPath)) {
         try {
@@ -617,12 +610,10 @@ function loadFolderVersions() {
     return {};
 }
 
-// Save folder directory
 function saveFolderVersions(versions) {
     fs.writeFileSync(folderVersionsPath, JSON.stringify(versions, null, 2));
 }
 
-// Calculate version hash for a folder (last modified date + total size)
 function getFolderVersion(folderPath) {
     try {
         const stats = fs.statSync(folderPath);
@@ -645,14 +636,12 @@ function getFolderVersion(folderPath) {
     }
 }
 
-// Check for changed channel folders
 function hasFolderChanged(channel, currentVersion, oldVersions) {
     const oldVer = oldVersions[channel];
     if (!oldVer) return true;
     return oldVer.mtime !== currentVersion.mtime || oldVer.size !== currentVersion.size;
 }
 
-// Load existing cache from file
 function loadExistingCache() {
     if (fs.existsSync(cacheFilePath)) {
         try {
@@ -663,7 +652,6 @@ function loadExistingCache() {
     return [];
 }
 
-// --- NOTIFICATION GENERATION ---
 function generateNotifications(addedPaths) {
     if (!addedPaths || addedPaths.length === 0) {
         console.log('No new videos added since last scan.');
@@ -704,7 +692,6 @@ function generateNotifications(addedPaths) {
         }
     });
 
-    // Keep only the latest 50 notifications
     if (notifications.length > 50) {
         notifications = notifications.slice(0, 50);
     }
@@ -713,7 +700,6 @@ function generateNotifications(addedPaths) {
     console.log(`Generated notifications for ${addedPaths.length} new files.`);
 }
 
-// Recursively scan a folder and return objects
 function scanFolder(folderPath, baseDir) {
     const result = [];
     const walk = (dir) => {
@@ -761,18 +747,15 @@ function scanFolder(folderPath, baseDir) {
     return result;
 }
 
-// Incremental scan: Only rescan changed channels
 function incrementalScanAndCacheVideos() {
     console.log('Launching incremental scan...');
     const videosDir = path.join(__dirname, 'videos');
     
-    // Load current cache and versions
     const oldCache = loadExistingCache();
     const oldVersions = loadFolderVersions();
     const newVersions = {};
     const newCache = [];
 
-    // Find all surface-level channel folders
     let channelDirs = [];
     try {
         channelDirs = fs.readdirSync(videosDir).filter(f => {
@@ -784,7 +767,6 @@ function incrementalScanAndCacheVideos() {
         return;
     }
 
-    // Initialize progress bar
     const progressBar = new cliProgress.SingleBar({
         format: 'Progress [{bar}] {percentage}% | {value}/{total} channels',
         barCompleteChar: '\u2588',
@@ -799,7 +781,6 @@ function incrementalScanAndCacheVideos() {
     let changedChannels = 0;
     let unchangedChannels = 0;
 
-    // Check every channel
     for (let i = 0; i < channelDirs.length; i++) {
         const channel = channelDirs[i];
         const channelPath = path.join(videosDir, channel);
@@ -815,12 +796,10 @@ function incrementalScanAndCacheVideos() {
 
         if (changed) {
             changedChannels++;
-            // Channel has been changed
             const channelCache = scanFolder(channelPath, videosDir);
             newCache.push(...channelCache);
         } else {
             unchangedChannels++;
-            // Channel unchanged
             const oldChannelVideos = oldCache.filter(v => v.path.startsWith(channel + '/'));
             newCache.push(...oldChannelVideos);
         }
@@ -830,7 +809,6 @@ function incrementalScanAndCacheVideos() {
 
     progressBar.stop();
 
-    // Remove channels that don't exist anymore
     const existingChannels = new Set(channelDirs);
     const oldChannelKeys = Object.keys(oldVersions);
     for (const oldChannel of oldChannelKeys) {
@@ -840,9 +818,7 @@ function incrementalScanAndCacheVideos() {
         }
     }
 
-    // Save cache
     try {
-        // --- NOTIFICATION CHECK ---
         if (oldCache.length > 0 && newCache.length > 0) {
             const oldPaths = new Set(oldCache.map(v => v.path));
             const addedPaths = newCache.filter(v => !oldPaths.has(v.path)).map(v => v.path);
@@ -850,7 +826,6 @@ function incrementalScanAndCacheVideos() {
                 generateNotifications(addedPaths);
             }
         }
-        // ---------------------------
 
         fs.writeFileSync(cacheFilePath, JSON.stringify(newCache, null, 2));
         videoCache = new Map(newCache.map(v => [v.path, v]));
@@ -859,17 +834,13 @@ function incrementalScanAndCacheVideos() {
         
         console.log(`Cache updated: ${videoArray.length} videos (${changedChannels} changed, ${unchangedChannels} unchanged).`);
         
-        // Save versions
         saveFolderVersions(newVersions);
-        
-        // Rebuild recommendation indec
         buildRecommendationIndex();
     } catch (err) {
         console.error('Error while saving cache:', err);
     }
 }
 
-// Full scan (used when cache unavailable or corrupted)
 function fullScanAndCacheVideos() {
     console.log('\nInitiating full scan...');
     const videosDir = path.join(__dirname, 'videos');
@@ -928,10 +899,8 @@ function fullScanAndCacheVideos() {
         }
     }
 
-    // Progress bar for full scan
     console.log('Collecting all channels...');
     
-    // Find all channels first to show progress bar
     const allChannels = [];
     try {
         const items = fs.readdirSync(videosDir);
@@ -958,7 +927,6 @@ function fullScanAndCacheVideos() {
 
     let processedChannels = 0;
     
-    // Function to scan a channel with progress
     function scanChannel(channel) {
         const channelPath = path.join(videosDir, channel);
         const version = getFolderVersion(channelPath);
@@ -966,7 +934,6 @@ function fullScanAndCacheVideos() {
             newVersions[channel] = version;
         }
         
-        // Scan videos in channel (recursive)
         const walk = (dir) => {
             const files = fs.readdirSync(dir);
             for (const file of files) {
@@ -1020,7 +987,6 @@ function fullScanAndCacheVideos() {
         progressBar.update(processedChannels);
     }
 
-    // Scan all channels one after another
     for (const channel of allChannels) {
         scanChannel(channel);
     }
@@ -1041,7 +1007,6 @@ function fullScanAndCacheVideos() {
     }
 }
 
-// Main function to initialize the cache
 function initializeVideoCache() {
     console.log('Initializing video cache...');
     
@@ -1055,7 +1020,6 @@ function initializeVideoCache() {
                 videoArray = videos;
                 console.log(`Cache loaded: ${videoCache.size} videos.`);
                 
-                // Run incremental scan
                 incrementalScanAndCacheVideos();
                 return;
             }
@@ -1180,7 +1144,6 @@ function initializeShortLinks() {
     }
 }
 
-// --- Initialize everything ---
 initializeVideoCache();
 initializeShortLinks();
 initializeRecommendationIndex();
@@ -1312,7 +1275,6 @@ function shuffleArray(array) {
     return array;
 }
 
-// --- HELPER FOR USER MANAGEMENT ---
 function findUserByUsername(username) {
     const usersFilePath = path.join(__dirname, 'users.json');
     try {
@@ -1325,7 +1287,17 @@ function findUserByUsername(username) {
 }
 
 // ======================================================================
-// ALLE ROUTEN (unverändert vom Original)
+// PREFERENCE SYSTEM CONSTANTS
+// ======================================================================
+
+const LOW_TAG_THRESHOLD = 0.05;
+const IGNORED_TAGS = new Set(['uncategorized']);
+
+const preferenceUpdateQueue = new Map();
+let preferenceUpdateTimer = null;
+
+// ======================================================================
+// ROUTES
 // ======================================================================
 
 // --- SETTINGS ROUTES ---
@@ -1856,6 +1828,7 @@ app.post('/save-preferences', (req, res) => {
     const { preferences } = req.body;
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('Not authenticated');
+    
     try {
         const filteredPreferences = {};
         for (const [tag, value] of Object.entries(preferences || {})) {
@@ -1863,12 +1836,10 @@ app.post('/save-preferences', (req, res) => {
             if (!cleanTag || cleanTag.toLowerCase() === 'uncategorized') continue;
             filteredPreferences[cleanTag] = value;
         }
+        
         const data = fs.readFileSync(preferencesFilePath, 'utf8');
         const allPrefs = JSON.parse(data);
         allPrefs[userId] = filteredPreferences;
-        if (preferenceUpdateQueue.has(userId)) {
-            preferenceUpdateQueue.delete(userId);
-        }
         fs.writeFileSync(preferencesFilePath, JSON.stringify(allPrefs, null, 2));
         res.sendStatus(200);
     } catch (err) {
@@ -2046,28 +2017,26 @@ app.get('/sidebar-recommendations', recommendationsLimiter, (req, res) => {
             const data = fs.readFileSync(preferencesFilePath, 'utf8');
             const prefData = JSON.parse(data);
             const userPrefs = prefData[userId] || {};
-            const sortedTags = Object.entries(userPrefs)
-                .sort((a, b) => b[1] - a[1])
-                .map(t => t[0]);
-            for (const tag of sortedTags) {
-                if (recommendationIndex[tag]) {
-                    recommendationIndex[tag].forEach(vPath => {
-                        if (!addedPaths.has(vPath)) {
-                            const vData = videoCache.get(vPath);
-                            if (vData) preferencePool.push(vData);
-                        }
-                    });
+            const total = Object.values(userPrefs).reduce((s, v) => s + v, 0);
+            const tagPercent = {};
+            if (total > 0) {
+                for (const tag in userPrefs) {
+                    if (userPrefs[tag] / total >= LOW_TAG_THRESHOLD) {
+                        tagPercent[tag] = userPrefs[tag] / total;
+                    }
                 }
             }
-            const seenPref = new Set();
-            const uniquePrefPool = [];
-            preferencePool.forEach(v => {
-                if (!seenPref.has(v.path)) {
-                    seenPref.add(v.path);
-                    uniquePrefPool.push(v);
+            const scoredVideos = videoArray.map(video => {
+                let score = 0;
+                if (video.tags) {
+                    for (const tag of video.tags) {
+                        score += tagPercent[tag] || 0;
+                    }
                 }
+                return { video, score };
             });
-            preferencePool = uniquePrefPool;
+            scoredVideos.sort((a, b) => b.score - a.score);
+            preferencePool = scoredVideos.map(item => item.video).filter(v => !addedPaths.has(v.path));
         } catch (e) {
             console.error("Error reading preferences for sidebar", e);
         }
@@ -2468,27 +2437,86 @@ app.get('/register-status', (req, res) => {
 app.post('/register', (req, res) => {
     const clientIp = getClientIp(req);
     const cooldownEnd = registrationCooldowns.get(clientIp);
+
+    // Check cooldown
     if (cooldownEnd && Date.now() < cooldownEnd) {
-        return res.status(429).json({ 
-            blocked: true, 
-            remainingTime: cooldownEnd - Date.now(),
-            error: 'Please wait before creating another account.' 
+        const remainingTime = cooldownEnd - Date.now();
+        const remainingMinutes = Math.ceil(remainingTime / 60000);
+        const remainingSeconds = Math.ceil((remainingTime % 60000) / 1000);
+        let timeString = '';
+        if (remainingMinutes > 0) {
+            timeString = remainingMinutes + ' minute' + (remainingMinutes > 1 ? 's' : '');
+        } else {
+            timeString = remainingSeconds + ' second' + (remainingSeconds > 1 ? 's' : '');
+        }
+        return res.status(429).json({
+            blocked: true,
+            remainingTime: remainingTime,
+            error: 'Please wait ' + timeString + ' before creating another account.'
         });
     }
+
     const { username, password } = req.body;
+
+    // Validate input
+    if (!username || typeof username !== 'string') {
+        return res.status(400).json({ error: 'Username is required.' });
+    }
+    if (!password || typeof password !== 'string') {
+        return res.status(400).json({ error: 'Password is required.' });
+    }
+    const trimmedUsername = username.trim();
+    if (trimmedUsername.length < 3) {
+        return res.status(400).json({ error: 'Username must be at least 3 characters long.' });
+    }
+    if (trimmedUsername.length > 30) {
+        return res.status(400).json({ error: 'Username must be at most 30 characters long.' });
+    }
+    // Optional: disallow special characters
+    if (!/^[a-zA-Z0-9_\-. ]+$/.test(trimmedUsername)) {
+        return res.status(400).json({ error: 'Username contains invalid characters. Use letters, numbers, spaces, underscores, hyphens, or dots.' });
+    }
+    if (password.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+    }
+
     const usersFilePath = path.join(__dirname, 'users.json');
+
     fs.readFile(usersFilePath, 'utf8', (err, data) => {
         let usersData = {};
-        if (!err) usersData = JSON.parse(data);
-        if (usersData[username]) {
-            return res.status(400).json({ error: 'Username already exists' });
+        if (!err) {
+            try {
+                usersData = JSON.parse(data);
+            } catch (e) {
+                return res.status(500).json({ error: 'Error reading user database.' });
+            }
         }
+
+        // Check for existing user (case-insensitive)
+        const existing = Object.keys(usersData).find(
+            key => key.toLowerCase() === trimmedUsername.toLowerCase()
+        );
+        if (existing) {
+            return res.status(409).json({ error: 'Username already exists. Please choose a different username.' });
+        }
+
         const hashedPassword = bcrypt.hashSync(password, 10);
-        usersData[username] = { id: uuidv4(), password: hashedPassword };
+        usersData[trimmedUsername] = {
+            id: uuidv4(),
+            password: hashedPassword
+        };
+
         fs.writeFile(usersFilePath, JSON.stringify(usersData, null, 2), err => {
-            if (err) return res.status(500).json({ error: 'Error saving user' });
+            if (err) {
+                console.error('Error saving user:', err);
+                return res.status(500).json({ error: 'Error saving user. Please try again.' });
+            }
+
+            // Set cooldown for this IP (10 minutes)
             registrationCooldowns.set(clientIp, Date.now() + REGISTER_COOLDOWN_MS);
-            res.sendStatus(200);
+
+            // Return success
+            res.status(200).json({ success: true });
         });
     });
 });
@@ -2611,23 +2639,81 @@ app.get('/session-user', (req, res) => {
     });
 });
 
-const preferenceUpdateQueue = new Map();
-let preferenceUpdateTimer = null;
+// ======================================================================
+// PREFERENCE UPDATE SYSTEM (with decay and low-tag removal)
+// ======================================================================
 
 function batchUpdatePreferences() {
     if (preferenceUpdateQueue.size === 0) return;
-    const IGNORED_TAGS = new Set(['uncategorized']);
+
     fs.readFile(preferencesFilePath, 'utf8', (err, data) => {
         let preferencesData = {};
         if (!err) preferencesData = JSON.parse(data);
-        preferenceUpdateQueue.forEach((tags, userId) => {
-            if (!preferencesData[userId]) preferencesData[userId] = {};
-            tags.forEach(tag => {
-                const cleanTag = String(tag).trim();
-                if (!cleanTag || IGNORED_TAGS.has(cleanTag.toLowerCase())) return;
-                preferencesData[userId][cleanTag] = (preferencesData[userId][cleanTag] || 0) + 1;
-            });
+
+        preferenceUpdateQueue.forEach((videoTagsArray, userId) => {
+            let userPrefs = preferencesData[userId] || {};
+            
+            // If no preferences yet, start with empty object
+            if (!userPrefs || Object.keys(userPrefs).length === 0) {
+                userPrefs = {};
+            }
+
+            for (const videoTags of videoTagsArray) {
+                // Calculate total percentage to add
+                // Each tag in the video gets equal share
+                const totalNewPercentage = 10; // 10% total for a newly-watched video
+                const perTagPercentage = totalNewPercentage / videoTags.length;
+                
+                // Get current total (should be 100%, but handle edge cases)
+                const currentTotal = Object.values(userPrefs).reduce((sum, v) => sum + v, 0);
+                
+                if (currentTotal === 0) {
+                    // First video ever - distribute evenly
+                    for (const tag of videoTags) {
+                        const cleanTag = tag.trim();
+                        if (cleanTag && !IGNORED_TAGS.has(cleanTag.toLowerCase())) {
+                            userPrefs[cleanTag] = (userPrefs[cleanTag] || 0) + perTagPercentage;
+                        }
+                    }
+                    continue;
+                }
+                
+                // Calculate reduction factor for existing tags
+                // We need to reduce existing tags to make room for new ones
+                const totalReduction = totalNewPercentage;
+                const reductionFactor = totalReduction / currentTotal;
+                
+                // Apply reduction to all existing tags
+                for (let tag in userPrefs) {
+                    userPrefs[tag] *= (1 - reductionFactor);
+                }
+                
+                // Add new tags
+                for (const tag of videoTags) {
+                    const cleanTag = tag.trim();
+                    if (cleanTag && !IGNORED_TAGS.has(cleanTag.toLowerCase())) {
+                        userPrefs[cleanTag] = (userPrefs[cleanTag] || 0) + perTagPercentage;
+                    }
+                }
+            }
+            
+            // Clean up: remove tags below threshold
+            const total = Object.values(userPrefs).reduce((sum, v) => sum + v, 0);
+            if (total > 0) {
+                const cleanedPrefs = {};
+                for (let tag in userPrefs) {
+                    const pct = (userPrefs[tag] / total) * 100;
+                    if (pct >= (LOW_TAG_THRESHOLD * 100)) {
+                        // Store as percentage (0-100)
+                        cleanedPrefs[tag] = Math.round(pct * 100) / 100;
+                    }
+                }
+                userPrefs = cleanedPrefs;
+            }
+
+            preferencesData[userId] = userPrefs;
         });
+
         fs.writeFile(preferencesFilePath, JSON.stringify(preferencesData, null, 2), (err) => {
             if (err) console.error('Error saving preferences:', err);
             preferenceUpdateQueue.clear();
@@ -2639,165 +2725,109 @@ app.post('/updatePreferences', (req, res) => {
     const { video } = req.body;
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('User not authenticated');
+
     const videoData = videoCache.get(video);
     if (!videoData || !videoData.tags) return res.status(404).send('Video tags not found');
-    const videoTags = videoData.tags;
+
+    const videoTags = videoData.tags.filter(t => !IGNORED_TAGS.has(t.toLowerCase()));
+
     if (!preferenceUpdateQueue.has(userId)) {
-        preferenceUpdateQueue.set(userId, new Set());
+        preferenceUpdateQueue.set(userId, []);
     }
-    videoTags.forEach(tag => {
-        preferenceUpdateQueue.get(userId).add(tag);
-    });
+    preferenceUpdateQueue.get(userId).push(videoTags);
+
     if (preferenceUpdateTimer) clearTimeout(preferenceUpdateTimer);
     preferenceUpdateTimer = setTimeout(batchUpdatePreferences, 5000);
-    res.json({ queued: true, message: 'Preference update queued' });
+    res.json({ queued: true });
 });
+
+// ======================================================================
+// RECOMMENDATIONS (percentage-based)
+// ======================================================================
 
 app.get('/recommendations', recommendationsLimiter, (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('User not authenticated');
+
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
+
     fs.readFile(preferencesFilePath, 'utf8', (err, data) => {
         if (err) return res.status(500).send('Error reading preferences');
+
         try {
             const preferencesData = JSON.parse(data);
-            const userPreferences = preferencesData[userId] || {};
-            const hasPreferences = Object.keys(userPreferences).length > 0;
-            if (!hasPreferences) {
-                console.log(`User ${userId} has no preferences, returning random videos.`);
+            const userPrefs = preferencesData[userId] || {};
+            const total = Object.values(userPrefs).reduce((sum, v) => sum + v, 0);
+
+            // Compute tag percentages
+            const tagPercent = {};
+            if (total > 0) {
+                for (const tag in userPrefs) {
+                    const pct = userPrefs[tag] / total;
+                    if (pct >= LOW_TAG_THRESHOLD) {
+                        tagPercent[tag] = pct;
+                    }
+                }
+            }
+
+            // If no meaningful tags → fallback to random
+            if (Object.keys(tagPercent).length === 0) {
                 const allVideos = [...videoCache.values()];
                 shuffleArray(allVideos);
-                const paginatedVideos = allVideos.slice(startIndex, endIndex);
-                const result = getVideoDetails(paginatedVideos);
+                const paginated = allVideos.slice(startIndex, endIndex);
                 return res.json({
-                    videos: result,
-                    page: page,
-                    limit: limit,
+                    videos: getVideoDetails(paginated),
+                    page, limit,
                     total: videoArray.length,
                     hasMore: endIndex < videoArray.length
                 });
             }
-            const sortedTags = Object.entries(userPreferences)
-                .map(([tag, weight]) => ({ tag, weight }))
-                .sort((a, b) => b.weight - a.weight);
-            const videoMap = new Map();
-            const highPriorityTags = sortedTags.filter(t => t.weight >= 100);
-            const mediumPriorityTags = sortedTags.filter(t => t.weight >= 50 && t.weight < 100);
-            highPriorityTags.forEach(({ tag }) => {
-                const tagVideos = recommendationIndex[tag] || [];
-                tagVideos.forEach(videoPath => {
-                    if (!videoMap.has(videoPath)) {
-                        const video = videoCache.get(videoPath);
-                        if (video) {
-                            videoMap.set(videoPath, {
-                                video,
-                                sourceTag: tag
-                            });
-                        }
+
+            // Score each video by summing the percentages of its tags
+            const scoredVideos = videoArray.map(video => {
+                let score = 0;
+                if (video.tags) {
+                    for (const tag of video.tags) {
+                        score += tagPercent[tag] || 0;
                     }
-                });
-            });
-            const videosByTag = new Map();
-            videoMap.forEach((value, p) => {
-                if (!videosByTag.has(value.sourceTag)) {
-                    videosByTag.set(value.sourceTag, []);
                 }
-                videosByTag.get(value.sourceTag).push(value.video);
+                // Add small random factor (±10%) to introduce variety
+                const randomFactor = 0.9 + (Math.random() * 0.2); // 0.9 to 1.1
+                score = score * randomFactor;
+                return { video, score };
             });
-            const resultVideos = [];
-            if (page === 1) {
-                const topPriorityTag = "Modern Vintage Gamer";
-                const otherHighPriorityTags = highPriorityTags
-                    .map(t => t.tag)
-                    .filter(tag => tag !== topPriorityTag);
-                const mvgVideos = videosByTag.get(topPriorityTag) || [];
-                shuffleArray(mvgVideos);
-                resultVideos.push(...mvgVideos.slice(0, 4));
-                const otherHighVideos = [];
-                otherHighPriorityTags.forEach(tag => {
-                    const tagVideos = videosByTag.get(tag) || [];
-                    shuffleArray(tagVideos);
-                    if (tagVideos.length > 0) {
-                        const takeCount = Math.min(2, Math.ceil(tagVideos.length / 100));
-                        otherHighVideos.push(...tagVideos.slice(0, takeCount));
-                    }
-                });
-                shuffleArray(otherHighVideos);
-                resultVideos.push(...otherHighVideos.slice(0, 4));
-                const mediumVideos = [];
-                mediumPriorityTags.forEach(tag => {
-                    const tagVideos = videosByTag.get(tag.tag) || [];
-                    shuffleArray(tagVideos);
-                    if (tagVideos.length > 0) {
-                        mediumVideos.push(...tagVideos.slice(0, 1));
-                    }
-                });
-                shuffleArray(mediumVideos);
-                resultVideos.push(...mediumVideos.slice(0, 4));
-                const allVideos = Array.from(videoMap.values()).map(v => v.video);
+            
+            // Sort by score descending
+            scoredVideos.sort((a, b) => b.score - a.score);
+            
+            // Take top 100 candidates (to have enough for randomness)
+            const topCandidates = scoredVideos.slice(0, 100);
+            
+            // Shuffle the top candidates to get different order each time
+            shuffleArray(topCandidates);
+            
+            // Paginate from the shuffled list
+            const paginated = topCandidates.slice(startIndex, endIndex).map(item => item.video);
+            
+            // If we don't have enough videos, fill with random ones
+            if (paginated.length < limit) {
+                const remaining = limit - paginated.length;
+                const allVideos = videoArray.filter(v => !paginated.includes(v));
                 shuffleArray(allVideos);
-                const weightedRemaining = [];
-                allVideos.forEach(video => {
-                    let videoWeight = 0;
-                    for (const tag of highPriorityTags) {
-                        if (video.tags && video.tags.includes(tag.tag)) {
-                            videoWeight = tag.weight;
-                            break;
-                        }
-                    }
-                    weightedRemaining.push({ video, weight: videoWeight });
-                });
-                weightedRemaining.sort((a, b) => b.weight - a.weight);
-                const candidates = weightedRemaining.slice(0, 50);
-                shuffleArray(candidates);
-                resultVideos.push(...candidates.slice(0, 8).map(c => c.video));
-            } else {
-                const allVideos = Array.from(videoMap.values()).map(v => v.video);
-                const weightedVideos = allVideos.map(video => {
-                    let weight = 1;
-                    for (const tag of highPriorityTags) {
-                        if (video.tags && video.tags.includes(tag.tag)) {
-                            weight = tag.weight;
-                            break;
-                        }
-                    }
-                    return { video, weight };
-                });
-                for (let i = weightedVideos.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [weightedVideos[i], weightedVideos[j]] = [weightedVideos[j], weightedVideos[i]];
-                }
-                weightedVideos.sort((a, b) => b.weight - a.weight);
-                const paginatedVideos = weightedVideos
-                    .slice(startIndex, endIndex)
-                    .map(item => item.video);
-                resultVideos.push(...paginatedVideos);
+                const fill = allVideos.slice(0, remaining);
+                paginated.push(...fill);
             }
-            const uniqueVideos = [];
-            const seen = new Set();
-            resultVideos.forEach(video => {
-                if (!seen.has(video.path)) {
-                    seen.add(video.path);
-                    uniqueVideos.push(video);
-                }
-            });
-            if (uniqueVideos.length < limit) {
-                const allVideos = [...videoCache.values()];
-                shuffleArray(allVideos);
-                const backfill = allVideos.filter(v => !seen.has(v.path));
-                uniqueVideos.push(...backfill.slice(0, limit - uniqueVideos.length));
-            }
-            const result = getVideoDetails(uniqueVideos);
+
             res.json({
-                videos: result,
-                page: page,
-                limit: limit,
+                videos: getVideoDetails(paginated),
+                page, limit,
                 total: videoArray.length,
                 hasMore: endIndex < videoArray.length
             });
+
         } catch (err) {
             console.error('Error generating recommendations:', err);
             return res.status(500).send('Error generating recommendations');
@@ -2808,16 +2838,24 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
 app.get('/top-categories', recommendationsLimiter, (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('User not authenticated');
+
     fs.readFile(preferencesFilePath, 'utf8', (err, data) => {
         if (err) return res.status(500).send('Error reading preferences');
         try {
             const preferencesData = JSON.parse(data);
-            const userPreferences = preferencesData[userId] || {};
-            const sortedPreferences = Object.entries(userPreferences)
-                .sort((a, b) => b[1] - a[1])
+            const userPrefs = preferencesData[userId] || {};
+            const total = Object.values(userPrefs).reduce((sum, v) => sum + v, 0);
+
+            if (total === 0) return res.json([]);
+
+            const sorted = Object.entries(userPrefs)
+                .map(([tag, weight]) => ({ tag, pct: weight / total }))
+                .filter(item => item.pct >= LOW_TAG_THRESHOLD)
+                .sort((a, b) => b.pct - a.pct)
                 .slice(0, 5)
-                .map(entry => entry[0]);
-            res.json(sortedPreferences);
+                .map(item => item.tag);
+
+            res.json(sorted);
         } catch (err) {
             return res.status(500).send('Error parsing preferences data');
         }
@@ -3061,7 +3099,6 @@ app.post('/remove-from-history', (req, res) => {
     });
 });
 
-// --- ERROR HANDLING MIDDLEWARE ---
 app.use((err, req, res, next) => {
     if (err.code === 'EPERM' && err.path && err.path.includes('.session')) {
         if (res.headersSent) return;

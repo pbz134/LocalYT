@@ -477,6 +477,11 @@
             border-radius: 2px;
         }
 
+        .pref-value:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
         .btn-remove {
             background: transparent;
             border: none;
@@ -911,7 +916,7 @@
             <!-- Algorithm Preferences -->
             <div class="account-section">
                 <h2 id="algoPrefsHeading">Algorithm Preferences</h2>
-                <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;" id="algoPrefsDesc">Adjust scores to influence your recommendations. Higher = matching videos are more likely to appear.</p>
+                <p style="font-size: 13px; color: #aaa; margin-bottom: 10px;" id="algoPrefsDesc">Adjust percentages to influence your recommendations. Values must sum to 100%.</p>
                 <div id="preferencesContainer" class="pref-list-container"></div>
                 <div class="inline-form" style="margin-bottom: 15px;">
                     <input type="text" id="newTagInput" list="allTagsList" placeholder="Add new tag..." style="flex-grow:1;">
@@ -1113,7 +1118,7 @@
 
             // Content labels
             document.getElementById('algoPrefsHeading').textContent = getLang('Algorithm Preferences', 'Algorithmus-Einstellungen');
-            document.getElementById('algoPrefsDesc').textContent = getLang('Adjust scores to influence your recommendations.', 'Passe Werte an, um Empfehlungen zu beeinflussen.');
+            document.getElementById('algoPrefsDesc').textContent = getLang('Adjust percentages to influence your recommendations. Values must sum to 100%.', 'Passe Prozentsätze an, um Empfehlungen zu beeinflussen. Die Summe muss 100% ergeben.');
             document.getElementById('fuzzySubCountLabel').textContent = getLang('Fuzzy subscription counts', 'Ungefähre Abonnentenzahlen');
             document.getElementById('fuzzySubCountDesc').textContent = getLang('Randomize last digits of rounded counts', 'Letzte Ziffern zufällig machen');
             document.getElementById('hidePostImagesLabel').textContent = getLang('Hide images in posts', 'Bilder in Beiträgen ausblenden');
@@ -1295,14 +1300,43 @@
             localStorage.setItem('fuzzySubCount', JSON.stringify({ enabled: userPart.fuzzySubCount }));
             localStorage.setItem('hidePostImages', JSON.stringify({ enabled: userPart.hidePostImages }));
 
+            // Get preferences from the UI
             const container = document.getElementById('preferencesContainer');
             const items = container.querySelectorAll('.pref-item');
             const newPrefs = {};
+            let total = 0;
+            
             items.forEach(item => {
                 const tag = item.dataset.tag;
                 const inputEl = item.querySelector('.pref-value');
-                newPrefs[tag] = parseInt(inputEl.value) || 0;
+                const value = parseFloat(inputEl.value) || 0;
+                newPrefs[tag] = value;
+                total += value;
             });
+
+            // Normalize to sum to 100% if total is not 0
+            if (total > 0 && total !== 100) {
+                const factor = 100 / total;
+                for (const tag in newPrefs) {
+                    newPrefs[tag] = Math.round(newPrefs[tag] * factor * 100) / 100;
+                }
+                // Fix rounding errors
+                const newTotal = Object.values(newPrefs).reduce((a, b) => a + b, 0);
+                if (newTotal !== 100 && Object.keys(newPrefs).length > 0) {
+                    const diff = Math.round((100 - newTotal) * 100) / 100;
+                    const firstTag = Object.keys(newPrefs)[0];
+                    newPrefs[firstTag] = Math.round((newPrefs[firstTag] + diff) * 100) / 100;
+                }
+                
+                // Update the UI with normalized values
+                items.forEach(item => {
+                    const tag = item.dataset.tag;
+                    const inputEl = item.querySelector('.pref-value');
+                    if (newPrefs[tag] !== undefined) {
+                        inputEl.value = newPrefs[tag];
+                    }
+                });
+            }
 
             let success = true;
             try {
@@ -1454,11 +1488,142 @@
             div.innerHTML = `
                 <span class="pref-tag" title="${tag}">${tag}</span>
                 <div class="pref-controls">
-                    <input type="number" class="pref-value" data-tag="${tag}" value="${value}">
+                    <input type="number" class="pref-value" data-tag="${tag}" value="${value}" min="0" max="100" step="0.1">
                     <button class="btn-remove" title="Remove Tag">&times;</button>
                 </div>`;
-            div.querySelector('.btn-remove').addEventListener('click', () => div.remove());
+            
+            // When value changes, redistribute percentages
+            const input = div.querySelector('.pref-value');
+            input.addEventListener('change', function() {
+                redistributePercentages(this);
+            });
+            input.addEventListener('input', function() {
+                redistributePercentages(this);
+            });
+            
+            div.querySelector('.btn-remove').addEventListener('click', () => {
+                div.remove();
+                // Rebalance remaining tags
+                rebalanceAll();
+            });
             container.appendChild(div);
+        }
+
+        // --- Percentage Redistribution Logic ---
+        function redistributePercentages(changedInput) {
+            const container = document.getElementById('preferencesContainer');
+            const items = container.querySelectorAll('.pref-item');
+            const newValue = parseFloat(changedInput.value) || 0;
+            const tag = changedInput.dataset.tag;
+            
+            // Clamp to 0-100
+            const clampedValue = Math.max(0, Math.min(100, newValue));
+            if (clampedValue !== newValue) {
+                changedInput.value = clampedValue;
+            }
+            
+            // If value is 100, set all others to 0
+            if (clampedValue === 100) {
+                items.forEach(item => {
+                    const input = item.querySelector('.pref-value');
+                    if (input.dataset.tag !== tag) {
+                        input.value = 0;
+                    }
+                });
+                return;
+            }
+            
+            // Calculate current total of all other tags
+            let otherTotal = 0;
+            let otherItems = [];
+            items.forEach(item => {
+                const input = item.querySelector('.pref-value');
+                if (input.dataset.tag !== tag) {
+                    const val = parseFloat(input.value) || 0;
+                    otherTotal += val;
+                    otherItems.push({ item, input, val });
+                }
+            });
+            
+            // If all other tags sum to 0, distribute remaining percentage equally
+            if (otherTotal === 0) {
+                const remaining = 100 - clampedValue;
+                const count = otherItems.length;
+                if (count > 0) {
+                    const each = Math.round((remaining / count) * 100) / 100;
+                    let sum = 0;
+                    otherItems.forEach(({ input, val }, index) => {
+                        if (index === count - 1) {
+                            // Last item gets the remainder to fix rounding
+                            const remainder = Math.round((remaining - sum) * 100) / 100;
+                            input.value = remainder;
+                        } else {
+                            input.value = each;
+                            sum += each;
+                        }
+                    });
+                }
+                return;
+            }
+            
+            // Redistribute proportionally
+            const remaining = 100 - clampedValue;
+            let distributedSum = 0;
+            otherItems.forEach(({ input, val }, index) => {
+                const proportion = val / otherTotal;
+                let newVal = Math.round((remaining * proportion) * 100) / 100;
+                
+                // For the last item, use remainder to fix rounding
+                if (index === otherItems.length - 1) {
+                    newVal = Math.round((remaining - distributedSum) * 100) / 100;
+                }
+                input.value = newVal;
+                distributedSum += newVal;
+            });
+        }
+
+        function rebalanceAll() {
+            const container = document.getElementById('preferencesContainer');
+            const items = container.querySelectorAll('.pref-item');
+            
+            if (items.length === 0) return;
+            
+            // Get current values
+            const values = [];
+            let total = 0;
+            items.forEach(item => {
+                const input = item.querySelector('.pref-value');
+                const val = parseFloat(input.value) || 0;
+                values.push({ item, input, val });
+                total += val;
+            });
+            
+            // If total is 0, distribute equally
+            if (total === 0) {
+                const each = Math.round((100 / items.length) * 100) / 100;
+                let sum = 0;
+                values.forEach(({ input }, index) => {
+                    if (index === values.length - 1) {
+                        const remainder = Math.round((100 - sum) * 100) / 100;
+                        input.value = remainder;
+                    } else {
+                        input.value = each;
+                        sum += each;
+                    }
+                });
+                return;
+            }
+            
+            // Normalize to 100%
+            let sum = 0;
+            values.forEach(({ input, val }, index) => {
+                let newVal = Math.round((val / total) * 100 * 100) / 100;
+                if (index === values.length - 1) {
+                    newVal = Math.round((100 - sum) * 100) / 100;
+                }
+                input.value = newVal;
+                sum += newVal;
+            });
         }
 
         // --- Configuration Import/Export ---
@@ -1631,8 +1796,10 @@
                     showStatus('prefStatus', getLang('Tag already in list.', 'Tag bereits vorhanden.'), false);
                     return;
                 }
-                createPrefItem(tagName, 50, container);
+                createPrefItem(tagName, 0, container);
                 input.value = '';
+                // Rebalance after adding
+                rebalanceAll();
             });
             document.getElementById('resetPrefsBtn').addEventListener('click', () => {
                 if (confirm(getLang('Clear all viewing preferences?', 'Alle Ansichtseinstellungen löschen?'))) {

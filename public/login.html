@@ -579,14 +579,33 @@
             saveAndRedirect(selectedPhase1);
         });
 
-        // ===== SAVE & REDIRECT =====
+        // ===== SAVE & REDIRECT (MODIFIED - saves percentages) =====
         async function saveAndRedirect(tags) {
             if (tags.length) {
                 try {
-                    await fetch('/api/save-initial-preferences', {
+                    // Convert selected tags to percentages that sum to 100%
+                    const totalTags = tags.length;
+                    // Each selected tag gets an equal share (rounded to 2 decimals)
+                    const basePercentage = Math.round((100 / totalTags) * 100) / 100;
+                    
+                    // Build preferences object with percentages
+                    const preferences = {};
+                    tags.forEach(tag => {
+                        preferences[tag] = basePercentage;
+                    });
+                    
+                    // Adjust for rounding errors (add any remainder to the first tag)
+                    const sum = Object.values(preferences).reduce((a, b) => a + b, 0);
+                    if (sum !== 100 && tags.length > 0) {
+                        const remainder = Math.round((100 - sum) * 100) / 100;
+                        preferences[tags[0]] = Math.round((preferences[tags[0]] + remainder) * 100) / 100;
+                    }
+                    
+                    // Save as percentages directly
+                    await fetch('/save-preferences', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ tags })
+                        body: JSON.stringify({ preferences })
                     });
                 } catch (err) {
                     console.error('Error saving preferences:', err);

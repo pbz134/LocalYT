@@ -104,6 +104,41 @@
         .user-actions a:hover {
             text-decoration: underline;
         }
+
+        .error-message {
+            color: #ff4444;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+            padding: 8px;
+            background-color: rgba(255, 68, 68, 0.1);
+            border-radius: 4px;
+        }
+
+        .error-message.visible {
+            display: block;
+        }
+
+        .error-message.cooldown {
+            color: #ffaa00;
+            background-color: rgba(255, 170, 0, 0.1);
+        }
+
+        .success-message {
+            color: #44ff44;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+            padding: 8px;
+            background-color: rgba(68, 255, 68, 0.1);
+            border-radius: 4px;
+        }
+
+        .success-message.visible {
+            display: block;
+        }
     </style>
 </head>
 <body class="register-page">
@@ -119,18 +154,54 @@
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" required>
             </div>
-            <button type="submit">Register</button>
+            <button type="submit" id="registerButton">Register</button>
         </form>
+        <div id="errorMessage" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
         <div class="user-actions">
             <a href="login.html">Already have an account? Login</a>
         </div>
     </div>
     <script>
+        // Check registration status on page load
+        fetch('/register-status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.blocked) {
+                    const errorMessage = document.getElementById('errorMessage');
+                    const remainingMinutes = Math.ceil(data.remainingTime / 60000);
+                    const remainingSeconds = Math.ceil((data.remainingTime % 60000) / 1000);
+                    let timeString = '';
+                    if (remainingMinutes > 0) {
+                        timeString = remainingMinutes + ' minute' + (remainingMinutes > 1 ? 's' : '');
+                    } else {
+                        timeString = remainingSeconds + ' second' + (remainingSeconds > 1 ? 's' : '');
+                    }
+                    errorMessage.textContent = 'Please wait ' + timeString + ' before creating another account.';
+                    errorMessage.className = 'error-message cooldown visible';
+                    document.getElementById('registerButton').disabled = true;
+                }
+            })
+            .catch(err => console.error('Status check error:', err));
+    
         document.getElementById('registerForm').addEventListener('submit', function(event) {
             event.preventDefault();
+    
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-
+            const registerButton = document.getElementById('registerButton');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+    
+            registerButton.disabled = true;
+            registerButton.textContent = 'Registering...';
+            errorMessage.className = 'error-message';
+            errorMessage.style.display = 'none';
+            successMessage.className = 'success-message';
+            successMessage.style.display = 'none';
+    
+            console.log('Sending registration request for username:', username);
+    
             fetch('/register', {
                 method: 'POST',
                 headers: {
@@ -139,15 +210,71 @@
                 body: JSON.stringify({ username, password })
             })
             .then(response => {
-                if (response.ok) {
-                    alert('Registration successful! Please log in.');
-                    window.location.href = 'login.html';
-                } else {
-                    alert('Username already exists');
+                console.log('Response status:', response.status);
+                // Always parse JSON, even for errors
+                return response.json().then(data => {
+                    console.log('Response data:', data);
+                    return { status: response.status, data };
+                });
+            })
+            .then(({ status, data }) => {
+                if (status === 200) {
+                    // Success
+                    successMessage.textContent = 'Registration successful! Redirecting to login...';
+                    successMessage.className = 'success-message visible';
+                    registerButton.disabled = false;
+                    registerButton.textContent = 'Register';
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                    return;
                 }
+    
+                // Handle errors
+                let errorMsg = data.error || data.message || 'Registration failed. Please try again.';
+                console.log('Error message:', errorMsg);
+    
+                if (status === 429) {
+                    // Cooldown
+                    if (data.blocked && data.remainingTime) {
+                        const remainingMinutes = Math.ceil(data.remainingTime / 60000);
+                        const remainingSeconds = Math.ceil((data.remainingTime % 60000) / 1000);
+                        let timeString = '';
+                        if (remainingMinutes > 0) {
+                            timeString = remainingMinutes + ' minute' + (remainingMinutes > 1 ? 's' : '');
+                        } else {
+                            timeString = remainingSeconds + ' second' + (remainingSeconds > 1 ? 's' : '');
+                        }
+                        errorMsg = 'Please wait ' + timeString + ' before creating another account.';
+                        errorMessage.className = 'error-message cooldown visible';
+                    } else {
+                        errorMsg = 'Too many registration attempts. Please try again later.';
+                        errorMessage.className = 'error-message visible';
+                    }
+                } else if (status === 409) {
+                    errorMsg = 'Username already exists. Please choose a different username.';
+                    errorMessage.className = 'error-message visible';
+                } else if (status === 400) {
+                    // Validation error
+                    errorMsg = data.error || 'Invalid input. Please check your username and password.';
+                    errorMessage.className = 'error-message visible';
+                } else if (status === 500) {
+                    errorMsg = 'Server error. Please try again later.';
+                    errorMessage.className = 'error-message visible';
+                } else {
+                    errorMessage.className = 'error-message visible';
+                }
+    
+                errorMessage.textContent = errorMsg;
+                registerButton.disabled = false;
+                registerButton.textContent = 'Register';
             })
             .catch(error => {
-                console.error('Error:', error);
+                console.error('Network error:', error);
+                errorMessage.textContent = 'Network error. Please check your connection and try again.';
+                errorMessage.className = 'error-message visible';
+                registerButton.disabled = false;
+                registerButton.textContent = 'Register';
             });
         });
     </script>

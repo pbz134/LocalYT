@@ -226,6 +226,15 @@
             <section class="doc-section" id="v4.90">
                 <h2>v4.90</h2>
                 <ul>
+                    <li>Fully overhauled algorithm
+                        <ul>
+                            <li>Changed from a score-based tag system to a percentage-based tag system</li>
+                            <li>Watching one video increases the respective tag(s) by 15% = 15% of your homepage and sidebar content matches these tags</li>
+                            <li>Compared to the old system, the new one is able to quickly adapt to user behavior changes</li>
+                            <li>Values are not final and may be changed in future updates</li>
+                            <li>Feel free to adjust the values at line 1293 and 2664 in server.js</li>
+                        </ul>
+                    </ul>
                     <li>Bundled FFmpeg with LocalYT, making it 100% portable</li>
                     <li>Added support for more description chapter formats to LYT Player</li>
                     <li>Fixed thumbnail and .video-description positioning on channel video List view</li>
@@ -262,6 +271,7 @@
                         </ul>
                     <li>Loading comments now displays a small loading spinner /LocalYT-Rev-Files/Loading-Small.gif</li>
                     <li>Added an entry to settings.html that allows you to customize the amount of videos per row on the channel.html Grid view</li>
+                    <li>Fixed account creation rate limit not appearing on register.html</li>
                 </ul>
             </section>
             <section class="doc-section" id="v4.80">
