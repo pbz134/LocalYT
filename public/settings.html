@@ -642,6 +642,23 @@
                     </div>
                 </div>
 
+                <!-- NEW: Videos per row -->
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="videosPerRowLabel">Videos per row (Grid view only)</div>
+                        <div class="card-desc" id="videosPerRowDesc">Number of videos to display per row on a channel's Videos tab</div>
+                    </div>
+                    <div class="card-control">
+                        <select class="setting-select" id="videosPerRow">
+                            <option value="3">3</option>
+                            <option value="4" selected>4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="settings-section-header">Playlist Layout</div>
 
                 <div class="setting-card">
@@ -686,7 +703,7 @@
                     </div>
                 </div>
 
-                <!-- NEW: Relative dates setting -->
+                <!-- Relative dates setting -->
                 <div class="setting-card">
                     <div class="card-info">
                         <div class="card-label" id="relativeDatesLabel">Relative dates</div>
@@ -825,7 +842,6 @@
                     </div>
                 </div>
 
-                <!-- ===== RENAMED SECTION: "LYT PLAYER" instead of "Player Overlays" ===== -->
                 <div class="settings-section-header">LYT PLAYER</div>
 
                 <div class="setting-card">
@@ -867,7 +883,6 @@
                     </div>
                 </div>
 
-                <!-- ===== NEW SETTING: Disable recommendation popups ===== -->
                 <div class="setting-card">
                     <div class="card-info">
                         <div class="card-label" id="showRecommendationPopupsLabel">Show recommendation popups</div>
@@ -1058,11 +1073,13 @@
             document.getElementById('channelPageStyleDesc').textContent = getLang('Modern rounded header or classic square-in-banner', 'Moderner abgerundeter Header oder klassisch');
             document.getElementById('channelDefaultViewLabel').textContent = getLang('Default channel video layout', 'Standard-Kanalvideo-Layout');
             document.getElementById('channelDefaultViewDesc').textContent = getLang('Grid or list for channel videos tab', 'Raster oder Liste für Kanal-Videos');
+            // NEW: videos per row
+            document.getElementById('videosPerRowLabel').textContent = getLang('Videos per row (Grid view only)', 'Videos pro Reihe (Nur Raster-Ansicht)');
+            document.getElementById('videosPerRowDesc').textContent = getLang('Number of videos to display per row on a channel\'s Videos tab', 'Anzahl an Videos pro Reihe, die im Videos-Tab eines Kanals angezeigt werden');
             document.getElementById('commenterProfileLabel').textContent = getLang('Commenter avatar style', 'Avatar-Stil für Kommentatoren');
             document.getElementById('commenterProfileDesc').textContent = getLang('Letters & colors or classic placeholder', 'Buchstaben & Farben oder klassisch');
             document.getElementById('titleColorSchemeLabel').textContent = getLang('Title color scheme', 'Titel-Farbschema');
             document.getElementById('titleColorSchemeDesc').textContent = getLang('Video titles & channel names in white or blue', 'Videotitel & Kanalnamen in Weiß oder Blau');
-            // NEW: relative dates
             document.getElementById('relativeDatesLabel').textContent = getLang('Relative dates', 'Relative Zeitangaben');
             document.getElementById('relativeDatesDesc').textContent = getLang('Show time ago instead of fixed date', 'Zeitabstand statt festem Datum anzeigen');
             document.getElementById('roundedCornersLabel').textContent = getLang('Rounded corners', 'Abgerundete Ecken');
@@ -1090,11 +1107,8 @@
             document.getElementById('showEndScreenGridDesc').textContent = getLang('4×3 grid when autoplay is off', '4×3-Raster wenn Autoplay deaktiviert ist');
             document.getElementById('showEndcardsLabel').textContent = getLang('Show video endcards', 'Video-Endkarten anzeigen');
             document.getElementById('showEndcardsDesc').textContent = getLang('Two thumbnails in last 20 seconds', 'Zwei Vorschaubilder in den letzten 20 Sekunden');
-
-            // NEW: recommendation popups
             document.getElementById('showRecommendationPopupsLabel').textContent = getLang('Show recommendation popups', 'Empfehlungs-Popups anzeigen');
             document.getElementById('showRecommendationPopupsDesc').textContent = getLang('Popups with recommended videos during playback', 'Popups mit empfohlenen Videos während der Wiedergabe');
-
             document.getElementById('savePlaybackBtn').textContent = getLang('Save Playback Settings', 'Wiedergabe-Einstellungen speichern');
 
             // Content labels
@@ -1126,6 +1140,12 @@
             if (channelPageStyle) { channelPageStyle.options[0].text = 'Modern'; channelPageStyle.options[1].text = getLang('Classic', 'Klassisch'); }
             const channelDefaultView = document.getElementById('channelDefaultView');
             if (channelDefaultView) { channelDefaultView.options[0].text = getLang('Grid', 'Raster'); channelDefaultView.options[1].text = getLang('List', 'Liste'); }
+            const videosPerRow = document.getElementById('videosPerRow');
+            if (videosPerRow) {
+                for (let i = 0; i < videosPerRow.options.length; i++) {
+                    videosPerRow.options[i].text = videosPerRow.options[i].value;
+                }
+            }
             const commenterSelect = document.getElementById('commenterProfileStyle');
             if (commenterSelect) { commenterSelect.options[0].text = getLang('Modern (Letters & Colors)', 'Modern (Buchstaben & Farben)'); commenterSelect.options[1].text = getLang('Classic (Placeholder)', 'Klassisch (Platzhalter)'); }
             const titleColor = document.getElementById('titleColorScheme');
@@ -1199,9 +1219,10 @@
                 videoPageLayout: document.getElementById('videoPageLayout').value,
                 channelPageStyle: document.getElementById('channelPageStyle').value,
                 channelDefaultView: document.getElementById('channelDefaultView').value,
+                videosPerRow: parseInt(document.getElementById('videosPerRow').value, 10),
                 commenterProfileStyle: document.getElementById('commenterProfileStyle').value,
                 titleColorScheme: document.getElementById('titleColorScheme').value,
-                relativeDates: document.getElementById('relativeDates').checked,  // NEW
+                relativeDates: document.getElementById('relativeDates').checked,
                 roundedCorners: document.getElementById('roundedCorners').checked,
                 sidebarSvgIcons: document.getElementById('sidebarSvgIcons').checked,
                 playerUIScale: parseFloat(document.getElementById('playerUIScale').value)
@@ -1209,21 +1230,24 @@
             localStorage.setItem('videoPageLayout', JSON.stringify({ layout: settings.videoPageLayout }));
             localStorage.setItem('channelPageStyle', JSON.stringify({ style: settings.channelPageStyle }));
             localStorage.setItem('channelDefaultView', JSON.stringify({ view: settings.channelDefaultView }));
+            localStorage.setItem('videosPerRow', JSON.stringify({ value: settings.videosPerRow }));
             localStorage.setItem('commenterProfileStyle', JSON.stringify({ style: settings.commenterProfileStyle }));
             localStorage.setItem('titleColorScheme', JSON.stringify({ scheme: settings.titleColorScheme }));
-            localStorage.setItem('relativeDates', JSON.stringify({ enabled: settings.relativeDates }));  // NEW
+            localStorage.setItem('relativeDates', JSON.stringify({ enabled: settings.relativeDates }));
             localStorage.setItem('roundedCorners', JSON.stringify({ enabled: settings.roundedCorners }));
             localStorage.setItem('sidebarSvgIcons', JSON.stringify(settings.sidebarSvgIcons));
             localStorage.setItem('playerUIScale', JSON.stringify({ scale: settings.playerUIScale }));
 
             if (await updateUserSettings(settings)) {
                 showStatus('appearanceStatus', getLang('Appearance settings saved!', 'Erscheinungsbild gespeichert!'), true);
+                // Dispatch custom event to notify channel page (if open)
+                document.dispatchEvent(new CustomEvent('videosPerRowChanged'));
             } else {
                 showStatus('appearanceStatus', getLang('Error saving to server.', 'Fehler beim Speichern.'), false);
             }
         }
 
-        // --- Playback Save (updated with new setting) ---
+        // --- Playback Save ---
         async function savePlayback() {
             const autoplaySettings = {
                 enabled: document.getElementById('autoplayEnabled').checked,
@@ -1238,14 +1262,14 @@
                 showChannelProfilePic: document.getElementById('showChannelProfilePic').checked,
                 showEndScreenGrid: document.getElementById('showEndScreenGrid').checked,
                 showEndcards: document.getElementById('showEndcards').checked,
-                showRecommendationPopups: document.getElementById('showRecommendationPopups').checked   // NEW
+                showRecommendationPopups: document.getElementById('showRecommendationPopups').checked
             };
             localStorage.setItem('playlistPageLayout', JSON.stringify({ view: userPart.playlistPageLayout }));
             localStorage.setItem('invertPlaylistOrder', JSON.stringify({ enabled: userPart.invertPlaylistOrder }));
             localStorage.setItem('showChannelProfilePic', JSON.stringify({ enabled: userPart.showChannelProfilePic }));
             localStorage.setItem('showEndScreenGrid', JSON.stringify({ enabled: userPart.showEndScreenGrid }));
             localStorage.setItem('showEndcards', JSON.stringify({ enabled: userPart.showEndcards }));
-            localStorage.setItem('showRecommendationPopups', JSON.stringify({ enabled: userPart.showRecommendationPopups }));   // NEW
+            localStorage.setItem('showRecommendationPopups', JSON.stringify({ enabled: userPart.showRecommendationPopups }));
 
             let success = true;
             try {
@@ -1304,11 +1328,12 @@
             document.getElementById('channelPageStyle').value = channelPageStyle.style || 'modern';
             const channelDefaultView = JSON.parse(localStorage.getItem('channelDefaultView') || '{}');
             document.getElementById('channelDefaultView').value = channelDefaultView.view || 'grid';
+            const videosPerRow = JSON.parse(localStorage.getItem('videosPerRow') || '{}');
+            document.getElementById('videosPerRow').value = videosPerRow.value || 4;
             const commenterStyle = JSON.parse(localStorage.getItem('commenterProfileStyle') || '{}');
             document.getElementById('commenterProfileStyle').value = commenterStyle.style || 'modern';
             const titleColor = JSON.parse(localStorage.getItem('titleColorScheme') || '{}');
             document.getElementById('titleColorScheme').value = titleColor.scheme || 'white';
-            // NEW: relativeDates
             const relativeDates = JSON.parse(localStorage.getItem('relativeDates') || '{}');
             document.getElementById('relativeDates').checked = relativeDates.enabled !== undefined ? relativeDates.enabled : true;
             const roundedCorners = JSON.parse(localStorage.getItem('roundedCorners') || '{}');
@@ -1322,9 +1347,9 @@
                 if (data.videoPageLayout) document.getElementById('videoPageLayout').value = data.videoPageLayout;
                 if (data.channelPageStyle) document.getElementById('channelPageStyle').value = data.channelPageStyle;
                 if (data.channelDefaultView) document.getElementById('channelDefaultView').value = data.channelDefaultView;
+                if (data.videosPerRow) document.getElementById('videosPerRow').value = data.videosPerRow;
                 if (data.commenterProfileStyle) document.getElementById('commenterProfileStyle').value = data.commenterProfileStyle;
                 if (data.titleColorScheme) document.getElementById('titleColorScheme').value = data.titleColorScheme;
-                // NEW: relativeDates
                 if (data.relativeDates !== undefined) document.getElementById('relativeDates').checked = data.relativeDates;
                 if (data.roundedCorners !== undefined) document.getElementById('roundedCorners').checked = data.roundedCorners;
                 if (data.sidebarSvgIcons !== undefined) document.getElementById('sidebarSvgIcons').checked = data.sidebarSvgIcons;
@@ -1362,7 +1387,6 @@
             document.getElementById('showEndScreenGrid').checked = endScreenGrid.enabled !== undefined ? endScreenGrid.enabled : true;
             const endcards = JSON.parse(localStorage.getItem('showEndcards') || '{}');
             document.getElementById('showEndcards').checked = endcards.enabled !== undefined ? endcards.enabled : true;
-            // NEW: recommendation popups
             const recPopups = JSON.parse(localStorage.getItem('showRecommendationPopups') || '{}');
             document.getElementById('showRecommendationPopups').checked = recPopups.enabled !== undefined ? recPopups.enabled : true;
 
@@ -1448,9 +1472,10 @@
                 videoPageLayout: document.getElementById('videoPageLayout').value,
                 channelPageStyle: document.getElementById('channelPageStyle').value,
                 channelDefaultView: document.getElementById('channelDefaultView').value,
+                videosPerRow: parseInt(document.getElementById('videosPerRow').value, 10),
                 commenterProfileStyle: document.getElementById('commenterProfileStyle').value,
                 titleColorScheme: document.getElementById('titleColorScheme').value,
-                relativeDates: document.getElementById('relativeDates').checked,  // NEW
+                relativeDates: document.getElementById('relativeDates').checked,
                 roundedCorners: document.getElementById('roundedCorners').checked,
                 sidebarSvgIcons: document.getElementById('sidebarSvgIcons').checked,
                 playerUIScale: parseFloat(document.getElementById('playerUIScale').value),
@@ -1497,9 +1522,9 @@
                     if (config.videoPageLayout) document.getElementById('videoPageLayout').value = config.videoPageLayout;
                     if (config.channelPageStyle) document.getElementById('channelPageStyle').value = config.channelPageStyle;
                     if (config.channelDefaultView) document.getElementById('channelDefaultView').value = config.channelDefaultView;
+                    if (config.videosPerRow) document.getElementById('videosPerRow').value = config.videosPerRow;
                     if (config.commenterProfileStyle) document.getElementById('commenterProfileStyle').value = config.commenterProfileStyle;
                     if (config.titleColorScheme) document.getElementById('titleColorScheme').value = config.titleColorScheme;
-                    // NEW: relativeDates
                     if (config.relativeDates !== undefined) document.getElementById('relativeDates').checked = config.relativeDates;
                     if (config.roundedCorners !== undefined) document.getElementById('roundedCorners').checked = config.roundedCorners;
                     if (config.sidebarSvgIcons !== undefined) document.getElementById('sidebarSvgIcons').checked = config.sidebarSvgIcons;
@@ -1530,6 +1555,7 @@
                     videoPageLayout: 'modern',
                     channelPageStyle: 'modern',
                     channelDefaultView: 'grid',
+                    videosPerRow: 4,
                     commenterProfileStyle: 'modern',
                     roundedCorners: true,
                     sidebarSvgIcons: false,
@@ -1540,6 +1566,7 @@
                     videoPageLayout: 'classic',
                     channelPageStyle: 'legacy',
                     channelDefaultView: 'list',
+                    videosPerRow: 4,
                     commenterProfileStyle: 'classic',
                     roundedCorners: false,
                     sidebarSvgIcons: true,
@@ -1552,6 +1579,7 @@
             if (settings.videoPageLayout) document.getElementById('videoPageLayout').value = settings.videoPageLayout;
             if (settings.channelPageStyle) document.getElementById('channelPageStyle').value = settings.channelPageStyle;
             if (settings.channelDefaultView) document.getElementById('channelDefaultView').value = settings.channelDefaultView;
+            if (settings.videosPerRow) document.getElementById('videosPerRow').value = settings.videosPerRow;
             if (settings.commenterProfileStyle) document.getElementById('commenterProfileStyle').value = settings.commenterProfileStyle;
             if (settings.roundedCorners !== undefined) document.getElementById('roundedCorners').checked = settings.roundedCorners;
             if (settings.sidebarSvgIcons !== undefined) document.getElementById('sidebarSvgIcons').checked = settings.sidebarSvgIcons;
@@ -1560,10 +1588,14 @@
             if (settings.videoPageLayout) localStorage.setItem('videoPageLayout', JSON.stringify({ layout: settings.videoPageLayout }));
             if (settings.channelPageStyle) localStorage.setItem('channelPageStyle', JSON.stringify({ style: settings.channelPageStyle }));
             if (settings.channelDefaultView) localStorage.setItem('channelDefaultView', JSON.stringify({ view: settings.channelDefaultView }));
+            if (settings.videosPerRow) localStorage.setItem('videosPerRow', JSON.stringify({ value: settings.videosPerRow }));
             if (settings.commenterProfileStyle) localStorage.setItem('commenterProfileStyle', JSON.stringify({ style: settings.commenterProfileStyle }));
             if (settings.roundedCorners !== undefined) localStorage.setItem('roundedCorners', JSON.stringify({ enabled: settings.roundedCorners }));
             if (settings.sidebarSvgIcons !== undefined) localStorage.setItem('sidebarSvgIcons', JSON.stringify(settings.sidebarSvgIcons));
             if (settings.playlistPageLayout) localStorage.setItem('playlistPageLayout', JSON.stringify({ view: settings.playlistPageLayout }));
+
+            // Dispatch event to notify channel page
+            document.dispatchEvent(new CustomEvent('videosPerRowChanged'));
         }
 
         // --- Event Listeners Setup ---

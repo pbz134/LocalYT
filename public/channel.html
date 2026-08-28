@@ -451,13 +451,13 @@
             width: 100%;
             max-width: 100%;
         }
-        /* Videos tab: 5 items per row, except when in list view */
+        /* Videos tab: dynamic columns using CSS custom property */
         #videosTab .channel-videos:not(.list-view) {
             gap: 16px;
         }
         #videosTab .channel-videos:not(.list-view) .video-item {
-            flex: 0 0 calc((100% - 3 * 16px) / 4);
-            max-width: calc((100% - 3 * 16px) / 4);
+            flex: 0 0 calc((100% - (var(--videos-per-row, 4) - 1) * 16px) / var(--videos-per-row, 4));
+            max-width: calc((100% - (var(--videos-per-row, 4) - 1) * 16px) / var(--videos-per-row, 4));
             width: auto;
         }
         /* Ensure thumbnails keep 16:9 */
@@ -1935,10 +1935,36 @@
 
                 homeOthersGrid.querySelectorAll(
                         '.skeleton-thumbnail, .skeleton-title, .skeleton-metadata, .playlist-thumbnail, .playlist-title, .playlist-channel-name'
-                        )
+                    )
                     .forEach(el => el.style.animation = 'pulse 1.5s infinite');
             }
         }
+
+        // ======================================================================
+        // APPLY VIDEOS PER ROW SETTING
+        // ======================================================================
+        function applyVideosPerRow() {
+            const videosContainer = document.getElementById('channelVideosContainer');
+            if (!videosContainer) return;
+
+            // Read setting from localStorage (default 4)
+            const setting = JSON.parse(localStorage.getItem('videosPerRow') || '{}');
+            let perRow = parseInt(setting.value, 10);
+            if (isNaN(perRow) || perRow < 3 || perRow > 7) perRow = 4;
+
+            // Set CSS custom property on the container
+            videosContainer.style.setProperty('--videos-per-row', perRow);
+        }
+
+        // Watch for changes to the setting from other tabs
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'videosPerRow') {
+                applyVideosPerRow();
+            }
+        });
+
+        // Also listen for the save event from settings page (custom event)
+        document.addEventListener('videosPerRowChanged', applyVideosPerRow);
 
         document.addEventListener('DOMContentLoaded', () => {
             const channelPageStylePref = JSON.parse(localStorage.getItem('channelPageStyle') || '{}');
@@ -3171,6 +3197,8 @@
                 loadingSpinner.classList.remove('visible');
                 noMoreVideos.style.display = 'none';
                 loadMoreVideos();
+                // Apply videos per row after rendering
+                applyVideosPerRow();
             }
 
             function createVideoElement(video) {
@@ -3728,6 +3756,7 @@
                             sortVideosArray();
                             loadMoreVideos();
                             setupIntersectionObserver();
+                            applyVideosPerRow(); // Ensure setting applied
                             return;
                         }
 
@@ -3755,6 +3784,7 @@
                                 sortVideosArray();
                                 loadMoreVideos();
                                 setupIntersectionObserver();
+                                applyVideosPerRow();
                             })
                             .catch(() => {
                                 hideSkeletons();
@@ -3764,6 +3794,7 @@
                                 sortVideosArray();
                                 loadMoreVideos();
                                 setupIntersectionObserver();
+                                applyVideosPerRow();
                             });
                     })
                     .catch(() => {
@@ -4374,6 +4405,20 @@
                 }
             });
         })();
+
+        // ============================================================
+        // APPLY VIDEOS PER ROW ON LOAD
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // Apply initially
+            applyVideosPerRow();
+            // Also apply whenever the setting might change from another tab
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'videosPerRow') {
+                    applyVideosPerRow();
+                }
+            });
+        });
     </script>
     <!-- External Scripts -->
     <script src="search-suggestions.js"></script>
