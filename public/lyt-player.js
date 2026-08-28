@@ -3933,6 +3933,16 @@
             let overlay = this.wrapper.querySelector('.lyt_stats_overlay');
         
             if (overlay) {
+                // Remove drag event listeners
+                if (this._statsDragState) {
+                    overlay.removeEventListener('mousedown', this._statsDragState.onMouseDown);
+                    overlay.removeEventListener('touchstart', this._statsDragState.onTouchStart);
+                    document.removeEventListener('mousemove', this._statsDragState.moveHandler);
+                    document.removeEventListener('mouseup', this._statsDragState.upHandler);
+                    document.removeEventListener('touchmove', this._statsDragState.touchMoveHandler);
+                    document.removeEventListener('touchend', this._statsDragState.touchEndHandler);
+                    this._statsDragState = null;
+                }
                 overlay.remove();
                 if (this._statsInterval) clearInterval(this._statsInterval);
                 if (this._fpsFrameId) cancelAnimationFrame(this._fpsFrameId);
@@ -3941,23 +3951,144 @@
         
             overlay = document.createElement('div');
             overlay.className = 'lyt_stats_overlay';
+            overlay.style.position = 'absolute';
+            overlay.style.pointerEvents = 'auto';
+            overlay.style.cursor = 'move';
+            overlay.style.userSelect = 'none';
+            overlay.style.width = '280px'; // fixed width
+        
+            // Set initial position percentages (default 2% from top-left)
+            const leftPct = parseFloat(overlay.dataset.leftPct) || 0.02;
+            const topPct = parseFloat(overlay.dataset.topPct) || 0.02;
+            overlay.dataset.leftPct = leftPct;
+            overlay.dataset.topPct = topPct;
+        
             this.wrapper.appendChild(overlay);
         
+            // Apply position based on current wrapper size
+            const applyPosition = () => {
+                const wrapperRect = this.wrapper.getBoundingClientRect();
+                const overlayRect = overlay.getBoundingClientRect();
+                const maxX = wrapperRect.width - overlayRect.width;
+                const maxY = wrapperRect.height - overlayRect.height;
+                const left = Math.max(0, Math.min(leftPct * wrapperRect.width, maxX));
+                const top = Math.max(0, Math.min(topPct * wrapperRect.height, maxY));
+                overlay.style.left = left + 'px';
+                overlay.style.top = top + 'px';
+            };
+            applyPosition();
+        
+            // Drag state
+            const dragState = {
+                isDragging: false,
+                offsetX: 0,
+                offsetY: 0,
+                moveHandler: null,
+                upHandler: null,
+                touchMoveHandler: null,
+                touchEndHandler: null,
+                onMouseDown: null,
+                onTouchStart: null
+            };
+            this._statsDragState = dragState;
+        
+            const onMouseDown = (e) => {
+                if (e.target.closest('.lyt_stats_overlay') !== overlay) return;
+                e.preventDefault();
+                const rect = overlay.getBoundingClientRect();
+                dragState.offsetX = e.clientX - rect.left;
+                dragState.offsetY = e.clientY - rect.top;
+                dragState.isDragging = true;
+                document.addEventListener('mousemove', dragState.moveHandler);
+                document.addEventListener('mouseup', dragState.upHandler);
+            };
+        
+            const onTouchStart = (e) => {
+                if (e.target.closest('.lyt_stats_overlay') !== overlay) return;
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = overlay.getBoundingClientRect();
+                dragState.offsetX = touch.clientX - rect.left;
+                dragState.offsetY = touch.clientY - rect.top;
+                dragState.isDragging = true;
+                document.addEventListener('touchmove', dragState.touchMoveHandler, { passive: false });
+                document.addEventListener('touchend', dragState.touchEndHandler);
+            };
+        
+            dragState.moveHandler = (e) => {
+                if (!dragState.isDragging) return;
+                e.preventDefault();
+                const wrapperRect = this.wrapper.getBoundingClientRect();
+                const overlayRect = overlay.getBoundingClientRect();
+                let left = e.clientX - wrapperRect.left - dragState.offsetX;
+                let top = e.clientY - wrapperRect.top - dragState.offsetY;
+                const maxX = wrapperRect.width - overlayRect.width;
+                const maxY = wrapperRect.height - overlayRect.height;
+                left = Math.max(0, Math.min(left, maxX));
+                top = Math.max(0, Math.min(top, maxY));
+                overlay.style.left = left + 'px';
+                overlay.style.top = top + 'px';
+                // Update percentage values
+                const newLeftPct = wrapperRect.width > 0 ? left / wrapperRect.width : 0;
+                const newTopPct = wrapperRect.height > 0 ? top / wrapperRect.height : 0;
+                overlay.dataset.leftPct = newLeftPct;
+                overlay.dataset.topPct = newTopPct;
+            };
+        
+            dragState.upHandler = () => {
+                dragState.isDragging = false;
+                document.removeEventListener('mousemove', dragState.moveHandler);
+                document.removeEventListener('mouseup', dragState.upHandler);
+            };
+        
+            dragState.touchMoveHandler = (e) => {
+                if (!dragState.isDragging) return;
+                e.preventDefault();
+                const touch = e.touches[0];
+                const wrapperRect = this.wrapper.getBoundingClientRect();
+                const overlayRect = overlay.getBoundingClientRect();
+                let left = touch.clientX - wrapperRect.left - dragState.offsetX;
+                let top = touch.clientY - wrapperRect.top - dragState.offsetY;
+                const maxX = wrapperRect.width - overlayRect.width;
+                const maxY = wrapperRect.height - overlayRect.height;
+                left = Math.max(0, Math.min(left, maxX));
+                top = Math.max(0, Math.min(top, maxY));
+                overlay.style.left = left + 'px';
+                overlay.style.top = top + 'px';
+                const newLeftPct = wrapperRect.width > 0 ? left / wrapperRect.width : 0;
+                const newTopPct = wrapperRect.height > 0 ? top / wrapperRect.height : 0;
+                overlay.dataset.leftPct = newLeftPct;
+                overlay.dataset.topPct = newTopPct;
+            };
+        
+            dragState.touchEndHandler = () => {
+                dragState.isDragging = false;
+                document.removeEventListener('touchmove', dragState.touchMoveHandler);
+                document.removeEventListener('touchend', dragState.touchEndHandler);
+            };
+        
+            overlay.addEventListener('mousedown', onMouseDown);
+            overlay.addEventListener('touchstart', onTouchStart, { passive: false });
+        
+            dragState.onMouseDown = onMouseDown;
+            dragState.onTouchStart = onTouchStart;
+        
+            // Store the overlay for reapply on fullscreen change
+            this._statsOverlay = overlay;
+        
+            // Stats update logic (unchanged)
             const video = this.video;
-            
             let fpsFrames = 0;
             let fpsLastTime = performance.now();
             let fpsCurrentValue = '...';
         
             const fpsLoop = () => {
                 if (!document.body.contains(overlay)) {
-                     cancelAnimationFrame(this._fpsFrameId);
-                     return;
+                    cancelAnimationFrame(this._fpsFrameId);
+                    return;
                 }
-                
                 fpsFrames++;
                 const now = performance.now();
-                
                 if (now >= fpsLastTime + 500) {
                     fpsCurrentValue = Math.round((fpsFrames * 1000) / (now - fpsLastTime));
                     fpsFrames = 0;
@@ -3977,31 +4108,23 @@
                 let html = '';
                 html += this.createStatRow('Resolution', `${video.videoWidth} x ${video.videoHeight}`);
                 html += this.createStatRow('FPS (Current)', `${fpsCurrentValue}`);
-                
-                // Now async
                 const codec = await this.getCodecInfo();
                 html += this.createStatRow('Codec', codec);
-        
                 let volStr = Math.round(video.volume * 100) + '%';
                 if (video.muted || video.volume === 0) volStr += ' (Muted)';
                 html += this.createStatRow('Volume', volStr);
-        
                 let speedVal = video.playbackRate.toFixed(2);
                 if (speedVal === '1.00') speedVal = '1';
                 html += this.createStatRow('Speed', speedVal + 'x');
-        
                 if (video.buffered.length > 0) {
                     const buffered = video.buffered.end(video.buffered.length - 1) - video.currentTime;
                     html += this.createStatRow('Buffer', this.formatTimeStat(buffered));
                 }
-        
                 html += this.createStatRow('Buffer Speed', this.calculateBitrate());
-        
                 if (video.mozDecodedFrames !== undefined) {
                     const dropped = video.mozParsedFrames - video.mozDecodedFrames;
                     html += this.createStatRow('Dropped Frames', dropped);
                 }
-        
                 overlay.innerHTML = html;
             };
         
@@ -4186,6 +4309,21 @@
                 this.dom.fullscreenBtn.innerHTML = SVG.fullscreen;
                 this.dom.fullscreenBtn.setAttribute('aria-label', 'Fullscreen');
                 this.wrapper.classList.remove('pseudo_fullscreen');
+            }
+        
+            // Reapply stats overlay position if it exists
+            const overlay = this.wrapper.querySelector('.lyt_stats_overlay');
+            if (overlay) {
+                const leftPct = parseFloat(overlay.dataset.leftPct) || 0.02;
+                const topPct = parseFloat(overlay.dataset.topPct) || 0.02;
+                const wrapperRect = this.wrapper.getBoundingClientRect();
+                const overlayRect = overlay.getBoundingClientRect();
+                const maxX = wrapperRect.width - overlayRect.width;
+                const maxY = wrapperRect.height - overlayRect.height;
+                const left = Math.max(0, Math.min(leftPct * wrapperRect.width, maxX));
+                const top = Math.max(0, Math.min(topPct * wrapperRect.height, maxY));
+                overlay.style.left = left + 'px';
+                overlay.style.top = top + 'px';
             }
         }
 
