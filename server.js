@@ -363,6 +363,58 @@ app.get('/api/video-tags', (req, res) => {
     res.json({ tags: [] });
 });
 
+// --- DISCORD EMBED SUPPORT FOR CHANNEL PAGES ---
+app.get('/channel.html', (req, res) => {
+    const channel = req.query.channel;
+    if (!channel) {
+        // No channel parameter: serve the page as-is (without custom meta tags)
+        return res.sendFile(path.join(__dirname, 'public', 'channel.html'));
+    }
+
+    let decodedChannel;
+    try {
+        decodedChannel = decodeURIComponent(channel);
+    } catch (e) {
+        decodedChannel = channel;
+    }
+
+    // The base channel name is the first path segment (e.g., "ChannelName" from "ChannelName/videos")
+    const baseChannel = decodedChannel.split('/')[0];
+
+    // Read channel description (if available)
+    const descPath = path.join(__dirname, 'channeldesc', `${baseChannel}.txt`);
+    let description = 'LocalYT channel';
+    if (fs.existsSync(descPath)) {
+        try {
+            const desc = fs.readFileSync(descPath, 'utf8').trim();
+            if (desc) description = desc;
+        } catch (e) { /* ignore */ }
+    }
+
+    const host = req.get('host');
+    const pageUrl = `https://${host}/channel.html?channel=${encodeURIComponent(decodedChannel)}`;
+    const picUrl = `https://${host}/channelpic/${encodeURIComponent(baseChannel)}.jpg`;
+
+    const metaTags = `
+        <meta property="og:title" content="${baseChannel}" />
+        <meta property="og:description" content="${description}" />
+        <meta property="og:type" content="profile" />
+        <meta property="og:url" content="${pageUrl}" />
+        <meta property="og:image" content="${picUrl}" />
+        <meta property="og:image:secure_url" content="${picUrl}" />
+        <meta property="og:site_name" content="LocalYT" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="${baseChannel}" />
+        <meta name="twitter:description" content="${description}" />
+        <meta name="twitter:image" content="${picUrl}" />
+    `;
+
+    const htmlFilePath = path.join(__dirname, 'public', 'channel.html');
+    let htmlContent = fs.readFileSync(htmlFilePath, 'utf8');
+    htmlContent = htmlContent.replace('</head>', metaTags + '</head>');
+    res.send(htmlContent);
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cookieParser());
 app.use(express.json());
