@@ -647,7 +647,7 @@
                     </div>
                 </div>
 
-                <!-- NEW: Videos per row -->
+                <!-- Videos per row -->
                 <div class="setting-card">
                     <div class="card-info">
                         <div class="card-label" id="videosPerRowLabel">Videos per row (Grid view only)</div>
@@ -1078,7 +1078,7 @@
             document.getElementById('channelPageStyleDesc').textContent = getLang('Modern rounded header or classic square-in-banner', 'Moderner abgerundeter Header oder klassisch');
             document.getElementById('channelDefaultViewLabel').textContent = getLang('Default channel video layout', 'Standard-Kanalvideo-Layout');
             document.getElementById('channelDefaultViewDesc').textContent = getLang('Grid or list for channel videos tab', 'Raster oder Liste für Kanal-Videos');
-            // NEW: videos per row
+            // videos per row
             document.getElementById('videosPerRowLabel').textContent = getLang('Videos per row (Grid view only)', 'Videos pro Reihe (Nur Raster-Ansicht)');
             document.getElementById('videosPerRowDesc').textContent = getLang('Number of videos to display per row on a channel\'s Videos tab', 'Anzahl an Videos pro Reihe, die im Videos-Tab eines Kanals angezeigt werden');
             document.getElementById('commenterProfileLabel').textContent = getLang('Commenter avatar style', 'Avatar-Stil für Kommentatoren');
@@ -1163,32 +1163,68 @@
             if (playerScale) { playerScale.options[5].text = getLang('100% (Default)', '100% (Standard)'); }
         }
 
-        // ==================== Tab Switching ====================
+        // ==================== Tab Switching with Hash Routing ====================
         const sidebarLinks = document.querySelectorAll('.settings-sidebar a');
         const tabPanels = document.querySelectorAll('.tab-panel');
+        const validTabs = ['profile', 'appearance', 'playback', 'content', 'account'];
 
+        function switchTab(tabName) {
+            if (!validTabs.includes(tabName)) {
+                tabName = 'profile';
+            }
+
+            // Update sidebar active state
+            sidebarLinks.forEach(link => {
+                if (link.dataset.tab === tabName) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+
+            // Update tab panels
+            tabPanels.forEach(panel => {
+                if (panel.id === 'tab-' + tabName) {
+                    panel.classList.add('active');
+                } else {
+                    panel.classList.remove('active');
+                }
+            });
+
+            // Load settings for the active tab
+            if (tabName === 'appearance') {
+                loadAppearanceSettings();
+            } else if (tabName === 'playback') {
+                loadPlaybackSettings();
+            } else if (tabName === 'content') {
+                loadContentSettings();
+                loadAllTags();
+            }
+            // Account and profile have no special loading needed, but profile pic loading is done on page load
+        }
+
+        function handleHashChange() {
+            const hash = window.location.hash.replace('#', '');
+            const tab = validTabs.includes(hash) ? hash : 'profile';
+            switchTab(tab);
+        }
+
+        // Set up sidebar links to update hash (which triggers hashchange)
         sidebarLinks.forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 const targetTab = link.dataset.tab;
-                sidebarLinks.forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
-                tabPanels.forEach(panel => panel.classList.remove('active'));
-                const targetPanel = document.getElementById('tab-' + targetTab);
-                if (targetPanel) targetPanel.classList.add('active');
-
-                if (targetTab === 'appearance') {
-                    loadAppearanceSettings();
-                } else if (targetTab === 'playback') {
-                    loadPlaybackSettings();
-                } else if (targetTab === 'content') {
-                    loadContentSettings();
-                    loadAllTags();
-                } else if (targetTab === 'account') {
-                    // nothing special
+                if (window.location.hash !== '#' + targetTab) {
+                    window.location.hash = targetTab; // triggers hashchange
+                } else {
+                    // If hash already correct, manually switch (in case hashchange doesn't fire)
+                    switchTab(targetTab);
                 }
             });
         });
+
+        // Listen for hash changes (back/forward, manual URL edit)
+        window.addEventListener('hashchange', handleHashChange);
 
         // ==================== Save helpers ====================
         function showStatus(elementId, message, success) {
@@ -1767,6 +1803,9 @@
         document.addEventListener('DOMContentLoaded', () => {
             applyTranslations();
 
+            // Initialize tab based on hash (or default to profile)
+            handleHashChange();
+
             // Logo navigation
             document.getElementById('mainLogo').addEventListener('click', (e) => { if(e.button===0) window.location.href='index.html'; });
             document.getElementById('mainLogo').addEventListener('mouseup', (e) => { if(e.button===1){ e.preventDefault(); window.open('index.html','_blank'); } });
@@ -1847,8 +1886,6 @@
                 }, 100);
             });
 
-            // Profile picture upload/remove handled by profile-pic.js
-
             function waitForSessionCheck() {
                 const headerPic = document.getElementById('headerProfilePic');
                 if (headerPic && headerPic.src && !headerPic.src.includes('user-profile-placeholder.jpg')) {
@@ -1861,6 +1898,28 @@
             }
             waitForSessionCheck();
         });
+
+        // Load profile picture (independent of tab)
+        fetch('/user-profile-pic')
+            .then(res => res.json())
+            .then(data => {
+                const display = document.getElementById('profilePicDisplay');
+                const status = document.getElementById('profileStatus');
+                const removeBtn = document.getElementById('removeBtn');
+                if (data.hasCustomPic && data.picUrl) {
+                    display.src = data.picUrl;
+                    status.textContent = getLang('Custom profile picture', 'Benutzerdefiniertes Profilbild');
+                    removeBtn.classList.remove('hidden');
+                } else {
+                    display.src = '/LocalYT-Rev-Files/user-profile-placeholder.jpg';
+                    status.textContent = getLang('Using default profile picture', 'Standard-Profilbild wird verwendet');
+                    removeBtn.classList.add('hidden');
+                }
+            })
+            .catch(() => {
+                // Fallback: keep placeholder
+                document.getElementById('profilePicDisplay').src = '/LocalYT-Rev-Files/user-profile-placeholder.jpg';
+            });
 
         // ==================== Keep Profile Picture functions global ====================
         var PLACEHOLDER_SRC = '/LocalYT-Rev-Files/user-profile-placeholder.jpg';

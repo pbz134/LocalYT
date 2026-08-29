@@ -115,7 +115,7 @@
 
             // Algorithm preferences
             algoPrefsHeading: { en: 'Algorithm Preferences', de: 'Algorithmus-Einstellungen' },
-            algoPrefsDesc: { en: 'Adjust scores to influence your recommendations. Higher = matching videos are more likely to appear.', de: 'Passe die Werte an, um deine Empfehlungen zu beeinflussen. Höher = passende Videos werden eher angezeigt.' },
+            algoPrefsDesc: { en: 'Adjust the values to influence your recommendations for the respective tags in %. Higher = matching videos are more likely to appear.', de: 'Passe die Werte an, um deine Empfehlungen für die jeweiligen Tags in % zu beeinflussen.' },
             addTagBtn: { en: 'Add Tag', de: 'Tag hinzufügen' },
             resetPrefsBtn: { en: 'Reset All', de: 'Alle zurücksetzen' },
 
@@ -630,6 +630,21 @@
     
             .playlist-section-header, .playlist-section-header a {
                 color: #333 !important;
+            }
+
+            /* Light mode filter buttons (unselected) */
+            .filter-button {
+                background-color: #e0e0e0 !important;
+                color: #333333 !important;
+            }
+            .filter-button:hover {
+                background-color: #cccccc !important;
+                color: #000000 !important;
+            }
+            /* Active state remains red */
+            .filter-button.active {
+                background-color: #cc0000 !important;
+                color: #ffffff !important;
             }
 
             /* Playlists page light mode fixes */

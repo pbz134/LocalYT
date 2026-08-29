@@ -2408,6 +2408,23 @@ app.get('/channel-random-videos/:channel', (req, res) => {
     res.json(videosWithDetails);
 });
 
+app.get('/tag-videos', (req, res) => {
+    const tag = req.query.tag;
+    const limit = parseInt(req.query.limit) || 20;
+    if (!tag) return res.status(400).json({ error: 'Missing tag parameter' });
+    
+    const videoPaths = recommendationIndex[tag] || [];
+    const uniquePaths = [...new Set(videoPaths)];
+    shuffleArray(uniquePaths);
+    const selected = uniquePaths.slice(0, limit);
+    const videos = selected.map(vPath => {
+        const video = videoCache.get(vPath);
+        if (!video) return null;
+        return getVideoDetails([video])[0];
+    }).filter(Boolean);
+    res.json(videos);
+});
+
 app.get('/viewcounts/:video', (req, res) => {
     const video = req.params.video.replace(/\.mp4$/, '').replace(/\.mp3$/, '').replace(/\.mkv$/, '');
     const filePath = path.join(__dirname, 'viewcounts', `${video}.txt`);

@@ -53,6 +53,10 @@
                             .video-description {
                                 border-radius: 6px !important;
                             }
+                            /* Round the filter buttons when rounded corners are enabled */
+                            .filter-button {
+                                border-radius: 4px !important;
+                            }
                         `;
                 document.head.appendChild(style);
             }
@@ -419,6 +423,35 @@
         }
         .sidebar-autoplay-toggle .toggle-switch {
             flex-shrink: 0;
+        }
+
+        /* Filter buttons below the autoplay label */
+        .sidebar-filter-buttons {
+            display: flex;
+            gap: 8px;
+            padding: 6px 12px 10px 12px;
+            background-color: var(--main-bg-color);
+            border-bottom: 1px solid #3f3f3f;
+        }
+        .filter-button {
+            background-color: #333;
+            color: #ccc;
+            border: none;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-family: 'RobotoRegular', Arial, sans-serif;
+            cursor: pointer;
+            transition: background-color 0.15s, color 0.15s;
+            border-radius: 0; /* default, will be overridden if rounded corners enabled */
+            white-space: nowrap;
+        }
+        .filter-button:hover {
+            background-color: #555;
+            color: #fff;
+        }
+        .filter-button.active {
+            background-color: #cc0000;
+            color: #fff;
         }
 
         .current-video-item {
@@ -2409,6 +2442,11 @@
             let posterImageUrl = '';
             let currentChannel = '';
 
+            // ----- FILTER BUTTONS VARIABLES -----
+            let filterButtons = null;
+            let allBtn, channelBtn, tagBtn;
+            let currentSecondTag = null;
+
             if (videoSrc) {
                 const videoExtension = getVideoExtension(videoSrc);
                 const mimeType = getMimeType(videoExtension);
@@ -2762,6 +2800,30 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ video: videoSrc })
                 });
+
+                // ----- FETCH VIDEO TAGS (for the filter buttons) -----
+                // Use the full base path (including subfolders) to locate the .txt file
+                const fullBasePath = videoSrc.replace(/\.(mp4|mkv|avi|mov|webm|mp3)$/i, '');
+                try {
+                    const tagRes = await fetch(`/videos/${encodeURIComponent(fullBasePath)}.txt`);
+                    if (tagRes.ok) {
+                        const tagText = await tagRes.text();
+                        const tags = tagText.split(',').map(t => t.trim()).filter(t => t);
+                        if (tags.length >= 2) {
+                            currentSecondTag = tags[1];
+                        } else if (tags.length === 1) {
+                            currentSecondTag = tags[0];
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Could not fetch tags:', e);
+                }
+                if (!currentSecondTag) {
+                    currentSecondTag = getLang('No second tag', 'Kein zweiter Tag');
+                }
+
+                // Update the filter buttons text after we have channel and tag
+                updateFilterButtonsText();
             }
 
             // Load comments for this video
@@ -2775,7 +2837,7 @@
             // --- Sidebar Logic ---
 
             // Create autoplay toggle at top of sidebar
-            createSidebarAutoplayToggle(suggestionsContainer, playlistName);
+            createSidebarAutoplayToggle(suggestionsContainer, playlistName, currentChannel, currentSecondTag);
 
             // 1. Load Playlist Videos if playlist parameter exists
             let playlistVideoCount = 0;
@@ -2878,49 +2940,87 @@
                     .catch(err => console.error("Error loading user playlist sidebar", err));
             }
 
-            // 2. Load Standard Recommendations (70% Similar, 30% User Prefs)
-            // We request a full page (20), but if we have a playlist, we might want fewer.
-            // For now, let's keep the logic simple: append recommendations after playlist.
+            // ----- RECOMMENDATIONS CONTAINER -----
+            const recContainer = document.createElement('div');
+            recContainer.id = 'recommendationsContainer';
+            recContainer.className = 'recommendations-container';
+            // Insert after any playlist sections (or after the autoplay toggle if no playlists)
+            // We'll append it to suggestionsContainer after all playlists are added.
+            // We'll do that after loading recommendations.
+            // But we need it to exist before we render recommendations.
+            // We'll append it now.
+            suggestionsContainer.appendChild(recContainer);
 
-            // Calculate how many recommendations to fetch to fill the sidebar reasonably
-            // If playlist is huge (scrollable), we might not need many, but let's fetch a standard amount
-            // to populate below the fold.
-            const recLimit = 20;
+            // Store reference for update function
+            window.recContainer = recContainer;
 
-            // Use the new specific endpoint for sidebar
-            fetch(`/sidebar-recommendations?video=${encodeURIComponent(videoSrc)}&limit=${recLimit}`)
-                .then(response => {
-                    if (!response.ok) throw new Error("Sidebar recommendations failed");
-                    return response.json();
-                })
-                .then(videos => {
+            // ----- HELPER TO RENDER RECOMMENDATIONS -----
+            async function renderRecommendations(filterType) {
+                if (!recContainer) return;
+                recContainer.innerHTML = '';
 
-                    // Add a header if we also have a playlist
-                    if (playlistName && videos.length > 0) {
-                        const recHeader = document.createElement('div');
-                        recHeader.className = 'playlist-section-header';
-                        recHeader.style.paddingTop = '10px';
-                        recHeader.style.paddingLeft = '20px';
-                        recHeader.textContent = getLang('Recommended', 'Empfohlen');
-                        suggestionsContainer.appendChild(recHeader);
+                let videos = [];
+                // Use 20 for "All" to match original sidebar, 30 for others
+                const limit = filterType === 'all' ? 20 : 30;
+
+                try {
+                    if (filterType === 'all') {
+                        const response = await fetch(`/sidebar-recommendations?video=${encodeURIComponent(videoSrc)}&limit=${limit}`);
+                        if (!response.ok) throw new Error('Failed to fetch recommendations');
+                        const data = await response.json();
+                        videos = data;
+                    } else if (filterType === 'channel') {
+                        const response = await fetch(`/channel-random-videos/${encodeURIComponent(currentChannel)}?limit=${limit}`);
+                        if (!response.ok) throw new Error('Failed to fetch channel videos');
+                        videos = await response.json();
+                    } else if (filterType === 'tag') {
+                        const response = await fetch(`/tag-videos?tag=${encodeURIComponent(currentSecondTag)}&limit=${limit}`);
+                        if (!response.ok) throw new Error('Failed to fetch tag videos');
+                        videos = await response.json();
                     }
+                } catch (e) {
+                    console.error('Error fetching recommendations:', e);
+                    recContainer.innerHTML = '<div style="padding:20px;text-align:center;color:#888;">' + getLang('Failed to load recommendations.', 'Fehler beim Laden der Empfehlungen.') + '</div>';
+                    return;
+                }
 
-                    videos.forEach(video => {
-                        renderSuggestionItem(video, suggestionsContainer, null, false);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error loading sidebar recommendations:', error);
-                    // Fallback to random videos if the new endpoint fails
-                    fetch('/videos?page=1&limit=10')
-                        .then(response => response.json())
-                        .then(data => {
-                            const videos = data.videos || [];
-                            videos.forEach(video => {
-                                renderSuggestionItem(video, suggestionsContainer, null, false);
-                            });
-                        });
+                if (!videos || videos.length === 0) {
+                    recContainer.innerHTML = '<div style="padding:20px;text-align:center;color:#888;">' + getLang('No videos found.', 'Keine Videos gefunden.') + '</div>';
+                    return;
+                }
+
+                videos.forEach(video => {
+                    const isCurrent = (video.path === videoSrc);
+                    renderSuggestionItem(video, recContainer, null, isCurrent);
                 });
+            }
+
+            // Expose updateRecommendations globally
+            window.updateRecommendations = renderRecommendations;
+
+            // ----- FILTER BUTTONS UPDATE TEXT -----
+            function updateFilterButtonsText() {
+                if (allBtn) allBtn.textContent = getLang('All', 'Alle');
+                if (channelBtn) channelBtn.textContent = currentChannel ? getLang('By', 'Von') + ' ' + currentChannel : getLang('By channel', 'Nach Kanal');
+                if (tagBtn) tagBtn.textContent = currentSecondTag || getLang('Tag', 'Tag');
+            }
+
+            // 2. Load Standard Recommendations (70% Similar, 30% User Prefs)
+            // We'll call renderRecommendations('all') after we have the container.
+            // But we need to wait for DOM ready.
+            // We'll call it after all other logic.
+            // We'll also set initial active button.
+
+            // After setting up the container, load 'all' recommendations
+            setTimeout(() => {
+                if (window.recContainer) {
+                    renderRecommendations('all');
+                    // Set active button
+                    if (window.allBtn) {
+                        window.allBtn.classList.add('active');
+                    }
+                }
+            }, 100);
 
             // Helper to render sidebar items
             function renderSuggestionItem(video, container, playlistParam, isCurrent, userPlaylistParam = null) {
@@ -4054,7 +4154,12 @@
             }, 100);
         });
 
-        function createSidebarAutoplayToggle(container, playlistName) {
+        // ================================================================
+        // ===== FILTER BUTTONS AND RECOMMENDATIONS UPDATE =====
+        // ================================================================
+
+        // This function creates the autoplay toggle and the filter buttons.
+        function createSidebarAutoplayToggle(container, playlistName, currentChannel, currentSecondTag) {
             const toggleDiv = document.createElement('div');
             toggleDiv.className = 'sidebar-autoplay-toggle';
 
@@ -4080,6 +4185,60 @@
 
             // Insert at the top of the suggestions container
             container.insertBefore(toggleDiv, container.firstChild);
+
+            // ----- FILTER BUTTONS DIV -----
+            const filterDiv = document.createElement('div');
+            filterDiv.className = 'sidebar-filter-buttons';
+
+            // Create buttons
+            const allBtnLocal = document.createElement('button');
+            allBtnLocal.className = 'filter-button';
+            allBtnLocal.dataset.filter = 'all';
+            allBtnLocal.textContent = getLang('All', 'Alle');
+
+            const channelBtnLocal = document.createElement('button');
+            channelBtnLocal.className = 'filter-button';
+            channelBtnLocal.dataset.filter = 'channel';
+            // Use the passed currentChannel, fallback to '...' if not set
+            const channelName = currentChannel || '...';
+            channelBtnLocal.textContent = getLang('By', 'Von') + ' ' + channelName;
+
+            const tagBtnLocal = document.createElement('button');
+            tagBtnLocal.className = 'filter-button';
+            tagBtnLocal.dataset.filter = 'tag';
+            const tagName = currentSecondTag || getLang('Tag', 'Tag');
+            tagBtnLocal.textContent = tagName;
+
+            // Store references globally so we can update text later
+            window.allBtn = allBtnLocal;
+            window.channelBtn = channelBtnLocal;
+            window.tagBtn = tagBtnLocal;
+
+            // Append buttons
+            filterDiv.appendChild(allBtnLocal);
+            filterDiv.appendChild(channelBtnLocal);
+            filterDiv.appendChild(tagBtnLocal);
+
+            // Insert filterDiv after toggleDiv
+            container.insertBefore(filterDiv, toggleDiv.nextSibling);
+
+            // ----- BUTTON CLICK HANDLERS -----
+            const handleFilterClick = (filterType) => {
+                // Remove active class from all
+                document.querySelectorAll('.filter-button').forEach(b => b.classList.remove('active'));
+                // Add active to clicked
+                const clicked = document.querySelector(`.filter-button[data-filter="${filterType}"]`);
+                if (clicked) clicked.classList.add('active');
+
+                // Update recommendations
+                if (window.updateRecommendations) {
+                    window.updateRecommendations(filterType);
+                }
+            };
+
+            allBtnLocal.addEventListener('click', () => handleFilterClick('all'));
+            channelBtnLocal.addEventListener('click', () => handleFilterClick('channel'));
+            tagBtnLocal.addEventListener('click', () => handleFilterClick('tag'));
 
             // Load current state from localStorage
             let currentSettings = JSON.parse(localStorage.getItem('autoplaySettings') || '{}');
