@@ -202,7 +202,7 @@
         init() {
             // Determine if video title contains "ASMR" (case-insensitive)
             const title = this.options.layoutControls?.title || '';
-            this._asmr = title.toLowerCase().includes('asmr');
+            this._asmr = true;
 
             this.setupWrapper();
             
