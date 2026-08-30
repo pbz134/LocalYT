@@ -2768,8 +2768,18 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
 
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
+    const tagFilter = req.query.tag; // optional tag filter
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
+
+    // Apply tag filter if provided
+    let filteredVideoArray = videoArray;
+    if (tagFilter) {
+        const lowerTag = tagFilter.toLowerCase();
+        filteredVideoArray = videoArray.filter(v => 
+            v.tags && v.tags.some(t => t.toLowerCase() === lowerTag)
+        );
+    }
 
     fs.readFile(preferencesFilePath, 'utf8', (err, data) => {
         if (err) return res.status(500).send('Error reading preferences');
@@ -2790,21 +2800,21 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
                 }
             }
 
-            // If no meaningful tags → fallback to random
+            // If no meaningful tags → fallback to random (using filtered array)
             if (Object.keys(tagPercent).length === 0) {
-                const allVideos = [...videoCache.values()];
+                const allVideos = [...filteredVideoArray];
                 shuffleArray(allVideos);
                 const paginated = allVideos.slice(startIndex, endIndex);
                 return res.json({
                     videos: getVideoDetails(paginated),
                     page, limit,
-                    total: videoArray.length,
-                    hasMore: endIndex < videoArray.length
+                    total: filteredVideoArray.length,
+                    hasMore: endIndex < filteredVideoArray.length
                 });
             }
 
             // Score each video by summing the percentages of its tags
-            const scoredVideos = videoArray.map(video => {
+            const scoredVideos = filteredVideoArray.map(video => {
                 let score = 0;
                 if (video.tags) {
                     for (const tag of video.tags) {
@@ -2829,10 +2839,10 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
             // Paginate from the shuffled list
             const paginated = topCandidates.slice(startIndex, endIndex).map(item => item.video);
             
-            // If we don't have enough videos, fill with random ones
+            // If we don't have enough videos, fill with random ones from the filtered pool
             if (paginated.length < limit) {
                 const remaining = limit - paginated.length;
-                const allVideos = videoArray.filter(v => !paginated.includes(v));
+                const allVideos = filteredVideoArray.filter(v => !paginated.includes(v));
                 shuffleArray(allVideos);
                 const fill = allVideos.slice(0, remaining);
                 paginated.push(...fill);
@@ -2841,8 +2851,8 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
             res.json({
                 videos: getVideoDetails(paginated),
                 page, limit,
-                total: videoArray.length,
-                hasMore: endIndex < videoArray.length
+                total: filteredVideoArray.length,
+                hasMore: endIndex < filteredVideoArray.length
             });
 
         } catch (err) {

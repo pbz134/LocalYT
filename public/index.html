@@ -47,6 +47,12 @@
             color: #d2cfcf;
         }
 
+        .category-button.active {
+            background-color: #cc0000;
+            color: #fff;
+            border-color: #f1f1f1;
+        }
+
         .category-container {
             display: flex;
             align-items: center;
@@ -353,6 +359,7 @@ let isLoading = false;
 let hasMore = true;
 let isUserLoggedIn = false;
 let hasLoadedRecommendations = false;
+let activeCategoryFilter = null; // New: holds the currently active tag filter
 
 function checkLoginStatus() {
     return fetch('/session-user')
@@ -377,6 +384,32 @@ function checkLoginStatus() {
         });
 }
 
+function filterByCategory(tag) {
+    if (activeCategoryFilter === tag) {
+        // Clear filter
+        activeCategoryFilter = null;
+        document.querySelectorAll('.category-button').forEach(btn => btn.classList.remove('active'));
+    } else {
+        activeCategoryFilter = tag;
+        document.querySelectorAll('.category-button').forEach(btn => {
+            btn.classList.toggle('active', btn.textContent === tag);
+        });
+    }
+
+    // Reset UI and pagination
+    const container = document.getElementById('videoContainer');
+    container.innerHTML = '';
+    recommendationsPage = 1;
+    hasMore = true;
+    isLoading = false;
+    hasLoadedRecommendations = false;
+
+    if (isUserLoggedIn) {
+        loadRecommendations(activeCategoryFilter);
+    }
+    // Note: Guests do not see category buttons, so no fallback needed.
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     checkLoginStatus().then(loggedIn => {
         fetch('/top-categories')
@@ -389,9 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const button = document.createElement('button');
                     button.className = 'category-button';
                     button.textContent = category;
-                    button.onclick = () => {
-                        window.location.href = `search.html?q=${encodeURIComponent(category)}`;
-                    };
+                    button.addEventListener('click', () => filterByCategory(category));
                     categoryContainer.appendChild(button);
                 });
             })
@@ -412,7 +443,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
             if (!isLoading && hasMore) {
                 if (isUserLoggedIn && !hasLoadedRecommendations) {
-                    loadMoreRecommendations();
+                    if (activeCategoryFilter) {
+                        loadMoreRecommendations(activeCategoryFilter);
+                    } else {
+                        loadMoreRecommendations();
+                    }
                 } else {
                     loadMoreVideos();
                 }
@@ -438,12 +473,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-function loadRecommendations() {
+function loadRecommendations(tag = null) {
     if (isLoading) return;
     isLoading = true;
     showSkeletons(limit);
     
-    fetch('/recommendations?page=1&limit=' + limit)
+    let url = '/recommendations?page=1&limit=' + limit;
+    if (tag) {
+        url += '&tag=' + encodeURIComponent(tag);
+    }
+    
+    fetch(url)
         .then(response => {
             if (!response.ok) throw new Error('Failed to load recommendations');
             return response.json();
@@ -465,8 +505,11 @@ function loadRecommendations() {
             if (videos.length > 0) {
                 renderVideos(videos);
             } else {
+                // No videos for filter; show a message or just stop loading
                 hasLoadedRecommendations = true;
-                loadMoreVideos();
+                hasMore = false;
+                const container = document.getElementById('videoContainer');
+                container.innerHTML = '<p style="color:#aaa;">No videos found for this tag.</p>';
             }
             isLoading = false;
         })
@@ -475,16 +518,26 @@ function loadRecommendations() {
             hideSkeletons();
             isLoading = false;
             hasLoadedRecommendations = true;
-            loadMoreVideos();
+            // Fallback to random videos if error
+            if (!tag) loadMoreVideos();
+            else {
+                const container = document.getElementById('videoContainer');
+                container.innerHTML = '<p style="color:#aaa;">Error loading videos.</p>';
+            }
         });
 }
 
-function loadMoreRecommendations() {
+function loadMoreRecommendations(tag = null) {
     if (isLoading || !hasMore) return;
     isLoading = true;
     showSkeletons(limit);
     
-    fetch('/recommendations?page=' + recommendationsPage + '&limit=' + limit)
+    let url = '/recommendations?page=' + recommendationsPage + '&limit=' + limit;
+    if (tag) {
+        url += '&tag=' + encodeURIComponent(tag);
+    }
+    
+    fetch(url)
         .then(response => {
             if (!response.ok) throw new Error('Failed to load more recommendations');
             return response.json();
