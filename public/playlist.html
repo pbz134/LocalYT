@@ -1363,7 +1363,7 @@
                 ${getLang('Last updated on', 'Zuletzt aktualisiert am')} ${latestDate}
             `;
             
-            // Fetch playlist description (only in classic mode, only if file exists)
+            // Fetch playlist description (only in classic mode, if file exists)
             fetch(`/playlist-descriptions/${encodeURIComponent(channelName)}/${encodeURIComponent(playlistName)}.txt`)
                 .then(response => {
                     if (!response.ok) throw new Error('not found');
@@ -1380,14 +1380,15 @@
                     // No description available — don't show anything
                 });
             
-            // Determine main thumbnail
-            fetch(`/channel-playlists/${encodeURIComponent(channelName)}`)
-                .then(r => r.ok ? r.json() : [])
-                .then(playlists => {
-                    const thisPlaylist = playlists.find(p => p.path === playlistName);
-                    
-                    if (thisPlaylist && thisPlaylist.thumbnail && thisPlaylist.thumbnail.trim() !== '') {
-                        classicThumbnail.src = thisPlaylist.thumbnail;
+            // Get thumbnail from the server (which now uses order files)
+            fetch(`/playlist-order-thumbnail/${encodeURIComponent(channelName)}/${encodeURIComponent(playlistName)}`)
+                .then(response => {
+                    if (response.ok) return response.text();
+                    throw new Error('No order thumbnail');
+                })
+                .then(thumbnailPath => {
+                    if (thumbnailPath && thumbnailPath.trim()) {
+                        classicThumbnail.src = thumbnailPath.trim();
                         classicThumbnail.onerror = () => {
                             setFallbackThumbnail(videos);
                         };
@@ -1396,6 +1397,7 @@
                     }
                 })
                 .catch(() => {
+                    // Fallback to first video thumbnail
                     setFallbackThumbnail(videos);
                 });
             

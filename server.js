@@ -486,107 +486,95 @@ function ensureUserTopicsFile() {
 }
 ensureUserTopicsFile();
 
-// --- PLAYLIST THUMBNAIL CACHE SYSTEM ---
+// --- PLAYLIST THUMBNAIL CACHE SYSTEM (REPLACED WITH JSONL FILES) ---
 const playlistCacheFilePath = path.join(__dirname, 'playlist_cache.json');
 let playlistThumbnailCache = {};
 
+// Function to get playlist thumbnail from order file
+function getPlaylistThumbnailFromOrder(channel, playlistPath) {
+    try {
+        // Construct the path to the playlist order file
+        const orderFilePath = path.join(__dirname, 'playlist-orders', channel, `${playlistPath}.jsonl`);
+        
+        if (!fs.existsSync(orderFilePath)) {
+            return null;
+        }
+        
+        // Read the first line of the JSONL file
+        const data = fs.readFileSync(orderFilePath, 'utf8');
+        const lines = data.split('\n').filter(line => line.trim() !== '');
+        
+        if (lines.length === 0) {
+            return null;
+        }
+        
+        // Parse the first entry
+        const firstEntry = JSON.parse(lines[0]);
+        if (!firstEntry.path) {
+            return null;
+        }
+        
+        // Get the thumbnail path (strip extension and add .jpg)
+        const videoPathWithoutExt = firstEntry.path.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+        
+        // Verify the thumbnail exists on disk
+        const fullThumbPath = path.join(__dirname, 'thumbnails', `${videoPathWithoutExt}.jpg`);
+        if (fs.existsSync(fullThumbPath)) {
+            // Return URL-encoded path, but keep the same structure
+            // We need to encode each part separately to preserve the slashes
+            const parts = videoPathWithoutExt.split('/');
+            const encodedParts = parts.map(part => encodeURIComponent(part));
+            const encodedPath = encodedParts.join('/');
+            return `/thumbnails/${encodedPath}.jpg`;
+        } else {
+            console.log(`Thumbnail not found on disk: ${fullThumbPath}`);
+            return null;
+        }
+    } catch (err) {
+        console.error(`Error reading order file for ${channel}/${playlistPath}:`, err.message);
+        return null;
+    }
+}
+
+// New endpoint to get playlist thumbnail from order file
+app.get('/playlist-order-thumbnail/:channel/:playlist*', (req, res) => {
+    const channel = req.params.channel;
+    const playlistPath = req.params[0] ? `${req.params.playlist}/${req.params[0]}` : req.params.playlist;
+    
+    const thumbnail = getPlaylistThumbnailFromOrder(channel, playlistPath);
+    
+    if (thumbnail) {
+        res.send(thumbnail);
+    } else {
+        res.status(404).send('Thumbnail not found');
+    }
+});
+
 function loadPlaylistThumbnailCache() {
+    // We still check for compatibility, but it's not required anymore
     if (fs.existsSync(playlistCacheFilePath)) {
         try {
             const data = fs.readFileSync(playlistCacheFilePath, 'utf8');
             playlistThumbnailCache = JSON.parse(data);
             console.log(`Loaded playlist thumbnail cache (${Object.keys(playlistThumbnailCache).length} entries).`);
         } catch (err) {
-            console.log('Failed to read playlist cache, regenerating...', err);
-            buildPlaylistThumbnailCache();
+            console.log('Failed to read playlist cache, using on-demand generation.');
+            playlistThumbnailCache = {};
         }
     } else {
-        console.log('playlist_cache.json not found, generating...');
-        buildPlaylistThumbnailCache();
+        console.log('playlist_cache.json not found, using on-demand generation.');
+        playlistThumbnailCache = {};
     }
 }
 
 function buildPlaylistThumbnailCache() {
-    console.log('Building playlist thumbnail cache (this may take a moment)...');
-    const cache = {};
-    const thumbnailsDir = path.join(__dirname, 'thumbnails');
-    const filedatesDir = path.join(__dirname, 'filedates');
-
-    function parseEuropeanDate(dateString) {
-        if (!dateString || dateString === 'Unknown date') return new Date(0);
-        const parts = String(dateString).trim().split('.');
-        if (parts.length === 3) {
-            const day = parseInt(parts[0], 10);
-            const month = parseInt(parts[1], 10) - 1;
-            const year = parseInt(parts[2], 10);
-            return new Date(year, month, day);
-        }
-        return new Date(dateString);
-    }
-
-    function scanPlaylist(playlistKey, dir) {
-        let earliestVideo = null;
-        let earliestDate = null;
-
-        function readDirRecursive(d) {
-            try {
-                const files = fs.readdirSync(d);
-                files.forEach(file => {
-                    const filePath = path.join(d, file);
-                    if (!fs.existsSync(filePath)) return;
-                    if (fs.statSync(filePath).isDirectory()) {
-                        readDirRecursive(filePath);
-                    } else if (file.match(/\.(mp4|mp3|mkv)$/i)) {
-                        const basePath = path.relative(path.join(__dirname, 'videos'), filePath).replace(/\\/g, '/').replace(/\.(mp4|mp3|mkv)$/i, '');
-                        const thumbPath = path.join(thumbnailsDir, `${basePath}.jpg`);
-                        if (!fs.existsSync(thumbPath)) return;
-                        const datePath = path.join(filedatesDir, `${basePath}.txt`);
-                        let dateObj = new Date(0);
-                        if (fs.existsSync(datePath)) {
-                            try {
-                                const dateStr = fs.readFileSync(datePath, 'utf8').trim();
-                                dateObj = parseEuropeanDate(dateStr);
-                            } catch (e) {}
-                        }
-                        if (!earliestDate || dateObj < earliestDate) {
-                            earliestDate = dateObj;
-                            earliestVideo = `/thumbnails/${basePath}.jpg`;
-                        }
-                    }
-                });
-            } catch (err) {}
-        }
-
-        readDirRecursive(dir);
-
-        if (earliestVideo) {
-            cache[playlistKey] = encodeURI(earliestVideo);
-        }
-    }
-
-    const playlistsFound = new Set();
-    videoArray.forEach(video => {
-        const parts = video.path.split('/');
-        if (parts.length > 2) {
-            const playlistName = parts.slice(1, -1).join('/');
-            if (playlistName) {
-                playlistsFound.add(`${parts[0]}/${playlistName}`);
-            }
-        }
-    });
-
-    const videosDir = path.join(__dirname, 'videos');
-    playlistsFound.forEach(playlistKey => {
-        const playlistDir = path.join(videosDir, playlistKey);
-        if (fs.existsSync(playlistDir)) {
-            scanPlaylist(playlistKey, playlistDir);
-        }
-    });
-
+    // This function is kept for compatibility but now does nothing
+    console.log('Playlist thumbnail cache is now generated on-demand from JSONL order files.');
+    // Write an empty cache to avoid errors
     try {
-        fs.writeFileSync(playlistCacheFilePath, JSON.stringify(cache, null, 2));
-        playlistThumbnailCache = cache;
-        console.log(`Built playlist thumbnail cache with ${Object.keys(cache).length} entries.`);
+        if (!fs.existsSync(playlistCacheFilePath)) {
+            fs.writeFileSync(playlistCacheFilePath, JSON.stringify({}, null, 2));
+        }
     } catch (err) {
         console.error('Error writing playlist cache:', err);
     }
@@ -2889,11 +2877,13 @@ app.get('/top-categories', recommendationsLimiter, (req, res) => {
     });
 });
 
+// Updated channel-playlists endpoint to use order files for thumbnails
 app.get('/channel-playlists/:channel', (req, res) => {
     const channel = req.params.channel;
     const videosDir = path.join(__dirname, 'videos', channel);
     if (!fs.existsSync(videosDir)) return res.json([]);
     const playlists = [];
+    
     function scanForPlaylists(dir, basePath = '') {
         const items = fs.readdirSync(dir);
         items.forEach(item => {
@@ -2914,11 +2904,9 @@ app.get('/channel-playlists/:channel', (req, res) => {
                 }
                 countVideosInPlaylist(itemPath);
                 if (playlistVideos.length > 0) {
-                    let thumbnail = null;
-                    const cacheKey = `${channel}/${relativePath}`;
-                    if (playlistThumbnailCache[cacheKey]) {
-                        thumbnail = playlistThumbnailCache[cacheKey];
-                    }
+                    // Get thumbnail from order file (on-demand)
+                    let thumbnail = getPlaylistThumbnailFromOrder(channel, relativePath);
+                    
                     playlists.push({ 
                         name: item, 
                         path: relativePath, 
@@ -2935,12 +2923,30 @@ app.get('/channel-playlists/:channel', (req, res) => {
     res.json(playlists);
 });
 
+// Updated playlist-videos endpoint to use order files
 app.get('/playlist-videos/:channel/:playlist*', (req, res) => {
     const channel = req.params.channel;
     const playlistPath = req.params[0] ? `${req.params.playlist}/${req.params[0]}` : req.params.playlist;
     const playlistDir = path.join(__dirname, 'videos', channel, playlistPath);
     if (!fs.existsSync(playlistDir)) return res.status(404).send('Playlist not found');
     const videoFiles = [];
+    
+    // Get the custom order from the order file if it exists
+    const orderFilePath = path.join(__dirname, 'playlist-orders', channel, `${playlistPath}.jsonl`);
+    let customOrder = [];
+    if (fs.existsSync(orderFilePath)) {
+        try {
+            const data = fs.readFileSync(orderFilePath, 'utf8');
+            const lines = data.split('\n').filter(line => line.trim() !== '');
+            for (const line of lines) {
+                const entry = JSON.parse(line);
+                if (entry.path) customOrder.push(entry.path);
+            }
+        } catch (err) {
+            console.error(`Error reading order file: ${err.message}`);
+        }
+    }
+    
     function readPlaylistDir(dir) {
         const files = fs.readdirSync(dir);
         files.forEach(file => {
@@ -2953,16 +2959,35 @@ app.get('/playlist-videos/:channel/:playlist*', (req, res) => {
                 let viewCount = '0';
                 const viewCountPath = path.join(__dirname, 'viewcounts', `${basePath}.txt`);
                 if (fs.existsSync(viewCountPath)) viewCount = fs.readFileSync(viewCountPath, 'utf8');
+                
+                // Include order index if available
+                let orderIndex = -1;
+                if (customOrder.length > 0) {
+                    orderIndex = customOrder.indexOf(relativePath);
+                }
+                
                 videoFiles.push({
                     path: relativePath,
                     viewCount: viewCount,
                     fileDate: cached.fileDate || '',
-                    displayName: cached.displayName || file
+                    displayName: cached.displayName || file,
+                    orderIndex: orderIndex
                 });
             }
         });
     }
     readPlaylistDir(playlistDir);
+    
+    // Sort by custom order if available
+    if (customOrder.length > 0) {
+        videoFiles.sort((a, b) => {
+            if (a.orderIndex === -1 && b.orderIndex === -1) return 0;
+            if (a.orderIndex === -1) return 1;
+            if (b.orderIndex === -1) return -1;
+            return a.orderIndex - b.orderIndex;
+        });
+    }
+    
     res.json(videoFiles);
 });
 

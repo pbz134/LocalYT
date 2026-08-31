@@ -231,6 +231,11 @@
                         <ul>
                             <li>Instead, results are directly filtered and displayed on index.html</li>
                         </ul>
+                    <li>Removed playlist_cache.json dependency
+                        <ul>
+                            <li>Playlist thumbnails are now fetched from the first respective playlist-order JSONL entry instead of being hardcoded, this makes it easier to change the current playlist thumbnail</li>
+                        </ul>
+                    <li>Fixed playlist thumbnail encoding where thumbnails wouldn't be displayed when they contained special characters
                 </ul>
             </section>
             <section class="doc-section" id="v4.90">

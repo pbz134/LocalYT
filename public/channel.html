@@ -3341,6 +3341,7 @@
                 }
             }
 
+            // Updated loadPlaylists function - uses new thumbnail system
             function loadPlaylists() {
                 showSkeletons(6, 'playlistsContainer', 'playlist');
                 playlistsContainer.innerHTML = '';
@@ -3358,6 +3359,7 @@
                     });
             }
 
+            // Updated renderPlaylistsFast function - uses new thumbnail system
             function renderPlaylistsFast(playlists) {
                 playlistsContainer.innerHTML = '';
 
@@ -3397,7 +3399,9 @@
                         `;
 
                     const thumbnailDiv = playlistElement.querySelector('.playlist-thumbnail');
-                    const mainThumbnailSrc = (playlist.thumbnail && playlist.thumbnail.trim() !== '') ? playlist.thumbnail : null;
+                    
+                    // Try to get thumbnail from order file first
+                    const mainThumbnailSrc = playlist.thumbnail;
 
                     if (mainThumbnailSrc) {
                         const testImg = new Image();
@@ -3438,20 +3442,37 @@
                 });
             }
 
+            // UPDATED: Fetch real first video thumbnail using order file first
             function fetchRealFirstVideoThumbnail(channelName, playlistPath, thumbnailDiv) {
-                fetch(`/playlist-videos/${encodeURIComponent(channelName)}/${encodeURIComponent(playlistPath)}`)
-                    .then(response => response.json())
-                    .then(videos => {
-                        if (videos && videos.length > 0 && videos[0].path) {
-                            const pathWithoutExt = videos[0].path.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
-                            const fallbackSrc = `/thumbnails/${encodeURIComponent(pathWithoutExt)}.jpg`;
-                            thumbnailDiv.style.backgroundImage = `url('${fallbackSrc}')`;
+                // Try the order file first
+                fetch(`/playlist-order-thumbnail/${encodeURIComponent(channelName)}/${encodeURIComponent(playlistPath)}`)
+                    .then(response => {
+                        if (response.ok) return response.text();
+                        throw new Error('No order thumbnail');
+                    })
+                    .then(thumbnailPath => {
+                        if (thumbnailPath && thumbnailPath.trim()) {
+                            thumbnailDiv.style.backgroundImage = `url('${thumbnailPath.trim()}')`;
                         } else {
-                            thumbnailDiv.style.backgroundColor = '#333';
+                            throw new Error('Empty thumbnail path');
                         }
                     })
                     .catch(() => {
-                        thumbnailDiv.style.backgroundColor = '#333';
+                        // Fallback: scan the playlist directory
+                        fetch(`/playlist-videos/${encodeURIComponent(channelName)}/${encodeURIComponent(playlistPath)}`)
+                            .then(response => response.json())
+                            .then(videos => {
+                                if (videos && videos.length > 0 && videos[0].path) {
+                                    const pathWithoutExt = videos[0].path.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
+                                    const fallbackSrc = `/thumbnails/${encodeURIComponent(pathWithoutExt)}.jpg`;
+                                    thumbnailDiv.style.backgroundImage = `url('${fallbackSrc}')`;
+                                } else {
+                                    thumbnailDiv.style.backgroundColor = '#333';
+                                }
+                            })
+                            .catch(() => {
+                                thumbnailDiv.style.backgroundColor = '#333';
+                            });
                     });
             }
 
@@ -3756,7 +3777,7 @@
                             sortVideosArray();
                             loadMoreVideos();
                             setupIntersectionObserver();
-                            applyVideosPerRow(); // Ensure setting applied
+                            applyVideosPerRow();
                             return;
                         }
 
