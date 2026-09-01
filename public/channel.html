@@ -3747,9 +3747,9 @@
             function lazyLoadVideosTab() {
                 if (loadedTabs.has('videos')) return;
                 loadedTabs.add('videos');
-
+            
                 showSkeletons(12, 'channelVideosContainer', 'video');
-
+            
                 fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`)
                     .then(r => r.ok ? r.json() : {})
                     .then(metaCache => {
@@ -3765,10 +3765,14 @@
                                     videoLength: meta.videoLength || ''
                                 };
                             })
-                            .filter(video => video.type !== 'playlist' && video.videoLength !== '');
-
+                            .filter(video => {
+                                // Filter out videos in the "Live" subfolder
+                                if (video.path.includes('/Live/')) return false;
+                                return video.type !== 'playlist' && video.videoLength !== '';
+                            });
+            
                         const missing = currentVideos.filter(v => !v.fileDate || v.fileDate === 'Unknown date');
-
+            
                         if (missing.length === 0) {
                             hideSkeletons();
                             videosContainer.innerHTML = '';
@@ -3780,7 +3784,7 @@
                             applyVideosPerRow();
                             return;
                         }
-
+            
                         const fetchPromises = missing.map(video => {
                             const pathNoExt = stripExtension(video.path);
                             return fetch(`/filedates/${encodeURIComponent(pathNoExt)}.txt`)
@@ -3795,7 +3799,7 @@
                                     return video;
                                 });
                         });
-
+            
                         Promise.all(fetchPromises)
                             .then(() => {
                                 hideSkeletons();
