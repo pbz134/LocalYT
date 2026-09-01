@@ -2016,9 +2016,14 @@ app.get('/sidebar-recommendations', recommendationsLimiter, (req, res) => {
             }
             const scoredVideos = videoArray.map(video => {
                 let score = 0;
+                const channel = video.path.split('/')[0];
                 if (video.tags) {
                     for (const tag of video.tags) {
-                        score += tagPercent[tag] || 0;
+                        let weight = tagPercent[tag] || 0;
+                        if (tag.toLowerCase() === channel.toLowerCase()) {
+                            weight *= (1/3);
+                        }
+                        score += weight;
                     }
                 }
                 return { video, score };
@@ -2804,13 +2809,18 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
             // Score each video by summing the percentages of its tags
             const scoredVideos = filteredVideoArray.map(video => {
                 let score = 0;
+                const channel = video.path.split('/')[0];
                 if (video.tags) {
                     for (const tag of video.tags) {
-                        score += tagPercent[tag] || 0;
+                        let weight = tagPercent[tag] || 0;
+                        // Reduce channel tag weight to 1/3
+                        if (tag.toLowerCase() === channel.toLowerCase()) {
+                            weight *= (1/3);
+                        }
+                        score += weight;
                     }
                 }
-                // Add small random factor (±10%) to introduce variety
-                const randomFactor = 0.9 + (Math.random() * 0.2); // 0.9 to 1.1
+                const randomFactor = 0.9 + (Math.random() * 0.2);
                 score = score * randomFactor;
                 return { video, score };
             });
