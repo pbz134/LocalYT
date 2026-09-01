@@ -146,7 +146,9 @@
         }
 
         if (!searchIndex) {
-            if (!isIndexLoading) loadSearchIndex();
+            if (!isIndexLoading) {
+                loadSearchIndex().then(() => handleSearch(query));
+            }
             return;
         }
 
@@ -201,17 +203,33 @@
 
     // --- Event Listeners ---
 
-    // 1. Input Handling
+    // 1. Input Handling (Lazy loads index ONLY when typing)
     searchInput.addEventListener('input', () => {
         clearTimeout(debounceTimer);
         const query = searchInput.value.trim();
-        debounceTimer = setTimeout(() => handleSearch(query), CONFIG.debounceMs);
+        
+        if (query.length === 0) {
+            renderRecentSearches();
+            return;
+        }
+
+        if (query.length < CONFIG.minChars) {
+            suggestionsContainer.innerHTML = '';
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+
+        if (!searchIndex) {
+            if (!isIndexLoading) {
+                loadSearchIndex().then(() => handleSearch(query));
+            }
+        } else {
+            debounceTimer = setTimeout(() => handleSearch(query), CONFIG.debounceMs);
+        }
     });
 
-    // 2. Focus Handling -> Fetch & Show Recent Searches
+    // 2. Focus Handling -> Fetch & Show Recent Searches (Does NOT load 5MB index)
     searchInput.addEventListener('focus', () => {
-        loadSearchIndex(); 
-        
         fetchRecentSearches().then(() => {
             if (searchInput.value.trim().length === 0) {
                 renderRecentSearches();
