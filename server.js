@@ -146,6 +146,48 @@ const recommendationsLimiter = rateLimit({
     message: 'Too many recommendation requests, please try again later.'
 });
 
+// Prompt the user to press 's' within a given timeout to skip the incremental scan.
+
+function promptSkipScan(timeoutMs = 5000) {
+    return new Promise((resolve) => {
+        // If stdin is not a TTY (e.g., running in a non‑interactive environment), skip prompt
+        if (!process.stdin.isTTY) {
+            resolve(false);
+            return;
+        }
+
+        console.log(`\nPress 's' within ${timeoutMs / 1000} seconds to skip the incremental scan...`);
+
+        let resolved = false;
+
+        const onKeyPress = (chunk) => {
+            const key = chunk.toString().toLowerCase();
+            if (key === 's') {
+                resolved = true;
+                cleanup();
+                resolve(true);
+            }
+        };
+
+        const cleanup = () => {
+            process.stdin.removeListener('data', onKeyPress);
+            process.stdin.setRawMode(false);
+            process.stdin.pause();
+        };
+
+        process.stdin.setRawMode(true);
+        process.stdin.resume();
+        process.stdin.on('data', onKeyPress);
+
+        const timer = setTimeout(() => {
+            if (!resolved) {
+                cleanup();
+                resolve(false);
+            }
+        }, timeoutMs);
+    });
+}
+
 app.get('/endscreen-recommendations', recommendationsLimiter, (req, res) => {
     const video = req.query.video || '';
     const limit = parseInt(req.query.limit) || 12;
@@ -995,9 +1037,9 @@ function fullScanAndCacheVideos() {
     }
 }
 
-function initializeVideoCache() {
+async function initializeVideoCache() {
     console.log('Initializing video cache...');
-    
+
     if (fs.existsSync(cacheFilePath)) {
         try {
             const stats = fs.statSync(cacheFilePath);
@@ -1007,7 +1049,15 @@ function initializeVideoCache() {
                 videoCache = new Map(videos.map(v => [v.path, v]));
                 videoArray = videos;
                 console.log(`Cache loaded: ${videoCache.size} videos.`);
-                
+
+                // --- Prompt to skip incremental scan ---
+                const skip = await promptSkipScan();
+                if (skip) {
+                    console.log('⏩ Skipping incremental scan.');
+                    buildRecommendationIndex();   // still build index from loaded cache
+                    return;
+                }
+                // --- Otherwise proceed with incremental scan ---
                 incrementalScanAndCacheVideos();
                 return;
             }
@@ -1015,9 +1065,9 @@ function initializeVideoCache() {
             console.log('Cache corrupted or empty, re-running full scan...', err);
         }
     } else {
-        console.log('video_cache.json not found, re-running full scan...');
+        console.log('video_cache.json not found, running full scan...');
     }
-    
+
     fullScanAndCacheVideos();
 }
 
@@ -1132,11 +1182,6 @@ function initializeShortLinks() {
     }
 }
 
-initializeVideoCache();
-initializeShortLinks();
-initializeRecommendationIndex();
-loadPlaylistThumbnailCache();
-
 // --- LOAD CHANNEL HOME META CACHE ---
 const channelHomeMetaCacheDir = path.join(__dirname, 'channel-home-meta-cache');
 if (fs.existsSync(channelHomeMetaCacheDir)) {
@@ -1195,8 +1240,6 @@ function initializePlaylistShortLinks() {
         console.log(`${newCodesGenerated} new Playlist Short Links generated. Total: ${playlistShortMap.size}`);
     }
 }
-
-initializePlaylistShortLinks();
 
 // --- HELPER FUNCTIONS ---
 function parseDurationToSecondsServer(durationStr) {
@@ -3248,6 +3291,15 @@ app.post('/api/notifications/read', (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`\nServer is running on http://localhost:${PORT}`);
-});
+// ===== STARTUP =====
+(async () => {
+    await initializeVideoCache();
+    initializeShortLinks();
+    initializeRecommendationIndex();
+    loadPlaylistThumbnailCache();
+    initializePlaylistShortLinks();
+
+    app.listen(PORT, () => {
+        console.log(`\nServer is running on http://localhost:${PORT}`);
+    });
+})();
