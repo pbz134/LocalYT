@@ -263,6 +263,7 @@
             text-align: center;
             transition: transform 0.2s ease;
             box-sizing: border-box;
+            position: relative; /* Added to ensure remove button positions correctly */
         }
         .video-thumbnail {
             width: 100%;
@@ -637,6 +638,42 @@ function getLang(en, de) {
 const WATCH_LATER_NAME = getLang('Watch later', 'Später ansehen');
 
 const DEFAULT_USER_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23333' width='100' height='100'/%3E%3Ccircle cx='50' cy='38' r='20' fill='%23666'/%3E%3Cellipse cx='50' cy='85' rx='35' ry='25' fill='%23666'/%3E%3C/svg%3E";
+
+// Read relative dates preference once at startup
+let relativeDatesEnabled = JSON.parse(localStorage.getItem('relativeDates') || '{}').enabled !== false;
+
+function getRelativeTime(dateStr, lang) {
+    // Expects date string in DD.MM.YYYY format (e.g. "09.01.2025")
+    if (!dateStr || dateStr === 'Unknown date') return dateStr;
+    const parts = dateStr.split('.');
+    if (parts.length !== 3) return dateStr; // fallback to original if parsing fails
+
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const year = parseInt(parts[2], 10);
+    const date = new Date(year, month, day);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // compare dates only
+
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return dateStr; // future date
+    if (diffDays === 0) return lang === 'de' ? 'heute' : 'today';
+    if (diffDays < 7) {
+        return lang === 'de' ? `vor ${diffDays} ${diffDays === 1 ? 'Tag' : 'Tagen'}` : `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+    }
+    if (diffDays < 30) {
+        const weeks = Math.floor(diffDays / 7);
+        return lang === 'de' ? `vor ${weeks} ${weeks === 1 ? 'Woche' : 'Wochen'}` : `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+    }
+    if (diffDays < 365) {
+        const months = Math.floor(diffDays / 30);
+        return lang === 'de' ? `vor ${months} ${months === 1 ? 'Monat' : 'Monaten'}` : `${months} month${months === 1 ? '' : 's'} ago`;
+    }
+    const years = Math.floor(diffDays / 365);
+    return lang === 'de' ? `vor ${years} ${years === 1 ? 'Jahr' : 'Jahren'}` : `${years} year${years === 1 ? '' : 's'} ago`;
+}
 
 function parseEuropeanDate(dateString) {
     if (!dateString || dateString === 'Unknown date') return new Date(0);
@@ -1015,9 +1052,15 @@ function renderVideos(videos) {
             formattedViewCount = formattedViewCount.replace(/,/g, '.');
         }
 
+        // Determine the date text based on preference
+        const dateText = relativeDatesEnabled 
+            ? getRelativeTime(video.fileDate, localStorage.getItem('language'))
+            : video.fileDate;
+
+        // No "Uploaded on" prefix, matching index.html behavior
         const descriptionText = isClassicMode 
             ? `${getLang('by', 'von')} ${channel}&nbsp;&nbsp;${formattedViewCount} ${getLang('views', 'Aufrufe')}`
-            : `${formattedViewCount} ${getLang('views', 'Aufrufe')} • ${getLang('Uploaded on', 'Hochgeladen am')} ${video.fileDate}`;
+            : `${formattedViewCount} ${getLang('views', 'Aufrufe')} • ${dateText}`;
 
         videoElement.setAttribute('data-video-path', encodeURIComponent(videoPathWithoutExt));
         videoElement.dataset.fullPath = video.path;
