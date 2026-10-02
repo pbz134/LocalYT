@@ -142,8 +142,11 @@ sidebarCSS.textContent = `
     body.light-mode .sidebar .sidebar-item:hover img.sidebar-icon {
         filter: invert(0%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(0%) contrast(100%) !important;
     }
-    body.light-mode .sidebar .genre-link img {
+    body.light-mode .sidebar .genre-link img:not(.topic-custom-pic) {
         filter: invert(40%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(60%) contrast(90%) !important;
+    }
+    body.light-mode .sidebar .genre-link img.topic-custom-pic {
+        filter: none !important;
     }
     body.light-mode .openbtn {
         background-color: transparent !important;
@@ -296,6 +299,7 @@ function initSidebar() {
                     const img = document.createElement('img');
                     if (topic.profilePic) {
                         img.src = topic.profilePic;
+                        img.className = 'topic-custom-pic';
                         img.style.borderRadius = '50%';
                         img.style.objectFit = 'cover';
                     } else {
