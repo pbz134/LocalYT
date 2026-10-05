@@ -136,7 +136,7 @@
             this._eqSaveTimer = null; // for debouncing server saves
 
             // Current LYT Player version
-            this.version = 'v2.7.5';
+            this.version = 'v2.7.7';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -3298,6 +3298,8 @@
                     }, 3000);
                 }
             };
+            // Expose so keyboard shortcuts (seek/rewind) can trigger the UI, just like mouse movement.
+            this._showControls = showControls;
             
             const hideControls = () => {
                 if (!this.video.paused) {
@@ -3757,6 +3759,7 @@
                     break;
                 case 'arrowleft':
                     e.preventDefault();
+                    if (this._showControls) this._showControls();
                     if (e.ctrlKey) {
                         this.jumpToPreviousChapter();
                         this.showChapterSkipOverlay('left');
@@ -3767,6 +3770,7 @@
                     break;
                 case 'arrowright':
                     e.preventDefault();
+                    if (this._showControls) this._showControls();
                     if (e.ctrlKey) {
                         this.jumpToNextChapter();
                         this.showChapterSkipOverlay('right');
