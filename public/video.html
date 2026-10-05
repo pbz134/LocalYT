@@ -2875,7 +2875,8 @@
                             playlistVideoCount++;
 
                             // Auto-focus on the currently playing video in the sidebar (runs once on load)
-                            if (isCurrent) {
+                            // Skip on touch devices to prevent the page from auto-scrolling to the playlist manager.
+                            if (isCurrent && !document.documentElement.classList.contains('touch-device')) {
                                 requestAnimationFrame(() => {
                                     const currentItem = playlistContainer.querySelector(
                                         '.current-video-item');
@@ -2923,7 +2924,7 @@
                                 userPlaylistName);
                             playlistVideoCount++;
 
-                            if (isCurrent) {
+                            if (isCurrent && !document.documentElement.classList.contains('touch-device')) {
                                 requestAnimationFrame(() => {
                                     const currentItem = userPlaylistContainer.querySelector(
                                         '.current-video-item');
