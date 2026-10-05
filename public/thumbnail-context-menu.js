@@ -671,9 +671,9 @@
 
                     if (alreadySaved) {
                         item.classList.add('already-saved');
-                        item.innerHTML = `<span>${escapeHtml(name)} <span class="playlist-video-count">${count} videos</span></span><span class="check-icon">✓</span>`;
+                        item.innerHTML = `<span>${escapeHtml(name)} <span class="playlist-video-count">${count} ${getLang('videos', 'Videos')}</span></span><span class="check-icon">✓</span>`;
                     } else {
-                        item.innerHTML = `<span>${escapeHtml(name)} <span class="playlist-video-count">${count} videos</span></span>`;
+                        item.innerHTML = `<span>${escapeHtml(name)} <span class="playlist-video-count">${count} ${getLang('videos', 'Videos')}</span></span>`;
                         item.addEventListener('click', () => saveToPlaylist(name));
                     }
                     listEl.appendChild(item);

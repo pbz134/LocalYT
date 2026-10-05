@@ -3915,11 +3915,11 @@
                             item.classList.add('already-saved');
                             item.innerHTML =
                                 '<span>' + escapeHtml(name) + '<span class="playlist-video-count">' +
-                                videoCount + ' videos</span></span><span class="check-icon">✓</span>';
+                                videoCount + ' ' + getLang('videos', 'Videos') + '</span></span><span class="check-icon">✓</span>';
                         } else {
                             item.innerHTML = '<span>' + escapeHtml(name) +
                                 '<span class="playlist-video-count">' + videoCount +
-                                ' videos</span></span>';
+                                ' ' + getLang('videos', 'Videos') + '</span></span>';
                             item.addEventListener('click', () => saveToPlaylist(name));
                         }
                         savePlaylistListEl.appendChild(item);
