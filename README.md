@@ -37,7 +37,7 @@ From then on, I regularly worked on the program to further improve it, and 15 mo
   - Keep your channels more organized by creating playlists from subfolders
   - Video queues next to the player allow you to watch a full playlist at once (see Video Page screenshot below)
 - **Algorithm**
-  - Use the power of a Large Language Model (LLM) to tag videos accurately
+  - Use the power of an embedding model (embeddinggemma-2) to tag videos accurately
   - LocalYT analyzes your behavior and shows you more of the videos you like
   - Configure your algorithm behavior however you want by modifying it on the Settings page
 - **Account system**
