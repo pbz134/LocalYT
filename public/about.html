@@ -133,7 +133,7 @@
 
         <div class="about-section">
             <h2 id="algorithmHeading">Algorithm</h2>
-            <p id="algorithmText">The algorithm is made possible through video tags, which are generated using LostRuins' koboldcpp API and Alibaba's Qwen3.5 2B model, quantized by Unsloth.</p>
+            <p id="algorithmText">The algorithm is made possible through video tags, which are generated using ggml-org's llama.cpp API with Google's embeddinggemma-2, quantized by Unsloth.</p>
         </div>
 
         <hr class="about-divider">
@@ -155,6 +155,9 @@
 
                 <span class="credit-label" id="creditHatLabel">Christmas Hat</span>
                 <span class="credit-value">Petr Kratochvil</span>
+
+                <span class="credit-label" id="creditAlgorithmLabel">Algorithm</span>
+                <span class="credit-value" id="creditAlgorithmValue">embeddinggemma-2, llama.cpp (Google & ggml-org)</span>
 
                 <span class="credit-label" id="creditMetadataLabel">Metadata</span>
                 <span class="credit-value" id="creditMetadataValue">Python and Anaconda venvs</span>
@@ -220,13 +223,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('overviewHeading').textContent = getLang('Overview', 'Übersicht');
     document.getElementById('overviewText').textContent = getLang('It allows you to watch locally-saved videos, integrate metadata into them, and keep track of your watch history.', 'Es ermöglicht das Abspielen von lokal gespeicherten Videos, das Integrieren von Metadaten und das Aufbauen eines Wiedergabeverlaufs.');
     document.getElementById('algorithmHeading').textContent = getLang('Algorithm', 'Algorithmus');
-    document.getElementById('algorithmText').textContent = getLang("The algorithm is made possible through video tags, which are generated using LostRuins' koboldcpp API and Alibaba's Qwen3.5 2B model, quantized by Unsloth.", "Der Algorithmus wird durch Video-Tags ermöglicht, die mit LostRuins' koboldcpp API und Alibabas Qwen3.5 2B Modell (welches von Unsloth quantisiert wurde) generiert werden.");
+    document.getElementById('algorithmText').textContent = getLang("The algorithm is made possible through video tags, which are generated using ggml-org's llama.cpp API with Google's embeddinggemma-2, quantized by Unsloth.", "Der Algorithmus wird durch Video-Tags ermöglicht, die mit ggml-orgs llama.cpp-API und Googles embeddinggemma-2 (welches von Unsloth quantisiert wurde) generiert werden.");
     document.getElementById('creditsHeading').textContent = getLang('Credits', 'Credits');
     document.getElementById('creditCodingLabel').textContent = getLang('Coding', 'Programmierung');
     document.getElementById('creditLogoLabel').textContent = getLang('Logo', 'Logo');
     document.getElementById('creditProfileImagesLabel').textContent = getLang('Profile Images/Banners', 'Profilbilder/Banner');
     document.getElementById('creditIconsLabel').textContent = getLang('SVG Icons', 'SVG-Symbole');
     document.getElementById('creditHatLabel').textContent = getLang('Christmas Hat', 'Weihnachtsmütze');
+    
+    document.getElementById('creditAlgorithmLabel').textContent = getLang('Algorithm', 'Algorithmus');
+    document.getElementById('creditAlgorithmValue').textContent = getLang('embeddinggemma-2, llama.cpp (Google & ggml-org)', 'embeddinggemma-2, llama.cpp (Google & ggml-org)');
+
     document.getElementById('creditMetadataLabel').textContent = getLang('Metadata', 'Metadaten');
     document.getElementById('creditCodingValue').textContent = getLang("DeepSeek-AI's DeepSeek and Z.AI's GLM model series", "DeepSeek-AIs DeepSeek und Z.AIs GLM-Modelle");
     document.getElementById('creditMetadataValue').textContent = getLang('Python and Anaconda venvs', 'Python und Anaconda venvs');
