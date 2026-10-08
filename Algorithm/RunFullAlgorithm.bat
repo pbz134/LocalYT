@@ -56,5 +56,3 @@ if errorlevel 1 (
 REM Step 5: Cleanup - kill llama-server
 echo Cleaning up...
 taskkill /FI "WINDOWTITLE eq LlamaServer" /F >nul 2>&1
-
-pause
