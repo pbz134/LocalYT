@@ -72,7 +72,6 @@ echo All required FFmpeg tools are available.
 echo.
 
 :: Clear variables first – we'll read them from file or prompt
-set "LLM_TAGGING="
 set "SEEKBAR_PREVIEWS="
 set "SUBTITLES="
 set "THUMBNAIL_MODE="
@@ -83,7 +82,6 @@ set "NEEDS_UPDATE=0"
 if exist "#Setup.env" (
     echo Found #Setup.env, loading existing preferences...
     for /f "tokens=1,* delims==" %%a in (#Setup.env) do (
-        if /i "%%a"=="LLM_TAGGING" set "LLM_TAGGING=%%b"
         if /i "%%a"=="SEEKBAR_PREVIEWS" set "SEEKBAR_PREVIEWS=%%b"
         if /i "%%a"=="SUBTITLES" set "SUBTITLES=%%b"
         if /i "%%a"=="THUMBNAIL_MODE" set "THUMBNAIL_MODE=%%b"
@@ -92,7 +90,6 @@ if exist "#Setup.env" (
     
     :: Check each variable – if any is missing, ask for it
     if not defined SUBTITLES goto ask_subtitles
-    if not defined LLM_TAGGING goto ask_llm
     if not defined SEEKBAR_PREVIEWS goto ask_seekbar
     if not defined THUMBNAIL_MODE goto ask_thumbnail
     if not defined LAUNCH_BROWSER goto ask_browser
@@ -115,17 +112,6 @@ if /i "!subtitles_choice!"=="y" (
 ) else (
     echo Please enter y or n.
     goto ask_subtitles_all
-)
-
-:ask_llm_all
-set /p "llm_choice=Do you want to do the LLM video tagging? (y/n): "
-if /i "!llm_choice!"=="y" (
-    set "LLM_TAGGING=yes"
-) else if /i "!llm_choice!"=="n" (
-    set "LLM_TAGGING=no"
-) else (
-    echo Please enter y or n.
-    goto ask_llm_all
 )
 
 :ask_seekbar_all
@@ -170,7 +156,6 @@ if /i "!browser_choice!"=="y" (
 :: Write all to new file
 (
     echo SUBTITLES=!SUBTITLES!
-    echo LLM_TAGGING=!LLM_TAGGING!
     echo SEEKBAR_PREVIEWS=!SEEKBAR_PREVIEWS!
     echo THUMBNAIL_MODE=!THUMBNAIL_MODE!
     echo LAUNCH_BROWSER=!LAUNCH_BROWSER!
@@ -195,22 +180,6 @@ if /i "!subtitles_choice!"=="y" (
     goto ask_subtitles
 )
 set "NEEDS_UPDATE=1"
-goto ask_llm
-
-:ask_llm
-if not defined LLM_TAGGING (
-    echo Missing LLM_TAGGING in #Setup.env.
-    set /p "llm_choice=Do you want to do the LLM video tagging? (y/n): "
-    if /i "!llm_choice!"=="y" (
-        set "LLM_TAGGING=yes"
-    ) else if /i "!llm_choice!"=="n" (
-        set "LLM_TAGGING=no"
-    ) else (
-        echo Please enter y or n.
-        goto ask_llm
-    )
-    set "NEEDS_UPDATE=1"
-)
 goto ask_seekbar
 
 :ask_seekbar
@@ -278,13 +247,12 @@ set "tempfile=%temp%\setup_env_temp.txt"
     for /f "usebackq delims=" %%i in ("#Setup.env") do (
         set "line=%%i"
         set "write=1"
-        for %%k in (SUBTITLES LLM_TAGGING SEEKBAR_PREVIEWS THUMBNAIL_MODE LAUNCH_BROWSER) do (
+        for %%k in (SUBTITLES SEEKBAR_PREVIEWS THUMBNAIL_MODE LAUNCH_BROWSER) do (
             if /i "!line:~0,%%k!"=="%%k=" set "write=0"
         )
         if !write! equ 1 echo !line!
     )
     echo SUBTITLES=!SUBTITLES!
-    echo LLM_TAGGING=!LLM_TAGGING!
     echo SEEKBAR_PREVIEWS=!SEEKBAR_PREVIEWS!
     echo THUMBNAIL_MODE=!THUMBNAIL_MODE!
     echo LAUNCH_BROWSER=!LAUNCH_BROWSER!
@@ -359,76 +327,72 @@ goto continue
 echo Generating view counts...
 .\venv\python.exe .\LocalYT-Rev-Files\createviews.py
 
-:: LLM Video Tagging Section
-if /i "!LLM_TAGGING!"=="yes" (
-    echo running Algorithm setup...
+:: Video Tagging Section (embedding model)
+echo Running Algorithm setup...
 
-    REM Step 1: Run create-filename-list.py from Algorithm directory
-    cd Algorithm
-    ..\venv\python.exe create-filename-list.py --untagged
-    if errorlevel 1 (
-        echo Error running create-filename-list.py
-        cd ..
-        pause
-        exit /b 1
-    )
-
-    REM Step 2: Start llama-server in the background
+REM Step 1: Run create-filename-list.py from Algorithm directory
+cd Algorithm
+..\venv\python.exe create-filename-list.py --untagged
+if errorlevel 1 (
+    echo Error running create-filename-list.py
     cd ..
-    echo Starting llama-server.exe...
-    start "LlamaServer" /D "Algorithm" "llama-b11469-vulkan-win-x64\llama-server.exe" -m "embeddinggemma-2-BF16.gguf" --port 8081 --embedding --ctx-size 2048
-
-    REM Step 3: Wait for the model to fully load by checking /health endpoint
-    echo Waiting for model to load...
-    echo Checking http://localhost:8081/health every 2 seconds...
-    set max_attempts=300
-    set attempt=1
-    set model_loaded=0
-
-    :check_model
-    echo Attempt !attempt! of !max_attempts!...
-
-    powershell -Command "try { $response = Invoke-WebRequest -Uri 'http://localhost:8081/health' -Method GET -TimeoutSec 5; if ($response.StatusCode -eq 200) { exit 0 } else { exit 1 } } catch { exit 1 }"
-
-    if %errorlevel%==0 (
-        set model_loaded=1
-        echo Model is loaded and ready!
-        goto model_ready
-    )
-
-    if !attempt! geq !max_attempts! (
-        echo Failed to detect model loading after !max_attempts! attempts.
-        echo Killing llama-server process...
-        taskkill /FI "WINDOWTITLE eq LlamaServer" /F >nul 2>&1
-        pause
-        exit /b 1
-    )
-
-    echo Model not ready yet, waiting 2 seconds...
-    timeout /t 2 /nobreak >nul
-    set /a attempt+=1
-    goto check_model
-
-    :model_ready
-
-    REM Step 4: Run analyze.py from Algorithm directory
-    cd Algorithm
-    ..\venv\python.exe analyze.py
-    if errorlevel 1 (
-        echo Error running analyze.py
-        cd ..
-        REM Continue with cleanup even if analyze.py fails
-    )
-
-    REM Step 5: Cleanup - kill llama-server
-    cd ..
-    echo Cleaning up...
-    taskkill /F /IM llama-server.exe >nul 2>&1
-
-    echo Continuing with other tasks...
-) else (
-    echo Skipping LLM video tagging...
+    pause
+    exit /b 1
 )
+
+REM Step 2: Start llama-server in the background
+cd ..
+echo Starting llama-server.exe...
+start "LlamaServer" /D "Algorithm" "llama-b11469-vulkan-win-x64\llama-server.exe" -m "embeddinggemma-2-BF16.gguf" --port 8081 --embedding --ctx-size 2048
+
+REM Step 3: Wait for the model to fully load by checking /health endpoint
+echo Waiting for model to load...
+echo Checking http://localhost:8081/health every 2 seconds...
+set max_attempts=300
+set attempt=1
+set model_loaded=0
+
+:check_model
+echo Attempt !attempt! of !max_attempts!...
+
+powershell -Command "try { $response = Invoke-WebRequest -Uri 'http://localhost:8081/health' -Method GET -TimeoutSec 5; if ($response.StatusCode -eq 200) { exit 0 } else { exit 1 } } catch { exit 1 }"
+
+if %errorlevel%==0 (
+    set model_loaded=1
+    echo Model is loaded and ready!
+    goto model_ready
+)
+
+if !attempt! geq !max_attempts! (
+    echo Failed to detect model loading after !max_attempts! attempts.
+    echo Killing llama-server process...
+    taskkill /FI "WINDOWTITLE eq LlamaServer" /F >nul 2>&1
+    pause
+    exit /b 1
+)
+
+echo Model not ready yet, waiting 2 seconds...
+timeout /t 2 /nobreak >nul
+set /a attempt+=1
+goto check_model
+
+:model_ready
+
+REM Step 4: Run analyze.py from Algorithm directory
+cd Algorithm
+..\venv\python.exe analyze.py
+if errorlevel 1 (
+    echo Error running analyze.py
+    cd ..
+    REM Continue with cleanup even if analyze.py fails
+)
+
+REM Step 5: Cleanup - kill llama-server
+cd ..
+echo Cleaning up...
+taskkill /F /IM llama-server.exe >nul 2>&1
+
+echo Continuing with other tasks...
 
 echo Organizing playlist metadata...
 .\venv\python.exe .\LocalYT-Rev-Files\MovePlaylistMetadata.py

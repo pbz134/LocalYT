@@ -124,12 +124,13 @@ def create_videoresolutions(videos_dir, output_dir):
         if info:
             width, height, codec = info
             resolution_class = classify_resolution(width, height)
+            codec = codec.upper()  # e.g. h264 -> H264, hevc -> HEVC, vp9 -> VP9, av1 -> AV1
             res_counts[resolution_class] = res_counts.get(resolution_class, 0) + 1
         else:
             resolution_class = "Unknown"
-            codec = "unknown"
+            codec = "Unknown"
             error_count += 1
-            print(f"\nWarning: Could not read resolution/codec for '{filename}', marking as Unknown/unknown")
+            print(f"\nWarning: Could not read resolution/codec for '{filename}', marking as Unknown/Unknown")
             sys.stdout.write(status_msg.ljust(70) + "\r")
 
         try:
