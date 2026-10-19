@@ -87,6 +87,21 @@
         .thumbnail-context-menu-item:hover svg {
             fill: #fff;
         }
+        /* Save icon rendered as <img> (save.svg / save_classic.svg) */
+        .thumbnail-context-menu-item img.tcm-save-icon {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            filter: invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%);
+        }
+        .thumbnail-context-menu-item:hover img.tcm-save-icon {
+            filter: brightness(0) invert(1);
+        }
+        /* The classic save icon is more detailed, so render it a bit larger */
+        .thumbnail-context-menu-item img.tcm-save-icon[src*="_classic"] {
+            /* Scale visually without affecting flexbox layout */
+            transform: scale(1.4);
+        }
 
         /* ===== MODALS (Global) ===== */
         .tcm-overlay {
@@ -263,13 +278,68 @@
     // ICONS
     // ==============================
     const DOTS_SVG = `<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>`;
-    const SAVE_SVG = `<svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2zm0 15l-5-2.18L7 18V5h10v13z"/></svg>`;
     const SHARE_SVG = `<svg viewBox="0 0 24 24"><path d="M14 9V3L22 12 14 21v-6c-5 0-8.5 1.5-11 5 1-5 4-10 11-11z"/></svg>`;
     const CLOCK_SVG = `<svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg>`;
     
     // Icons for "Not interested" and "Don't recommend channel"
     const NOT_INTERESTED_SVG = `<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-11v4h2V9h-2zm0 6v2h2v-2h-2z"/></svg>`;
     const BLOCK_CHANNEL_SVG = `<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-5h-2v2h2v-2zm0-8h-2v6h2V7z"/></svg>`;
+
+    // ==============================
+    // CLASSIC LAYOUT DETECTION
+    // Mirrors video.html's classic mode logic.
+    //
+    // IMPORTANT: We check the actual rendered DOM state FIRST (ground truth),
+    // because video.html applies classic mode at page load and may swap icons
+    // before thumbnail-context-menu.js ever runs. localStorage is only a
+    // fallback for pages that don't render classic mode themselves.
+    // ==============================
+    function isClassicMode() {
+        // 1. If video.html already swapped its icons to the classic variants,
+        //    classic mode is definitely active — this is the most direct signal.
+        const saveIcon = document.getElementById('saveIcon');
+        if (saveIcon) {
+            const src = saveIcon.getAttribute('src') || '';
+            if (src.includes('_classic.svg')) return true;
+        }
+        const likeBtn = document.getElementById('likeButton');
+        if (likeBtn) {
+            const src = likeBtn.getAttribute('src') || '';
+            if (src.includes('_classic.svg')) return true;
+        }
+        const dislikeBtn = document.getElementById('dislikeButton');
+        if (dislikeBtn) {
+            const src = dislikeBtn.getAttribute('src') || '';
+            if (src.includes('_classic.svg')) return true;
+        }
+
+        // 2. Body-level markers set by video.html's applyVideoPageLayout()
+        if (document.body.classList.contains('classic-layout-active')) return true;
+        if (document.body.getAttribute('data-video-layout') === 'classic') return true;
+
+        // 3. Channel info class (video.html specific)
+        const channelInfo = document.getElementById('channelInfo');
+        if (channelInfo && channelInfo.classList.contains('classic-layout')) return true;
+
+        // 4. Fall back to localStorage (needed on pages without video.html's
+        //    layout code, e.g. index.html, if the user set Classic via settings)
+        try {
+            const raw = localStorage.getItem('videoPageLayout');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && typeof parsed === 'object' && parsed.layout === 'classic') return true;
+                if (parsed === 'classic') return true;
+            }
+        } catch (e) { /* ignore malformed localStorage */ }
+
+        return false;
+    }
+
+    function getSaveIconSrc() {
+        return isClassicMode()
+            ? 'LocalYT-Rev-Files/save_classic.svg'
+            : 'LocalYT-Rev-Files/save.svg';
+    }
 
     // ==============================
     // GLOBAL MODALS & TOAST
@@ -509,9 +579,11 @@
         });
 
         // 2. Add to Playlist Item
+        // Uses save.svg normally, or save_classic.svg when Classic layout is active
+        // (mirrors the behaviour of video.html's save button).
         const addPlaylistItem = document.createElement('div');
         addPlaylistItem.className = 'thumbnail-context-menu-item';
-        addPlaylistItem.innerHTML = `${SAVE_SVG} <span>${getLang('Add to playlist', 'Zur Playlist hinzufügen')}</span>`;
+        addPlaylistItem.innerHTML = `<img class="tcm-save-icon" src="${getSaveIconSrc()}" alt=""> <span>${getLang('Add to playlist', 'Zur Playlist hinzufügen')}</span>`;
         addPlaylistItem.addEventListener('click', (e) => {
             e.stopPropagation();
             openSaveModal(videoPath);
