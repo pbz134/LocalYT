@@ -241,6 +241,17 @@
                             <li>Instead of scanning from /videos, generate-home-previews.py scans from video_cache.json, resulting in a ~10x speedup</li>
                             <li>Fixed a bug where the channel home previews were not being updated on launch</li>
                         </ul>
+                    <li>Fixed a long-time issue with playlist video filedates
+                        <ul>
+                            <li>Due to a bug, videos that are part of a playlist (subfolder within a channel) have been assigned the wrong upload date</li>
+                            <li>createFiledates.py now fixes this issue by removing the wrong date and moving the correct date into the playlist video's correct /filedates location</li>
+                        </ul>
+                    <li>Enhanced algorithm
+                        <ul>
+                            <li>As mentioned in the previous update, LocalYT's algorithm is still WIP, and for v5.00, channel clutter has been removed, among other changes</li>
+                            <li>More diverse recommendations, with new tags having a higher chance to influence your landing page and video.html sidebar</li>
+                            <li>No channel can fill more than 40% of a page</li>
+                        </ul>
                     <li>Removed playlist_cache.json dependency
                         <ul>
                             <li>Playlist thumbnails are now fetched from the first respective playlist-order JSONL entry instead of being hardcoded, this makes it easier to change the current playlist thumbnail</li>

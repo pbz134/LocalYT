@@ -1323,6 +1323,10 @@ function findUserByUsername(username) {
 
 const LOW_TAG_THRESHOLD = 0.05;
 const IGNORED_TAGS = new Set(['uncategorized']);
+// FIX A: Hard ceiling for any single tag's scoring contribution.
+const MAX_TAG_PCT = 0.30;
+// FIX C: Minority-tag survival floor (in percentage points, 0-100)
+const MINORITY_TAG_FLOOR = 3;
 
 const preferenceUpdateQueue = new Map();
 let preferenceUpdateTimer = null;
@@ -2049,12 +2053,17 @@ app.get('/sidebar-recommendations', recommendationsLimiter, (req, res) => {
             const prefData = JSON.parse(data);
             const userPrefs = prefData[userId] || {};
             const total = Object.values(userPrefs).reduce((s, v) => s + v, 0);
+            // FIX A: Same compressed + capped tag percentages used by /recommendations
             const tagPercent = {};
             if (total > 0) {
-                for (const tag in userPrefs) {
-                    if (userPrefs[tag] / total >= LOW_TAG_THRESHOLD) {
-                        tagPercent[tag] = userPrefs[tag] / total;
-                    }
+                const tagNames = Object.keys(userPrefs).filter(
+                    t => userPrefs[t] / total >= LOW_TAG_THRESHOLD
+                );
+                const uniform = tagNames.length ? 1 / tagNames.length : 0;
+                for (const tag of tagNames) {
+                    const pct = userPrefs[tag] / total;
+                    const blended = pct * 0.7 + uniform * 0.3;
+                    tagPercent[tag] = Math.min(Math.sqrt(blended), MAX_TAG_PCT);
                 }
             }
             const scoredVideos = videoArray.map(video => {
@@ -2750,7 +2759,8 @@ function batchUpdatePreferences() {
                 }
             }
             
-            // Clean up: remove tags below threshold
+            // FIX C: Clean up - remove tags below threshold, but keep a small
+            // minority-tag floor so smaller preferences don't get permanently wiped out.
             const total = Object.values(userPrefs).reduce((sum, v) => sum + v, 0);
             if (total > 0) {
                 const cleanedPrefs = {};
@@ -2759,6 +2769,10 @@ function batchUpdatePreferences() {
                     if (pct >= (LOW_TAG_THRESHOLD * 100)) {
                         // Store as percentage (0-100)
                         cleanedPrefs[tag] = Math.round(pct * 100) / 100;
+                    } else if (userPrefs[tag] > 0) {
+                        // Minority-tag survival floor: keep the tag alive at 3%
+                        // so it can grow again if the user watches more of it later.
+                        cleanedPrefs[tag] = MINORITY_TAG_FLOOR;
                     }
                 }
                 userPrefs = cleanedPrefs;
@@ -2825,14 +2839,23 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
             const userPrefs = preferencesData[userId] || {};
             const total = Object.values(userPrefs).reduce((sum, v) => sum + v, 0);
 
-            // Compute tag percentages
+            // FIX A: Compressed + capped tag percentages.
+            // - Blend 70% personal / 30% uniform exploration so no single tag
+            //   can be worth "everything else combined".
+            // - sqrt() compresses high values (1.0 -> 1.0, 0.25 -> 0.5) so a
+            //   saturated tag stops dominating linearly.
+            // - Clamp each tag's contribution to MAX_TAG_PCT (0.30) so even a
+            //   100% tag can only contribute 0.30 to a video's score.
             const tagPercent = {};
             if (total > 0) {
-                for (const tag in userPrefs) {
+                const tagNames = Object.keys(userPrefs).filter(
+                    t => userPrefs[t] / total >= LOW_TAG_THRESHOLD
+                );
+                const uniform = tagNames.length ? 1 / tagNames.length : 0;
+                for (const tag of tagNames) {
                     const pct = userPrefs[tag] / total;
-                    if (pct >= LOW_TAG_THRESHOLD) {
-                        tagPercent[tag] = pct;
-                    }
+                    const blended = pct * 0.7 + uniform * 0.3;
+                    tagPercent[tag] = Math.min(Math.sqrt(blended), MAX_TAG_PCT);
                 }
             }
 
@@ -2870,15 +2893,28 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
             
             // Sort by score descending
             scoredVideos.sort((a, b) => b.score - a.score);
+
+            // FIX B: Per-channel diversity cap (~40% of a page from any one channel).
+            // Walk the sorted list and only accept videos from channels that
+            // are still under their quota. This guarantees that even a fully
+            // saturated tag can't fill the whole landing page with one channel.
+            const perChannelCap = Math.max(2, Math.ceil(limit * 0.4));
+            const cappedTarget = Math.max(100, endIndex + limit);
+            const channelCaps = {};
+            const capped = [];
+            for (const item of scoredVideos) {
+                const ch = item.video.path.split('/')[0];
+                if ((channelCaps[ch] || 0) >= perChannelCap) continue;
+                channelCaps[ch] = (channelCaps[ch] || 0) + 1;
+                capped.push(item);
+                if (capped.length >= cappedTarget) break;
+            }
             
-            // Take top 100 candidates (to have enough for randomness)
-            const topCandidates = scoredVideos.slice(0, 100);
-            
-            // Shuffle the top candidates to get different order each time
-            shuffleArray(topCandidates);
+            // Shuffle the capped candidates to get different order each time
+            shuffleArray(capped);
             
             // Paginate from the shuffled list
-            const paginated = topCandidates.slice(startIndex, endIndex).map(item => item.video);
+            const paginated = capped.slice(startIndex, endIndex).map(item => item.video);
             
             // If we don't have enough videos, fill with random ones from the filtered pool
             if (paginated.length < limit) {
@@ -2916,6 +2952,9 @@ app.get('/top-categories', recommendationsLimiter, (req, res) => {
 
             if (total === 0) return res.json([]);
 
+            // Top-categories is purely informational - it shows the user which
+            // tags dominate their profile so they can act on it. We keep the
+            // raw percentages here on purpose so the user can see the skew.
             const sorted = Object.entries(userPrefs)
                 .map(([tag, weight]) => ({ tag, pct: weight / total }))
                 .filter(item => item.pct >= LOW_TAG_THRESHOLD)
