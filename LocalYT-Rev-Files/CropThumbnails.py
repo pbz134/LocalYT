@@ -340,7 +340,7 @@ def main():
     if args.dry_run:
         print("⚠️  DRY RUN MODE - No files will be modified")
     else:
-        print("⚠️  WARNING: Files will be OVERWRITTEN without backups!")
+        print("WARNING: Files will be OVERWRITTEN without backups!")
     
     processed_count = 0
     skipped_count = 0
@@ -423,13 +423,13 @@ def main():
             print(f"  ... and {len(processed_results) - 10} more")
     
     if not args.dry_run and processed_count > 0:
-        print(f"\n✅ Successfully processed {processed_count} thumbnails")
+        print(f"\nSuccessfully processed {processed_count} thumbnails")
     elif args.dry_run and processed_count > 0:
-        print(f"\nℹ  Dry run complete - would have processed {processed_count} thumbnails")
+        print(f"\nDry run complete - would have processed {processed_count} thumbnails")
         print(f"   Run without --dry-run to actually process them")
     
     if error_count > 0:
-        print(f"\n⚠️  {error_count} errors occurred")
+        print(f"\n{error_count} errors occurred")
         error_results = [r for r in results if r['status'] == 'error']
         for result in error_results[:5]:
             rel_path = Path(result['path']).relative_to(root_dir)
