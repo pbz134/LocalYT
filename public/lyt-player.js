@@ -136,7 +136,7 @@
             this._eqSaveTimer = null; // for debouncing server saves
 
             // Current LYT Player version
-            this.version = 'v2.7.7';
+            this.version = 'v2.8.0';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -1113,6 +1113,8 @@
                         width: 100%;
                         max-height: 70vh;
                         object-fit: contain;
+                        /* Prevents browser double-tap zoom */
+                        touch-action: manipulation;
                     }
                     
                     /* Poster / Thumbnail Overlay */
@@ -2669,10 +2671,78 @@
                 updateHdBadge();
             }
         
-            // Double click on video to toggle fullscreen
-            this.video.addEventListener('dblclick', () => {
+            // Double click on video to toggle fullscreen (desktop only)
+            this.video.addEventListener('dblclick', (e) => {
+                // Skip on touch devices — double-tap is used for seeking there
+                if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                    e.preventDefault();
+                    return;
+                }
                 this.toggleFullScreen();
             });
+            
+            // Touch double-tap to seek 10s (mobile only)
+            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                let lastTapTime = 0;
+                let lastTapSide = null;
+                const doubleTapDelay = 300;
+                const seekAmount = 10;
+            
+                this.video.addEventListener('touchstart', (e) => {
+                    // Only handle single-finger taps
+                    if (e.touches.length !== 1) {
+                        lastTapTime = 0;
+                        lastTapSide = null;
+                        return;
+                    }
+            
+                    // Ignore taps that land on interactive overlays
+                    if (e.target.closest && e.target.closest(
+                        '.lyt_controls_container, .lyt_center_play_btn, .lyt_popup_menu, ' +
+                        '.lyt_context_menu, .lyt_chapter_title, .lyt_end_screen, ' +
+                        '.lyt_endcards_container, .lyt_settings_menu, .lyt_seek_anim'
+                    )) {
+                        return;
+                    }
+            
+                    const touch = e.touches[0];
+                    const rect = this.video.getBoundingClientRect();
+                    const x = touch.clientX - rect.left;
+            
+                    // Only act within the video bounds
+                    if (x < 0 || x > rect.width) return;
+            
+                    const side = x < rect.width / 2 ? 'left' : 'right';
+                    const now = Date.now();
+            
+                    if (now - lastTapTime < doubleTapDelay && lastTapSide === side) {
+                        // Double-tap detected on the same side
+                        e.preventDefault();
+                        e.stopPropagation();
+            
+                        if (side === 'left') {
+                            this.video.currentTime = Math.max(0, this.video.currentTime - seekAmount);
+                            this.showSeekAnimation('left');
+                        } else {
+                            let newTime = this.video.currentTime + seekAmount;
+                            if (isFinite(this.video.duration)) {
+                                newTime = Math.min(newTime, this.video.duration);
+                            }
+                            this.video.currentTime = newTime;
+                            this.showSeekAnimation('right');
+                        }
+            
+                        // Make sure the controls remain visible so the user sees the change
+                        if (this._showControls) this._showControls();
+            
+                        lastTapTime = 0;
+                        lastTapSide = null;
+                    } else {
+                        lastTapTime = now;
+                        lastTapSide = side;
+                    }
+                }, { passive: false });
+            }
         
             // Volume button (mute/unmute)
             this.dom.volumeBtn.addEventListener('click', (e) => {
