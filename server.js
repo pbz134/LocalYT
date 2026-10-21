@@ -941,18 +941,18 @@ function fullScanAndCacheVideos() {
             }
         }
     } catch (err) {
-        console.error('Fehler beim Lesen des Videos-Verzeichnisses:', err);
+        console.error('Error reading videos directory:', err);
     }
 
     const progressBar = new cliProgress.SingleBar({
-        format: 'Fortschritt [{bar}] {percentage}% | {value}/{total} Kanäle',
+        format: 'Progress [{bar}] {percentage}% | {value}/{total} channels',
         barCompleteChar: '\u2588',
         barIncompleteChar: '\u2591',
         hideCursor: true,
         clearOnComplete: true
     });
 
-    console.log(`${allChannels.length} Kanäle gefunden.`);
+    console.log(`${allChannels.length} channels found.`);
     progressBar.start(allChannels.length, 0);
 
     let processedChannels = 0;
