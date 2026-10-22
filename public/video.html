@@ -2683,6 +2683,9 @@
                     formattedViews = formattedViews.replace(/,/g, '.');
                 }
 
+                currentVideoDescription.textContent =
+                    `${formattedViews} ${viewsText} - ${uploadedText} ${fileDate}\n\n`;
+
             const cachedMeta = MetadataCache.getVideo(videoSrc) || {};
             let descriptionText = cachedMeta.description;
             
