@@ -1622,11 +1622,11 @@
                         <div class="comment-text${isLong ? ' collapsed' : ''}">${processCommentText(comment.text)}</div>
                         ${isLong ? `<div class="comment-toggle-text" data-action="expand">${getLang('Show more', 'Mehr anzeigen')}</div>` : ''}
                         <div class="comment-actions">
-                            <div class="comment-like-btn${likedClass}" onclick="handleCommentLike(this, '${encodeURIComponent(commentId)}')">
-                                <!-- USING IMG TAG (Matches Reference Code) -->
-                                <img src="LocalYT-Rev-Files/like.svg" alt="" style="width:14px;height:14px;filter:${imgFilter};flex-shrink:0;cursor:pointer;">
-                                <span>${comment.likes || 0}</span>
-                            </div>
+                        <div class="comment-like-btn${likedClass}" data-base-likes="${comment.likes || 0}" onclick="handleCommentLike(this, '${encodeURIComponent(commentId)}')">
+                            <!-- USING IMG TAG (Matches Reference Code) -->
+                            <img src="LocalYT-Rev-Files/like.svg" alt="" style="width:14px;height:14px;filter:${imgFilter};flex-shrink:0;cursor:pointer;">
+                            <span>${(comment.likes || 0) + (isCommentLiked ? 1 : 0)}</span>
+                        </div>
                         </div>
                     </div>
                 </div>`;
@@ -1654,23 +1654,22 @@
                 // Get the IMG element (not SVG)
                 const img = buttonElement.querySelector('img');
 
-                // Update UI immediately
+                // Update UI immediately.
+                // Read base count from data attribute so the increment/decrement
+                // survives reloads and repeated toggles without drifting.
+                const baseLikes = parseInt(buttonElement.dataset.baseLikes || '0', 10);
+                const span = buttonElement.querySelector('span');
+
                 if (data.isLiked) {
                     buttonElement.classList.add('liked');
-                    // Apply Blue Filter
                     img.style.filter =
                         'invert(49%) sepia(94%) saturate(1748%) hue-rotate(194deg) brightness(97%) contrast(101%)';
-
-                    const span = buttonElement.querySelector('span');
-                    span.textContent = parseInt(span.textContent || 0) + 1;
+                    span.textContent = baseLikes + 1;
                 } else {
                     buttonElement.classList.remove('liked');
-                    // Apply Grey Filter (Default)
                     img.style.filter =
                         'invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%)';
-
-                    const span = buttonElement.querySelector('span');
-                    span.textContent = Math.max(0, parseInt(span.textContent || 0) - 1);
+                    span.textContent = baseLikes;
                 }
             } catch (error) {
                 console.error('Error liking comment:', error);
@@ -3722,13 +3721,18 @@
             });
 
             function updateLikeDislikeUI() {
-                likeCount.textContent = likes;
-                dislikeCount.textContent = dislikes;
+                // Base counts never change. The user's own like/dislike is
+                // added on top at display time so it survives reloads.
+                const displayLikes = likes + (isLiked ? 1 : 0);
+                const displayDislikes = dislikes + (isDisliked ? 1 : 0);
 
-                const totalReactions = likes + dislikes;
+                likeCount.textContent = displayLikes;
+                dislikeCount.textContent = displayDislikes;
+
+                const totalReactions = displayLikes + displayDislikes;
                 let likePercentage = 0;
                 if (totalReactions > 0) {
-                    likePercentage = (likes / totalReactions) * 100;
+                    likePercentage = (displayLikes / totalReactions) * 100;
                 }
                 likeBar.style.width = `${likePercentage}%`;
 
@@ -3750,15 +3754,10 @@
             }
 
             likeButton.addEventListener('click', () => {
+                const wasDisliked = isDisliked;
                 isLiked = !isLiked;
-                if (isLiked) {
-                    likes += 1;
-                    if (isDisliked) {
-                        dislikes -= 1;
-                        isDisliked = false;
-                    }
-                } else {
-                    likes -= 1;
+                if (isLiked && wasDisliked) {
+                    isDisliked = false;
                 }
                 updateLikeDislikeUI();
 
@@ -3767,18 +3766,22 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ video: videoSrc, isLiked })
                 });
+
+                // If we implicitly un-disliked, persist that too
+                if (wasDisliked && !isDisliked) {
+                    fetch('/dislike', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ video: videoSrc, isDisliked: false })
+                    });
+                }
             });
 
             dislikeButton.addEventListener('click', () => {
+                const wasLiked = isLiked;
                 isDisliked = !isDisliked;
-                if (isDisliked) {
-                    dislikes += 1;
-                    if (isLiked) {
-                        likes -= 1;
-                        isLiked = false;
-                    }
-                } else {
-                    dislikes -= 1;
+                if (isDisliked && wasLiked) {
+                    isLiked = false;
                 }
                 updateLikeDislikeUI();
 
@@ -3787,6 +3790,14 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ video: videoSrc, isDisliked })
                 });
+
+                if (wasLiked && !isLiked) {
+                    fetch('/like', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ video: videoSrc, isLiked: false })
+                    });
+                }
             });
 
             function updateSubscribeButton() {
