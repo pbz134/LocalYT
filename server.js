@@ -485,6 +485,7 @@ app.use(session({
 const preferencesFilePath = path.join(__dirname, 'userPreferences.json');
 const watchHistoryFilePath = path.join(__dirname, 'watchHistory.json');
 const cacheFilePath = path.join(__dirname, 'video_cache.json');
+const metadataCachePath = path.join(__dirname, 'metadata_cache.json');
 const recommendationIndexPath = path.join(__dirname, 'recommendation_index.json');
 const folderVersionsPath = path.join(__dirname, 'folder_versions.json');
 const notificationsFilePath = path.join(__dirname, 'notifications.json');
@@ -1193,6 +1194,7 @@ if (fs.existsSync(channelHomeMetaCacheDir)) {
     }
 }
 app.use('/channel-home-meta-cache', express.static(channelHomeMetaCacheDir));
+app.use('/metadata_cache.json', express.static(path.join(__dirname, 'metadata_cache.json')));
 
 // --- PLAYLIST SHORT LINK SYSTEM (INITIALIZATION) ---
 function initializePlaylistShortLinks() {
@@ -1267,7 +1269,28 @@ function parseEuropeanDateServer(dateString) {
     return new Date(dateString);
 }
 
+// --- LOAD METADATA CACHE ---
+let metadataCache = { videos: {}, channels: {}, playlists: {} };
+try {
+    if (fs.existsSync(metadataCachePath)) {
+        metadataCache = JSON.parse(fs.readFileSync(metadataCachePath, 'utf8'));
+        console.log(`Metadata cache loaded: ${Object.keys(metadataCache.videos || {}).length} videos, ` +
+                    `${Object.keys(metadataCache.channels || {}).length} channels, ` +
+                    `${Object.keys(metadataCache.playlists || {}).length} playlists.`);
+    } else {
+        console.log('metadata_cache.json not found — run LocalYT-Rev-Files/generate_metadata_cache.py to enable it.');
+    }
+} catch (err) {
+    console.error('Failed to load metadata_cache.json:', err.message);
+}
+
 function getVideoDurationSeconds(video) {
+    // Try cache first
+    const cached = metadataCache.videos && metadataCache.videos[video.path];
+    if (cached && cached.videoLength) {
+        return parseDurationToSecondsServer(cached.videoLength);
+    }
+    // Fallback to disk
     const channel = video.path.split('/')[0];
     const videoBaseName = video.basePath.split('/').pop();
     let lengthPath = path.join(__dirname, 'videolengths', channel, `${videoBaseName}.txt`);
@@ -1276,8 +1299,7 @@ function getVideoDurationSeconds(video) {
     }
     if (fs.existsSync(lengthPath)) {
         try {
-            const lengthStr = fs.readFileSync(lengthPath, 'utf8').trim();
-            return parseDurationToSecondsServer(lengthStr);
+            return parseDurationToSecondsServer(fs.readFileSync(lengthPath, 'utf8').trim());
         } catch (e) { return 0; }
     }
     return 0;
@@ -1285,15 +1307,21 @@ function getVideoDurationSeconds(video) {
 
 function getVideoDetails(videoSlice) {
     return videoSlice.map(video => {
-        const viewCountPath = path.join(__dirname, 'viewcounts', `${video.basePath}.txt`);
+        const cached = metadataCache.videos && metadataCache.videos[video.path];
         let viewCount = '0';
-        try { if (fs.existsSync(viewCountPath)) viewCount = fs.readFileSync(viewCountPath, 'utf8'); } catch (e) {}
+        if (cached && cached.viewCount !== undefined) {
+            viewCount = cached.viewCount;
+        } else {
+            const viewCountPath = path.join(__dirname, 'viewcounts', `${video.basePath}.txt`);
+            try { if (fs.existsSync(viewCountPath)) viewCount = fs.readFileSync(viewCountPath, 'utf8'); } catch (e) {}
+        }
         return {
             path: video.path,
             viewCount: viewCount,
-            fileDate: video.fileDate || '',
-            displayName: video.displayName || video.path,
-            tags: video.tags || []
+            fileDate: video.fileDate || (cached && cached.fileDate) || '',
+            displayName: video.displayName || (cached && cached.displayName) || video.path,
+            tags: video.tags || [],
+            videoLength: (cached && cached.videoLength) || '',
         };
     });
 }

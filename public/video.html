@@ -62,6 +62,7 @@
             }
         })();
     </script>
+    <script src="metadata-cache.js"></script>
     <script src="lyt-player.js">
     </script>
     <style>
@@ -2043,8 +2044,7 @@
                     topLevel.push(c);
                     currentParent = c; // Set it as the active parent for upcoming replies
                 } else if (currentParent) {
-                    // This is a reply; attach it to the last top-level comment we saw
-                    currentParent.replies.push(c);
+                    // This is a reply; attach it to the last top-level comment we saw                    currentParent.replies.push(c);
                 }
             });
 
@@ -2382,6 +2382,9 @@
         // ============================================================
 
         document.addEventListener('DOMContentLoaded', async () => {
+            // --- Ensure the metadata cache is loaded before we render anything ---
+            await MetadataCache.ready();
+
             const urlParams = new URLSearchParams(window.location.search);
 
             // Safe URI decoding to handle special characters like % in filenames
@@ -2550,94 +2553,58 @@
                     'en-zh-TW': 'Chinese Taiwan (Auto-translated)'
                 });
 
-                // List of supported language codes to check (includes regional and auto-translated variants)
-                const supportedLangCodes = [
-                    // Standard
-                    'af', 'ar', 'bg', 'bn', 'bs', 'ca', 'cs', 'da', 'de', 'el',
-                    'en', 'en-US', 'en-GB', 'es', 'et', 'fi', 'fr', 'hi', 'it', 'ja',
-                    'ko', 'nl', 'pl', 'pt', 'ro', 'ru', 'sk', 'sq', 'sr', 'sv', 'th',
-                    'tr', 'uk', 'vi', 'zh-Hans', 'zh-Hant', 'zh-TW',
-
-                    // Auto-translated variants (en-XX format)
-                    'en-ar', 'en-bn', 'en-cs', 'en-da', 'en-de', 'en-el', 'en-en',
-                    'en-es', 'en-fa', 'en-fil', 'en-fr', 'en-hi', 'en-hu', 'en-id',
-                    'en-it', 'en-iw', 'en-ka', 'en-km', 'en-ko', 'en-ku', 'en-la',
-                    'en-mn', 'en-ms', 'en-my', 'en-ne', 'en-nl', 'en-no', 'en-pl',
-                    'en-pt', 'en-ro', 'en-ru', 'en-sa', 'en-so', 'en-sr', 'en-sv',
-                    'en-th', 'en-tr', 'en-uk', 'en-ur', 'en-vi', 'en-zh-Hans', 'en-zh-Hant', 'en-zh-TW'
-                ];
-
                 // Store video file name for later use after currentChannel is known
                 let subTrackData = { channel: '', videoFile: videoNameForSubs };
 
                 // Function to load subtitle tracks (called after currentChannel is set)
+                // Uses metadata_cache.json — no more HEAD requests per language!
                 async function loadSubtitleTracks() {
                     if (!subTrackData.channel) return;
 
-                    // FIX 1: Bypass playlist subfolders. Subtitles are stored directly in the channel folder.
-                    // Extract just the raw filename (e.g. "TOMODACHI LIFE # 01 Willkommen auf LPM-World!")
-                    // instead of using the full videoSrc path which includes "Tomodachi Life/".
                     const videoFileName = subTrackData.videoFile;
-
-                    // FIX 2: Do NOT encodeURIComponent the base path yet, otherwise the dot (.)
-                    // before the language code gets caught by the encoding and breaks the URL.
-                    // We must encode parts individually when building the final URL.
                     const encodedChannel = encodeURIComponent(subTrackData.channel);
                     const encodedVideoName = encodeURIComponent(videoFileName);
                     const baseSubPath = `/subtitles/${encodedChannel}/${encodedVideoName}`;
 
-                    // Check each language subtitle file and only add if it exists
-                    const checkPromises = supportedLangCodes.map(async langCode => {
-                        const trackUrl = `${baseSubPath}.${langCode}.vtt`;
-                        try {
-                            const response = await fetch(trackUrl, { method: 'HEAD' });
-                            if (response.ok) {
-                                const trackElement = document.createElement('track');
-                                trackElement.kind = 'metadata'; // MUST be 'metadata' for Fluid Player
-                                trackElement.srclang = langCode;
-                                trackElement.label = languageNames[langCode] || langCode;
-                                trackElement.src = trackUrl; // Keep raw URL
+                    // Read subtitle language list from the metadata cache
+                    const cachedMeta = MetadataCache.getVideo(videoSrc);
+                    const availableLangs = (cachedMeta && cachedMeta.subtitles) || [];
 
-                                // Set ONLY English ('en') as default subtitle track
-                                if (langCode === 'en') {
-                                    trackElement.default = true;
-                                }
+                    if (availableLangs.length === 0) {
+                        console.log('[Subtitles] No subtitle tracks available for this video.');
+                        return;
+                    }
 
-                                videoPlayer.appendChild(trackElement);
+                    for (const langCode of availableLangs) {
+                        const trackElement = document.createElement('track');
+                        trackElement.kind = 'metadata';
+
+                        if (langCode === '') {
+                            // Default .vtt with no language code
+                            trackElement.srclang = 'en';
+                            trackElement.label = 'Subtitles';
+                            trackElement.src = `${baseSubPath}.vtt`;
+                        } else {
+                            trackElement.srclang = langCode;
+                            trackElement.label = languageNames[langCode] || langCode;
+                            trackElement.src = `${baseSubPath}.${langCode}.vtt`;
+                            if (langCode === 'en') {
+                                trackElement.default = true;
                             }
-                        } catch (error) {
-                            // Subtitle file doesn't exist or error checking, skip it
                         }
-                    });
 
-                    // Also check for default .vtt file (no language code) for backwards compatibility
-                    const defaultTrackUrl = `${baseSubPath}.vtt`;
-                    checkPromises.push(
-                        fetch(defaultTrackUrl, { method: 'HEAD' })
-                        .then(response => {
-                            if (response.ok) {
-                                const defaultTrack = document.createElement('track');
-                                defaultTrack.kind = 'metadata';
-                                defaultTrack.srclang = 'en';
-                                defaultTrack.label = 'Subtitles';
-                                defaultTrack.src = defaultTrackUrl; // Keep raw URL
-                                videoPlayer.appendChild(defaultTrack);
-                            }
-                        })
-                        .catch(() => {})
-                    );
-
-                    await Promise.all(checkPromises);
+                        videoPlayer.appendChild(trackElement);
+                    }
                 }
 
                 const videoPathWithoutExt = stripExtension(videoSrc);
-                fetch(`/filenames/${encodeURIComponent(videoPathWithoutExt)}.txt`)
-                    .then(response => response.text())
-                    .then(displayName => {
-                        currentVideoTitle.textContent = displayName;
-                        document.title = `${displayName} - LocalYT`;
-                    })
-                    .catch(error => console.error('Error fetching display name:', error));
+
+                // --- Display Name: from cache (no network) ---
+                const cachedMetaForTitle = MetadataCache.getVideo(videoSrc);
+                const displayName = (cachedMetaForTitle && cachedMetaForTitle.displayName)
+                    || stripExtension(videoSrc.split('/').pop());
+                currentVideoTitle.textContent = displayName;
+                document.title = `${displayName} - LocalYT`;
 
                 const pathParts = videoSrc.split('/');
                 currentChannel = pathParts[0];
@@ -2665,103 +2632,84 @@
                 channelPic.src = `/channelpic/${encodeURIComponent(currentChannel)}.jpg`;
                 channelName.textContent = currentChannel;
 
-                function getSubcountEndpoint() {
-                    const fuzzySetting = JSON.parse(localStorage.getItem('fuzzySubCount') || '{}');
-                    if (fuzzySetting.enabled) {
-                        return `/subcount/fuzzy/${encodeURIComponent(currentChannel)}`;
+                // --- Subcount: from cache first, fallback to server ---
+                const cachedChannel = MetadataCache.getChannel(currentChannel);
+                const fuzzySetting = JSON.parse(localStorage.getItem('fuzzySubCount') || '{}');
+                let subCountText = null;
+
+                if (cachedChannel) {
+                    if (fuzzySetting.enabled && cachedChannel.fuzzySubCount) {
+                        subCountText = cachedChannel.fuzzySubCount;
+                    } else if (cachedChannel.subCount) {
+                        subCountText = cachedChannel.subCount;
                     }
-                    return `/subcount/${encodeURIComponent(currentChannel)}`;
                 }
 
-                fetch(getSubcountEndpoint())
-                    .then(response => response.text())
-                    .then(subCountText => {
-                        const subsWord = getLang('subscribers', 'Abonnenten');
-                        subCount.textContent =
-                            `${localStorage.getItem('language') === 'de' ? subCountText.replace(/,/g, '.') : subCountText} ${subsWord}`;
-                        // Setup wheel click after channel name is definitely set
-                        setupChannelNameWheelClick();
-                    })
-                    .catch(error => {
-                        console.error('Error fetching subscriber count:', error);
-                        // Setup wheel click even if sub count fails
-                        setupChannelNameWheelClick();
-                    });
+                if (subCountText !== null) {
+                    const subsWord = getLang('subscribers', 'Abonnenten');
+                    subCount.textContent =
+                        `${localStorage.getItem('language') === 'de' ? subCountText.replace(/,/g, '.') : subCountText} ${subsWord}`;
+                    setupChannelNameWheelClick();
+                } else {
+                    // Fallback: fetch from server
+                    const subcountEndpoint = fuzzySetting.enabled
+                        ? `/subcount/fuzzy/${encodeURIComponent(currentChannel)}`
+                        : `/subcount/${encodeURIComponent(currentChannel)}`;
 
+                    fetch(subcountEndpoint)
+                        .then(response => response.text())
+                        .then(subCountTextFallback => {
+                            const subsWord = getLang('subscribers', 'Abonnenten');
+                            subCount.textContent =
+                                `${localStorage.getItem('language') === 'de' ? subCountTextFallback.replace(/,/g, '.') : subCountTextFallback} ${subsWord}`;
+                            setupChannelNameWheelClick();
+                        })
+                        .catch(error => {
+                            console.error('Error fetching subscriber count:', error);
+                            setupChannelNameWheelClick();
+                        });
+                }
 
-                Promise.all([
-                        fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(response => response.text()),
-                        fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(response => response
-                            .text())
-                    ])
-                    .then(([viewCount, fileDate]) => {
-                        // Use language helper for "views" and "Uploaded on"
-                        const viewsText = getLang('views', 'Aufrufe');
-                        const uploadedText = getLang('Uploaded on', 'Hochgeladen am');
+                // --- View count, File date, Description: ALL from cache (no fetches) ---
+                const cachedVideo = MetadataCache.getVideo(videoSrc) || {};
+                const viewCount = cachedVideo.viewCount || '0';
+                const fileDate = cachedVideo.fileDate || 'Unknown date';
+                const viewsText = getLang('views', 'Aufrufe');
+                const uploadedText = getLang('Uploaded on', 'Hochgeladen am');
 
-                        // Format view count: replace commas with dots for German
-                        let formattedViews = viewCount.trim();
-                        if (localStorage.getItem('language') === 'de') {
-                            formattedViews = formattedViews.replace(/,/g, '.');
-                        }
+                let formattedViews = viewCount.trim();
+                if (localStorage.getItem('language') === 'de') {
+                    formattedViews = formattedViews.replace(/,/g, '.');
+                }
 
-                        currentVideoDescription.textContent =
-                            `${formattedViews} ${viewsText} - ${uploadedText} ${fileDate.trim()}\n\n`;
+                currentVideoDescription.textContent =
+                    `${formattedViews} ${viewsText} - ${uploadedText} ${fileDate.trim()}\n\n`;
 
-                        // Logic for description filename (from previous fix)
-                        const cleanDescName = videoSrc.split('/').pop().replace(/\.(mp4|mkv|avi|mov|webm|mp3)$/i, '');
-                        const descriptionPath =
-                            `/descriptions/${encodeURIComponent(currentChannel)}/${encodeURIComponent(cleanDescName)}.txt`;
-                        return fetch(descriptionPath);
-                    })
-                    .then(async response => {
-                        if (!response.ok) {
-                            currentVideoDescription.innerHTML = currentVideoDescription.textContent +
-                                '<span class="no-description">' + getLang(
-                                    'No description available for this video.',
-                                    'Diesem Video wurde keine Beschreibung hinzugefügt.') + '</span>';
-                            return null;
-                        }
-                        const description = await response.text();
+                // Description from cache — no separate fetch
+                if (cachedVideo.description) {
+                    const descriptionWithLinks = await detectAndStyleLinks(cachedVideo.description);
+                    currentVideoDescription.innerHTML = currentVideoDescription.textContent +
+                        descriptionWithLinks;
+                    console.log('Description passed to player:', cachedVideo.description);
+                    if (myFP && typeof myFP.setDescription === 'function') {
+                        myFP.setDescription(cachedVideo.description);
+                    }
+                } else {
+                    currentVideoDescription.innerHTML = currentVideoDescription.textContent +
+                        '<span class="no-description">' + getLang(
+                            'No description available for this video.',
+                            'Diesem Video wurde keine Beschreibung hinzugefügt.') + '</span>';
+                }
+                checkDescriptionCollapse();
 
-                        if (description === null) {
-                            currentVideoDescription.innerHTML = currentVideoDescription.textContent +
-                                '<span class="no-description">' + getLang(
-                                    'No description available for this video.',
-                                    'Diesem Video wurde keine Beschreibung hinzugefügt.') + '</span>'
-                        } else {
-                            const descriptionWithLinks = await detectAndStyleLinks(description);
-                            currentVideoDescription.innerHTML = currentVideoDescription.textContent +
-                                descriptionWithLinks;
+                // --- Video stats (likes/dislikes): from cache ---
+                if (cachedVideo.likes !== undefined && cachedVideo.dislikes !== undefined) {
+                    likes = cachedVideo.likes;
+                    dislikes = cachedVideo.dislikes;
+                    updateLikeDislikeUI();
+                }
 
-                            // Pass description to LYT Player for chapter parsing
-                            console.log('Description passed to player:', description);
-                            if (myFP && typeof myFP.setDescription === 'function') {
-                                myFP.setDescription(description);
-                            }
-                        }
-                    })
-                    .catch(error => {
-                        console.log('No description found for this video');
-                        currentVideoDescription.innerHTML = currentVideoDescription.textContent +
-                            '<span class="no-description">No description available for this video.</span>';
-                    })
-                    .then(() => {
-                        checkDescriptionCollapse();
-                    });
-
-                // 1. Get just the filename (removing subfolders like "Shortcut Collections")
-                const statsFileName = videoSrc.split('/').pop().replace(/\.(mp4|mkv|avi|mov|wmv|flv|webm)$/i, '');
-
-                // 2. Construct the path: videostats/ChannelName/Filename.txt
-                fetch(`/videostats/${encodeURIComponent(currentChannel)}/${encodeURIComponent(statsFileName)}.txt`)
-                    .then(response => response.text())
-                    .then(data => {
-                        [likes, dislikes] = data.split(',').map(Number);
-                        updateLikeDislikeUI();
-                    })
-                    .catch(error => console.error('Error fetching like/dislike counts:', error));
-
+                // User-specific data — must still be fetched per-user
                 fetch('/user-likes')
                     .then(response => response.ok ? response.json() : {})
                     .then(userLikes => {
@@ -2802,10 +2750,9 @@
                 });
 
                 // ----- FETCH VIDEO TAGS (for the filter buttons) -----
-                // Use the full base path (including subfolders) to locate the .txt file
-                const fullBasePath = videoSrc.replace(/\.(mp4|mkv|avi|mov|webm|mp3)$/i, '');
+                // Use the cache's tags array if available; only fetch if we need the 2nd tag.
                 try {
-                    const tagRes = await fetch(`/videos/${encodeURIComponent(fullBasePath)}.txt`);
+                    const tagRes = await fetch(`/videos/${encodeURIComponent(videoPathWithoutExt)}.txt`);
                     if (tagRes.ok) {
                         const tagText = await tagRes.text();
                         const tags = tagText.split(',').map(t => t.trim()).filter(t => t);
@@ -2945,11 +2892,6 @@
             const recContainer = document.createElement('div');
             recContainer.id = 'recommendationsContainer';
             recContainer.className = 'recommendations-container';
-            // Insert after any playlist sections (or after the autoplay toggle if no playlists)
-            // We'll append it to suggestionsContainer after all playlists are added.
-            // We'll do that after loading recommendations.
-            // But we need it to exist before we render recommendations.
-            // We'll append it now.
             suggestionsContainer.appendChild(recContainer);
 
             // Store reference for update function
@@ -3095,14 +3037,18 @@
                 titleLink.addEventListener('mouseup', middleHandler);
                 titleLink.addEventListener('auxclick', middleHandler);
 
-                const videoFilename = video.path.split('/').pop();
-                const videoNameWithoutExt = stripExtension(videoFilename);
-                fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
-                    .then(response => response.text())
-                    .then(length => {
-                        suggestionElement.querySelector('.video-length').textContent = length;
-                    })
-                    .catch(error => {});
+                // Video length: from cache (no fetch)
+                const cachedLength = MetadataCache.getVideoLength
+                    ? (MetadataCache.getVideo(video.path) || {}).videoLength
+                    : null;
+                if (cachedLength) {
+                    suggestionElement.querySelector('.video-length').textContent = cachedLength;
+                } else {
+                    MetadataCache.getVideoLength(video.path).then(length => {
+                        const el = suggestionElement.querySelector('.video-length');
+                        if (el && length) el.textContent = length;
+                    });
+                }
             }
 
             // --- End Sidebar Logic ---
@@ -4047,70 +3993,79 @@
             }
 
             if (mentions.length > 0) {
-                const checkPromises = mentions.map(channelName => {
-                    return fetch(`/channelpic/${encodeURIComponent(channelName)}.jpg`, { method: 'HEAD' })
-                        .then(res => ({ name: channelName, exists: res.ok }))
-                        .catch(() => ({ name: channelName, exists: false }));
+                // Prefer the metadata cache for mention existence check (no network)
+                await MetadataCache.ready();
+                const existingChannels = mentions.filter(name => {
+                    const ch = MetadataCache.getChannel(name);
+                    return ch && ch.hasPic;
                 });
 
-                try {
-                    const results = await Promise.all(checkPromises);
-                    const existingChannels = results.filter(r => r.exists).map(r => r.name);
-
-                    let idCounter = 0;
-
-                    processedText = processedText.replace(mentionRegex, function(fullMatch, channelName) {
-                        if (existingChannels.includes(channelName)) {
-                            const uniqueId = `mention-${idCounter++}`;
-                            const encodedChannel = encodeURIComponent(channelName);
-
-                            // Return span with ID so we can attach event listeners immediately after
-                            return `<span id="${uniqueId}" class="mention-link" data-channel="${encodedChannel}">${fullMatch}</span>`;
-                        }
-                        return fullMatch;
+                // Fallback: verify via HEAD only for mentions not covered by the cache
+                const unknownMentions = mentions.filter(name => {
+                    const ch = MetadataCache.getChannel(name);
+                    return !ch;
+                });
+                if (unknownMentions.length > 0) {
+                    const checkPromises = unknownMentions.map(channelName => {
+                        return fetch(`/channelpic/${encodeURIComponent(channelName)}.jpg`, { method: 'HEAD' })
+                            .then(res => ({ name: channelName, exists: res.ok }))
+                            .catch(() => ({ name: channelName, exists: false }));
                     });
+                    try {
+                        const results = await Promise.all(checkPromises);
+                        results.filter(r => r.exists).forEach(r => existingChannels.push(r.name));
+                    } catch (e) { /* ignore */ }
+                }
 
-                    // Attach event listeners to the newly created spans after they are in the DOM
-                    // We use a small timeout to ensure the DOM has been updated if this is used immediately
-                    setTimeout(() => {
-                        existingChannels.forEach((channelName, index) => {
-                            const el = document.getElementById(`mention-${index}`);
-                            if (el) {
-                                const url = `channel.html?channel=${el.dataset.channel}`;
+                let idCounter = 0;
+                processedText = processedText.replace(mentionRegex, function(fullMatch, channelName) {
+                    if (existingChannels.includes(channelName)) {
+                        const uniqueId = `mention-${idCounter++}`;
+                        const encodedChannel = encodeURIComponent(channelName);
 
-                                // Left click (default behavior handled by CSS/onclick logic if needed, 
-                                // but here we specifically handle wheel and right click as requested)
+                        // Return span with ID so we can attach event listeners immediately after
+                        return `<span id="${uniqueId}" class="mention-link" data-channel="${encodedChannel}">${fullMatch}</span>`;
+                    }
+                    return fullMatch;
+                });
 
-                                el.addEventListener('mouseup', (e) => {
-                                    if (e.button === 1) { // Middle Click
-                                        e.preventDefault();
-                                        window.open(url, '_blank');
-                                    }
-                                });
+                // Attach event listeners to the newly created spans after they are in the DOM
+                // We use a small timeout to ensure the DOM has been updated if this is used immediately
+                setTimeout(() => {
+                    existingChannels.forEach((channelName, index) => {
+                        const el = document.getElementById(`mention-${index}`);
+                        if (el) {
+                            const url = `channel.html?channel=${el.dataset.channel}`;
 
-                                el.addEventListener('auxclick', (e) => {
-                                    if (e.button === 1) { // Middle Click Fallback
-                                        e.preventDefault();
-                                        window.open(url, '_blank');
-                                    }
-                                });
+                            // Left click (default behavior handled by CSS/onclick logic if needed, 
+                            // but here we specifically handle wheel and right click as requested)
 
-                                el.addEventListener('contextmenu', (e) => { // Right Click
+                            el.addEventListener('mouseup', (e) => {
+                                if (e.button === 1) { // Middle Click
                                     e.preventDefault();
                                     window.open(url, '_blank');
-                                });
+                                }
+                            });
 
-                                // Ensure left click also works to navigate
-                                el.addEventListener('click', () => {
-                                    window.location.href = url;
-                                });
-                            }
-                        });
-                    }, 0);
+                            el.addEventListener('auxclick', (e) => {
+                                if (e.button === 1) { // Middle Click Fallback
+                                    e.preventDefault();
+                                    window.open(url, '_blank');
+                                }
+                            });
 
-                } catch (e) {
-                    console.log('Could not verify mentions:', e);
-                }
+                            el.addEventListener('contextmenu', (e) => { // Right Click
+                                e.preventDefault();
+                                window.open(url, '_blank');
+                            });
+
+                            // Ensure left click also works to navigate
+                            el.addEventListener('click', () => {
+                                window.location.href = url;
+                            });
+                        }
+                    });
+                }, 0);
             }
 
             return processedText;

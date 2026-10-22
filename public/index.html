@@ -632,16 +632,11 @@ function renderVideos(videos) {
         setupChannelLinkEvents(videoElement.querySelector('.channel-pic-link'), channel);
         setupChannelLinkEvents(videoElement.querySelector('.channel-name'), channel);
 
-        const videoFilename = video.path.split('/').pop();
-        const videoNameWithoutExt = stripExtension(videoFilename);
-        fetch(`/videolengths/${channel}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
-            .then(response => response.text())
-            .then(length => {
-                videoElement.querySelector('.video-length').textContent = length;
-            })
-            .catch(error => {
-                console.error('Error fetching video length:', error);
-            });
+        // Cached video length (helper falls back to a single fetch on cache miss)
+        MetadataCache.getVideoLength(video.path).then(length => {
+            const lengthEl = videoElement.querySelector('.video-length');
+            if (lengthEl && length) lengthEl.textContent = length;
+        });
     });
 }
 
@@ -702,6 +697,7 @@ function setupChannelLinkEvents(element, channel) {
     }
 })();
     </script>
+    <script src="metadata-cache.js"></script>
     <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>
     <script src="sidebar.js"></script>

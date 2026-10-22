@@ -227,10 +227,10 @@
             <section class="doc-section" id="v5.00">
                 <h2>v5.00</h2>
                 <ul>
-                    <li>50% faster load and search times for all pages by only sending the search index on demand</li>
-                    <li>Changed category buttons to not redirect to search.html anymore
+                    <li>Insanely fast page loading
                         <ul>
-                            <li>Instead, results are directly filtered and displayed on index.html</li>
+                            <li>All video metadata is compiled into a single .json cache file, reducing disk read operations by over 1000% and total file requests by 85%</li>
+                            <li>During testing, pages loaded in 0.2-0.5 seconds, compared to the previous 3-10 second average</li>
                         </ul>
                     <li>15x faster video tagging
                         <ul>
@@ -255,6 +255,10 @@
                     <li>Removed playlist_cache.json dependency
                         <ul>
                             <li>Playlist thumbnails are now fetched from the first respective playlist-order JSONL entry instead of being hardcoded, this makes it easier to change the current playlist thumbnail</li>
+                        </ul>
+                    <li>Changed category buttons to not redirect to search.html anymore
+                        <ul>
+                            <li>Instead, results are directly filtered and displayed on index.html</li>
                         </ul>
                     <li>Fixed playlist thumbnail encoding where thumbnails wouldn't be displayed when they contained special characters</li>
                     <li>Lowered channel tag influence to 1/3 to prevent recommendation floods</li>

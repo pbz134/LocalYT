@@ -274,11 +274,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show skeletons while loading initial batch
     showSkeletons(12, 'videoContainer', 'video');
 
-    // Fetch search index and liked videos simultaneously
-    Promise.all([
-        fetch('/search-index').then(res => res.json()),
-        fetch('/user-likes').then(res => res.json())
-    ])
+    // Make sure metadata cache is loaded before we render anything
+    MetadataCache.ready().then(() => {
+        // Fetch search index and liked videos simultaneously
+        return Promise.all([
+            fetch('/search-index').then(res => res.json()),
+            fetch('/user-likes').then(res => res.json())
+        ]);
+    })
     .then(([indexData, likedVideos]) => {
         // Remove skeletons
         hideSkeletons();
@@ -425,45 +428,42 @@ function renderLikedVideos(videos) {
         `;
         container.appendChild(videoElement);
 
-        // --- FETCH METADATA (View Count & Date) ---
+        // --- METADATA FROM CACHE (no per-video fetches) ---
         const descriptionDiv = videoElement.querySelector('.video-description');
-        
-        Promise.all([
-            fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(res => 
-                res.ok ? res.text() : '0'
-            ).catch(() => '0'),
-            fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(res => 
-                res.ok ? res.text() : 'Unknown date'
-            ).catch(() => 'Unknown date')
-        ])
-        .then(([viewCount, fileDate]) => {
-            let formattedViewCount = viewCount;
-            if (!isNaN(viewCount) && viewCount !== '0') {
-                formattedViewCount = parseInt(viewCount).toLocaleString();
-            }
-            
-            const lang = localStorage.getItem('language');
-            let viewsText = getLang('views', 'Aufrufe');
-            let uploadedText = getLang('Uploaded on', 'Hochgeladen am');
+        const cached = MetadataCache.getVideo(video.path) || {};
 
-            if (lang === 'de') {
-                formattedViewCount = formattedViewCount.replace(/,/g, '.');
-            }
+        const viewCount = cached.viewCount !== undefined ? cached.viewCount : '0';
+        const fileDate  = cached.fileDate  !== undefined ? cached.fileDate  : 'Unknown date';
 
-            const cleanFileDate = fileDate.replace(/\s+/g, ' ').trim();
-            
-            const dateToShow = isRelativeDatesEnabled() ? getRelativeTime(cleanFileDate, lang) : cleanFileDate;
-            
-            if (isRelativeDatesEnabled()) {
-                descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${dateToShow}`;
-            } else {
-                descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${dateToShow}`;
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching metadata:', error);
-            descriptionDiv.textContent = 'Metadata unavailable';
-        });
+        let formattedViewCount = viewCount;
+        if (!isNaN(viewCount) && viewCount !== '0') {
+            formattedViewCount = parseInt(viewCount).toLocaleString();
+        }
+
+        const lang = localStorage.getItem('language');
+        const viewsText = getLang('views', 'Aufrufe');
+        const uploadedText = getLang('Uploaded on', 'Hochgeladen am');
+
+        if (lang === 'de') {
+            formattedViewCount = formattedViewCount.replace(/,/g, '.');
+        }
+
+        const cleanFileDate = fileDate.replace(/\s+/g, ' ').trim();
+        const dateToShow = isRelativeDatesEnabled()
+            ? getRelativeTime(cleanFileDate, lang)
+            : cleanFileDate;
+
+        if (isRelativeDatesEnabled()) {
+            descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${dateToShow}`;
+        } else {
+            descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${uploadedText} ${dateToShow}`;
+        }
+
+        // Video length (also from cache)
+        if (cached.videoLength) {
+            const lengthEl = videoElement.querySelector('.video-length');
+            if (lengthEl) lengthEl.textContent = cached.videoLength;
+        }
 
         // Add click handlers
         const thumbnail = videoElement.querySelector('.thumbnail-container');
@@ -502,23 +502,11 @@ function renderLikedVideos(videos) {
         setupContextMenu(title, videoUrl);
         setupContextMenu(thumbnail, videoUrl);
         setupContextMenu(channelName, channelUrl);
-
-        // Fetch video length
-        const videoFilename = video.path.split('/').pop();
-        const videoNameWithoutExt = stripExtension(videoFilename);
-        fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
-            .then(response => response.text())
-            .then(length => {
-                const lengthElement = videoElement.querySelector('.video-length');
-                if (lengthElement) lengthElement.textContent = length;
-            })
-            .catch(error => {
-                console.error('Error fetching video length:', error);
-            });
     });
 }
     </script>
     <!-- External Scripts -->
+    <script src="metadata-cache.js"></script>
     <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>
     <script src="sidebar.js"></script>

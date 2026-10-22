@@ -360,6 +360,7 @@
         </div>
     </div>
 
+    <script src="metadata-cache.js"></script>
     <script>
 // --- Language Helper ---
 function getLang(en, de) {
@@ -504,7 +505,10 @@ document.getElementById('openLinkBtn').addEventListener('click', () => {
     document.getElementById('sharePlaylistModal').style.display = 'none';
 });
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Ensure metadata cache is ready before loading playlists
+    await MetadataCache.ready();
+
     const mainLogo = document.getElementById('mainLogo');
     if (mainLogo) {
         mainLogo.addEventListener('click', () => window.location.href = 'index.html');
@@ -665,6 +669,9 @@ async function loadPlaylists() {
     
     container.innerHTML = '';
     try {
+        // Ensure metadata cache is loaded before rendering
+        await MetadataCache.ready();
+
         const response = await fetch('/user-playlist-details');
         if (response.status === 401) {
             // Hide header if not logged in
@@ -817,16 +824,14 @@ async function loadPlaylists() {
                         if(res.ok) { item.style.opacity='0'; setTimeout(loadPlaylists, 300); }
                     });
 
-                    const vFile = video.path.split('/').pop();
-                    const vName = stripExtension(vFile);
-                    fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(vName)}.txt`)
-                        .then(r=>r.text())
-                        .then(len => {
-                            item.querySelector('.video-length').textContent = len;
-                            currentTotalSecs += parseDurationString(len.trim());
-                            durationSpan.textContent = `• ${getLang('Total duration', 'Gesamtdauer')}: ${formatTotalDuration(currentTotalSecs)}`;
-                        })
-                        .catch(()=>{});
+                    // --- METADATA FROM CACHE (no network requests) ---
+                    const cached = MetadataCache.getVideo(video.path);
+                    if (cached && cached.videoLength) {
+                        const len = cached.videoLength;
+                        item.querySelector('.video-length').textContent = len;
+                        currentTotalSecs += parseDurationString(len.trim());
+                        durationSpan.textContent = `• ${getLang('Total duration', 'Gesamtdauer')}: ${formatTotalDuration(currentTotalSecs)}`;
+                    }
                 });
 
                 scrollWrapper.append(arrowLeft, grid, arrowRight);

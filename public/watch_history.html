@@ -106,6 +106,7 @@
     </header>
     <div class="container" id="videoContainer"></div>
     
+    <script src="metadata-cache.js"></script>
     <script>
 // ======================================================================
 // FIX: Prevent Middle-Click Autoscroll (Pan Mode)
@@ -190,7 +191,7 @@ let displayedVideosCount = 0;
 const BATCH_SIZE = 20;
 let isLoadingMoreHistory = false;
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     
     // --- 1. LOGO SETUP ---
     const mainLogo = document.getElementById('mainLogo');
@@ -240,6 +241,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Show skeletons while loading initial batch
     showSkeletons(12, 'videoContainer', 'video');
+
+    // Wait for metadata cache to be ready before rendering
+    await MetadataCache.ready();
 
     fetch('/user-history')
         .then(response => response.json())
@@ -429,17 +433,16 @@ function renderHistoryVideos(videos) {
             }
         });
 
-        // Fetch video length
-        const videoFilename = video.path.split('/').pop();
-        const videoNameWithoutExt = stripExtension(videoFilename);
-        fetch(`/videolengths/${channel}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
-            .then(response => response.text())
-            .then(length => {
-                videoElement.querySelector('.video-length').textContent = length;
-            })
-            .catch(error => {
-                console.error('Error fetching video length:', error);
-            });
+        // Fetch video length from cache (with fallback if missing)
+        const cached = MetadataCache.getVideo(video.path);
+        if (cached && cached.videoLength) {
+            videoElement.querySelector('.video-length').textContent = cached.videoLength;
+        } else {
+            MetadataCache.getVideoLength(video.path).then(length => {
+                const lengthEl = videoElement.querySelector('.video-length');
+                if (lengthEl) lengthEl.textContent = length || '';
+            }).catch(() => {});
+        }
     });
 }
 

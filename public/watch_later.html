@@ -919,6 +919,11 @@ async function loadPlaylistVideos() {
     playlistTitleEl.textContent = WATCH_LATER_NAME;
     document.title = `${WATCH_LATER_NAME} - LocalYT`;
 
+    // Ensure the metadata cache is loaded before we start reading lengths
+    if (window.MetadataCache) {
+        await MetadataCache.ready();
+    }
+
     try {
         const response = await fetch(`/user-playlist-videos?name=${encodeURIComponent(WATCH_LATER_NAME)}`);
         
@@ -964,28 +969,22 @@ async function loadPlaylistVideos() {
 
         playlistInfoEl.textContent = `${allVideosData.length} ${getLang('videos', 'Videos')}`;
 
-        // Calculate total duration
+        // Calculate total duration from the metadata cache — no network requests per video
         let totalSeconds = 0;
-        const durationPromises = allVideosData.map(video => {
-            const channel = video.path.split('/')[0];
-            const vName = stripExtension(video.path.split('/').pop());
-            return fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(vName)}.txt`)
-                .then(r => r.text())
-                .then(len => {
-                    const secs = parseDurationString(len.trim());
-                    totalSeconds += secs;
-                    video._length = len.trim();
-                    video._durationSecs = secs;
-                    playlistDurationEl.textContent = `${getLang('Total duration', 'Gesamtdauer')}: ${formatTotalDuration(totalSeconds)}`;
-                })
-                .catch(() => { video._length = ''; video._durationSecs = 0; });
-        });
+        for (const video of allVideosData) {
+            const cached = (window.MetadataCache ? MetadataCache.getVideo(video.path) : null) || {};
+            if (cached.videoLength) {
+                video._length = cached.videoLength;
+                video._durationSecs = parseDurationString(cached.videoLength.trim());
+            } else {
+                video._length = '';
+                video._durationSecs = 0;
+            }
+            totalSeconds += video._durationSecs;
+        }
+        playlistDurationEl.textContent = `${getLang('Total duration', 'Gesamtdauer')}: ${formatTotalDuration(totalSeconds)}`;
 
-        // Start rendering immediately, update lengths as they load
-        applySortAndRender();
-        
-        // Wait for all durations, then re-render with correct lengths
-        await Promise.all(durationPromises);
+        // Render immediately with lengths already populated from cache
         applySortAndRender();
 
         // Setup Classic Sidebar
@@ -1198,6 +1197,7 @@ function setupClassicSidebar(videos) {
     if (playAllSpan) playAllSpan.textContent = getLang('PLAY ALL', 'ALLE WIEDERGEBEN');
 }
     </script>
+    <script src="metadata-cache.js"></script>
     <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>
     <script>

@@ -495,6 +495,7 @@
         </div>
     </div>
 
+    <script src="metadata-cache.js"></script>
     <script>
 // ======================================================================
 // FIX: Prevent Middle-Click Autoscroll (Pan Mode)
@@ -1029,22 +1030,38 @@ document.addEventListener('DOMContentLoaded', () => {
         const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
         const channel = video.path.split('/')[0];
 
+        // Cache-based metadata lookup (sync, no network)
+        const cached = MetadataCache.getVideo(video.path) || {};
+        const viewCount = cached.viewCount !== undefined ? cached.viewCount : (video.viewCount || '0');
+        const fileDate = cached.fileDate || video.fileDate || '';
+        const videoLength = cached.videoLength || video.videoLength || '';
+
+        let formattedViewCount = viewCount;
+        if (!isNaN(viewCount) && viewCount !== '0') {
+            formattedViewCount = parseInt(viewCount).toLocaleString();
+        }
+        const lang = localStorage.getItem('language');
+        if (lang === 'de') formattedViewCount = formattedViewCount.replace(/,/g, '.');
+
+        const dateToShow = fileDate
+            ? (isRelativeDatesEnabled() ? getRelativeTime(fileDate, lang) : fileDate)
+            : getLang('Unknown date', 'Unbekanntes Datum');
+
         videoElement.innerHTML = `
             <div class="thumbnail-container">
                 <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
-                <div class="video-length">${video.videoLength || ''}</div>
+                <div class="video-length">${videoLength}</div>
             </div>
             <div class="video-info">
                 <img src="/channelpic/${encodeURIComponent(channel)}.jpg" alt="${channel}" class="channel-pic" loading="lazy">
                 <div class="video-details">
                     <div class="video-title">${videoTitle}</div>
                     <div class="channel-name-link" onclick="window.location.href='channel.html?channel=${encodeURIComponent(channel)}'">${channel}</div>
-                    <div class="video-description">${getLang('Loading views...', 'Aufrufe werden geladen...')}</div>
+                    <div class="video-description">${formattedViewCount} ${getLang('views', 'Aufrufe')} • ${dateToShow}</div>
                 </div>
             </div>
         `;
 
-        const descriptionDiv = videoElement.querySelector('.video-description');
         const videoTitleDiv = videoElement.querySelector('.video-title');
         const videoThumb = videoElement.querySelector('.video-thumbnail');
         const channelPicEl = videoElement.querySelector('.channel-pic');
@@ -1085,65 +1102,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.open(`channel.html?channel=${encodeURIComponent(channel)}`, '_blank');
             }
         });
-
-        // If viewCount is already provided (topic mode or pre-fetched), use it directly
-        if (video.viewCount !== undefined && video.viewCount !== null && video.viewCount !== '') {
-            let formattedViewCount = video.viewCount;
-            if (!isNaN(video.viewCount) && video.viewCount !== '0') {
-                formattedViewCount = parseInt(video.viewCount).toLocaleString();
-            }
-
-            const lang = localStorage.getItem('language');
-            let viewsText = getLang('views', 'Aufrufe');
-            if (lang === 'de') formattedViewCount = formattedViewCount.replace(/,/g, '.');
-
-            const dateToShow = video.fileDate ? (isRelativeDatesEnabled() ? getRelativeTime(video.fileDate, lang) : video.fileDate) : getLang('Unknown date', 'Unbekanntes Datum');
-            descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${dateToShow}`;
-
-            // Fetch video length only if not provided
-            if (!video.videoLength) {
-                const videoBaseName = videoPathWithoutExt.split('/').pop();
-                fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoBaseName)}.txt`)
-                    .then(r => r.ok ? r.text() : '')
-                    .then(lengthStr => {
-                        if (lengthStr) {
-                            video.videoLength = lengthStr;
-                            videoElement.querySelector('.video-length').textContent = lengthStr;
-                        }
-                    }).catch(() => {});
-            }
-        } else {
-            // Genre mode — fetch viewCount and videoLength separately
-            Promise.all([
-                fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(response => response.ok ? response.text() : '0'),
-                fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoPathWithoutExt.split('/').pop())}.txt`).then(response => response.ok ? response.text() : '')
-            ])
-            .then(([viewCount, videoLength]) => {
-                let formattedViewCount = viewCount;
-                if (!isNaN(viewCount) && viewCount !== '0') {
-                    formattedViewCount = parseInt(viewCount).toLocaleString();
-                }
-
-                const lang = localStorage.getItem('language');
-                let viewsText = getLang('views', 'Aufrufe');
-                if (lang === 'de') formattedViewCount = formattedViewCount.replace(/,/g, '.');
-
-                const dateToShow = video.fileDate ? (isRelativeDatesEnabled() ? getRelativeTime(video.fileDate, lang) : video.fileDate) : getLang('Unknown date', 'Unbekanntes Datum');
-                descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${dateToShow}`;
-
-                // Store fetched metadata back to the video object
-                video.viewCount = viewCount.trim() || '0';
-                if (videoLength) {
-                    video.videoLength = videoLength.trim();
-                    videoElement.querySelector('.video-length').textContent = videoLength.trim();
-                }
-            })
-            .catch(() => {
-                const lang = localStorage.getItem('language');
-                const dateToShow = video.fileDate ? (isRelativeDatesEnabled() ? getRelativeTime(video.fileDate, lang) : video.fileDate) : getLang('Unknown date', 'Unbekanntes Datum');
-                descriptionDiv.textContent = dateToShow;
-            });
-        }
 
         return videoElement;
     }
@@ -1272,20 +1230,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Fetch dates for all filtered videos
-        const dateBatchSize = 30;
-        for (let i = 0; i < currentVideos.length; i += dateBatchSize) {
-            const batch = currentVideos.slice(i, i + dateBatchSize);
-            await Promise.all(batch.map(async (video) => {
-                const videoPathWithoutExt = stripExtension(video.path);
-                try {
-                    const date = await fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
-                        .then(r => r.ok ? r.text() : 'Unknown date');
-                    video.fileDate = date.trim() || 'Unknown date';
-                } catch {
-                    video.fileDate = 'Unknown date';
-                }
-            }));
+        // Fill in metadata from cache — synchronous, no network round-trips
+        for (const video of currentVideos) {
+            const cached = MetadataCache.getVideo(video.path) || {};
+            video.fileDate    = cached.fileDate    || video.fileDate || 'Unknown date';
+            video.viewCount   = cached.viewCount !== undefined ? cached.viewCount : (video.viewCount || '0');
+            video.videoLength = cached.videoLength || video.videoLength || '';
+            if (!video.displayName) {
+                video.displayName = cached.displayName || video.path.split('/').pop();
+            }
         }
 
         genreVideosFullyLoaded = true;
@@ -1316,18 +1269,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function filterByDuration(videos, minSeconds) {
-        const promises = videos.map(video => {
-            const videoPathWithoutExt = stripExtension(video.path);
-            const channel = video.path.split('/')[0];
-            const lengthUrl = `/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoPathWithoutExt.split('/').pop())}.txt`;
-            return fetch(lengthUrl)
-                .then(r => r.ok ? r.text() : '')
-                .then(lengthStr => parseDurationToSeconds(lengthStr))
-                .catch(() => 0);
-        });
-
-        return Promise.all(promises).then(durations => {
-            return videos.filter((video, i) => durations[i] >= minSeconds);
+        // Duration comes from cache — synchronous, no network
+        return videos.filter(video => {
+            const cached = MetadataCache.getVideo(video.path);
+            const lenStr = (cached && cached.videoLength) || video.videoLength || '';
+            return parseDurationToSeconds(lenStr) >= minSeconds;
         });
     }
 

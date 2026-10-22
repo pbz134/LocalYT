@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="skeleton.css">
     <link rel="icon" type="image/png" href="LocalYT-Rev-Files/favicon.png">
+    <script src="metadata-cache.js"></script>
     <script>
     (function detectTouchDevice() {
         if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
@@ -2730,7 +2731,12 @@
                     .then(response => response.ok ? response.json() : {})
                     .then(metaCache => {
                         const meta = metaCache[video.path] || {};
-                        let formattedViewCount = meta.viewCount || '0';
+                        // Prefer cached metadata from metadata_cache.json, fall back to metaCache
+                        const cachedVideo = (window.MetadataCache && MetadataCache.getVideo(video.path)) || {};
+                        const effectiveViewCount = cachedVideo.viewCount !== undefined ? cachedVideo.viewCount : (meta.viewCount || '0');
+                        const effectiveDisplayName = cachedVideo.displayName || meta.displayName;
+                        const effectiveFileDate = cachedVideo.fileDate || video.fileDate;
+                        let formattedViewCount = effectiveViewCount;
                         if (!isNaN(formattedViewCount) && formattedViewCount !== '0') {
                             formattedViewCount = parseInt(formattedViewCount).toLocaleString();
                         }
@@ -2739,11 +2745,11 @@
                         }
 
                         const viewsText = getLang('views', 'Aufrufe');
-                        const dateToShow = isRelativeDatesEnabled() ? getRelativeTime(video.fileDate, localStorage.getItem('language')) : video.fileDate;
+                        const dateToShow = isRelativeDatesEnabled() ? getRelativeTime(effectiveFileDate, localStorage.getItem('language')) : effectiveFileDate;
                         metaEl.textContent = `${formattedViewCount} ${viewsText} • ${dateToShow}`;
 
-                        if (meta.displayName && meta.displayName.trim()) {
-                            titleEl.textContent = meta.displayName.trim();
+                        if (effectiveDisplayName && effectiveDisplayName.trim()) {
+                            titleEl.textContent = effectiveDisplayName.trim();
                         }
 
                         if (meta.descriptionHtml) {
@@ -2985,7 +2991,11 @@
                                     const thumbnailSrc = `/thumbnails/${encodeURIComponent(videoPathWithoutExt)}.jpg`;
 
                                     const meta = metaCache[item.path] || {};
-                                    let formattedViewCount = meta.viewCount || '0';
+                                    const cachedVideo = (window.MetadataCache && MetadataCache.getVideo(item.path)) || {};
+                                    const effectiveViewCount = cachedVideo.viewCount !== undefined ? cachedVideo.viewCount : (meta.viewCount || '0');
+                                    const effectiveFileDate = cachedVideo.fileDate || item.fileDate;
+                                    const effectiveVideoLength = cachedVideo.videoLength || meta.videoLength || '';
+                                    let formattedViewCount = effectiveViewCount;
                                     if (!isNaN(formattedViewCount) && formattedViewCount !== '0') {
                                         formattedViewCount = parseInt(formattedViewCount).toLocaleString();
                                     }
@@ -2993,9 +3003,9 @@
                                         formattedViewCount = formattedViewCount.replace(/,/g, '.');
                                     }
                                     const viewsText = getLang('views', 'Aufrufe');
-                                    const dateToShow = isRelativeDatesEnabled() ? getRelativeTime(item.fileDate, localStorage.getItem('language')) : item.fileDate;
+                                    const dateToShow = isRelativeDatesEnabled() ? getRelativeTime(effectiveFileDate, localStorage.getItem('language')) : effectiveFileDate;
                                     const descText = `${formattedViewCount} ${viewsText} • ${dateToShow}`;
-                                    const videoLength = meta.videoLength || '';
+                                    const videoLength = effectiveVideoLength;
 
                                     videoElement.innerHTML = `
                                                 <div class="thumbnail-container">
@@ -3242,14 +3252,13 @@
                 const descriptionDiv = videoElement.querySelector('.video-description');
 
                 if (!video.fileDate || video.fileDate === 'Unknown date') {
-                    fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
-                        .then(r => r.ok ? r.text() : 'Unknown date')
+                    // Use cached metadata when available; falls back to fetch if not
+                    MetadataCache.getFileDate(video.path)
                         .then(fetchedDate => {
-                            const trimmedDate = fetchedDate.trim();
-                            if (trimmedDate && trimmedDate !== 'Unknown date') {
-                                const dateToShow = isRelativeDatesEnabled() ? getRelativeTime(trimmedDate, localStorage.getItem('language')) : trimmedDate;
+                            if (fetchedDate && fetchedDate !== 'Unknown date') {
+                                const dateToShow = isRelativeDatesEnabled() ? getRelativeTime(fetchedDate, localStorage.getItem('language')) : fetchedDate;
                                 descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${dateToShow}`;
-                                video.fileDate = trimmedDate;
+                                video.fileDate = fetchedDate;
                             } else {
                                 descriptionDiv.textContent = `${formattedViewCount} ${viewsText}`;
                             }
@@ -3750,30 +3759,29 @@
             
                 showSkeletons(12, 'channelVideosContainer', 'video');
             
-                fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`)
-                    .then(r => r.ok ? r.json() : {})
-                    .then(metaCache => {
-                        currentVideos = Object.keys(metaCache)
-                            .map(path => {
-                                const meta = metaCache[path];
-                                return {
-                                    path: path,
-                                    type: meta.type || 'video',
-                                    displayName: meta.displayName || path.split('/').pop(),
-                                    fileDate: meta.fileDate || 'Unknown date',
-                                    viewCount: meta.viewCount || '0',
-                                    videoLength: meta.videoLength || ''
-                                };
-                            })
-                            .filter(video => {
-                                // Filter out videos in the "Live" subfolder
-                                if (video.path.includes('/Live/')) return false;
-                                return video.type !== 'playlist' && video.videoLength !== '';
-                            });
+                MetadataCache.ready().then(() => {
+                    return fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`)
+                        .then(r => r.ok ? r.json() : {})
+                        .then(metaCache => {
+                            currentVideos = Object.keys(metaCache)
+                                .map(path => {
+                                    const meta = metaCache[path];
+                                    const cached = MetadataCache.getVideo(path) || {};
+                                    return {
+                                        path: path,
+                                        type: meta.type || 'video',
+                                        displayName: cached.displayName || meta.displayName || path.split('/').pop(),
+                                        fileDate: cached.fileDate || meta.fileDate || 'Unknown date',
+                                        viewCount: cached.viewCount || meta.viewCount || '0',
+                                        videoLength: cached.videoLength || meta.videoLength || ''
+                                    };
+                                })
+                                .filter(video => {
+                                    // Filter out videos in the "Live" subfolder
+                                    if (video.path.includes('/Live/')) return false;
+                                    return video.type !== 'playlist' && video.videoLength !== '';
+                                });
             
-                        const missing = currentVideos.filter(v => !v.fileDate || v.fileDate === 'Unknown date');
-            
-                        if (missing.length === 0) {
                             hideSkeletons();
                             videosContainer.innerHTML = '';
                             hasMoreVideos = currentVideos.length > 0;
@@ -3782,50 +3790,12 @@
                             loadMoreVideos();
                             setupIntersectionObserver();
                             applyVideosPerRow();
-                            return;
-                        }
-            
-                        const fetchPromises = missing.map(video => {
-                            const pathNoExt = stripExtension(video.path);
-                            return fetch(`/filedates/${encodeURIComponent(pathNoExt)}.txt`)
-                                .then(r => r.ok ? r.text() : 'Unknown date')
-                                .then(date => {
-                                    const trimmed = date.trim();
-                                    video.fileDate = (trimmed && trimmed !== 'Unknown date') ? trimmed : 'Unknown date';
-                                    return video;
-                                })
-                                .catch(() => {
-                                    video.fileDate = 'Unknown date';
-                                    return video;
-                                });
                         });
-            
-                        Promise.all(fetchPromises)
-                            .then(() => {
-                                hideSkeletons();
-                                videosContainer.innerHTML = '';
-                                hasMoreVideos = currentVideos.length > 0;
-                                currentSortMode = 'newest';
-                                sortVideosArray();
-                                loadMoreVideos();
-                                setupIntersectionObserver();
-                                applyVideosPerRow();
-                            })
-                            .catch(() => {
-                                hideSkeletons();
-                                videosContainer.innerHTML = '';
-                                hasMoreVideos = currentVideos.length > 0;
-                                currentSortMode = 'newest';
-                                sortVideosArray();
-                                loadMoreVideos();
-                                setupIntersectionObserver();
-                                applyVideosPerRow();
-                            });
-                    })
-                    .catch(() => {
-                        hideSkeletons();
-                        videosContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">Failed to load videos.</p>';
-                    });
+                })
+                .catch(() => {
+                    hideSkeletons();
+                    videosContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">Failed to load videos.</p>';
+                });
             }
 
             function lazyLoadStreamsTab() {
@@ -3834,29 +3804,28 @@
 
                 showSkeletons(12, 'streamsVideosContainer', 'video');
 
-                fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`)
-                    .then(r => r.ok ? r.json() : {})
-                    .then(metaCache => {
-                        const liveVideos = Object.keys(metaCache)
-                            .filter(path => path.includes('/Live/'))
-                            .map(path => {
-                                const meta = metaCache[path];
-                                return {
-                                    path: path,
-                                    type: meta.type || 'video',
-                                    displayName: meta.displayName || path.split('/').pop(),
-                                    fileDate: meta.fileDate || 'Unknown date',
-                                    viewCount: meta.viewCount || '0',
-                                    videoLength: meta.videoLength || ''
-                                };
-                            })
-                            .filter(v => v.videoLength !== '');
+                MetadataCache.ready().then(() => {
+                    return fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`)
+                        .then(r => r.ok ? r.json() : {})
+                        .then(metaCache => {
+                            const liveVideos = Object.keys(metaCache)
+                                .filter(path => path.includes('/Live/'))
+                                .map(path => {
+                                    const meta = metaCache[path];
+                                    const cached = MetadataCache.getVideo(path) || {};
+                                    return {
+                                        path: path,
+                                        type: meta.type || 'video',
+                                        displayName: cached.displayName || meta.displayName || path.split('/').pop(),
+                                        fileDate: cached.fileDate || meta.fileDate || 'Unknown date',
+                                        viewCount: cached.viewCount || meta.viewCount || '0',
+                                        videoLength: cached.videoLength || meta.videoLength || ''
+                                    };
+                                })
+                                .filter(v => v.videoLength !== '');
 
-                        streamsVideos = liveVideos;
+                            streamsVideos = liveVideos;
 
-                        const missing = streamsVideos.filter(v => !v.fileDate || v.fileDate === 'Unknown date');
-
-                        if (missing.length === 0) {
                             hideSkeletons();
                             streamsVideosContainer.innerHTML = '';
                             streamsHasMore = streamsVideos.length > 0;
@@ -3864,48 +3833,12 @@
                             sortStreamsArray();
                             loadMoreStreams();
                             setupStreamsIntersectionObserver();
-                            return;
-                        }
-
-                        const fetchPromises = missing.map(video => {
-                            const pathNoExt = stripExtension(video.path);
-                            return fetch(`/filedates/${encodeURIComponent(pathNoExt)}.txt`)
-                                .then(r => r.ok ? r.text() : 'Unknown date')
-                                .then(date => {
-                                    const trimmed = date.trim();
-                                    video.fileDate = (trimmed && trimmed !== 'Unknown date') ? trimmed : 'Unknown date';
-                                    return video;
-                                })
-                                .catch(() => {
-                                    video.fileDate = 'Unknown date';
-                                    return video;
-                                });
                         });
-
-                        Promise.all(fetchPromises)
-                            .then(() => {
-                                hideSkeletons();
-                                streamsVideosContainer.innerHTML = '';
-                                streamsHasMore = streamsVideos.length > 0;
-                                streamsSortMode = 'newest';
-                                sortStreamsArray();
-                                loadMoreStreams();
-                                setupStreamsIntersectionObserver();
-                            })
-                            .catch(() => {
-                                hideSkeletons();
-                                streamsVideosContainer.innerHTML = '';
-                                streamsHasMore = streamsVideos.length > 0;
-                                streamsSortMode = 'newest';
-                                sortStreamsArray();
-                                loadMoreStreams();
-                                setupStreamsIntersectionObserver();
-                            });
-                    })
-                    .catch(() => {
-                        hideSkeletons();
-                        streamsVideosContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">Failed to load streams.</p>';
-                    });
+                })
+                .catch(() => {
+                    hideSkeletons();
+                    streamsVideosContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">Failed to load streams.</p>';
+                });
             }
 
             function sortStreamsArray() {
@@ -4002,14 +3935,12 @@
                 const descriptionDiv = videoElement.querySelector('.video-description');
 
                 if (!video.fileDate || video.fileDate === 'Unknown date') {
-                    fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`)
-                        .then(r => r.ok ? r.text() : 'Unknown date')
+                    MetadataCache.getFileDate(video.path)
                         .then(fetchedDate => {
-                            const trimmedDate = fetchedDate.trim();
-                            if (trimmedDate && trimmedDate !== 'Unknown date') {
-                                const dateToShow = isRelativeDatesEnabled() ? getRelativeTime(trimmedDate, localStorage.getItem('language')) : trimmedDate;
+                            if (fetchedDate && fetchedDate !== 'Unknown date') {
+                                const dateToShow = isRelativeDatesEnabled() ? getRelativeTime(fetchedDate, localStorage.getItem('language')) : fetchedDate;
                                 descriptionDiv.textContent = `${formattedViewCount} ${viewsText} • ${dateToShow}`;
-                                video.fileDate = trimmedDate;
+                                video.fileDate = fetchedDate;
                             } else {
                                 descriptionDiv.textContent = `${formattedViewCount} ${viewsText}`;
                             }
@@ -4233,9 +4164,9 @@
                             const descriptionDiv = videoElement.querySelector('.video-description');
 
                             Promise.all([
-                                fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(r => r.ok ? r.text() : '0'),
-                                fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(videoPathWithoutExt.split('/').pop())}.txt`).then(r => r.ok ? r.text() : ''),
-                                fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(r => r.ok ? r.text() : 'Unknown date')
+                                MetadataCache.getViewCount(video.path),
+                                MetadataCache.getVideoLength(video.path),
+                                MetadataCache.getFileDate(video.path)
                             ])
                             .then(([viewCount, videoLength, fileDate]) => {
                                 let formattedViewCount = viewCount;
@@ -4257,7 +4188,7 @@
                                     finalText += ` • ${dateToShow}`;
                                 }
                                 descriptionDiv.textContent = finalText;
-                                if (videoLength.trim()) {
+                                if (videoLength && videoLength.trim()) {
                                     videoElement.querySelector('.video-length').textContent = videoLength.trim();
                                 }
                             })

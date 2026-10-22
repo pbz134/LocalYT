@@ -744,6 +744,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             `<div style="color: white; padding: 20px;">${getLang('Enter a search term above', 'Gib oben einen Suchbegriff ein')}</div>`;
     }
 
+    // Load metadata cache before doing anything metadata-related
+    await MetadataCache.ready();
+
     // Initialize Web Worker if available
     if (window.Worker) {
         try {
@@ -999,33 +1002,33 @@ function createVideoElement(video, container) {
     
     container.appendChild(videoElement);
 
-    // Fetch view count and file date
+    // ---- METADATA: served from metadata_cache.json ----
     const metadataDiv = videoElement.querySelector('.video-metadata');
-    
-    Promise.all([
-        fetch(`/viewcounts/${encodeURIComponent(videoPathWithoutExt)}`).then(response => response.ok ? response.text() : '0'),
-        fetch(`/filedates/${encodeURIComponent(videoPathWithoutExt)}.txt`).then(response => response.ok ? response.text() : 'Unknown date')
-    ])
-    .then(([viewCount, fileDate]) => {
-        let formattedViewCount = viewCount;
-        if (!isNaN(viewCount) && viewCount !== '0') {
-            formattedViewCount = parseInt(viewCount).toLocaleString();
-        }
-        
-        const lang = localStorage.getItem('language');
-        if (lang === 'de') {
-            formattedViewCount = formattedViewCount.replace(/,/g, '.');
-        }
+    const cached = MetadataCache.getVideo(videoPath) || {};
+    const viewCount  = cached.viewCount || '0';
+    const fileDate   = cached.fileDate  || 'Unknown date';
+    const videoLength = cached.videoLength || '';
 
-        const cleanFileDate = fileDate.replace(/\s+/g, ' ').trim();
-        const dateToShow = isRelativeDatesEnabled() ? getRelativeTime(cleanFileDate, lang) : cleanFileDate;
-        
-        metadataDiv.textContent = `${formattedViewCount} ${getLang('views', 'Aufrufe')} • ${dateToShow}`;
-    })
-    .catch(error => {
-        console.error('Error fetching metadata:', error);
-        metadataDiv.textContent = getLang('Views unavailable', 'Aufrufe nicht verfügbar');
-    });
+    let formattedViewCount = viewCount;
+    if (!isNaN(viewCount) && viewCount !== '0') {
+        formattedViewCount = parseInt(viewCount).toLocaleString();
+    }
+
+    const lang = localStorage.getItem('language');
+    if (lang === 'de') {
+        formattedViewCount = formattedViewCount.replace(/,/g, '.');
+    }
+
+    const cleanFileDate = fileDate.replace(/\s+/g, ' ').trim();
+    const dateToShow = isRelativeDatesEnabled()
+        ? getRelativeTime(cleanFileDate, lang)
+        : cleanFileDate;
+
+    metadataDiv.textContent = `${formattedViewCount} ${getLang('views', 'Aufrufe')} • ${dateToShow}`;
+
+    if (videoLength) {
+        videoElement.querySelector('.video-length').textContent = videoLength;
+    }
 
     // Video click handlers
     const videoUrl = `video.html?src=${encodeURIComponent(videoPath)}`;
@@ -1043,18 +1046,6 @@ function createVideoElement(video, container) {
     setupContextMenu(videoElement.querySelector('.video-thumbnail'), videoUrl);
     setupContextMenu(videoElement.querySelector('.video-title'), videoUrl);
     setupContextMenu(videoElement.querySelector('.clickable-channel-name'), channelUrl);
-
-    // Fetch and display video length
-    const videoFilename = video.path.split('/').pop();
-    const videoNameWithoutExt = stripExtension(videoFilename);
-    fetch(`/videolengths/${encodeURIComponent(channelName)}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
-        .then(response => response.ok ? response.text() : '')
-        .then(length => {
-            videoElement.querySelector('.video-length').textContent = length;
-        })
-        .catch(error => {
-            console.error('Error fetching video length:', error);
-        });
 }
 
 function setupLazyLoading() {
@@ -1373,13 +1364,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Apply metadata-based filters asynchronously
- * Now includes RESOLUTION filtering via /videoresolutions/
+ * Apply metadata-based filters asynchronously.
+ * Reads from MetadataCache first, falls back to fetch for anything missing.
  */
 async function applyMetadataFilters(results) {
     const container = document.getElementById('searchResultsContainer');
     if (!container) return;
-    
+
+    await MetadataCache.ready();
+
     const items = container.querySelectorAll('.search-result-item');
     const channelItems = container.querySelectorAll('.channel-result');
     
@@ -1406,35 +1399,54 @@ async function applyMetadataFilters(results) {
             channelItems.forEach(el => el.style.display = 'none');
         }
     }
+
+    // Subtitle filter (uses cache; fallback to old behaviour for anything missing)
+    if (hasSubtitleFilter) {
+        items.forEach((item, index) => {
+            if (item.style.display === 'none' || !results[index]) return;
+            const cached = MetadataCache.getVideo(results[index].path);
+            if (cached) {
+                const hasSubs = Array.isArray(cached.subtitles) && cached.subtitles.length > 0;
+                if (!hasSubs) {
+                    item.style.display = 'none';
+                    item.dataset.filteredOut = 'true';
+                }
+            }
+        });
+    }
     
-    if (!hasLengthFilter && !hasResolutionFilter && !hasSubtitleFilter) return;
-    
+    if (!hasLengthFilter && !hasResolutionFilter) return;
+
     const filterPromises = Array.from(items).map(async (item, index) => {
         if (item.style.display === 'none' || !results[index]) return { index, keep: true };
         const video = results[index];
         const videoPath = video.path;
         const basePath = stripExtension(videoPath);
-        const pathParts = basePath.split('/');
-        const channelName = pathParts[0];
-        const videoName = pathParts[pathParts.length - 1];
         let shouldKeep = true;
+        const cached = MetadataCache.getVideo(videoPath);
         
         try {
-            // Length check
+            // Length check (from cache if possible)
             if (hasLengthFilter) {
-                const lengthResponse = await fetch(`/videolengths/${encodeURIComponent(basePath)}.txt`);
-                const lengthText = lengthResponse.ok ? await lengthResponse.text() : '';
+                let lengthText = (cached && cached.videoLength) ? cached.videoLength : '';
+                if (!lengthText) {
+                    const lengthResponse = await fetch(`/videolengths/${encodeURIComponent(basePath)}.txt`);
+                    lengthText = lengthResponse.ok ? await lengthResponse.text() : '';
+                }
                 const seconds = parseDurationToSeconds(lengthText);
                 if (searchFilters.length === 'short' && seconds >= 180) shouldKeep = false;
                 if (searchFilters.length === 'medium' && (seconds < 180 || seconds > 1200)) shouldKeep = false;
                 if (searchFilters.length === 'long' && seconds <= 1200) shouldKeep = false;
             }
             
-            // Resolution check – UPDATED to read only the first line
+            // Resolution check (from cache if possible)
             if (shouldKeep && hasResolutionFilter) {
-                const resResponse = await fetch(`/videoresolutions/${encodeURIComponent(basePath)}.txt`);
-                const resolutionText = resResponse.ok ? (await resResponse.text()).trim() : '';
-                const resolution = resolutionText.split('\n')[0].trim().toLowerCase(); // <-- NEW
+                let resolution = (cached && cached.resolution) ? cached.resolution.trim().toLowerCase() : '';
+                if (!resolution) {
+                    const resResponse = await fetch(`/videoresolutions/${encodeURIComponent(basePath)}.txt`);
+                    const resolutionText = resResponse.ok ? (await resResponse.text()).trim() : '';
+                    resolution = resolutionText.split('\n')[0].trim().toLowerCase();
+                }
                 
                 const selectedResolutions = searchFilters.properties.filter(p => ['4k', '2k', '1080p', '720p'].includes(p));
                 if (selectedResolutions.length > 0 && resolution) {
@@ -1490,5 +1502,6 @@ function parseDurationToSeconds(durationStr) {
     <script src="sidebar.js"></script>
     <script src="thumbnail-context-menu.js"></script>
     <script src="skeleton-loader.js"></script>
+    <script src="metadata-cache.js"></script>
 </body>
 </html>

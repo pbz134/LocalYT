@@ -300,6 +300,7 @@
         </div>
     </div>
 
+    <script src="metadata-cache.js"></script>
     <script>
         let selectedChannel = null;
 
@@ -439,18 +440,21 @@
         });
 
         document.addEventListener('DOMContentLoaded', () => {
-            checkLoginStatus().then(loggedIn => {
-                if (!loggedIn) {
-                    document.getElementById('loadingState').style.display = 'none';
-                    document.getElementById('contentArea').innerHTML = `
-                        <div class="login-prompt">
-                            <p style="font-size:20px; margin-bottom:12px;">Please log in to see your subscriptions</p>
-                            <a href="login.html">Go to Login</a>
-                        </div>
-                    `;
-                    return;
-                }
-                loadSubscriptions();
+            // Wait for metadata cache so the length/date lookups never hit the network
+            MetadataCache.ready().then(() => {
+                checkLoginStatus().then(loggedIn => {
+                    if (!loggedIn) {
+                        document.getElementById('loadingState').style.display = 'none';
+                        document.getElementById('contentArea').innerHTML = `
+                            <div class="login-prompt">
+                                <p style="font-size:20px; margin-bottom:12px;">Please log in to see your subscriptions</p>
+                                <a href="login.html">Go to Login</a>
+                            </div>
+                        `;
+                        return;
+                    }
+                    loadSubscriptions();
+                });
             });
         });
 
@@ -584,19 +588,31 @@
                 const channelPicSrc = `/channelpic/${encodeURIComponent(channel)}.jpg`;
                 const videoUrl = `video.html?src=${encodeURIComponent(video.path)}`;
                 const lang = localStorage.getItem('language');
-                const dateToShow = isRelativeDatesEnabled() ? getRelativeTime(video.fileDate, lang) : video.fileDate;
+
+                // Cache-based metadata lookup (sync, no network)
+                const cached = MetadataCache.getVideo(video.path) || {};
+                const fileDate = cached.fileDate || video.fileDate || '';
+                const viewCount = cached.viewCount !== undefined ? cached.viewCount : (video.viewCount || '0');
+                const videoLength = cached.videoLength || video.videoLength || '';
+
+                const dateToShow = fileDate
+                    ? (isRelativeDatesEnabled() ? getRelativeTime(fileDate, lang) : fileDate)
+                    : '';
+                const formattedViews = lang === 'de'
+                    ? String(viewCount).replace(/,/g, '.')
+                    : viewCount;
 
                 el.innerHTML = `
                     <div class="thumbnail-container">
                         <img src="${thumbnailSrc}" alt="${videoTitle}" class="video-thumbnail" loading="lazy">
-                        <div class="video-length"></div>
+                        <div class="video-length">${videoLength}</div>
                     </div>
                     <div class="video-info">
                         <img src="${channelPicSrc}" alt="${channel}" class="channel-pic" loading="lazy">
                         <div class="video-details">
                             <div class="video-title" onclick="window.location.href='${videoUrl}'">${videoTitle}</div>
                             <div class="channel-name">${channel}</div>
-                            <div class="video-description">${lang === 'de' ? video.viewCount.replace(/,/g, '.') : video.viewCount} ${getLang('views', 'Aufrufe')} &bull; ${dateToShow}</div>
+                            <div class="video-description">${formattedViews} ${getLang('views', 'Aufrufe')}${dateToShow ? ' &bull; ' + dateToShow : ''}</div>
                         </div>
                     </div>
                 `;
@@ -624,16 +640,6 @@
                 setupChannelLinkEvents(channelEl, channel);
 
                 grid.appendChild(el);
-
-                const videoFilename = video.path.split('/').pop();
-                const videoNameWithoutExt = stripExtension(videoFilename);
-                fetch(`/videolengths/${channel}/${encodeURIComponent(videoNameWithoutExt)}.txt`)
-                    .then(r => r.text())
-                    .then(length => {
-                        const lengthEl = el.querySelector('.video-length');
-                        if (lengthEl) lengthEl.textContent = length;
-                    })
-                    .catch(() => {});
             });
         }
 

@@ -215,6 +215,7 @@
     <!-- Scripts: Profile Pic & Search Logic (Standard includes) -->
     <script src="profile-pic.js"></script> <!-- Handles Account Icon & Modal -->
     <script src="search-suggestions.js"></script> <!-- Handles Search Bar -->
+    <script src="metadata-cache.js"></script> <!-- Unified metadata cache -->
 
     <script>
         // --- Language Helper ---
@@ -350,6 +351,13 @@
                 return contentDiv.innerHTML = '<div class="error-msg">' + getLang('Invalid link.', 'Ungültiger Link.') + '</div>';
             }
 
+            // Ensure metadata cache is ready before rendering
+            try {
+                await MetadataCache.ready();
+            } catch (e) {
+                console.warn('MetadataCache not available, falling back to individual fetches:', e);
+            }
+
             try {
                 const res = await fetch(`/shared-playlist?id=${id}`);
                 
@@ -385,15 +393,24 @@
                     const thumbPath = '/thumbnails/' + encodeURIComponent(video.path.replace(/\.(mp4|mp3|mkv)$/, '')) + '.jpg';
                     const channel = video.path.split('/')[0];
 
+                    // Prefer server-provided values (they come from metadataCache now).
+                    // Fall back to the local MetadataCache, then to a final disk-independent default.
+                    const cachedMeta = MetadataCache.getVideo(video.path) || {};
+                    const rawViewCount = video.viewCount || cachedMeta.viewCount || '0';
+                    const rawFileDate = video.fileDate || cachedMeta.fileDate || '';
+                    const videoLength = cachedMeta.videoLength || '';
+
                     const lang = localStorage.getItem('language');
-                    const viewCount = lang === 'de' ? video.viewCount.replace(/,/g, '.') : video.viewCount;
+                    const viewCount = lang === 'de' ? rawViewCount.replace(/,/g, '.') : rawViewCount;
                     const viewsText = getLang('views', 'Aufrufe');
-                    const dateToShow = video.fileDate ? (isRelativeDatesEnabled() ? getRelativeTime(video.fileDate, lang) : video.fileDate) : '';
+                    const dateToShow = rawFileDate
+                        ? (isRelativeDatesEnabled() ? getRelativeTime(rawFileDate, lang) : rawFileDate)
+                        : '';
 
                     card.innerHTML = `
                         <div class="thumbnail-container">
                             <img src="${thumbPath}" alt="" class="video-thumb" onerror="this.style.display='none'">
-                            <div class="duration-badge"></div>
+                            <div class="duration-badge">${escapeHtml(videoLength)}</div>
                         </div>
                         <div class="video-meta">
                             <div class="title">${escapeHtml(video.displayName || video.path)}</div>
@@ -405,14 +422,6 @@
                     card.onclick = () => window.location.href = `video.html?src=${path}`;
                     
                     grid.appendChild(card);
-
-                    // Fetch Length
-                    const vFile = video.path.split('/').pop();
-                    const vName = vFile.replace(/\.(mp4|mp3|mkv)$/, '');
-                    fetch(`/videolengths/${encodeURIComponent(channel)}/${encodeURIComponent(vName)}.txt`)
-                        .then(r => r.text())
-                        .then(t => card.querySelector('.duration-badge').textContent = t.trim())
-                        .catch(() => {});
                 });
 
                 contentDiv.appendChild(grid);
