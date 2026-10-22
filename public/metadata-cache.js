@@ -11,20 +11,34 @@
 
     function load() {
         if (loadPromise) return loadPromise;
-        loadPromise = fetch('/metadata_cache.json', { cache: 'no-cache' })
-            .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-            .then(data => {
-                cache = data;
-                if (!cache.videos) cache.videos = {};
-                if (!cache.channels) cache.channels = {};
-                if (!cache.playlists) cache.playlists = {};
-                return cache;
-            })
-            .catch(err => {
-                console.warn('[MetadataCache] Falling back to individual fetches:', err.message);
-                cache = { videos: {}, channels: {}, playlists: {} };
-                return cache;
-            });
+        loadPromise = new Promise((resolve) => {
+            const doFetch = () => {
+                fetch('/metadata_cache.json', { cache: 'default', priority: 'low' })
+                    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                    .then(data => {
+                        cache = data;
+                        if (!cache.videos) cache.videos = {};
+                        if (!cache.channels) cache.channels = {};
+                        if (!cache.playlists) cache.playlists = {};
+                        resolve(cache);
+                    })
+                    .catch(err => {
+                        console.warn('[MetadataCache] Falling back to individual fetches:', err.message);
+                        cache = { videos: {}, channels: {}, playlists: {} };
+                        resolve(cache);
+                    });
+            };
+            // Delay the 54 MB fetch until critical resources (favicon, CSS, HTML) have
+            // finished loading. Firing it during <head> parsing starves low-priority
+            // requests like the favicon on bandwidth-limited connections.
+            if (document.readyState === 'complete') {
+                setTimeout(doFetch, 300);
+            } else {
+                window.addEventListener('load', () => setTimeout(doFetch, 300), { once: true });
+                // Safety net in case 'load' never fires (stalled thumbnail, etc.)
+                setTimeout(doFetch, 15000);
+            }
+        });
         return loadPromise;
     }
 
@@ -107,7 +121,4 @@
         // Expose raw cache for advanced use (e.g. iterating all videos)
         get raw() { return cache; }
     };
-
-    // Eagerly start loading — deduped via loadPromise
-    ready();
 })();
