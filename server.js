@@ -1194,7 +1194,11 @@ if (fs.existsSync(channelHomeMetaCacheDir)) {
     }
 }
 app.use('/channel-home-meta-cache', express.static(channelHomeMetaCacheDir));
-app.use('/metadata_cache.json', express.static(path.join(__dirname, 'metadata_cache.json')));
+app.get('/metadata_cache.json', (req, res, next) => {
+    res.sendFile(path.join(__dirname, 'metadata_cache.json'), err => {
+        if (err) next();
+    });
+});
 
 // --- PLAYLIST SHORT LINK SYSTEM (INITIALIZATION) ---
 function initializePlaylistShortLinks() {

@@ -29,6 +29,7 @@ import json
 import sys
 import argparse
 import datetime
+import filecmp
 from pathlib import Path
 
 SCRIPT_DIR   = Path(__file__).resolve().parent
@@ -77,16 +78,16 @@ def build_channel_index(channel_name):
         'videoresolutions': _walk_index(base / "videoresolutions" / channel_name, ".txt"),
         'comments':         _walk_index(base / "comments"         / channel_name, ".json"),
         'livechats':        _walk_index(base / "livechats"        / channel_name, ".json"),
+        'thumbnails':       _walk_index(base / "thumbnails"       / channel_name, ".jpg"),
+        'thumbnails-small': _walk_index(base / "thumbnails-small" / channel_name, ".jpg"),
     }
-
-    # Subtitles: single readdir of the channel's subtitle folder → {video_name: [langs]}
     sub_dir = base / "subtitles" / channel_name
     subs = {}
     if sub_dir.exists():
         for f in os.listdir(sub_dir):
             if f.startswith('._') or not f.endswith('.vtt'):
                 continue
-            stem = f[:-4]                       # strip ".vtt"
+            stem = f[:-4]
             if '.' in stem:
                 name, lang = stem.rsplit('.', 1)
                 subs.setdefault(name, []).append(lang)
@@ -145,20 +146,26 @@ def _read_text(path):
         return None
 
 
-def scan_video(file_path, idx):
+def scan_video(file_path, idx, channel_name):
     """Build the metadata object for one video using the channel index."""
     rel       = file_path.relative_to(VIDEOS_DIR).as_posix()
-    base_path = os.path.splitext(rel)[0]              # "channel/pl/video"
-    name      = os.path.splitext(file_path.name)[0]   # "video" (for videolengths/livechats)
+    full_base = os.path.splitext(rel)[0]                   # "channel/playlist/video"
+    name      = os.path.splitext(file_path.name)[0]        # "video"
+
+    # Index keys are channel-relative (e.g. "playlist/video" or "video"),
+    # so strip the channel prefix from the lookup key. Without this, every
+    # lookup misses and half the metadata silently disappears from the cache.
+    prefix = channel_name + '/'
+    idx_key = full_base[len(prefix):] if full_base.startswith(prefix) else full_base
 
     m = {}
 
-    if (p := idx['filenames'].get(base_path)):        m['displayName'] = _read_text(p)
-    if (p := idx['filedates'].get(base_path)):        m['fileDate']    = _read_text(p)
-    if (p := idx['viewcounts'].get(base_path)):       m['viewCount']   = _read_text(p)
-    if (p := idx['videolengths'].get(name)):          m['videoLength'] = _read_text(p)
+    if (p := idx['filenames'].get(idx_key)):        m['displayName'] = _read_text(p)
+    if (p := idx['filedates'].get(idx_key)):        m['fileDate']    = _read_text(p)
+    if (p := idx['viewcounts'].get(idx_key)):       m['viewCount']   = _read_text(p)
+    if (p := idx['videolengths'].get(name)):        m['videoLength'] = _read_text(p)  # flat layout, keyed by bare name
 
-    if (p := idx['videostats'].get(base_path)):
+    if (p := idx['videostats'].get(idx_key)):
         txt = _read_text(p)
         if txt:
             parts = txt.split(',')
@@ -168,17 +175,17 @@ def scan_video(file_path, idx):
             except (ValueError, IndexError):
                 pass
 
-    if (p := idx['videoresolutions'].get(base_path)):
+    if (p := idx['videoresolutions'].get(idx_key)):
         txt = _read_text(p)
         if txt:
             lines = txt.splitlines()
             if len(lines) >= 1: m['resolution'] = lines[0].strip()
             if len(lines) >= 2: m['codec']      = lines[1].strip()
 
-    m['hasThumbnail']      = (ROOT_DIR / "thumbnails"       / f"{base_path}.jpg").exists()
-    m['hasThumbnailSmall'] = (ROOT_DIR / "thumbnails-small" / f"{base_path}.jpg").exists()
-    m['hasComments']       = base_path in idx['comments']
-    m['hasLiveChat']       = name      in idx['livechats']
+    m['hasThumbnail']      = idx_key in idx['thumbnails']
+    m['hasThumbnailSmall'] = idx_key in idx['thumbnails-small']
+    m['hasComments']       = idx_key in idx['comments']
+    m['hasLiveChat']       = name    in idx['livechats']
 
     if name in idx['subtitles']:
         m['subtitles'] = idx['subtitles'][name]
@@ -187,13 +194,14 @@ def scan_video(file_path, idx):
 
 
 def scan_channel_videos(channel_dir, idx):
+    channel_name = channel_dir.name
     videos = {}
     for root, _dirs, files in os.walk(channel_dir):
         for fname in files:
             if fname.startswith('._') or not fname.lower().endswith(VIDEO_EXTENSIONS):
                 continue
             try:
-                rel, meta = scan_video(Path(root) / fname, idx)
+                rel, meta = scan_video(Path(root) / fname, idx, channel_name)
                 videos[rel] = meta
             except Exception as e:
                 print(f"  [warn] {fname}: {e}")
@@ -285,6 +293,19 @@ def load_json(path, default):
 
 
 def save_json(path, data):
+    # Compare against the existing JSON *before* touching the disk.
+    # "generated_at" always differs, so strip it from both sides.
+    if path.exists():
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                old = json.load(f)
+            old_cmp = {k: v for k, v in old.items()  if k != 'generated_at'}
+            new_cmp = {k: v for k, v in data.items() if k != 'generated_at'}
+            if old_cmp == new_cmp:
+                return  # identical → leave mtime alone, keep ETag stable
+        except Exception:
+            pass  # corrupt old file → fall through and rewrite
+
     tmp = path.with_suffix(path.suffix + '.tmp')
     with open(tmp, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False)

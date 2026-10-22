@@ -3759,29 +3759,30 @@
             
                 showSkeletons(12, 'channelVideosContainer', 'video');
             
-                MetadataCache.ready().then(() => {
-                    return fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`)
-                        .then(r => r.ok ? r.json() : {})
-                        .then(metaCache => {
-                            currentVideos = Object.keys(metaCache)
-                                .map(path => {
-                                    const meta = metaCache[path];
-                                    const cached = MetadataCache.getVideo(path) || {};
-                                    return {
-                                        path: path,
-                                        type: meta.type || 'video',
-                                        displayName: cached.displayName || meta.displayName || path.split('/').pop(),
-                                        fileDate: cached.fileDate || meta.fileDate || 'Unknown date',
-                                        viewCount: cached.viewCount || meta.viewCount || '0',
-                                        videoLength: cached.videoLength || meta.videoLength || ''
-                                    };
-                                })
-                                .filter(video => {
-                                    // Filter out videos in the "Live" subfolder
-                                    if (video.path.includes('/Live/')) return false;
-                                    return video.type !== 'playlist' && video.videoLength !== '';
-                                });
+                fetch(`/channel-home-meta-cache/${encodeURIComponent(channel)}.json`)
+                    .then(r => r.ok ? r.json() : {})
+                    .then(metaCache => {
+                        currentVideos = Object.keys(metaCache)
+                            .map(path => {
+                                const meta = metaCache[path];
+                                return {
+                                    path: path,
+                                    type: meta.type || 'video',
+                                    displayName: meta.displayName || path.split('/').pop(),
+                                    fileDate: meta.fileDate || 'Unknown date',
+                                    viewCount: meta.viewCount || '0',
+                                    videoLength: meta.videoLength || ''
+                                };
+                            })
+                            .filter(video => {
+                                // Filter out videos in the "Live" subfolder
+                                if (video.path.includes('/Live/')) return false;
+                                return video.type !== 'playlist' && video.videoLength !== '';
+                            });
             
+                        const missing = currentVideos.filter(v => !v.fileDate || v.fileDate === 'Unknown date');
+            
+                        if (missing.length === 0) {
                             hideSkeletons();
                             videosContainer.innerHTML = '';
                             hasMoreVideos = currentVideos.length > 0;
@@ -3790,12 +3791,50 @@
                             loadMoreVideos();
                             setupIntersectionObserver();
                             applyVideosPerRow();
+                            return;
+                        }
+            
+                        const fetchPromises = missing.map(video => {
+                            const pathNoExt = stripExtension(video.path);
+                            return fetch(`/filedates/${encodeURIComponent(pathNoExt)}.txt`)
+                                .then(r => r.ok ? r.text() : 'Unknown date')
+                                .then(date => {
+                                    const trimmed = date.trim();
+                                    video.fileDate = (trimmed && trimmed !== 'Unknown date') ? trimmed : 'Unknown date';
+                                    return video;
+                                })
+                                .catch(() => {
+                                    video.fileDate = 'Unknown date';
+                                    return video;
+                                });
                         });
-                })
-                .catch(() => {
-                    hideSkeletons();
-                    videosContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">Failed to load videos.</p>';
-                });
+            
+                        Promise.all(fetchPromises)
+                            .then(() => {
+                                hideSkeletons();
+                                videosContainer.innerHTML = '';
+                                hasMoreVideos = currentVideos.length > 0;
+                                currentSortMode = 'newest';
+                                sortVideosArray();
+                                loadMoreVideos();
+                                setupIntersectionObserver();
+                                applyVideosPerRow();
+                            })
+                            .catch(() => {
+                                hideSkeletons();
+                                videosContainer.innerHTML = '';
+                                hasMoreVideos = currentVideos.length > 0;
+                                currentSortMode = 'newest';
+                                sortVideosArray();
+                                loadMoreVideos();
+                                setupIntersectionObserver();
+                                applyVideosPerRow();
+                            });
+                    })
+                    .catch(() => {
+                        hideSkeletons();
+                        videosContainer.innerHTML = '<p style="color: #888; text-align: center; width: 100%;">Failed to load videos.</p>';
+                    });
             }
 
             function lazyLoadStreamsTab() {

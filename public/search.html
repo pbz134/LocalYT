@@ -897,7 +897,8 @@ function localSearch(query, maxResults = 100) {
     return scoredResults.slice(0, maxResults);
 }
 
-function displaySearchResults(results) {
+async function displaySearchResults(results) {
+    await MetadataCache.ready();
     const resultsContainer = document.getElementById('searchResultsContainer');
     
     // Remove skeletons if they exist

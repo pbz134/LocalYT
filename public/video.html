@@ -2382,9 +2382,6 @@
         // ============================================================
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // --- Ensure the metadata cache is loaded before we render anything ---
-            await MetadataCache.ready();
-
             const urlParams = new URLSearchParams(window.location.search);
 
             // Safe URI decoding to handle special characters like % in filenames
@@ -2444,11 +2441,15 @@
             let isSubscribed = false;
             let posterImageUrl = '';
             let currentChannel = '';
+            let myFP = null;
 
             // ----- FILTER BUTTONS VARIABLES -----
             let filterButtons = null;
             let allBtn, channelBtn, tagBtn;
             let currentSecondTag = null;
+
+            // Ensure metadata cache is loaded before reading any video/channel data
+            await MetadataCache.ready();
 
             if (videoSrc) {
                 const videoExtension = getVideoExtension(videoSrc);
@@ -2682,25 +2683,33 @@
                     formattedViews = formattedViews.replace(/,/g, '.');
                 }
 
-                currentVideoDescription.textContent =
-                    `${formattedViews} ${viewsText} - ${uploadedText} ${fileDate.trim()}\n\n`;
-
-                // Description from cache — no separate fetch
-                if (cachedVideo.description) {
-                    const descriptionWithLinks = await detectAndStyleLinks(cachedVideo.description);
-                    currentVideoDescription.innerHTML = currentVideoDescription.textContent +
-                        descriptionWithLinks;
-                    console.log('Description passed to player:', cachedVideo.description);
-                    if (myFP && typeof myFP.setDescription === 'function') {
-                        myFP.setDescription(cachedVideo.description);
-                    }
-                } else {
-                    currentVideoDescription.innerHTML = currentVideoDescription.textContent +
-                        '<span class="no-description">' + getLang(
-                            'No description available for this video.',
-                            'Diesem Video wurde keine Beschreibung hinzugefügt.') + '</span>';
+            const cachedMeta = MetadataCache.getVideo(videoSrc) || {};
+            let descriptionText = cachedMeta.description;
+            
+            if (descriptionText === undefined) {
+                // Not in cache — fetch just this one file on-demand.
+                // Descriptions are intentionally excluded from metadata_cache.json
+                // because they would balloon the file to 500 MB+.
+                const cleanDescName = videoSrc.split('/').pop().replace(/\.(mp4|mkv|avi|mov|webm|mp3)$/i, '');
+                try {
+                    const r = await fetch(`/descriptions/${encodeURIComponent(currentChannel)}/${encodeURIComponent(cleanDescName)}.txt`);
+                    if (r.ok) descriptionText = await r.text();
+                } catch (e) { /* network hiccup — treat as missing */ }
+            }
+            
+            if (descriptionText) {
+                const html = await detectAndStyleLinks(descriptionText);
+                currentVideoDescription.innerHTML = currentVideoDescription.textContent + html;
+                if (myFP && typeof myFP.setDescription === 'function') {
+                    myFP.setDescription(descriptionText);
                 }
-                checkDescriptionCollapse();
+            } else {
+                currentVideoDescription.innerHTML = currentVideoDescription.textContent +
+                    '<span class="no-description">' + getLang(
+                        'No description available for this video.',
+                        'Diesem Video wurde keine Beschreibung hinzugefügt.') + '</span>';
+            }
+            checkDescriptionCollapse();
 
                 // --- Video stats (likes/dislikes): from cache ---
                 if (cachedVideo.likes !== undefined && cachedVideo.dislikes !== undefined) {
@@ -3095,7 +3104,7 @@
 
             // ===== CHAPTER MANAGER: LISTEN FOR PLAYER EVENTS =====
             // We'll store the player reference and set up the chapter manager
-            let myFP = null;
+            // (myFP is declared at the top of this handler)
 
             if (selectedPlayer === 'lyt' && typeof LYTPlayer === 'function') {
                 // Initialize LYT Player

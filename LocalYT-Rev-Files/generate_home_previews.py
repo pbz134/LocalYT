@@ -96,6 +96,14 @@ def generate_meta_cache(channel, all_channel_videos, playlists, force_overwrite)
             with open(fn_path, 'r', encoding='utf-8') as f:
                 meta["displayName"] = f.read().strip()
 
+        # FileDate
+        fd_path = os.path.join(SERVER_ROOT, "filedates", f"{video_path_without_ext}.txt")
+        if not os.path.exists(fd_path):
+            fd_path = os.path.join(SERVER_ROOT, "filedates", f"{video_path_without_ext}.txt".replace('/', os.sep))
+        if os.path.exists(fd_path):
+            with open(fd_path, 'r', encoding='utf-8') as f:
+                meta["fileDate"] = f.read().strip()
+
         # Description
         desc_path = os.path.join(SERVER_ROOT, "descriptions", channel, f"{filename}.txt")
         if os.path.exists(desc_path):
