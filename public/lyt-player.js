@@ -158,7 +158,8 @@
                     loopOn: 'Loop ON',
                     loopOff: 'Loop OFF',
                     stats: 'Stats for nerds',
-                    linkCopied: 'Link Copied!'
+                    linkCopied: 'Link Copied!',
+                    ambient: 'Ambient Mode'
                 },
                 de: {
                     speed: 'Geschwindigkeit',
@@ -174,7 +175,8 @@
                     loopOn: 'Wiederholung aktiviert',
                     loopOff: 'Wiederholung deaktiviert',
                     stats: 'Statistiken für Nerds',
-                    linkCopied: 'Link kopiert!'
+                    linkCopied: 'Link kopiert!',
+                    ambient: 'Umgebungslicht'
                 }
             };
 
@@ -189,6 +191,12 @@
 
             // --- Recommendation popups setting ---
             this._showRecommendationPopups = true;
+
+            // --- Ambient light state ---
+            this._ambientEnabled = false;
+            this._ambientDisplay = null;
+            this._ambientDisplayCtx = null;
+            this._ambientInterval = null;
 
             this.init();
         }
@@ -288,6 +296,10 @@
             this.loadEndcardsSettings();
             this.loadEndScreenGridSetting();
 
+            // Ambient lighting
+            this._setupAmbientLight();
+            this.loadAmbientLightSetting();
+
             // Fetch endcards data when video metadata loaded
             this.video.addEventListener('loadedmetadata', () => {
                 this.fetchEndcardsData();
@@ -357,6 +369,164 @@
                 }
             });
         }
+
+        // ===== AMBIENT LIGHT =====
+
+        /**
+         * Create the ambient-light canvas and insert it behind the video.
+         */
+        _setupAmbientLight() {
+            const videoStage = this.wrapper.closest('.video-stage') || this.wrapper.parentElement;
+            if (!videoStage) return;
+
+            // Avoid duplicates if init runs twice
+            if (videoStage.querySelector('.lyt_ambient_light')) return;
+
+            const canvas = document.createElement('canvas');
+            canvas.className = 'lyt_ambient_light';
+            canvas.width = 64;
+            canvas.height = 36;
+            canvas.setAttribute('aria-hidden', 'true');
+
+            // Insert as first child of .video-stage (behind everything)
+            videoStage.insertBefore(canvas, videoStage.firstChild);
+
+            this._ambientDisplay = canvas;
+            this._ambientDisplayCtx = canvas.getContext('2d');
+        }
+
+        /**
+         * Load the ambient-light preference from localStorage + server.
+         */
+        loadAmbientLightSetting() {
+            // 1. Instant local preference (default: off)
+            try {
+                const local = JSON.parse(localStorage.getItem('ambientLight') || '{}');
+                if (local.enabled !== undefined) {
+                    this.setAmbientLight(local.enabled, false);
+                }
+            } catch (e) {}
+
+            // 2. Server preference overrides if available
+            fetch('/user-settings')
+                .then(res => res.ok ? res.json() : null)
+                .then(settings => {
+                    if (settings && settings.ambientLight !== undefined) {
+                        this.setAmbientLight(settings.ambientLight, false);
+                        try {
+                            localStorage.setItem('ambientLight', JSON.stringify({
+                                enabled: settings.ambientLight
+                            }));
+                        } catch (e) {}
+                    }
+                })
+                .catch(() => {});
+
+            // 3. Cross-tab sync
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'ambientLight') {
+                    try {
+                        const newVal = JSON.parse(e.newValue || '{}');
+                        if (newVal.enabled !== undefined) {
+                            this.setAmbientLight(newVal.enabled, false);
+                        }
+                    } catch (err) {}
+                }
+            });
+        }
+
+        /**
+         * Enable or disable ambient lighting.
+         * @param {boolean} enabled
+         * @param {boolean} save - Persist to localStorage + server
+         */
+        setAmbientLight(enabled, save = true) {
+            this._ambientEnabled = enabled;
+
+            // Update menu checkmark
+            if (this.dom.ambientOption) {
+                this.dom.ambientOption.classList.toggle('lyt_active', enabled);
+            }
+
+            // Allow glow to overflow the wrapper
+            const videoWrapper = this.wrapper.closest('.video-wrapper');
+            if (videoWrapper) {
+                videoWrapper.classList.toggle('lyt_ambient_parent', enabled);
+            }
+
+            if (enabled) {
+                // Draw immediately if possible
+                this._updateAmbientLight();
+                // Keep updating while playing
+                if (!this.video.paused) this._startAmbientLoop();
+            } else {
+                this._stopAmbientLoop();
+                if (this._ambientDisplay) {
+                    this._ambientDisplay.classList.remove('lyt_ambient_active');
+                }
+            }
+
+            if (save) {
+                try {
+                    localStorage.setItem('ambientLight', JSON.stringify({ enabled }));
+                } catch (e) {}
+                this._saveAmbientLightToServer(enabled);
+            }
+        }
+
+        _startAmbientLoop() {
+            if (this._ambientInterval) return;
+            this._ambientInterval = setInterval(() => this._updateAmbientLight(), 100);
+        }
+
+        _stopAmbientLoop() {
+            if (this._ambientInterval) {
+                clearInterval(this._ambientInterval);
+                this._ambientInterval = null;
+            }
+        }
+
+        /**
+         * Draw the current video frame into the tiny canvas.
+         * The CSS blur turns this into a soft glow around the player.
+         */
+        _updateAmbientLight() {
+            if (!this._ambientEnabled) return;
+            if (!this.video.videoWidth || !this.video.videoHeight) return;
+            if (!this._ambientDisplay || !this._ambientDisplayCtx) return;
+
+            try {
+                this._ambientDisplayCtx.drawImage(
+                    this.video,
+                    0, 0,
+                    this._ambientDisplay.width,
+                    this._ambientDisplay.height
+                );
+            } catch (e) {
+                return; // cross-origin or decode failure — silently skip
+            }
+
+            // Fade the glow in on the first successful draw
+            if (!this._ambientDisplay.classList.contains('lyt_ambient_active')) {
+                this._ambientDisplay.classList.add('lyt_ambient_active');
+            }
+        }
+
+        async _saveAmbientLightToServer(enabled) {
+            try {
+                const response = await fetch('/user-settings');
+                if (!response.ok) return;
+                const settings = await response.json();
+                settings.ambientLight = enabled;
+                await fetch('/user-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ settings })
+                });
+            } catch (e) {}
+        }
+
+        // ===== END AMBIENT LIGHT =====
 
         // ----- Endcards Settings -----
         loadEndcardsSettings() {
@@ -1942,6 +2112,33 @@
                         text-align: left;
                     }
 
+                    /* ===== AMBIENT LIGHT ===== */
+                    .lyt_ambient_light {
+                        position: absolute;
+                        top: -40px;
+                        left: -40px;
+                        width: calc(100% + 80px);
+                        height: calc(100% + 80px);
+                        filter: blur(50px) saturate(1.5) brightness(1.05);
+                        z-index: 0;
+                        pointer-events: none;
+                        opacity: 0;
+                        visibility: hidden;
+                        transition: opacity 0.6s ease, visibility 0.6s ease;
+                        background: transparent;
+                    }
+
+                    .lyt_ambient_light.lyt_ambient_active {
+                        opacity: 0.40;
+                        visibility: visible;
+                    }
+
+                    /* Prevent .video-wrapper from clipping the glow */
+                    .video-wrapper.lyt_ambient_parent {
+                        overflow: visible;
+                    }
+                    /* ===== END AMBIENT LIGHT ===== */
+
                 </style>
 
                 <!-- Poster/Thumbnail Overlay -->
@@ -2027,6 +2224,7 @@
                             <div class="lyt_popup_menu lyt_settings_menu">
                                 <div class="lyt_menu_content">
                                     <!-- Equalizer option will be inserted here by JavaScript -->
+                                    <div class="lyt_menu_option lyt_opt_ambient">${this._t('ambient')}</div>
                                     <div class="lyt_menu_option lyt_opt_speed" data-submenu="speed">${this._t('speed')}</div>
                                     <div class="lyt_menu_option lyt_opt_subs" data-submenu="subtitles">${this._t('subtitles')}</div>
                                     <div class="lyt_menu_option lyt_opt_quality" data-submenu="quality">${this._t('quality')}</div>
@@ -2603,11 +2801,20 @@
                 this.updateCenterPlayBtn(true);
                 this.hidePoster();
                 this.showCenterAnimation('pause');
+                if (this._ambientEnabled) this._startAmbientLoop();
             });
             this.video.addEventListener('pause', () => {
                 this.updatePlayPauseBtn(false);
                 this.updateCenterPlayBtn(false);
                 this.showCenterAnimation('play');
+                this._stopAmbientLoop();
+            });
+            // Refresh the ambient frame after seeking or once the first frame is ready
+            this.video.addEventListener('seeked', () => {
+                if (this._ambientEnabled) this._updateAmbientLight();
+            });
+            this.video.addEventListener('loadeddata', () => {
+                if (this._ambientEnabled) this._updateAmbientLight();
             });
             this.video.addEventListener('pause', () => this.updatePlayPauseBtn(false));
             this.video.addEventListener('timeupdate', () => {
@@ -2783,6 +2990,15 @@
                 e.stopPropagation();
                 this.toggleMenu(this.dom.settingsMenu);
             });
+
+            // Ambient light toggle in settings menu
+            this.dom.ambientOption = this.wrapper.querySelector('.lyt_opt_ambient');
+            if (this.dom.ambientOption) {
+                this.dom.ambientOption.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.setAmbientLight(!this._ambientEnabled);
+                });
+            }
         
             // ========== FIX: Settings menu events ==========
             // Main menu options: data-submenu
