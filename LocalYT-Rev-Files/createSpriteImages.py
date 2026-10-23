@@ -22,11 +22,20 @@ except ImportError:
 MAX_WORKERS = 8
 
 # --- GRID / SAFETY SETTINGS ---
-# Maximum width of the generated sprite image in pixels.
-# Keeping this under 30000 ensures compatibility with almost all browsers/viewers.
-MAX_SPRITE_WIDTH_PX = 25000
-# Hard limit on number of frames to generate per video (~13.5 hours at 5s interval).
-MAX_FRAMES_HARD_LIMIT = 10000
+# Both WebP and AVIF are hard-capped at 16383px in *either* dimension.
+# We cap at 16000 for margin. A frame that would push the sprite past
+# 16000px wraps to a new row (width) or triggers a frame reduction
+# (height, for extremely tall portrait videos).
+MAX_SPRITE_WIDTH_PX = 16000
+MAX_SPRITE_HEIGHT_PX = 16000
+# 2000 frames is plenty for a scrubbing preview. (~2.7h at 5s interval)
+MAX_FRAMES_HARD_LIMIT = 2000
+
+# WebP encoding settings.
+# quality=62 visually matches JPEG q75 for 160px thumbnails.
+# method=4 is Pillow's balanced setting (0=fastest/loosest, 6=slowest/tightest).
+WEBP_QUALITY = 62
+WEBP_METHOD = 4
 # ---------------------
 
 # Lock for console output so threads don't overwrite each other messily
@@ -49,19 +58,34 @@ def format_time(seconds):
     return f"{hours:02d}:{minutes:02d}:{secs:06.3f}"
 
 
-def get_video_duration_fast(video_path):
-    """Fast duration check using ffprobe."""
+def get_video_info_fast(video_path):
+    """
+    Single ffprobe call returning (duration_seconds, width, height).
+    Width/height are needed to pre-compute sprite canvas dimensions
+    and enforce the 16000px height cap for portrait videos.
+    """
     try:
         cmd = [
             'ffprobe', '-v', 'error',
-            '-show_entries', 'format=duration',
-            '-of', 'csv=p=0',
+            '-select_streams', 'v:0',
+            '-show_entries', 'stream=width,height:format=duration',
+            '-of', 'default=noprint_wrappers=1',
             str(video_path)
         ]
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        return float(result.stdout.strip())
+        result = subprocess.run(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        info = {}
+        for line in result.stdout.strip().split('\n'):
+            if '=' in line:
+                k, v = line.split('=', 1)
+                info[k.strip()] = v.strip()
+        duration = float(info.get('duration', 0) or 0)
+        width = int(info.get('width', 0) or 0)
+        height = int(info.get('height', 0) or 0)
+        return duration, width, height
     except Exception:
-        return 0.0
+        return 0.0, 0, 0
 
 
 def draw_progress_bar(progress, bar_length=20):
@@ -71,7 +95,6 @@ def draw_progress_bar(progress, bar_length=20):
     else:
         filled = int(bar_length * progress // 100)
     empty = bar_length - filled
-    # Bar looks like: [======>     ]
     bar = '[' + '=' * filled + '>' * min(1, empty) + ' ' * max(0, empty - min(1, empty)) + ']'
     return f"{bar} {progress:3d}%"
 
@@ -80,7 +103,6 @@ def update_status_line(done_count, total_files, fname, progress):
     """Thread-safe function to update the single status line"""
     with console_lock:
         bar_str = draw_progress_bar(progress)
-        # Truncate long filenames to keep layout stable
         display_name = (fname[:40] + '..') if len(fname) > 40 else fname
 
         line_output = (
@@ -142,8 +164,6 @@ def is_still_image(video_path, duration):
     if len(frames) < 2:
         return False
 
-    # Compare every subsequent frame against the first; take the WORST diff.
-    # Any single divergent frame → not a still video.
     worst_diff = 0.0
     for f in frames[1:]:
         diff = ImageChops.difference(frames[0], f)
@@ -152,28 +172,23 @@ def is_still_image(video_path, duration):
         if avg > worst_diff:
             worst_diff = avg
 
-    # 255 * 0.02 = 5.1 → ~98% identical
     return worst_diff < 5.1
 
 
 def process_single_video(args):
     """
     Worker Function.
-    Generates a Grid-based Sprite sheet for long videos.
-    Outputs both the sprite (.jpg) and timeline VTT (.vtt) to /spriteimages/,
-    mirroring the /videos/ folder structure.
+    Generates a Grid-based WebP sprite sheet for long videos.
+    Outputs both the sprite (.webp) and timeline VTT (.vtt) to
+    /spriteimages/, mirroring the /videos/ folder structure.
     """
     root, filename, output_subdir, skip_check, total_file_count, current_index_ref = args
 
     video_name = os.path.splitext(filename)[0]
-
-    # Sprite + VTT both share the video's bare name (no "SpriteImg" suffix).
-    # Because they live in /spriteimages/<path>/ they never collide with
-    # the real thumbnail <name>.jpg in /thumbnails/<path>/.
     safe_video_name = video_name
 
     vtt_filename = f"{safe_video_name}.vtt"
-    sprite_filename = f"{safe_video_name}.jpg"
+    sprite_filename = f"{safe_video_name}.webp"
 
     vtt_file_path = os.path.join(output_subdir, vtt_filename)
     sprite_file_path = os.path.join(output_subdir, sprite_filename)
@@ -184,11 +199,9 @@ def process_single_video(args):
         return ("skipped", filename)
 
     # 1b. Skip Check — previously classified as still image.
-    # This avoids re-running 4 ffmpeg spawns per still video on every setup pass.
     if os.path.exists(nosprite_marker_path):
         return ("still", filename)
 
-    # Update UI: Starting File
     update_status_line(current_index_ref[0], total_file_count, filename, 0)
 
     safe_makedirs(output_subdir)
@@ -196,11 +209,13 @@ def process_single_video(args):
 
     # 2. Generate Thumbnails Logic
     try:
-        duration = get_video_duration_fast(video_full_path)
-        if duration <= 0:
+        duration, src_width, src_height = get_video_info_fast(video_full_path)
+        if duration <= 0 or src_width <= 0 or src_height <= 0:
             return ("error", filename)
 
         thumb_width = 160
+        # Predicted height after ffmpeg's scale=160:-1 (floor division).
+        thumb_height = max(1, int(thumb_width * src_height / src_width))
 
         # --- STILL IMAGE DETECTION ---
         with console_lock:
@@ -211,7 +226,6 @@ def process_single_video(args):
             with console_lock:
                 sys.stdout.write(f"\nSkipping still image video: {filename}                     \n")
                 sys.stdout.flush()
-            # Persist the verdict so we never re-check this file.
             try:
                 open(nosprite_marker_path, 'w').close()
             except Exception:
@@ -219,7 +233,6 @@ def process_single_video(args):
             return ("still", filename)
 
         # Dynamic interval based on video duration.
-        # Sub-5-minute videos use 3s (was 5s).
         if duration > 14400:      # > 240 minutes
             interval = 80
         elif duration > 7200:     # > 120 minutes
@@ -235,25 +248,46 @@ def process_single_video(args):
 
         num_frames = int(duration // interval)
 
-        # Apply Safety Limit
+        # Apply hard frame limit. If we clip, re-derive interval so the
+        # sprite still covers the full duration (VTT times stay correct).
         if num_frames > MAX_FRAMES_HARD_LIMIT:
-            # We don't print inside the thread to avoid messy logs,
-            # but logic truncates here to prevent memory crashes.
             num_frames = MAX_FRAMES_HARD_LIMIT
+            interval = duration / num_frames
 
         if num_frames <= 0:
             return ("error", filename)
 
-        # Verbose output for interval and frame image quantity
-        with console_lock:
-            sys.stdout.write(f"\nCreating image every {interval} seconds for this video... ({num_frames} frames)\n")
-            sys.stdout.flush()
-
         # --- GRID LAYOUT CALCULATION ---
+        # `cols` = max frames that fit on one row given the width cap.
         cols = MAX_SPRITE_WIDTH_PX // thumb_width
+        if cols < 1:
+            cols = 1
+        # Single-row crop: if fewer frames than a full row, shrink canvas
+        # width to match actual content (the "empty tail" crop).
         if num_frames < cols:
             cols = num_frames
         rows = (num_frames + cols - 1) // cols
+
+        # Height safety for very tall portrait videos (e.g. 9:32, 9:64).
+        # If stacking all rows would exceed the height cap, reduce frame
+        # count and re-derive interval to keep full-duration coverage.
+        max_rows = MAX_SPRITE_HEIGHT_PX // thumb_height
+        if max_rows < 1:
+            max_rows = 1
+        if rows > max_rows:
+            num_frames = max_rows * cols
+            rows = max_rows
+            interval = duration / num_frames
+
+        if num_frames <= 0:
+            return ("error", filename)
+
+        with console_lock:
+            sys.stdout.write(
+                f"\nCreating image every {interval:.2f}s for this video... "
+                f"({num_frames} frames, {cols}x{rows} grid)\n"
+            )
+            sys.stdout.flush()
 
         vf_filter = f"fps=1/{interval},scale={thumb_width}:-1"
 
@@ -272,7 +306,7 @@ def process_single_video(args):
         frames_data = []
 
         byte_stream = process.stdout
-        default_height = 90
+        default_height = thumb_height
 
         while True:
             header = byte_stream.read(54)
@@ -304,8 +338,11 @@ def process_single_video(args):
             return ("error", filename)
 
         # --- CREATE GRID SPRITE ---
+        # Trim canvas height to the number of frames we actually received
+        # (defensive — ffmpeg usually delivers exactly num_frames, but not always).
+        actual_rows = (len(images) + cols - 1) // cols
         canvas_width = cols * thumb_width
-        canvas_height = rows * default_height
+        canvas_height = actual_rows * default_height
 
         sprite = Image.new('RGB', (canvas_width, canvas_height))
 
@@ -313,7 +350,7 @@ def process_single_video(args):
             row_idx = i // cols
             col_idx = i % cols
             x_offset = col_idx * thumb_width
-            y_offset = row_idx * im.height
+            y_offset = row_idx * default_height
 
             sprite.paste(im, (x_offset, y_offset))
 
@@ -326,13 +363,22 @@ def process_single_video(args):
                 'h': im.height
             })
 
-        sprite.save(str(sprite_file_path), 'JPEG')
+        # Save as lossy WebP. ~30% smaller than the old JPEG q75 output.
+        sprite.save(
+            str(sprite_file_path),
+            'WEBP',
+            quality=WEBP_QUALITY,
+            method=WEBP_METHOD,
+            lossless=False,
+        )
 
         # Write VTT (WebVTT Format).
-        # The sprite filename now matches the video's bare name — no "SpriteImg" suffix.
         vtt_content = "WEBVTT\n\n"
         for f in frames_data:
-            vtt_content += f"{f['start']} --> {f['end']}\n{sprite_filename}#xywh={f['x']},{f['y']},{f['w']},{f['h']}\n\n"
+            vtt_content += (
+                f"{f['start']} --> {f['end']}\n"
+                f"{sprite_filename}#xywh={f['x']},{f['y']},{f['w']},{f['h']}\n\n"
+            )
 
         with open(str(vtt_file_path), 'w', encoding='utf-8') as f:
             f.write(vtt_content)
@@ -414,7 +460,7 @@ def scan_videos_directory(videos_dir, spriteimages_dir, skip_existing=True):
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description='Generate Thumbnail Sprites (Grid Optimized)')
+    parser = argparse.ArgumentParser(description='Generate Thumbnail Sprites (WebP Grid Optimized)')
     parser.add_argument('--overwrite', action='store_true', help='Overwrite existing files')
     parser.add_argument('--workers', type=int, default=None, help='Number of workers (default: 8)')
     args = parser.parse_args()

@@ -267,7 +267,8 @@
                     <li>Changed createSpriteImage.py logic
                         <ul>
                             <li>Generated spriteimg files will appear in a new /spriteimages directory instead of /thumbnails for better overview</li>
-                            <li>Removed *.spriteimg suffix</li>
+                            <li>Removed *.spriteimg suffix, deprecated .jpg, used .webp for smaller file size</li>
+                            <li>Videos with still images will be skipped automatically</li>
                             <li>Due to logic changes in the generation script, please execute /LocalYT-Debug/remove_old_spriteimages.bat and set "SEEKBAR_PREVIEWS=yes" in #Setup.env</li>
                         </ul>
                     <li>Fixed playlist thumbnail encoding where thumbnails wouldn't be displayed when they contained special characters</li>
