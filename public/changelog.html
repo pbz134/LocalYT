@@ -266,12 +266,13 @@
                         </ul>
                     <li>Changed createSpriteImage.py logic
                         <ul>
-                            <li>Generated spriteimg files will appear in a new /spriteimages directory instead of /thumbnails for better overview</li>
+                            <li>Generated sprite image files will appear in a new /spriteimages directory instead of /thumbnails for better overview</li>
                             <li>Removed *.spriteimg suffix, deprecated .jpg, used .webp for smaller file size</li>
                             <li>Videos with still images will be skipped automatically</li>
                             <li>Due to logic changes in the generation script, please execute /LocalYT-Debug/remove_old_spriteimages.bat and set "SEEKBAR_PREVIEWS=yes" in #Setup.env</li>
                         </ul>
-                    <li>Fixed video.html spriteimage path encoding and detection</li>
+                    <li>Fixed video.html sprite image path encoding and detection</li>
+                    <li>Added a setting to disable sprite images in LYT Player</li>
                     <li>Fixed playlist thumbnail encoding where thumbnails wouldn't be displayed when they contained special characters</li>
                     <li>Lowered channel tag influence to 1/3 to prevent recommendation floods</li>
                     <li>Fixed and improved .sidebar-filter-buttons alignment and size</li>

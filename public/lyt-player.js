@@ -4631,6 +4631,13 @@
          * Load and parse VTT timeline preview file for scrubbing thumbnails.
          */
         async loadTimelinePreview() {
+            // Respect the "Show seek bar previews" setting (localStorage is authoritative here —
+            // the settings page always syncs it before the user reloads a video page).
+            try {
+                const seekBarPreviewsSetting = JSON.parse(localStorage.getItem('showSeekBarPreviews') || '{}');
+                if (seekBarPreviewsSetting.enabled === false) return;
+            } catch (e) {}
+
             const vtt = this.options.layoutControls && this.options.layoutControls.timelinePreview && this.options.layoutControls.timelinePreview.file;
             if (!vtt) return;
 

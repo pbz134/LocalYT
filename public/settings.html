@@ -901,6 +901,19 @@
                     </div>
                 </div>
 
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="showSeekBarPreviewsLabel">Show seek bar previews</div>
+                        <div class="card-desc" id="showSeekBarPreviewsDesc">Previews when hovering over the progress bar</div>
+                    </div>
+                    <div class="card-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="showSeekBarPreviews">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
             </div>
 
             <div class="save-bar">
@@ -1114,6 +1127,8 @@
             document.getElementById('showEndcardsDesc').textContent = getLang('Two thumbnails in last 20 seconds', 'Zwei Vorschaubilder in den letzten 20 Sekunden');
             document.getElementById('showRecommendationPopupsLabel').textContent = getLang('Show recommendation popups', 'Empfehlungs-Popups anzeigen');
             document.getElementById('showRecommendationPopupsDesc').textContent = getLang('Popups with recommended videos during playback', 'Popups mit empfohlenen Videos während der Wiedergabe');
+            document.getElementById('showSeekBarPreviewsLabel').textContent = getLang('Show seek bar previews', 'Fortschrittsbalken-Vorschauen anzeigen');
+            document.getElementById('showSeekBarPreviewsDesc').textContent = getLang('Previews when hovering over the progress bar', 'Vorschaubilder beim Hovern über den Fortschrittsbalken');
             document.getElementById('savePlaybackBtn').textContent = getLang('Save Playback Settings', 'Wiedergabe-Einstellungen speichern');
 
             // Content labels
@@ -1303,7 +1318,8 @@
                 showChannelProfilePic: document.getElementById('showChannelProfilePic').checked,
                 showEndScreenGrid: document.getElementById('showEndScreenGrid').checked,
                 showEndcards: document.getElementById('showEndcards').checked,
-                showRecommendationPopups: document.getElementById('showRecommendationPopups').checked
+                showRecommendationPopups: document.getElementById('showRecommendationPopups').checked,
+                showSeekBarPreviews: document.getElementById('showSeekBarPreviews').checked
             };
             localStorage.setItem('playlistPageLayout', JSON.stringify({ view: userPart.playlistPageLayout }));
             localStorage.setItem('invertPlaylistOrder', JSON.stringify({ enabled: userPart.invertPlaylistOrder }));
@@ -1311,6 +1327,7 @@
             localStorage.setItem('showEndScreenGrid', JSON.stringify({ enabled: userPart.showEndScreenGrid }));
             localStorage.setItem('showEndcards', JSON.stringify({ enabled: userPart.showEndcards }));
             localStorage.setItem('showRecommendationPopups', JSON.stringify({ enabled: userPart.showRecommendationPopups }));
+            localStorage.setItem('showSeekBarPreviews', JSON.stringify({ enabled: userPart.showSeekBarPreviews }));
 
             let success = true;
             try {
@@ -1459,6 +1476,8 @@
             document.getElementById('showEndcards').checked = endcards.enabled !== undefined ? endcards.enabled : true;
             const recPopups = JSON.parse(localStorage.getItem('showRecommendationPopups') || '{}');
             document.getElementById('showRecommendationPopups').checked = recPopups.enabled !== undefined ? recPopups.enabled : true;
+            const seekBarPreviews = JSON.parse(localStorage.getItem('showSeekBarPreviews') || '{}');
+            document.getElementById('showSeekBarPreviews').checked = seekBarPreviews.enabled !== undefined ? seekBarPreviews.enabled : true;
 
             fetch('/user-settings').then(res => res.json()).then(data => {
                 if (data.playlistPageLayout) document.getElementById('playlistPageLayout').value = data.playlistPageLayout;
@@ -1467,6 +1486,7 @@
                 if (data.showEndScreenGrid !== undefined) document.getElementById('showEndScreenGrid').checked = data.showEndScreenGrid;
                 if (data.showEndcards !== undefined) document.getElementById('showEndcards').checked = data.showEndcards;
                 if (data.showRecommendationPopups !== undefined) document.getElementById('showRecommendationPopups').checked = data.showRecommendationPopups;
+                if (data.showSeekBarPreviews !== undefined) document.getElementById('showSeekBarPreviews').checked = data.showSeekBarPreviews;
             }).catch(() => {});
         }
 
@@ -1686,6 +1706,7 @@
                 showEndScreenGrid: document.getElementById('showEndScreenGrid').checked,
                 showEndcards: document.getElementById('showEndcards').checked,
                 showRecommendationPopups: document.getElementById('showRecommendationPopups').checked,
+                showSeekBarPreviews: document.getElementById('showSeekBarPreviews').checked,
                 fuzzySubCount: document.getElementById('fuzzySubCount').checked,
                 hidePostImages: document.getElementById('hidePostImages').checked
             };
@@ -1736,6 +1757,7 @@
                     if (config.showEndScreenGrid !== undefined) document.getElementById('showEndScreenGrid').checked = config.showEndScreenGrid;
                     if (config.showEndcards !== undefined) document.getElementById('showEndcards').checked = config.showEndcards;
                     if (config.showRecommendationPopups !== undefined) document.getElementById('showRecommendationPopups').checked = config.showRecommendationPopups;
+                    if (config.showSeekBarPreviews !== undefined) document.getElementById('showSeekBarPreviews').checked = config.showSeekBarPreviews;
                     if (config.fuzzySubCount !== undefined) document.getElementById('fuzzySubCount').checked = config.fuzzySubCount;
                     if (config.hidePostImages !== undefined) document.getElementById('hidePostImages').checked = config.hidePostImages;
                     showStatus('configImportExportStatus', getLang('Configuration imported! Save each tab to apply.', 'Konfiguration importiert! Speichere die Tabs, um anzuwenden.'), true);
