@@ -1921,16 +1921,17 @@
                     .lyt_preview_time {
                         position: absolute;
                         bottom: 0;
-                        left: 0;
-                        right: 0;
+                        left: 50%;
+                        transform: translateX(-50%);
                         background: rgba(0,0,0,0.8);
                         color: #fff;
                         font-size: 11px;
                         font-family: 'Roboto', 'Arial', sans-serif;
                         text-align: center;
-                        padding: 2px 0;
+                        padding: 2px 6px;
                         letter-spacing: 0.3px;
-                        border-radius: 0 0 2px 2px;
+                        border-radius: 2px 2px 0 0;
+                        white-space: nowrap;
                     }
 
                     /* Loading spinner */
