@@ -2392,6 +2392,14 @@
                 videoSrc = urlParams.get('src') || '';
             }
 
+            // Path for seek-bar preview sprites, mirroring the actual video location.
+            // Channel-root video  (Channel/Video.mp4)              -> Channel/Video
+            // Playlist video      (Channel/Playlist/Video.mp4)     -> Channel/Playlist/Video
+            // So spriteimages/<path>.vtt and .webp live in the same folder as the video.
+            const spriteBasePath = videoSrc
+                ? stripExtension(videoSrc).split('/').map(p => encodeURIComponent(p)).join('/')
+                : '';
+
             const playlistName = urlParams.get('playlist'); // Get playlist name
             const userPlaylistName = urlParams.get('userplaylist'); // Get user playlist name
             const timestamp = urlParams.get('t');
@@ -3132,8 +3140,8 @@
                         "posterImageSize": "cover",
                         subtitlesOnByDefault: false,
                         "timelinePreview": {
-                            file: `/spriteimages/${encodeURIComponent(currentChannel)}/${encodeURIComponent(videoNameForSubs)}.vtt`,
-                            sprite: `/spriteimages/${encodeURIComponent(currentChannel)}/${encodeURIComponent(videoNameForSubs)}.webp`,
+                            file: `/spriteimages/${spriteBasePath}.vtt`,
+                            sprite: `/spriteimages/${spriteBasePath}.webp`,
                             type: 'VTT'
                         },
                         // PASS THE IMAGE URL HERE
@@ -3182,8 +3190,8 @@
                             "posterImageSize": "cover",
                             subtitlesOnByDefault: false,
                             "timelinePreview": {
-                                file: `/spriteimages/${encodeURIComponent(currentChannel)}/${encodeURIComponent(getCleanVideoName(videoSrc))}.vtt`,
-                                sprite: `/spriteimages/${encodeURIComponent(currentChannel)}/${encodeURIComponent(getCleanVideoName(videoSrc))}.webp`,
+                                file: `/spriteimages/${spriteBasePath}.vtt`,
+                                sprite: `/spriteimages/${spriteBasePath}.webp`,
                                 type: 'VTT'
                             }
                         },
@@ -3300,7 +3308,7 @@
                 // Set background thumbnail
                 const bg = overlay.querySelector('.lyt_upnext_bg');
                 if (bg && nextVideoData.thumbnail) {
-                    bg.style.backgroundImage = `url(${nextVideoData.thumbnail})`;
+                    bg.style.backgroundImage = `url("${nextVideoData.thumbnail}")`;
                 }
 
                 // Set title

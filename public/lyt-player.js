@@ -4720,7 +4720,7 @@
                             }
                         }
                         
-                        this.dom.preview.style.backgroundImage = `url(${imgUrl})`;
+                        this.dom.preview.style.backgroundImage = `url("${imgUrl}")`;
                         this.dom.preview.style.backgroundPosition = bgPos;
                         this.dom.preview.style.backgroundSize = bgSize;
                         this.dom.preview.style.width = `${previewW}px`;
