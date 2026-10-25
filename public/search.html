@@ -411,6 +411,61 @@
             background: #65b8ff;
         }
 
+        /* Search query examples below the Apply button */
+        .filter-examples {
+            padding: 16px 24px 28px 24px;
+            color: #888;
+            font-family: 'RobotoRegular', sans-serif;
+            font-size: 13px;
+            line-height: 1.6;
+            border-top: 1px solid #303030;
+        }
+        
+        .filter-examples-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        
+        .filter-examples-intro {
+            color: #888;
+            margin-bottom: 12px;
+        }
+        
+        .filter-examples-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 12px 0;
+        }
+        
+        .filter-examples-list li {
+            margin-bottom: 8px;
+            color: #888;
+            font-size: 12.5px;
+            line-height: 1.5;
+        }
+        
+        .filter-examples code {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 1px 6px;
+            color: #ccc;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: nowrap;
+            display: inline-block;
+            margin-right: 4px;
+        }
+        
+        .filter-examples-combine {
+            color: #888;
+            font-size: 12.5px;
+            padding-top: 10px;
+            border-top: 1px dashed #303030;
+        }
+
         /* Active filters count badge */
         .filter-count-badge {
             display: inline-flex;
@@ -579,8 +634,21 @@
             <button class="filter-btn filter-btn-clear" id="clearFiltersBtn">Clear</button>
             <button class="filter-btn filter-btn-apply" id="applyFiltersBtn">Apply</button>
         </div>
-    </div>
 
+        <!-- Search query operator examples -->
+        <div class="filter-examples">
+            <div class="filter-examples-title">Search Query Examples</div>
+            <ul class="filter-examples-list">
+                <li><code>before:2020-01-01</code> videos older than a date</li>
+                <li><code>after:2020-01-01</code> videos newer than a date</li>
+                <li><code>channel:"Modern Vintage Gamer"</code> videos from a specific channel</li>
+                <li><code>length:&gt;1800</code> videos longer than 30 minutes</li>
+                <li><code>views:&gt;1000</code> videos with more than 1000 views</li>21:54 25.10.2026
+                <li><code>tag:"Let's Play"</code> videos tagged with this (multi-word tags are supported)</li>
+            </ul>
+
+        </div>
+    </div>
     <div class="container search-results-container" id="searchResultsContainer">
         <!-- No loading text - skeletons will be shown instead -->
     </div>
@@ -702,7 +770,9 @@ const searchState = {
     lastSearchId: 0,
     debounceTimer: null,
     currentResults: [],
-    currentQuery: ''
+    currentQuery: '',
+    currentFreeText: '',
+    currentOperators: {}
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -812,39 +882,59 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function handleWorkerResponse(e) {
-    const { type, results, searchId, query } = e.data;
-    
+    const { type, results, searchId } = e.data;
+
     if (searchId !== searchState.lastSearchId) return;
-    
+
     if (type === 'search') {
         searchState.currentResults = results;
-        searchState.currentQuery = query;
         hideSkeletons();
         displaySearchResults(results);
     }
 }
 
 function performSearch(query, maxResults = 100) {
-    if (!query || !searchState.index) return;
-    
-    // Show skeletons while searching
-    showSkeletons(8, 'searchResultsContainer', 'search');
-    
-    searchState.currentQuery = query.toLowerCase();
+    if (!searchState.index) return;
+
+    const { operators, freeText } = parseSearchQuery(query);
+
+    searchState.currentQuery = query;
+    searchState.currentFreeText = freeText;
+    searchState.currentOperators = operators;
     searchState.lastSearchId++;
-    
-    if (searchState.worker) {
-        searchState.worker.postMessage({
-            type: 'search',
-            query: searchState.currentQuery,
-            searchId: searchState.lastSearchId,
-            maxResults
-        });
-    } else {
-        const results = localSearch(searchState.currentQuery, maxResults);
+
+    showSkeletons(8, 'searchResultsContainer', 'search');
+
+    if (freeText) {
+        if (searchState.worker) {
+            searchState.worker.postMessage({
+                type: 'search',
+                query: freeText.toLowerCase(),
+                searchId: searchState.lastSearchId,
+                maxResults
+            });
+        } else {
+            const results = localSearch(freeText.toLowerCase(), maxResults);
+            searchState.currentResults = results;
+            hideSkeletons();
+            displaySearchResults(results);
+        }
+    } else if (hasAnyOperator(operators)) {
+        // Operator-only search: browse all videos from the index, pre-filter
+        // so we slice AFTER filtering (avoids missing matches beyond maxResults)
+        const allVideos = (searchState.index && searchState.index.videos) || [];
+        const filtered = allVideos.filter(v => matchesOperators(v, operators));
+        const results = filtered.slice(0, maxResults).map(v => ({ ...v, score: 0 }));
         searchState.currentResults = results;
         hideSkeletons();
         displaySearchResults(results);
+    } else {
+        hideSkeletons();
+        document.getElementById('searchResultsContainer').innerHTML =
+            `<div style="color: white; padding: 20px;">${getLang(
+                'Enter a search term above',
+                'Gib oben einen Suchbegriff ein'
+            )}</div>`;
     }
 }
 
@@ -900,11 +990,15 @@ function localSearch(query, maxResults = 100) {
 async function displaySearchResults(results) {
     await MetadataCache.ready();
     const resultsContainer = document.getElementById('searchResultsContainer');
-    
-    // Remove skeletons if they exist
+
     hideSkeletons();
     resultsContainer.innerHTML = '';
-    
+
+    // Apply query operators (sync; uses metadata cache + result.description)
+    if (hasAnyOperator(searchState.currentOperators)) {
+        results = results.filter(v => matchesOperators(v, searchState.currentOperators));
+    }
+
     if (!results || results.length === 0) {
         resultsContainer.innerHTML = `
             <div style="color: white; padding: 20px;">
@@ -1496,8 +1590,179 @@ function parseDurationToSeconds(durationStr) {
     
     return seconds;
 }
+
+// ======================================================================
+// QUERY OPERATORS
+// before:, after:, channel:, length:, views:, tag:
+// ======================================================================
+
+/**
+ * Parses a raw query string into free text + operator filters.
+ * Supports:
+ *   before:YYYY-MM-DD
+ *   after:YYYY-MM-DD
+ *   channel:"Multi Word Channel"
+ *   length:>1800  (supports >, >=, <, <=, =)
+ *   views:>1000
+ *   description:"some text"
+ *   tag:"Gaming"  (multi-word tags supported via quotes)
+ */
+function parseSearchQuery(rawQuery) {
+    const operators = {
+        before: null, after: null, channel: null,
+        length: null, views: null, tag: null
+    };
+
+    if (!rawQuery) return { operators, freeText: '' };
+
+    let remaining = rawQuery;
+
+    // Pass 1: numeric operators (length, views) — require a numeric value
+    const numRegex = /\b(length|views):\s*(?:"([^"]*)"|((?:>=|<=|>|<|=)\s*-?\d+(?:\.\d+)?)|(\S+))/gi;
+    remaining = remaining.replace(numRegex, (fullMatch, opName, quoted, cmpExpr, unquoted) => {
+        const op = opName.toLowerCase();
+        const tryParse = (str) => {
+            const m = String(str).match(/^(>=|<=|>|<|=)?\s*(-?\d+(?:\.\d+)?)$/);
+            return m ? { op: m[1] || '=', value: parseFloat(m[2]) } : null;
+        };
+
+        if (quoted !== undefined) {
+            const parsed = tryParse(quoted);
+            if (parsed) { operators[op] = parsed; return ' '; }
+            return fullMatch;
+        }
+        if (cmpExpr !== undefined) {
+            const parsed = tryParse(cmpExpr);
+            if (parsed) { operators[op] = parsed; return ' '; }
+            return fullMatch;
+        }
+        if (unquoted !== undefined) {
+            const parsed = tryParse(unquoted);
+            if (parsed) { operators[op] = parsed; return ' '; }
+        }
+        return fullMatch;
+    });
+
+    // Pass 2: string operators
+    const strRegex = /\b(before|after|channel|tag):\s*(?:"([^"]*)"|(\S+))/gi;
+    remaining = remaining.replace(strRegex, (fullMatch, opName, quoted, unquoted) => {
+        operators[opName.toLowerCase()] = quoted !== undefined ? quoted : unquoted;
+        return ' ';
+    });
+
+    return { operators, freeText: remaining.replace(/\s+/g, ' ').trim() };
+}
+
+function hasAnyOperator(operators) {
+    if (!operators) return false;
+    return Object.values(operators).some(v => v !== null && v !== undefined && v !== '');
+}
+
+function compareValue(actual, op, expected) {
+    switch (op) {
+        case '>':  return actual > expected;
+        case '>=': return actual >= expected;
+        case '<':  return actual < expected;
+        case '<=': return actual <= expected;
+        case '=':  return actual === expected;
+        default:   return true;
+    }
+}
+
+function parseFileDate(dateStr) {
+    // metadata cache fileDate format: DD.MM.YYYY
+    if (!dateStr) return null;
+    const parts = String(dateStr).trim().split('.');
+    if (parts.length !== 3) return null;
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const year = parseInt(parts[2], 10);
+    if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+    return new Date(year, month, day);
+}
+
+function parseOperatorDate(dateStr) {
+    if (!dateStr) return null;
+    // Try ISO YYYY-MM-DD as local time to match fileDate parsing
+    const m = String(dateStr).match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) {
+        return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+    }
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+}
+
+function getVideoTags(video) {
+    const cached = MetadataCache.getVideo(video.path);
+    return (cached && cached.tags) || null;
+}
+
+function hasMatchingTag(tags, query) {
+    if (!tags) return false;
+    const q = String(query).toLowerCase();
+    if (Array.isArray(tags)) {
+        return tags.some(t => String(t).toLowerCase() === q);
+    }
+    if (typeof tags === 'string') {
+        // Comma-separated list, or single value
+        const list = tags.split(',').map(t => t.trim().toLowerCase());
+        return list.includes(q);
+    }
+    return false;
+}
+
+/**
+ * Check whether a search result matches all provided operators.
+ */
+function matchesOperators(video, operators) {
+    if (!video || !operators) return true;
+    const cached = MetadataCache.getVideo(video.path) || {};
+
+    // Channel
+    if (operators.channel) {
+        const channel = (video.path || '').split('/')[0];
+        if (channel.toLowerCase() !== operators.channel.toLowerCase()) return false;
+    }
+
+    // Before / After (fileDate is DD.MM.YYYY)
+    if (operators.before || operators.after) {
+        const fileDate = parseFileDate(cached.fileDate);
+        if (!fileDate) return false;
+
+        if (operators.before) {
+            const beforeDate = parseOperatorDate(operators.before);
+            if (beforeDate && fileDate >= beforeDate) return false;
+        }
+        if (operators.after) {
+            const afterDate = parseOperatorDate(operators.after);
+            if (afterDate && fileDate <= afterDate) return false;
+        }
+    }
+
+    // Length (seconds)
+    if (operators.length) {
+        const lengthStr = cached.videoLength || '';
+        if (!lengthStr) return false;
+        const seconds = parseDurationToSeconds(lengthStr);
+        if (!compareValue(seconds, operators.length.op, operators.length.value)) return false;
+    }
+
+    // Views
+    if (operators.views) {
+        const views = parseInt(cached.viewCount || '', 10);
+        if (isNaN(views)) return false;
+        if (!compareValue(views, operators.views.op, operators.views.value)) return false;
+    }
+
+    // Tag (case-insensitive, exact match against a tag element)
+    if (operators.tag) {
+        const tags = getVideoTags(video);
+        if (!hasMatchingTag(tags, operators.tag)) return false;
+    }
+
+    return true;
+}
     </script>
-    <!-- External Search Suggestion Script (Handles dropdown logic) -->
     <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>
     <script src="sidebar.js"></script>
