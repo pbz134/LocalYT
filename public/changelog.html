@@ -172,7 +172,7 @@
         
         <nav class="doc-sidebar">
             <div class="toc-category">
-                <div class="toc-title">Versions</div>
+                <div class="toc-title" id="tocTitle">Versions</div>
                 <ul class="toc-list">
                     <li class="toc-item"><a href="#v5.00">v5.00</a></li>
                     <li class="toc-item"><a href="#v4.90">v4.90</a></li>
@@ -1507,6 +1507,7 @@
             // --- UI Translation ---
             document.getElementById('docTitle').textContent = getLang('Changelog', 'Änderungsprotokoll');
             document.getElementById('docSubtitle').textContent = getLang('LocalYT Revamped - Version History', 'LocalYT Revamped - Versionsverlauf');
+            document.getElementById('tocTitle').textContent = getLang('Versions', 'Versionen');
 
             // Smooth scroll for sidebar links
             document.querySelectorAll('.toc-item a').forEach(anchor => {
