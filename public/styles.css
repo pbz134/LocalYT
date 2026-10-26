@@ -344,7 +344,6 @@ body {
 .index-page .video-length {
     right: 5px; /* move it a bit to the right */
 }
-
 .like-dislike-container {
     display: flex;
     align-items: center;

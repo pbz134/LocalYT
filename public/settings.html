@@ -968,6 +968,19 @@
                         </label>
                     </div>
                 </div>
+
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="thumbnailPreviewsLabel">Thumbnail hover previews</div>
+                        <div class="card-desc" id="thumbnailPreviewsDesc">Slideshow preview when hovering a video thumbnail</div>
+                    </div>
+                    <div class="card-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="thumbnailPreviews">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
             </div>
 
             <div class="save-bar">
@@ -1138,6 +1151,8 @@
             document.getElementById('fuzzySubCountDesc').textContent = getLang('Randomize last digits of rounded counts', 'Letzte Ziffern zufällig machen');
             document.getElementById('hidePostImagesLabel').textContent = getLang('Hide images in posts', 'Bilder in Beiträgen ausblenden');
             document.getElementById('hidePostImagesDesc').textContent = getLang('Save bandwidth & reduce loading times', 'Bandbreite sparen & Ladezeiten reduzieren');
+            document.getElementById('thumbnailPreviewsLabel').textContent = getLang('Thumbnail hover previews', 'Thumbnail-Hover-Vorschau');
+            document.getElementById('thumbnailPreviewsDesc').textContent = getLang('Slideshow preview when hovering a video thumbnail', 'Vorschau-Anzeige beim Hovern über ein Video-Thumbnail');
             document.getElementById('saveContentBtn').textContent = getLang('Save Content Settings', 'Inhaltseinstellungen speichern');
             document.getElementById('addTagBtn').textContent = getLang('Add Tag', 'Tag hinzufügen');
             document.getElementById('resetPrefsBtn').textContent = getLang('Reset All', 'Alle zurücksetzen');
@@ -1348,10 +1363,12 @@
         async function saveContent() {
             const userPart = {
                 fuzzySubCount: document.getElementById('fuzzySubCount').checked,
-                hidePostImages: document.getElementById('hidePostImages').checked
+                hidePostImages: document.getElementById('hidePostImages').checked,
+                thumbnailPreviews: document.getElementById('thumbnailPreviews').checked
             };
             localStorage.setItem('fuzzySubCount', JSON.stringify({ enabled: userPart.fuzzySubCount }));
             localStorage.setItem('hidePostImages', JSON.stringify({ enabled: userPart.hidePostImages }));
+            localStorage.setItem('thumbnailPreviews', JSON.stringify({ enabled: userPart.thumbnailPreviews }));
 
             // Get preferences from the UI
             const container = document.getElementById('preferencesContainer');
@@ -1496,10 +1513,13 @@
             document.getElementById('fuzzySubCount').checked = fuzzy.enabled || false;
             const hidePosts = JSON.parse(localStorage.getItem('hidePostImages') || '{}');
             document.getElementById('hidePostImages').checked = hidePosts.enabled || false;
+            const thumbPrev = JSON.parse(localStorage.getItem('thumbnailPreviews') || '{}');
+            document.getElementById('thumbnailPreviews').checked = thumbPrev.enabled === true;
 
             fetch('/user-settings').then(res => res.json()).then(data => {
                 if (data.fuzzySubCount !== undefined) document.getElementById('fuzzySubCount').checked = data.fuzzySubCount;
                 if (data.hidePostImages !== undefined) document.getElementById('hidePostImages').checked = data.hidePostImages;
+                if (data.thumbnailPreviews !== undefined) document.getElementById('thumbnailPreviews').checked = data.thumbnailPreviews;
             }).catch(() => {});
         }
 
@@ -1708,7 +1728,8 @@
                 showRecommendationPopups: document.getElementById('showRecommendationPopups').checked,
                 showSeekBarPreviews: document.getElementById('showSeekBarPreviews').checked,
                 fuzzySubCount: document.getElementById('fuzzySubCount').checked,
-                hidePostImages: document.getElementById('hidePostImages').checked
+                hidePostImages: document.getElementById('hidePostImages').checked,
+                thumbnailPreviews: document.getElementById('thumbnailPreviews').checked
             };
         }
 
@@ -1760,6 +1781,7 @@
                     if (config.showSeekBarPreviews !== undefined) document.getElementById('showSeekBarPreviews').checked = config.showSeekBarPreviews;
                     if (config.fuzzySubCount !== undefined) document.getElementById('fuzzySubCount').checked = config.fuzzySubCount;
                     if (config.hidePostImages !== undefined) document.getElementById('hidePostImages').checked = config.hidePostImages;
+                    if (config.thumbnailPreviews !== undefined) document.getElementById('thumbnailPreviews').checked = config.thumbnailPreviews;
                     showStatus('configImportExportStatus', getLang('Configuration imported! Save each tab to apply.', 'Konfiguration importiert! Speichere die Tabs, um anzuwenden.'), true);
                 } catch (err) {
                     showStatus('configImportExportStatus', getLang('Invalid file.', 'Ungültige Datei.'), false);
