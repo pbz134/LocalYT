@@ -31,8 +31,6 @@ From then on, I regularly worked on the program to further improve it, and 15 mo
   - A minimalistic but stylish UI makes your videos feel more engaging
 - **Easy metadata integration**
   - Add thumbnails, descriptions, subtitles and more to your videos
-- **Multi-page system**
-  - LocalYT comes with several pages for channels and videos
 - **Video playlists**
   - Keep your channels more organized by creating playlists from subfolders
   - Video queues next to the player allow you to watch a full playlist at once (see Video Page screenshot below)
@@ -47,6 +45,8 @@ From then on, I regularly worked on the program to further improve it, and 15 mo
 - **Complete customization**
   - Customize page appearances, layouts, rounded corners and several player features
   - Switch between a "Modern" and a "2017" layout
+- **Android app**
+  - Watch videos on your phone by using the Android app (BETA)
  
 ---
 
