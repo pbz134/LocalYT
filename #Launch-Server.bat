@@ -76,11 +76,6 @@ REM Small buffer for cache
 echo Server is up. Waiting for cache file to fully save...
 timeout /t 3 /nobreak >nul
 
-REM Generate home previews
-echo Generating home previews...
-"%SCRIPT_DIR%\venv\python.exe" "%SCRIPT_DIR%\LocalYT-Rev-Files\generate_home_previews.py"
-echo Preview generation complete.
-
 REM Open browser if configured
 if /i "%LAUNCH_BROWSER%"=="yes" (
     start http://localhost:3000
