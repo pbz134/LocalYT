@@ -1433,11 +1433,68 @@
                     return numA - numB;
                 }
             }
-
             // If all numbers match, fall back to string comparison
             return a.displayName.localeCompare(b.displayName);
         }
-
+        
+        // ============================================================
+        // Custom playlist order support (mirrors playlist.html logic)
+        // ============================================================
+        
+        // In-memory cache: key = "channel/playlist", value = array of paths (or null if no order file)
+        const _customOrderCache = {};
+        
+        /**
+         * Load (and cache) the custom order JSONL for a playlist.
+         * Returns an array of video paths in custom order, or null if no file exists.
+         */
+        async function loadCustomOrder(channel, playlist) {
+            const key = `${channel}/${playlist}`;
+            if (key in _customOrderCache) return _customOrderCache[key];
+        
+            try {
+                const res = await fetch(
+                    `/playlist-orders/${encodeURIComponent(channel)}/${encodeURIComponent(playlist)}.jsonl`
+                );
+                if (!res.ok) {
+                    _customOrderCache[key] = null;
+                    return null;
+                }
+                const text = await res.text();
+                const paths = [];
+                for (const line of text.split('\n')) {
+                    if (!line.trim()) continue;
+                    try {
+                        const obj = JSON.parse(line);
+                        if (obj.path) paths.push(obj.path);
+                    } catch (_) { /* skip malformed line */ }
+                }
+                _customOrderCache[key] = paths.length ? paths : null;
+                return _customOrderCache[key];
+            } catch {
+                _customOrderCache[key] = null;
+                return null;
+            }
+        }
+        
+        /**
+         * Sort an array of video objects according to the custom order.
+         * Videos not present in the order file fall to the end (alphabetical fallback).
+         * If customOrderPaths is null/empty, falls back to naturalCompare (alphabetical).
+         */
+        function sortByCustomOrder(videos, customOrderPaths) {
+            if (!customOrderPaths || customOrderPaths.length === 0) {
+                return [...videos].sort(naturalCompare);
+            }
+            const orderMap = new Map();
+            customOrderPaths.forEach((p, i) => orderMap.set(p, i));
+            return [...videos].sort((a, b) => {
+                const ia = orderMap.has(a.path) ? orderMap.get(a.path) : Number.MAX_SAFE_INTEGER;
+                const ib = orderMap.has(b.path) ? orderMap.get(b.path) : Number.MAX_SAFE_INTEGER;
+                return ia !== ib ? ia - ib : naturalCompare(a, b);
+            });
+        }
+        
         // --- Language Helper ---
         function getLang(en, de) {
             return localStorage.getItem('language') === 'de' ? de : en;
@@ -2824,8 +2881,12 @@
 
                 await fetch(`/playlist-videos/${encodeURIComponent(currentChannel)}/${playlistName}`)
                     .then(response => response.json())
-                    .then(videos => {
-                        videos.sort(naturalCompare);
+                    .then(async videos => {
+                        // Respect the custom order file if present, otherwise fall back to alphabetical
+                        const customOrder = await loadCustomOrder(currentChannel, playlistName);
+                        const ordered = sortByCustomOrder(videos, customOrder);
+                        videos.length = 0;
+                        videos.push(...ordered);
 
                         // If more than 6 videos, make the container scrollable
                         if (videos.length > 6) {
@@ -3463,15 +3524,19 @@
                     const response = await fetch(
                         `/playlist-videos/${encodeURIComponent(currentChannel)}/${playlistName}`);
                     if (!response.ok) return null;
-
+            
                     const videos = await response.json();
-                    videos.sort(naturalCompare);
-
-                    const currentIndex = videos.findIndex(v => safeDecodeURIComponent(v.path) === safeDecodeURIComponent(
-                        videoSrc));
-
-                    if (currentIndex !== -1 && currentIndex < videos.length - 1) {
-                        const nextVideo = videos[currentIndex + 1];
+            
+                    // Respect the custom order file (same source of truth as playlist.html)
+                    const customOrder = await loadCustomOrder(currentChannel, playlistName);
+                    const ordered = sortByCustomOrder(videos, customOrder);
+            
+                    const currentIndex = ordered.findIndex(v =>
+                        safeDecodeURIComponent(v.path) === safeDecodeURIComponent(videoSrc)
+                    );
+            
+                    if (currentIndex !== -1 && currentIndex < ordered.length - 1) {
+                        const nextVideo = ordered[currentIndex + 1];
                         return {
                             url: `video.html?src=${encodeURIComponent(nextVideo.path)}&playlist=${encodeURIComponent(playlistName)}`,
                             title: nextVideo.displayName,
