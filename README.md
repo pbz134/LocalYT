@@ -95,4 +95,4 @@ What if I only have the video files and no metadata?
 
 ## TO DO
 - Finish implementing mobile support
-- Add admin panel + library re-scans directly on a new page without Setup script/server re-launch? + Video upload features
+- Library re-scans without Setup script/server re-launch
