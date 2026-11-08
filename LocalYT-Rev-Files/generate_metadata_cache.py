@@ -302,9 +302,9 @@ def save_json(path, data):
             old_cmp = {k: v for k, v in old.items()  if k != 'generated_at'}
             new_cmp = {k: v for k, v in data.items() if k != 'generated_at'}
             if old_cmp == new_cmp:
-                return  # identical → leave mtime alone, keep ETag stable
+                return  # identical leave mtime alone, keep ETag stable
         except Exception:
-            pass  # corrupt old file → fall through and rewrite
+            pass  # corrupt old file fall through and rewrite
 
     tmp = path.with_suffix(path.suffix + '.tmp')
     with open(tmp, 'w', encoding='utf-8') as f:
@@ -471,9 +471,9 @@ def main():
 
     size_mb = cache_path.stat().st_size / (1024 * 1024)
     log(f"\nWrote {len(merged_videos):,} videos, {len(merged_channels)} channels, "
-        f"{len(merged_playlists)} playlists → {size_mb:.2f} MB")
-    log(f"  → {cache_path}")
-    log(f"  → {versions_path}")
+        f"{len(merged_playlists)} playlists {size_mb:.2f} MB")
+    log(f"  {cache_path}")
+    log(f"  {versions_path}")
 
 
 if __name__ == '__main__':

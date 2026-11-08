@@ -11,6 +11,69 @@ const multer = require('multer');
 const sharp = require('sharp');
 const cliProgress = require('cli-progress');
 const upload = multer({ dest: path.join(__dirname, 'temp-uploads') });
+const { spawn } = require('child_process');
+
+// ---- VIDEO UPLOAD MULTER INSTANCE ----
+// Separate from `upload` (used for profile pics / topic images) because we
+// need multiple named fields and a bigger file-size limit.
+const videoUpload = multer({
+    dest: path.join(__dirname, 'temp-uploads'),
+    limits: { fileSize: 50 * 1024 * 1024 * 1024 }, // 50 GB
+    fileFilter: (req, file, cb) => {
+        if (file.fieldname === 'video') {
+            if (/\.(mp4|mkv|mp3|avi|mov|wmv|flv|webm)$/i.test(file.originalname)) return cb(null, true);
+            return cb(new Error('Invalid video file type'));
+        }
+        if (file.fieldname === 'thumbnail') {
+            if (/\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(file.originalname)) return cb(null, true);
+            return cb(new Error('Invalid thumbnail file type'));
+        }
+        if (file.fieldname === 'commentsJson' || file.fieldname === 'livechatJson') {
+            if (file.originalname.toLowerCase().endsWith('.json')) return cb(null, true);
+            return cb(new Error('JSON file required'));
+        }
+        cb(null, false);
+    }
+});
+
+// ======================================================================
+// UPLOAD JOB TRACKING
+// ======================================================================
+// Each upload gets a UUID and a status object. The upload handler
+// returns the UUID immediately; the client polls /upload-status/:jobId
+// until it sees 'done' or 'error'.
+
+const uploadJobs = new Map();
+const UPLOAD_JOB_TTL_MS = 60 * 60 * 1000;   // 1 hour
+
+function createUploadJob() {
+    const jobId = uuidv4();
+    const job = {
+        id: jobId,
+        status: 'processing',   // 'processing' | 'done' | 'error'
+        phase: 'starting',      // 'starting' | 'reencoding' | 'finalizing' | 'complete'
+        progress: 0,            // 0-100 overall
+        message: 'Processing upload...',
+        createdAt: Date.now(),
+        result: null,
+        error: null
+    };
+    uploadJobs.set(jobId, job);
+    return job;
+}
+
+// Garbage-collect finished/abandoned jobs
+setInterval(() => {
+    const cutoff = Date.now() - UPLOAD_JOB_TTL_MS;
+    let removed = 0;
+    for (const [id, job] of uploadJobs) {
+        if (job.createdAt < cutoff) {
+            uploadJobs.delete(id);
+            removed++;
+        }
+    }
+    if (removed > 0) console.log(`[Upload] Cleaned up ${removed} stale job(s)`);
+}, 15 * 60 * 1000);
 
 const app = express();
 app.set('trust proxy', 1);
@@ -146,20 +209,14 @@ const recommendationsLimiter = rateLimit({
     message: 'Too many recommendation requests, please try again later.'
 });
 
-// Prompt the user to press 's' within a given timeout to skip the incremental scan.
-
 function promptSkipScan(timeoutMs = 5000) {
     return new Promise((resolve) => {
-        // If stdin is not a TTY (e.g., running in a non‑interactive environment), skip prompt
         if (!process.stdin.isTTY) {
             resolve(false);
             return;
         }
-
         console.log(`\nPress 's' within ${timeoutMs / 1000} seconds to skip the incremental scan...`);
-
         let resolved = false;
-
         const onKeyPress = (chunk) => {
             const key = chunk.toString().toLowerCase();
             if (key === 's') {
@@ -168,17 +225,14 @@ function promptSkipScan(timeoutMs = 5000) {
                 resolve(true);
             }
         };
-
         const cleanup = () => {
             process.stdin.removeListener('data', onKeyPress);
             process.stdin.setRawMode(false);
             process.stdin.pause();
         };
-
         process.stdin.setRawMode(true);
         process.stdin.resume();
         process.stdin.on('data', onKeyPress);
-
         const timer = setTimeout(() => {
             if (!resolved) {
                 cleanup();
@@ -375,19 +429,16 @@ app.get('/api/video-tags', (req, res) => {
     if (!video) {
         return res.status(400).json({ error: 'Missing video parameter' });
     }
-
     let decodedVideo;
     try {
         decodedVideo = decodeURIComponent(video);
     } catch (e) {
         decodedVideo = video;
     }
-
     const cached = videoCache.get(decodedVideo);
     if (cached && cached.tags && cached.tags.length) {
         return res.json({ tags: cached.tags });
     }
-
     const basePath = decodedVideo.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
     const tagsFilePath = path.join(__dirname, 'videos', `${basePath}.txt`);
     if (fs.existsSync(tagsFilePath)) {
@@ -399,7 +450,6 @@ app.get('/api/video-tags', (req, res) => {
             return res.status(500).json({ error: 'Error reading tags file' });
         }
     }
-
     res.json({ tags: [] });
 });
 
@@ -409,16 +459,13 @@ app.get('/channel.html', (req, res) => {
     if (!channel) {
         return res.sendFile(path.join(__dirname, 'public', 'channel.html'));
     }
-
     let decodedChannel;
     try {
         decodedChannel = decodeURIComponent(channel);
     } catch (e) {
         decodedChannel = channel;
     }
-
     const baseChannel = decodedChannel.split('/')[0];
-
     const descPath = path.join(__dirname, 'channeldesc', `${baseChannel}.txt`);
     let description = 'LocalYT channel';
     if (fs.existsSync(descPath)) {
@@ -427,11 +474,9 @@ app.get('/channel.html', (req, res) => {
             if (desc) description = desc;
         } catch (e) { /* ignore */ }
     }
-
     const host = req.get('host');
     const pageUrl = `https://${host}/channel.html?channel=${encodeURIComponent(decodedChannel)}`;
     const picUrl = `https://${host}/channelpic/${encodeURIComponent(baseChannel)}.jpg`;
-
     const metaTags = `
         <meta property="og:title" content="${baseChannel}" />
         <meta property="og:description" content="${description}" />
@@ -445,7 +490,6 @@ app.get('/channel.html', (req, res) => {
         <meta name="twitter:description" content="${description}" />
         <meta name="twitter:image" content="${picUrl}" />
     `;
-
     const htmlFilePath = path.join(__dirname, 'public', 'channel.html');
     let htmlContent = fs.readFileSync(htmlFilePath, 'utf8');
     htmlContent = htmlContent.replace('</head>', metaTags + '</head>');
@@ -491,6 +535,100 @@ const recommendationIndexPath = path.join(__dirname, 'recommendation_index.json'
 const folderVersionsPath = path.join(__dirname, 'folder_versions.json');
 const notificationsFilePath = path.join(__dirname, 'notifications.json');
 
+// ======================================================================
+// ADMIN / PERMISSION CONFIG
+// ======================================================================
+
+const adminConfigPath = path.join(__dirname, 'admin_config.json');
+
+const DEFAULT_ADMIN_CONFIG = {
+    uploadPolicy: 'admin',       // "none" | "admin" | "list" | "all"
+    allowedUploaders: [],        // usernames
+    adminUsers: []               // usernames
+};
+
+let adminConfigCache = null;
+
+function loadAdminConfig() {
+    if (adminConfigCache) return adminConfigCache;
+    try {
+        if (fs.existsSync(adminConfigPath)) {
+            const parsed = JSON.parse(fs.readFileSync(adminConfigPath, 'utf8'));
+            adminConfigCache = { ...DEFAULT_ADMIN_CONFIG, ...parsed };
+            // Sanitize
+            if (!Array.isArray(adminConfigCache.allowedUploaders)) adminConfigCache.allowedUploaders = [];
+            if (!Array.isArray(adminConfigCache.adminUsers)) adminConfigCache.adminUsers = [];
+            if (!['none','admin','list','all'].includes(adminConfigCache.uploadPolicy)) {
+                adminConfigCache.uploadPolicy = 'admin';
+            }
+        } else {
+            adminConfigCache = { ...DEFAULT_ADMIN_CONFIG };
+            fs.writeFileSync(adminConfigPath, JSON.stringify(adminConfigCache, null, 2));
+            console.log('[Admin] Created default admin_config.json');
+        }
+    } catch (err) {
+        console.error('[Admin] Failed to read admin_config.json, using defaults:', err.message);
+        adminConfigCache = { ...DEFAULT_ADMIN_CONFIG };
+    }
+    return adminConfigCache;
+}
+
+function saveAdminConfig(config) {
+    adminConfigCache = {
+        uploadPolicy: config.uploadPolicy,
+        allowedUploaders: config.allowedUploaders,
+        adminUsers: config.adminUsers
+    };
+    try {
+        fs.writeFileSync(adminConfigPath, JSON.stringify(adminConfigCache, null, 2));
+        return true;
+    } catch (err) {
+        console.error('[Admin] Failed to save admin_config.json:', err.message);
+        return false;
+    }
+}
+
+function getUsernameById(userId) {
+    if (!userId) return null;
+    try {
+        const users = JSON.parse(fs.readFileSync(path.join(__dirname, 'users.json'), 'utf8'));
+        for (const [name, u] of Object.entries(users)) {
+            if (u.id === userId) return name;
+        }
+    } catch {}
+    return null;
+}
+
+function isUserAdmin(userId) {
+    if (!userId) return false;
+    const config = loadAdminConfig();
+    const username = getUsernameById(userId);
+    if (!username) return false;
+    // Bootstrap mode: no admins configured → every logged-in user is admin
+    if (config.adminUsers.length === 0) return true;
+    return config.adminUsers.some(u => u.toLowerCase() === username.toLowerCase());
+}
+
+function canUserUpload(userId) {
+    if (!userId) return false;
+    const config = loadAdminConfig();
+    switch (config.uploadPolicy) {
+        case 'none':  return false;
+        case 'all':   return true;
+        case 'admin': return isUserAdmin(userId);
+        case 'list': {
+            if (isUserAdmin(userId)) return true;
+            const username = getUsernameById(userId);
+            if (!username) return false;
+            return config.allowedUploaders.some(u => u.toLowerCase() === username.toLowerCase());
+        }
+        default: return false;
+    }
+}
+
+// Load once at startup so the file is created before the first request
+loadAdminConfig();
+
 function ensurePreferencesFile() {
     if (!fs.existsSync(preferencesFilePath)) {
         fs.writeFileSync(preferencesFilePath, JSON.stringify({}));
@@ -530,42 +668,22 @@ function ensureUserTopicsFile() {
 }
 ensureUserTopicsFile();
 
-// --- PLAYLIST THUMBNAIL CACHE SYSTEM (REPLACED WITH JSONL FILES) ---
+// --- PLAYLIST THUMBNAIL CACHE SYSTEM ---
 const playlistCacheFilePath = path.join(__dirname, 'playlist_cache.json');
 let playlistThumbnailCache = {};
 
-// Function to get playlist thumbnail from order file
 function getPlaylistThumbnailFromOrder(channel, playlistPath) {
     try {
-        // Construct the path to the playlist order file
         const orderFilePath = path.join(__dirname, 'playlist-orders', channel, `${playlistPath}.jsonl`);
-        
-        if (!fs.existsSync(orderFilePath)) {
-            return null;
-        }
-        
-        // Read the first line of the JSONL file
+        if (!fs.existsSync(orderFilePath)) return null;
         const data = fs.readFileSync(orderFilePath, 'utf8');
         const lines = data.split('\n').filter(line => line.trim() !== '');
-        
-        if (lines.length === 0) {
-            return null;
-        }
-        
-        // Parse the first entry
+        if (lines.length === 0) return null;
         const firstEntry = JSON.parse(lines[0]);
-        if (!firstEntry.path) {
-            return null;
-        }
-        
-        // Get the thumbnail path (strip extension and add .jpg)
+        if (!firstEntry.path) return null;
         const videoPathWithoutExt = firstEntry.path.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
-        
-        // Verify the thumbnail exists on disk
         const fullThumbPath = path.join(__dirname, 'thumbnails', `${videoPathWithoutExt}.jpg`);
         if (fs.existsSync(fullThumbPath)) {
-            // Return URL-encoded path, but keep the same structure
-            // We need to encode each part separately to preserve the slashes
             const parts = videoPathWithoutExt.split('/');
             const encodedParts = parts.map(part => encodeURIComponent(part));
             const encodedPath = encodedParts.join('/');
@@ -580,13 +698,10 @@ function getPlaylistThumbnailFromOrder(channel, playlistPath) {
     }
 }
 
-// New endpoint to get playlist thumbnail from order file
 app.get('/playlist-order-thumbnail/:channel/:playlist*', (req, res) => {
     const channel = req.params.channel;
     const playlistPath = req.params[0] ? `${req.params.playlist}/${req.params[0]}` : req.params.playlist;
-    
     const thumbnail = getPlaylistThumbnailFromOrder(channel, playlistPath);
-    
     if (thumbnail) {
         res.send(thumbnail);
     } else {
@@ -595,7 +710,6 @@ app.get('/playlist-order-thumbnail/:channel/:playlist*', (req, res) => {
 });
 
 function loadPlaylistThumbnailCache() {
-    // We still check for compatibility, but it's not required anymore
     if (fs.existsSync(playlistCacheFilePath)) {
         try {
             const data = fs.readFileSync(playlistCacheFilePath, 'utf8');
@@ -612,9 +726,7 @@ function loadPlaylistThumbnailCache() {
 }
 
 function buildPlaylistThumbnailCache() {
-    // This function is kept for compatibility but now does nothing
     console.log('Playlist thumbnail cache is now generated on-demand from JSONL order files.');
-    // Write an empty cache to avoid errors
     try {
         if (!fs.existsSync(playlistCacheFilePath)) {
             fs.writeFileSync(playlistCacheFilePath, JSON.stringify({}, null, 2));
@@ -689,7 +801,6 @@ function generateNotifications(addedPaths) {
         console.log('No new videos added since last scan.');
         return;
     }
-
     const channelCounts = {};
     addedPaths.forEach(p => {
         const channel = p.split('/')[0];
@@ -700,21 +811,18 @@ function generateNotifications(addedPaths) {
             channelCounts[channel].videos++;
         }
     });
-
     let notifications = [];
     if (fs.existsSync(notificationsFilePath)) {
         try {
             notifications = JSON.parse(fs.readFileSync(notificationsFilePath, 'utf8'));
         } catch (e) {}
     }
-
     const timestamp = new Date().toISOString();
     Object.keys(channelCounts).forEach(channel => {
         const counts = channelCounts[channel];
         let parts = [];
         if (counts.videos > 0) parts.push(`${counts.videos} new video file${counts.videos > 1 ? 's' : ''}`);
         if (counts.audios > 0) parts.push(`${counts.audios} new audio file${counts.audios > 1 ? 's' : ''}`);
-        
         if (parts.length > 0) {
             notifications.unshift({
                 id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -723,11 +831,9 @@ function generateNotifications(addedPaths) {
             });
         }
     });
-
     if (notifications.length > 50) {
         notifications = notifications.slice(0, 50);
     }
-
     fs.writeFileSync(notificationsFilePath, JSON.stringify(notifications, null, 2));
     console.log(`Generated notifications for ${addedPaths.length} new files.`);
 }
@@ -744,7 +850,6 @@ function scanFolder(folderPath, baseDir) {
             } else if (/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i.test(file)) {
                 const relativePath = path.relative(baseDir, full).replace(/\\/g, '/');
                 const basePath = relativePath.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/, '');
-                
                 let tags = [];
                 const tagsPath = path.join(baseDir, `${basePath}.txt`);
                 if (fs.existsSync(tagsPath)) {
@@ -752,19 +857,16 @@ function scanFolder(folderPath, baseDir) {
                         tags = fs.readFileSync(tagsPath, 'utf8').split(',').map(tag => tag.trim());
                     } catch (e) {}
                 }
-
                 let displayName = file.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/, '');
                 const filenamePath = path.join(__dirname, 'filenames', `${basePath}.txt`);
                 if (fs.existsSync(filenamePath)) {
                     try { displayName = fs.readFileSync(filenamePath, 'utf8'); } catch (e) {}
                 }
-
                 let fileDate = '';
                 const fileDatePath = path.join(__dirname, 'filedates', `${basePath}.txt`);
                 if (fs.existsSync(fileDatePath)) {
                     try { fileDate = fs.readFileSync(fileDatePath, 'utf8'); } catch (e) {}
                 }
-
                 result.push({
                     path: relativePath,
                     basePath: basePath,
@@ -782,12 +884,10 @@ function scanFolder(folderPath, baseDir) {
 function incrementalScanAndCacheVideos() {
     console.log('Launching incremental scan...');
     const videosDir = path.join(__dirname, 'videos');
-    
     const oldCache = loadExistingCache();
     const oldVersions = loadFolderVersions();
     const newVersions = {};
     const newCache = [];
-
     let channelDirs = [];
     try {
         channelDirs = fs.readdirSync(videosDir).filter(f => {
@@ -798,7 +898,6 @@ function incrementalScanAndCacheVideos() {
         console.error('Error reading videos directory:', err);
         return;
     }
-
     const progressBar = new cliProgress.SingleBar({
         format: 'Progress [{bar}] {percentage}% | {value}/{total} channels',
         barCompleteChar: '\u2588',
@@ -806,26 +905,20 @@ function incrementalScanAndCacheVideos() {
         hideCursor: true,
         clearOnComplete: true
     });
-
     console.log(`${channelDirs.length} channel folders found.`);
     progressBar.start(channelDirs.length, 0);
-
     let changedChannels = 0;
     let unchangedChannels = 0;
-
     for (let i = 0; i < channelDirs.length; i++) {
         const channel = channelDirs[i];
         const channelPath = path.join(videosDir, channel);
         const version = getFolderVersion(channelPath);
-        
         if (!version) {
             progressBar.update(i + 1);
             continue;
         }
-        
         newVersions[channel] = version;
         const changed = hasFolderChanged(channel, version, oldVersions);
-
         if (changed) {
             changedChannels++;
             const channelCache = scanFolder(channelPath, videosDir);
@@ -835,12 +928,9 @@ function incrementalScanAndCacheVideos() {
             const oldChannelVideos = oldCache.filter(v => v.path.startsWith(channel + '/'));
             newCache.push(...oldChannelVideos);
         }
-
         progressBar.update(i + 1);
     }
-
     progressBar.stop();
-
     const existingChannels = new Set(channelDirs);
     const oldChannelKeys = Object.keys(oldVersions);
     for (const oldChannel of oldChannelKeys) {
@@ -849,7 +939,6 @@ function incrementalScanAndCacheVideos() {
             delete newVersions[oldChannel];
         }
     }
-
     try {
         if (oldCache.length > 0 && newCache.length > 0) {
             const oldPaths = new Set(oldCache.map(v => v.path));
@@ -858,14 +947,11 @@ function incrementalScanAndCacheVideos() {
                 generateNotifications(addedPaths);
             }
         }
-
         fs.writeFileSync(cacheFilePath, JSON.stringify(newCache, null, 2));
         videoCache = new Map(newCache.map(v => [v.path, v]));
         videoArray = newCache;
         videoArray.sort((a, b) => a.path.localeCompare(b.path));
-        
         console.log(`Cache updated: ${videoArray.length} videos (${changedChannels} changed, ${unchangedChannels} unchanged).`);
-        
         saveFolderVersions(newVersions);
         buildRecommendationIndex();
     } catch (err) {
@@ -873,12 +959,111 @@ function incrementalScanAndCacheVideos() {
     }
 }
 
+function refreshSingleChannelCache(channelName) {
+    const videosDir = path.join(__dirname, 'videos');
+    const channelPath = path.join(videosDir, channelName);
+
+    if (!fs.existsSync(channelPath) || !fs.statSync(channelPath).isDirectory()) {
+        console.warn(`[Upload] refreshSingleChannelCache: channel folder not found: ${channelPath}`);
+        return { added: 0, removed: 0 };
+    }
+
+    // Load the current cache and version state
+    const oldCache = loadExistingCache();
+    const oldVersions = loadFolderVersions();
+
+    // Compute the new version fingerprint for just this channel
+    const newVersion = getFolderVersion(channelPath);
+    if (!newVersion) {
+        console.warn(`[Upload] refreshSingleChannelCache: could not stat ${channelPath}`);
+        return { added: 0, removed: 0 };
+    }
+
+    // Re-scan only this channel's files
+    const channelVideos = scanFolder(channelPath, videosDir);
+
+    // Build a lookup set of the newly scanned paths for diffing
+    const newPaths = new Set(channelVideos.map(v => v.path));
+
+    // Old videos for this channel that no longer exist on disk
+    const oldPaths = new Set(
+        oldCache.filter(v => v.path.startsWith(channelName + '/')).map(v => v.path)
+    );
+
+    const addedPaths = channelVideos.filter(v => !oldPaths.has(v.path)).map(v => v.path);
+    const removedPaths = [...oldPaths].filter(p => !newPaths.has(p));
+
+    // Replace this channel's entries in the persisted cache
+    const otherChannelVideos = oldCache.filter(v => !v.path.startsWith(channelName + '/'));
+    const mergedCache = otherChannelVideos.concat(channelVideos);
+    mergedCache.sort((a, b) => a.path.localeCompare(b.path));
+
+    // Write to disk (atomic-ish via writeFileSync of the whole file)
+    try {
+        fs.writeFileSync(cacheFilePath, JSON.stringify(mergedCache, null, 2));
+    } catch (err) {
+        console.error('[Upload] refreshSingleChannelCache: failed to write video_cache.json:', err);
+        return { added: 0, removed: 0 };
+    }
+
+    // Refresh in-memory state
+    videoCache = new Map(mergedCache.map(v => [v.path, v]));
+    videoArray = mergedCache;
+
+    // Update folder_versions.json so a later boot scan won't re-scan this channel
+    oldVersions[channelName] = newVersion;
+    try {
+        saveFolderVersions(oldVersions);
+    } catch (err) {
+        console.error('[Upload] refreshSingleChannelCache: failed to save folder_versions.json:', err);
+    }
+
+    // Rebuild the recommendation index (fast: iterates in-memory videoArray)
+    try {
+        buildRecommendationIndex();
+    } catch (err) {
+        console.error('[Upload] refreshSingleChannelCache: failed to rebuild recommendation index:', err);
+    }
+
+    // Fire notifications for newly added files (uses the same helper as the full scan)
+    if (addedPaths.length > 0) {
+        try {
+            generateNotifications(addedPaths);
+        } catch (err) {
+            console.error('[Upload] refreshSingleChannelCache: failed to generate notifications:', err);
+        }
+    }
+
+    // Short-link generation for the new files (they'll be missing from shortlinks.json)
+    if (addedPaths.length > 0) {
+        let newCodesGenerated = 0;
+        addedPaths.forEach(videoPath => {
+            if (!shortLinksMap.has(videoPath)) {
+                const code = generateShortCode();
+                shortLinksMap.set(videoPath, code);
+                shortCodeToVideoMap.set(code, videoPath);
+                newCodesGenerated++;
+            }
+        });
+        if (newCodesGenerated > 0) {
+            const obj = {};
+            shortLinksMap.forEach((code, videoPath) => { obj[videoPath] = code; });
+            try {
+                fs.writeFileSync(shortLinksFilePath, JSON.stringify(obj, null, 2));
+            } catch (err) {
+                console.error('[Upload] refreshSingleChannelCache: failed to save shortlinks.json:', err);
+            }
+        }
+    }
+
+    return { added: addedPaths.length, removed: removedPaths.length };
+}
+
 function fullScanAndCacheVideos() {
     console.log('\nInitiating full scan...');
     const videosDir = path.join(__dirname, 'videos');
     const tempCache = [];
     const newVersions = {};
-
     function readDir(dir) {
         try {
             const files = fs.readdirSync(dir);
@@ -893,7 +1078,6 @@ function fullScanAndCacheVideos() {
                     } else if (/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i.test(file)) {
                         const relativePath = path.relative(videosDir, filePath).replace(/\\/g, '/');
                         const basePath = relativePath.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/, '');
-                        
                         let tags = [];
                         const tagsPath = path.join(videosDir, `${basePath}.txt`);
                         if (fs.existsSync(tagsPath)) {
@@ -901,19 +1085,16 @@ function fullScanAndCacheVideos() {
                                 tags = fs.readFileSync(tagsPath, 'utf8').split(',').map(tag => tag.trim());
                             } catch (e) {}
                         }
-
                         let displayName = file.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/, '');
                         const filenamePath = path.join(__dirname, 'filenames', `${basePath}.txt`);
                         if (fs.existsSync(filenamePath)) {
                             try { displayName = fs.readFileSync(filenamePath, 'utf8'); } catch (e) {}
                         }
-
                         let fileDate = '';
                         const fileDatePath = path.join(__dirname, 'filedates', `${basePath}.txt`);
                         if (fs.existsSync(fileDatePath)) {
                             try { fileDate = fs.readFileSync(fileDatePath, 'utf8'); } catch (e) {}
                         }
-
                         tempCache.push({
                             path: relativePath,
                             basePath: basePath,
@@ -930,9 +1111,7 @@ function fullScanAndCacheVideos() {
             console.error(`Error reading directory ${dir}:`, err.message);
         }
     }
-
     console.log('Collecting all channels...');
-    
     const allChannels = [];
     try {
         const items = fs.readdirSync(videosDir);
@@ -945,7 +1124,6 @@ function fullScanAndCacheVideos() {
     } catch (err) {
         console.error('Error reading videos directory:', err);
     }
-
     const progressBar = new cliProgress.SingleBar({
         format: 'Progress [{bar}] {percentage}% | {value}/{total} channels',
         barCompleteChar: '\u2588',
@@ -953,19 +1131,15 @@ function fullScanAndCacheVideos() {
         hideCursor: true,
         clearOnComplete: true
     });
-
     console.log(`${allChannels.length} channels found.`);
     progressBar.start(allChannels.length, 0);
-
     let processedChannels = 0;
-    
     function scanChannel(channel) {
         const channelPath = path.join(videosDir, channel);
         const version = getFolderVersion(channelPath);
         if (version) {
             newVersions[channel] = version;
         }
-        
         const walk = (dir) => {
             const files = fs.readdirSync(dir);
             for (const file of files) {
@@ -979,7 +1153,6 @@ function fullScanAndCacheVideos() {
                     } else if (/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i.test(file)) {
                         const relativePath = path.relative(videosDir, filePath).replace(/\\/g, '/');
                         const basePath = relativePath.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/, '');
-                        
                         let tags = [];
                         const tagsPath = path.join(videosDir, `${basePath}.txt`);
                         if (fs.existsSync(tagsPath)) {
@@ -987,19 +1160,16 @@ function fullScanAndCacheVideos() {
                                 tags = fs.readFileSync(tagsPath, 'utf8').split(',').map(tag => tag.trim());
                             } catch (e) {}
                         }
-
                         let displayName = file.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/, '');
                         const filenamePath = path.join(__dirname, 'filenames', `${basePath}.txt`);
                         if (fs.existsSync(filenamePath)) {
                             try { displayName = fs.readFileSync(filenamePath, 'utf8'); } catch (e) {}
                         }
-
                         let fileDate = '';
                         const fileDatePath = path.join(__dirname, 'filedates', `${basePath}.txt`);
                         if (fs.existsSync(fileDatePath)) {
                             try { fileDate = fs.readFileSync(fileDatePath, 'utf8'); } catch (e) {}
                         }
-
                         tempCache.push({
                             path: relativePath,
                             basePath: basePath,
@@ -1013,25 +1183,20 @@ function fullScanAndCacheVideos() {
                 }
             }
         };
-        
         walk(channelPath);
         processedChannels++;
         progressBar.update(processedChannels);
     }
-
     for (const channel of allChannels) {
         scanChannel(channel);
     }
-
     progressBar.stop();
-
     try {
         fs.writeFileSync(cacheFilePath, JSON.stringify(tempCache, null, 2));
         videoCache = new Map(tempCache.map(v => [v.path, v]));
         videoArray = tempCache;
         videoArray.sort((a, b) => a.path.localeCompare(b.path));
         console.log(`Full scan finished. ${videoArray.length} videos cached.`);
-        
         saveFolderVersions(newVersions);
         buildRecommendationIndex();
     } catch (err) {
@@ -1041,7 +1206,6 @@ function fullScanAndCacheVideos() {
 
 async function initializeVideoCache() {
     console.log('Initializing video cache...');
-
     if (fs.existsSync(cacheFilePath)) {
         try {
             const stats = fs.statSync(cacheFilePath);
@@ -1051,15 +1215,12 @@ async function initializeVideoCache() {
                 videoCache = new Map(videos.map(v => [v.path, v]));
                 videoArray = videos;
                 console.log(`Cache loaded: ${videoCache.size} videos.`);
-
-                // --- Prompt to skip incremental scan ---
                 const skip = await promptSkipScan();
                 if (skip) {
                     console.log('⏩ Skipping incremental scan.');
-                    buildRecommendationIndex();   // still build index from loaded cache
+                    buildRecommendationIndex();
                     return;
                 }
-                // --- Otherwise proceed with incremental scan ---
                 incrementalScanAndCacheVideos();
                 return;
             }
@@ -1069,14 +1230,12 @@ async function initializeVideoCache() {
     } else {
         console.log('video_cache.json not found, running full scan...');
     }
-
     fullScanAndCacheVideos();
 }
 
 function buildRecommendationIndex() {
     console.log('Building recommendation index...');
     const index = {};
-    
     videoArray.forEach(video => {
         const channel = video.path.split('/')[0];
         if (channel) {
@@ -1097,7 +1256,6 @@ function buildRecommendationIndex() {
             });
         }
     });
-    
     fs.writeFileSync(recommendationIndexPath, JSON.stringify(index, null, 2));
     recommendationIndex = index;
     console.log(`Recommendation index loaded: ${Object.keys(index).length} tags/channels.`);
@@ -1165,7 +1323,6 @@ function initializeShortLinks() {
     } else {
         console.log('shortlinks.json not found, generating new file...');
     }
-
     let newCodesGenerated = 0;
     videoArray.forEach(video => {
         if (!shortLinksMap.has(video.path)) {
@@ -1175,7 +1332,6 @@ function initializeShortLinks() {
             newCodesGenerated++;
         }
     });
-
     if (newCodesGenerated > 0) {
         const obj = {};
         shortLinksMap.forEach((code, videoPath) => { obj[videoPath] = code; });
@@ -1217,10 +1373,8 @@ function initializePlaylistShortLinks() {
             console.error('Error loading playlist links:', err);
         }
     }
-
     let newCodesGenerated = 0;
     const playlistsFound = new Set();
-
     videoArray.forEach(video => {
         const parts = video.path.split('/');
         if (parts.length > 2) {
@@ -1230,7 +1384,6 @@ function initializePlaylistShortLinks() {
             }
         }
     });
-
     playlistsFound.forEach(playlistName => {
         if (!playlistShortMap.has(playlistName)) {
             const code = generatePlaylistShortCode();
@@ -1241,7 +1394,6 @@ function initializePlaylistShortLinks() {
             }
         }
     });
-
     if (newCodesGenerated > 0) {
         savePlaylistLinksToFile();
         console.log(`${newCodesGenerated} new Playlist Short Links generated. Total: ${playlistShortMap.size}`);
@@ -1290,12 +1442,10 @@ try {
 }
 
 function getVideoDurationSeconds(video) {
-    // Try cache first
     const cached = metadataCache.videos && metadataCache.videos[video.path];
     if (cached && cached.videoLength) {
         return parseDurationToSecondsServer(cached.videoLength);
     }
-    // Fallback to disk
     const channel = video.path.split('/')[0];
     const videoBaseName = video.basePath.split('/').pop();
     let lengthPath = path.join(__dirname, 'videolengths', channel, `${videoBaseName}.txt`);
@@ -1353,12 +1503,9 @@ function findUserByUsername(username) {
 // ======================================================================
 // PREFERENCE SYSTEM CONSTANTS
 // ======================================================================
-
 const LOW_TAG_THRESHOLD = 0.05;
 const IGNORED_TAGS = new Set(['uncategorized']);
-// FIX A: Hard ceiling for any single tag's scoring contribution.
 const MAX_TAG_PCT = 0.30;
-// FIX C: Minority-tag survival floor (in percentage points, 0-100)
 const MINORITY_TAG_FLOOR = 3;
 
 const preferenceUpdateQueue = new Map();
@@ -1896,7 +2043,6 @@ app.post('/save-preferences', (req, res) => {
     const { preferences } = req.body;
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('Not authenticated');
-    
     try {
         const filteredPreferences = {};
         for (const [tag, value] of Object.entries(preferences || {})) {
@@ -1904,7 +2050,6 @@ app.post('/save-preferences', (req, res) => {
             if (!cleanTag || cleanTag.toLowerCase() === 'uncategorized') continue;
             filteredPreferences[cleanTag] = value;
         }
-        
         const data = fs.readFileSync(preferencesFilePath, 'utf8');
         const allPrefs = JSON.parse(data);
         allPrefs[userId] = filteredPreferences;
@@ -2086,7 +2231,6 @@ app.get('/sidebar-recommendations', recommendationsLimiter, (req, res) => {
             const prefData = JSON.parse(data);
             const userPrefs = prefData[userId] || {};
             const total = Object.values(userPrefs).reduce((s, v) => s + v, 0);
-            // FIX A: Same compressed + capped tag percentages used by /recommendations
             const tagPercent = {};
             if (total > 0) {
                 const tagNames = Object.keys(userPrefs).filter(
@@ -2490,7 +2634,6 @@ app.get('/tag-videos', (req, res) => {
     const tag = req.query.tag;
     const limit = parseInt(req.query.limit) || 20;
     if (!tag) return res.status(400).json({ error: 'Missing tag parameter' });
-    
     const videoPaths = recommendationIndex[tag] || [];
     const uniquePaths = [...new Set(videoPaths)];
     shuffleArray(uniquePaths);
@@ -2520,9 +2663,9 @@ app.get('/register-status', (req, res) => {
     const clientIp = getClientIp(req);
     const cooldownEnd = registrationCooldowns.get(clientIp);
     if (cooldownEnd && Date.now() < cooldownEnd) {
-        return res.json({ 
-            blocked: true, 
-            remainingTime: cooldownEnd - Date.now() 
+        return res.json({
+            blocked: true,
+            remainingTime: cooldownEnd - Date.now()
         });
     }
     if (cooldownEnd) registrationCooldowns.delete(clientIp);
@@ -2532,8 +2675,6 @@ app.get('/register-status', (req, res) => {
 app.post('/register', (req, res) => {
     const clientIp = getClientIp(req);
     const cooldownEnd = registrationCooldowns.get(clientIp);
-
-    // Check cooldown
     if (cooldownEnd && Date.now() < cooldownEnd) {
         const remainingTime = cooldownEnd - Date.now();
         const remainingMinutes = Math.ceil(remainingTime / 60000);
@@ -2550,10 +2691,7 @@ app.post('/register', (req, res) => {
             error: 'Please wait ' + timeString + ' before creating another account.'
         });
     }
-
     const { username, password } = req.body;
-
-    // Validate input
     if (!username || typeof username !== 'string') {
         return res.status(400).json({ error: 'Username is required.' });
     }
@@ -2567,16 +2705,13 @@ app.post('/register', (req, res) => {
     if (trimmedUsername.length > 30) {
         return res.status(400).json({ error: 'Username must be at most 30 characters long.' });
     }
-    // Optional: disallow special characters
     if (!/^[a-zA-Z0-9_\-. ]+$/.test(trimmedUsername)) {
         return res.status(400).json({ error: 'Username contains invalid characters. Use letters, numbers, spaces, underscores, hyphens, or dots.' });
     }
     if (password.length < 6) {
         return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
     }
-
     const usersFilePath = path.join(__dirname, 'users.json');
-
     fs.readFile(usersFilePath, 'utf8', (err, data) => {
         let usersData = {};
         if (!err) {
@@ -2586,31 +2721,23 @@ app.post('/register', (req, res) => {
                 return res.status(500).json({ error: 'Error reading user database.' });
             }
         }
-
-        // Check for existing user (case-insensitive)
         const existing = Object.keys(usersData).find(
             key => key.toLowerCase() === trimmedUsername.toLowerCase()
         );
         if (existing) {
             return res.status(409).json({ error: 'Username already exists. Please choose a different username.' });
         }
-
         const hashedPassword = bcrypt.hashSync(password, 10);
         usersData[trimmedUsername] = {
             id: uuidv4(),
             password: hashedPassword
         };
-
         fs.writeFile(usersFilePath, JSON.stringify(usersData, null, 2), err => {
             if (err) {
                 console.error('Error saving user:', err);
                 return res.status(500).json({ error: 'Error saving user. Please try again.' });
             }
-
-            // Set cooldown for this IP (10 minutes)
             registrationCooldowns.set(clientIp, Date.now() + REGISTER_COOLDOWN_MS);
-
-            // Return success
             res.status(200).json({ success: true });
         });
     });
@@ -2620,9 +2747,9 @@ app.post('/login', (req, res) => {
     const clientIp = getClientIp(req);
     const attemptData = getLoginAttemptData(clientIp);
     if (attemptData && attemptData.permanent) {
-        return res.status(403).json({ 
+        return res.status(403).json({
             error: 'You have been permanently blocked for trying to log in too many times. Contact your LocalYT owner for support.',
-            permanent: true 
+            permanent: true
         });
     }
     if (isIpBlocked(clientIp)) {
@@ -2630,7 +2757,7 @@ app.post('/login', (req, res) => {
         const minutes = Math.ceil(remainingTime / 60000);
         const seconds = Math.ceil((remainingTime % 60000) / 1000);
         let timeString = minutes > 0 ? `${minutes} minute(s)` : `${seconds} second(s)`;
-        return res.status(429).json({ 
+        return res.status(429).json({
             error: `Too many failed login attempts. Please try again in ${timeString}.`,
             blocked: true,
             remainingTime: remainingTime
@@ -2646,9 +2773,9 @@ app.post('/login', (req, res) => {
             recordFailedAttempt(clientIp);
             const updatedData = getLoginAttemptData(clientIp);
             if (updatedData && updatedData.permanent) {
-                return res.status(403).json({ 
+                return res.status(403).json({
                     error: 'You have been permanently blocked for trying to log in too many times. Contact your LocalYT owner for support.',
-                    permanent: true 
+                    permanent: true
                 });
             }
             if (updatedData && updatedData.blockedUntil && Date.now() < updatedData.blockedUntil) {
@@ -2656,7 +2783,7 @@ app.post('/login', (req, res) => {
                 const minutes = Math.ceil(remainingTime / 60000);
                 const seconds = Math.ceil((remainingTime % 60000) / 1000);
                 let timeString = minutes > 0 ? `${minutes} minute(s)` : `${seconds} second(s)`;
-                return res.status(429).json({ 
+                return res.status(429).json({
                     error: `Too many failed login attempts. Please try again in ${timeString}.`,
                     blocked: true,
                     remainingTime: remainingTime
@@ -2682,8 +2809,8 @@ app.get('/login-status', (req, res) => {
         return res.json({ blocked: false });
     }
     if (attemptData.permanent) {
-        return res.json({ 
-            blocked: true, 
+        return res.json({
+            blocked: true,
             permanent: true,
             error: 'You have been permanently blocked for trying to log in too many times. Contact your LocalYT owner for support.'
         });
@@ -2693,8 +2820,8 @@ app.get('/login-status', (req, res) => {
         const minutes = Math.ceil(remainingTime / 60000);
         const seconds = Math.ceil((remainingTime % 60000) / 1000);
         let timeString = minutes > 0 ? `${minutes} minute(s)` : `${seconds} second(s)`;
-        return res.json({ 
-            blocked: true, 
+        return res.json({
+            blocked: true,
             permanent: false,
             error: `Too many failed login attempts. Please try again in ${timeString}.`,
             remainingTime: remainingTime,
@@ -2721,9 +2848,9 @@ app.get('/session-user', (req, res) => {
             const usersData = JSON.parse(data);
             const username = Object.keys(usersData).find(key => usersData[key].id === userId);
             if (username) {
-                res.json({ 
-                    username: username, 
-                    id: userId 
+                res.json({
+                    username: username,
+                    id: userId
                 });
             } else {
                 res.status(404).json({ error: 'User not found' });
@@ -2735,35 +2862,24 @@ app.get('/session-user', (req, res) => {
 });
 
 // ======================================================================
-// PREFERENCE UPDATE SYSTEM (with decay and low-tag removal)
+// PREFERENCE UPDATE SYSTEM
 // ======================================================================
 
 function batchUpdatePreferences() {
     if (preferenceUpdateQueue.size === 0) return;
-
     fs.readFile(preferencesFilePath, 'utf8', (err, data) => {
         let preferencesData = {};
         if (!err) preferencesData = JSON.parse(data);
-
         preferenceUpdateQueue.forEach((videoTagsArray, userId) => {
             let userPrefs = preferencesData[userId] || {};
-            
-            // If no preferences yet, start with empty object
             if (!userPrefs || Object.keys(userPrefs).length === 0) {
                 userPrefs = {};
             }
-
             for (const videoTags of videoTagsArray) {
-                // Calculate total percentage to add
-                // Each tag in the video gets equal share
-                const totalNewPercentage = 10; // 10% total for a newly-watched video
+                const totalNewPercentage = 10;
                 const perTagPercentage = totalNewPercentage / videoTags.length;
-                
-                // Get current total (should be 100%, but handle edge cases)
                 const currentTotal = Object.values(userPrefs).reduce((sum, v) => sum + v, 0);
-                
                 if (currentTotal === 0) {
-                    // First video ever - distribute evenly
                     for (const tag of videoTags) {
                         const cleanTag = tag.trim();
                         if (cleanTag && !IGNORED_TAGS.has(cleanTag.toLowerCase())) {
@@ -2772,18 +2888,11 @@ function batchUpdatePreferences() {
                     }
                     continue;
                 }
-                
-                // Calculate reduction factor for existing tags
-                // We need to reduce existing tags to make room for new ones
                 const totalReduction = totalNewPercentage;
                 const reductionFactor = totalReduction / currentTotal;
-                
-                // Apply reduction to all existing tags
                 for (let tag in userPrefs) {
                     userPrefs[tag] *= (1 - reductionFactor);
                 }
-                
-                // Add new tags
                 for (const tag of videoTags) {
                     const cleanTag = tag.trim();
                     if (cleanTag && !IGNORED_TAGS.has(cleanTag.toLowerCase())) {
@@ -2791,29 +2900,21 @@ function batchUpdatePreferences() {
                     }
                 }
             }
-            
-            // FIX C: Clean up - remove tags below threshold, but keep a small
-            // minority-tag floor so smaller preferences don't get permanently wiped out.
             const total = Object.values(userPrefs).reduce((sum, v) => sum + v, 0);
             if (total > 0) {
                 const cleanedPrefs = {};
                 for (let tag in userPrefs) {
                     const pct = (userPrefs[tag] / total) * 100;
                     if (pct >= (LOW_TAG_THRESHOLD * 100)) {
-                        // Store as percentage (0-100)
                         cleanedPrefs[tag] = Math.round(pct * 100) / 100;
                     } else if (userPrefs[tag] > 0) {
-                        // Minority-tag survival floor: keep the tag alive at 3%
-                        // so it can grow again if the user watches more of it later.
                         cleanedPrefs[tag] = MINORITY_TAG_FLOOR;
                     }
                 }
                 userPrefs = cleanedPrefs;
             }
-
             preferencesData[userId] = userPrefs;
         });
-
         fs.writeFile(preferencesFilePath, JSON.stringify(preferencesData, null, 2), (err) => {
             if (err) console.error('Error saving preferences:', err);
             preferenceUpdateQueue.clear();
@@ -2825,60 +2926,39 @@ app.post('/updatePreferences', (req, res) => {
     const { video } = req.body;
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('User not authenticated');
-
     const videoData = videoCache.get(video);
     if (!videoData || !videoData.tags) return res.status(404).send('Video tags not found');
-
     const videoTags = videoData.tags.filter(t => !IGNORED_TAGS.has(t.toLowerCase()));
-
     if (!preferenceUpdateQueue.has(userId)) {
         preferenceUpdateQueue.set(userId, []);
     }
     preferenceUpdateQueue.get(userId).push(videoTags);
-
     if (preferenceUpdateTimer) clearTimeout(preferenceUpdateTimer);
     preferenceUpdateTimer = setTimeout(batchUpdatePreferences, 5000);
     res.json({ queued: true });
 });
 
-// ======================================================================
-// RECOMMENDATIONS (percentage-based)
-// ======================================================================
-
 app.get('/recommendations', recommendationsLimiter, (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('User not authenticated');
-
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
-    const tagFilter = req.query.tag; // optional tag filter
+    const tagFilter = req.query.tag;
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
-
-    // Apply tag filter if provided
     let filteredVideoArray = videoArray;
     if (tagFilter) {
         const lowerTag = tagFilter.toLowerCase();
-        filteredVideoArray = videoArray.filter(v => 
+        filteredVideoArray = videoArray.filter(v =>
             v.tags && v.tags.some(t => t.toLowerCase() === lowerTag)
         );
     }
-
     fs.readFile(preferencesFilePath, 'utf8', (err, data) => {
         if (err) return res.status(500).send('Error reading preferences');
-
         try {
             const preferencesData = JSON.parse(data);
             const userPrefs = preferencesData[userId] || {};
             const total = Object.values(userPrefs).reduce((sum, v) => sum + v, 0);
-
-            // FIX A: Compressed + capped tag percentages.
-            // - Blend 70% personal / 30% uniform exploration so no single tag
-            //   can be worth "everything else combined".
-            // - sqrt() compresses high values (1.0 -> 1.0, 0.25 -> 0.5) so a
-            //   saturated tag stops dominating linearly.
-            // - Clamp each tag's contribution to MAX_TAG_PCT (0.30) so even a
-            //   100% tag can only contribute 0.30 to a video's score.
             const tagPercent = {};
             if (total > 0) {
                 const tagNames = Object.keys(userPrefs).filter(
@@ -2891,8 +2971,6 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
                     tagPercent[tag] = Math.min(Math.sqrt(blended), MAX_TAG_PCT);
                 }
             }
-
-            // If no meaningful tags → fallback to random (using filtered array)
             if (Object.keys(tagPercent).length === 0) {
                 const allVideos = [...filteredVideoArray];
                 shuffleArray(allVideos);
@@ -2904,15 +2982,12 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
                     hasMore: endIndex < filteredVideoArray.length
                 });
             }
-
-            // Score each video by summing the percentages of its tags
             const scoredVideos = filteredVideoArray.map(video => {
                 let score = 0;
                 const channel = video.path.split('/')[0];
                 if (video.tags) {
                     for (const tag of video.tags) {
                         let weight = tagPercent[tag] || 0;
-                        // Reduce channel tag weight to 1/3
                         if (tag.toLowerCase() === channel.toLowerCase()) {
                             weight *= (1/3);
                         }
@@ -2923,14 +2998,7 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
                 score = score * randomFactor;
                 return { video, score };
             });
-            
-            // Sort by score descending
             scoredVideos.sort((a, b) => b.score - a.score);
-
-            // FIX B: Per-channel diversity cap (~40% of a page from any one channel).
-            // Walk the sorted list and only accept videos from channels that
-            // are still under their quota. This guarantees that even a fully
-            // saturated tag can't fill the whole landing page with one channel.
             const perChannelCap = Math.max(2, Math.ceil(limit * 0.4));
             const cappedTarget = Math.max(100, endIndex + limit);
             const channelCaps = {};
@@ -2942,14 +3010,8 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
                 capped.push(item);
                 if (capped.length >= cappedTarget) break;
             }
-            
-            // Shuffle the capped candidates to get different order each time
             shuffleArray(capped);
-            
-            // Paginate from the shuffled list
             const paginated = capped.slice(startIndex, endIndex).map(item => item.video);
-            
-            // If we don't have enough videos, fill with random ones from the filtered pool
             if (paginated.length < limit) {
                 const remaining = limit - paginated.length;
                 const allVideos = filteredVideoArray.filter(v => !paginated.includes(v));
@@ -2957,14 +3019,12 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
                 const fill = allVideos.slice(0, remaining);
                 paginated.push(...fill);
             }
-
             res.json({
                 videos: getVideoDetails(paginated),
                 page, limit,
                 total: filteredVideoArray.length,
                 hasMore: endIndex < filteredVideoArray.length
             });
-
         } catch (err) {
             console.error('Error generating recommendations:', err);
             return res.status(500).send('Error generating recommendations');
@@ -2975,26 +3035,19 @@ app.get('/recommendations', recommendationsLimiter, (req, res) => {
 app.get('/top-categories', recommendationsLimiter, (req, res) => {
     const userId = req.session.userId;
     if (!userId) return res.status(401).send('User not authenticated');
-
     fs.readFile(preferencesFilePath, 'utf8', (err, data) => {
         if (err) return res.status(500).send('Error reading preferences');
         try {
             const preferencesData = JSON.parse(data);
             const userPrefs = preferencesData[userId] || {};
             const total = Object.values(userPrefs).reduce((sum, v) => sum + v, 0);
-
             if (total === 0) return res.json([]);
-
-            // Top-categories is purely informational - it shows the user which
-            // tags dominate their profile so they can act on it. We keep the
-            // raw percentages here on purpose so the user can see the skew.
             const sorted = Object.entries(userPrefs)
                 .map(([tag, weight]) => ({ tag, pct: weight / total }))
                 .filter(item => item.pct >= LOW_TAG_THRESHOLD)
                 .sort((a, b) => b.pct - a.pct)
                 .slice(0, 5)
                 .map(item => item.tag);
-
             res.json(sorted);
         } catch (err) {
             return res.status(500).send('Error parsing preferences data');
@@ -3002,13 +3055,11 @@ app.get('/top-categories', recommendationsLimiter, (req, res) => {
     });
 });
 
-// Updated channel-playlists endpoint to use order files for thumbnails
 app.get('/channel-playlists/:channel', (req, res) => {
     const channel = req.params.channel;
     const videosDir = path.join(__dirname, 'videos', channel);
     if (!fs.existsSync(videosDir)) return res.json([]);
     const playlists = [];
-    
     function scanForPlaylists(dir, basePath = '') {
         const items = fs.readdirSync(dir);
         items.forEach(item => {
@@ -3029,13 +3080,11 @@ app.get('/channel-playlists/:channel', (req, res) => {
                 }
                 countVideosInPlaylist(itemPath);
                 if (playlistVideos.length > 0) {
-                    // Get thumbnail from order file (on-demand)
                     let thumbnail = getPlaylistThumbnailFromOrder(channel, relativePath);
-                    
-                    playlists.push({ 
-                        name: item, 
-                        path: relativePath, 
-                        videoCount: playlistVideos.length, 
+                    playlists.push({
+                        name: item,
+                        path: relativePath,
+                        videoCount: playlistVideos.length,
                         fullPath: itemPath,
                         thumbnail: thumbnail
                     });
@@ -3048,15 +3097,12 @@ app.get('/channel-playlists/:channel', (req, res) => {
     res.json(playlists);
 });
 
-// Updated playlist-videos endpoint to use order files
 app.get('/playlist-videos/:channel/:playlist*', (req, res) => {
     const channel = req.params.channel;
     const playlistPath = req.params[0] ? `${req.params.playlist}/${req.params[0]}` : req.params.playlist;
     const playlistDir = path.join(__dirname, 'videos', channel, playlistPath);
     if (!fs.existsSync(playlistDir)) return res.status(404).send('Playlist not found');
     const videoFiles = [];
-    
-    // Get the custom order from the order file if it exists
     const orderFilePath = path.join(__dirname, 'playlist-orders', channel, `${playlistPath}.jsonl`);
     let customOrder = [];
     if (fs.existsSync(orderFilePath)) {
@@ -3071,7 +3117,6 @@ app.get('/playlist-videos/:channel/:playlist*', (req, res) => {
             console.error(`Error reading order file: ${err.message}`);
         }
     }
-    
     function readPlaylistDir(dir) {
         const files = fs.readdirSync(dir);
         files.forEach(file => {
@@ -3084,13 +3129,10 @@ app.get('/playlist-videos/:channel/:playlist*', (req, res) => {
                 let viewCount = '0';
                 const viewCountPath = path.join(__dirname, 'viewcounts', `${basePath}.txt`);
                 if (fs.existsSync(viewCountPath)) viewCount = fs.readFileSync(viewCountPath, 'utf8');
-                
-                // Include order index if available
                 let orderIndex = -1;
                 if (customOrder.length > 0) {
                     orderIndex = customOrder.indexOf(relativePath);
                 }
-                
                 videoFiles.push({
                     path: relativePath,
                     viewCount: viewCount,
@@ -3102,8 +3144,6 @@ app.get('/playlist-videos/:channel/:playlist*', (req, res) => {
         });
     }
     readPlaylistDir(playlistDir);
-    
-    // Sort by custom order if available
     if (customOrder.length > 0) {
         videoFiles.sort((a, b) => {
             if (a.orderIndex === -1 && b.orderIndex === -1) return 0;
@@ -3112,7 +3152,6 @@ app.get('/playlist-videos/:channel/:playlist*', (req, res) => {
             return a.orderIndex - b.orderIndex;
         });
     }
-    
     res.json(videoFiles);
 });
 
@@ -3335,7 +3374,6 @@ app.get('/api/notifications', (req, res) => {
         const notifs = fs.existsSync(notificationsFilePath) ? JSON.parse(fs.readFileSync(notificationsFilePath, 'utf8')) : [];
         const readState = fs.existsSync(notificationReadStateFilePath) ? JSON.parse(fs.readFileSync(notificationReadStateFilePath, 'utf8')) : {};
         const userReadIds = readState[userId] || [];
-        
         const unreadCount = notifs.filter(n => !userReadIds.includes(n.id)).length;
         res.json({ notifications: notifs, unreadCount });
     } catch (err) {
@@ -3350,7 +3388,6 @@ app.post('/api/notifications/read', (req, res) => {
         const notifs = fs.existsSync(notificationsFilePath) ? JSON.parse(fs.readFileSync(notificationsFilePath, 'utf8')) : [];
         const readState = fs.existsSync(notificationReadStateFilePath) ? JSON.parse(fs.readFileSync(notificationReadStateFilePath, 'utf8')) : {};
         if (!readState[userId]) readState[userId] = [];
-        
         notifs.forEach(n => {
             if (!readState[userId].includes(n.id)) {
                 readState[userId].push(n.id);
@@ -3362,6 +3399,1262 @@ app.post('/api/notifications/read', (req, res) => {
         res.status(500).json({ error: 'Failed to mark as read' });
     }
 });
+
+// ======================================================================
+// VIDEO UPLOAD HELPERS
+// (Everything below this line runs AFTER app.use(session(...)),
+//  so req.session is guaranteed to be populated in the two routes that
+//  follow.)
+// ======================================================================
+
+function findBinary(name) {
+    const bundled = path.join(__dirname, 'LocalYT-Rev-Files', 'FFmpeg', `${name}.exe`);
+    if (fs.existsSync(bundled)) return bundled;
+    return name;
+}
+
+function runProcess(cmd, args) {
+    return new Promise((resolve, reject) => {
+        const child = spawn(cmd, args, { windowsHide: true });
+        let stdout = '', stderr = '';
+        child.stdout.on('data', d => stdout += d.toString());
+        child.stderr.on('data', d => stderr += d.toString());
+        child.on('close', code => {
+            if (code === 0) resolve({ stdout, stderr });
+            else reject(new Error(`${cmd} exited with ${code}: ${stderr}`));
+        });
+        child.on('error', reject);
+    });
+}
+
+function runPythonScript(scriptName, args = []) {
+    return new Promise((resolve, reject) => {
+        const candidates = [
+            path.join(__dirname, 'venv', 'python.exe'),
+            path.join(__dirname, 'venv', 'Scripts', 'python.exe'),
+        ];
+        let pythonExe = 'python';
+        for (const c of candidates) {
+            if (fs.existsSync(c)) { pythonExe = c; break; }
+        }
+        const scriptPath = path.join(__dirname, 'LocalYT-Rev-Files', scriptName);
+        if (!fs.existsSync(scriptPath)) {
+            return reject(new Error(`Python script not found: ${scriptPath}`));
+        }
+        const child = spawn(pythonExe, [scriptPath, ...args], {
+            cwd: __dirname,
+            windowsHide: true,
+            env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
+        });
+        let stdout = '', stderr = '';
+        child.stdout.on('data', d => stdout += d.toString());
+        child.stderr.on('data', d => stderr += d.toString());
+        child.on('close', code => {
+            if (code === 0) resolve({ stdout, stderr });
+            else reject(new Error(`${scriptName} exited with ${code}: ${stderr}`));
+        });
+        child.on('error', reject);
+    });
+}
+
+async function probeVideoInfo(filePath) {
+    try {
+        const { stdout } = await runProcess(findBinary('ffprobe'), [
+            '-v', 'error',
+            '-select_streams', 'v:0',
+            '-show_entries', 'stream=width,height,codec_name,r_frame_rate,avg_frame_rate:format=duration',
+            '-of', 'json',
+            filePath
+        ]);
+        const data = JSON.parse(stdout);
+        const stream = (data.streams && data.streams[0]) || {};
+        const duration = parseFloat((data.format && data.format.duration) || '0');
+
+        // Prefer avg_frame_rate (actual playback rate) over r_frame_rate (base rate).
+        // Both are "num/den" strings. e.g. "30000/1001" → 29.97 fps.
+        let fps = 0;
+        const fpsStr = stream.avg_frame_rate || stream.r_frame_rate || '0/0';
+        const [fpsNum, fpsDen] = String(fpsStr).split('/').map(Number);
+        if (fpsDen && fpsNum && isFinite(fpsNum / fpsDen)) fps = fpsNum / fpsDen;
+
+        return {
+            durationSec: isFinite(duration) && duration > 0 ? duration : 0,
+            width: parseInt(stream.width, 10) || 0,
+            height: parseInt(stream.height, 10) || 0,
+            codec: (stream.codec_name || 'Unknown').toUpperCase(),
+            fps: fps
+        };
+    } catch {
+        return { durationSec: 0, width: 0, height: 0, codec: 'Unknown', fps: 0 };
+    }
+}
+
+// Friendly codec aliases → ffmpeg encoder names
+const VIDEO_CODEC_ALIASES = {
+    'av1': 'libsvtav1',
+    'h264': 'libx264',
+    'h265': 'libx265',
+    'hevc': 'libx265',
+    'vp9': 'libvpx-vp9'
+};
+const AUDIO_CODEC_ALIASES = {
+    'opus': 'libopus',
+    'aac': 'aac',
+    'mp3': 'libmp3lame'
+};
+
+function resolveCodec(alias, aliases) {
+    if (!alias) return null;
+    const lower = String(alias).toLowerCase();
+    return aliases[lower] || alias; // pass-through if it's already a raw encoder name
+}
+
+// Encode settings that don't apply to every codec — silently dropped if N/A.
+function buildCodecArgs(videoEncoder, crf, preset) {
+    const args = ['-c:v', videoEncoder];
+    // CRF flag name varies by encoder
+    if (videoEncoder === 'libsvtav1' || videoEncoder === 'libaom-av1' || videoEncoder === 'librav1e') {
+        args.push('-crf', String(crf));
+        if (videoEncoder === 'libsvtav1') {
+            // Preset scale differs (0-13 for SVT, 0-8 for aom/rav1e)
+            args.push('-preset', String(preset));
+            // tune=0 = PSNR (default), tune=1 = VQ (psychovisual). PSNR is safer.
+            args.push('-svtav1-params', 'tune=0');
+        } else if (videoEncoder === 'libaom-av1' || videoEncoder === 'librav1e') {
+            args.push('-cpu-used', String(Math.min(8, Math.max(0, preset))));
+        }
+    } else if (videoEncoder === 'libx264' || videoEncoder === 'libx265') {
+        args.push('-crf', String(crf));
+        args.push('-preset', ['ultrafast','superfast','veryfast','faster','fast','medium','slow','slower','veryslow'][Math.min(8, preset)] || 'medium');
+    } else if (videoEncoder === 'libvpx-vp9') {
+        args.push('-crf', String(crf));
+        args.push('-b:v', '0'); // required for VP9 CRF mode
+        args.push('-row-mt', '1');
+    }
+    return args;
+}
+
+/**
+ * Reencode a video to the target spec.
+ * Writes to `targetPath`; caller is responsible for moving/deleting it.
+ * Throws on ffmpeg failure (caller should catch and fall back to original).
+ */
+async function reencodeVideo(sourcePath, targetPath, config, onProgress = () => {}) {
+    const ffmpeg = findBinary('ffmpeg');
+    const info = await probeVideoInfo(sourcePath);
+
+    const targetW = parseInt(config.targetWidth, 10) || 1920;
+    const targetH = parseInt(config.targetHeight, 10) || 1080;
+    const crf = parseInt(config.crf, 10) || 28;
+    const preset = parseInt(config.preset, 10) || 6;
+    const fpsCap = parseInt(config.fpsCap, 10) || 60;
+    const videoEncoder = resolveCodec(config.videoCodec || 'av1', VIDEO_CODEC_ALIASES);
+    const audioEncoder = resolveCodec(config.audioCodec || 'opus', AUDIO_CODEC_ALIASES);
+    const audioBitrate = config.audioBitrate || '128k';
+
+    if (!videoEncoder) throw new Error('No video codec configured');
+    if (!audioEncoder) throw new Error('No audio codec configured');
+
+    const filters = [
+        `scale='min(${targetW},iw)':'min(${targetH},ih)':force_original_aspect_ratio=decrease:force_divisible_by=2`
+    ];
+    if (info.fps && info.fps > fpsCap) {
+        filters.push(`fps=${fpsCap}`);
+    }
+
+    const args = [
+        '-i', sourcePath,
+        ...buildCodecArgs(videoEncoder, crf, preset),
+        '-vf', filters.join(','),
+        '-c:a', audioEncoder,
+        '-b:a', audioBitrate,
+        '-progress', 'pipe:1',
+        '-nostats',
+        '-y',
+        targetPath
+    ];
+
+    const durationSec = info.durationSec;
+    console.log(`[Reencode] ${path.basename(sourcePath)} → ${videoEncoder} crf=${crf} preset=${preset} ${targetW}x${targetH} (source: ${info.width}x${info.height} @ ${info.fps.toFixed(2)}fps, ${durationSec.toFixed(1)}s)`);
+
+    const started = Date.now();
+
+    await new Promise((resolve, reject) => {
+        const child = spawn(ffmpeg, args, { windowsHide: true });
+        let stdoutBuf = '';
+        let stderrTail = '';
+
+        child.stdout.on('data', (chunk) => {
+            stdoutBuf += chunk.toString();
+            const lines = stdoutBuf.split('\n');
+            stdoutBuf = lines.pop();   // keep partial last line for next chunk
+
+            for (const line of lines) {
+                const eq = line.indexOf('=');
+                if (eq === -1) continue;
+                const key = line.slice(0, eq).trim();
+                const value = line.slice(eq + 1).trim();
+
+                // out_time_us and out_time_ms are both microseconds (ffmpeg quirk)
+                if (key === 'out_time_us' || key === 'out_time_ms') {
+                    const us = parseInt(value, 10);
+                    if (!isNaN(us) && durationSec > 0) {
+                        const pct = Math.min(99, (us / 1e6 / durationSec) * 100);
+                        onProgress(pct);
+                    }
+                } else if (key === 'progress' && value === 'end') {
+                    onProgress(100);
+                }
+            }
+        });
+
+        child.stderr.on('data', (d) => {
+            stderrTail += d.toString();
+            if (stderrTail.length > 4000) stderrTail = stderrTail.slice(-2000);
+        });
+
+        child.on('close', (code) => {
+            if (code === 0) resolve();
+            else reject(new Error(`ffmpeg exited with ${code}: ${stderrTail.slice(-500)}`));
+        });
+        child.on('error', reject);
+    });
+
+    const elapsed = ((Date.now() - started) / 1000).toFixed(1);
+    console.log(`[Reencode] Finished in ${elapsed}s → ${path.basename(targetPath)}`);
+}
+
+function classifyResolution(width, height) {
+    const maxDim = Math.max(width, height);
+    if (maxDim >= 2160) return '4K';
+    if (maxDim >= 1440) return '2K';
+    if (maxDim >= 1280) return 'HD';
+    if (maxDim > 0) return 'SD';
+    return '';
+}
+
+async function processUploadAsync(job, files, body) {
+    const videoFile    = files?.video?.[0];
+    const thumbnailFile = files?.thumbnail?.[0];
+    const commentsFile = files?.commentsJson?.[0];
+    const livechatFile = files?.livechatJson?.[0];
+
+    // Everything the closure needs, extracted from `req`
+    const channel  = sanitizeComponent(body.channel || '');
+    const playlist = sanitizeComponent(body.playlist || '');
+
+    const originalExt  = path.extname(videoFile.originalname).toLowerCase();
+    const originalBase = path.basename(videoFile.originalname, originalExt);
+    const baseName     = sanitizeComponent(originalBase) || 'video';
+
+    const warnings = [];
+
+    try {
+        // ---------- Reencode (optional) ----------
+        const reencodeConfig = (loadAdminConfig().reencodeOnUpload) || {};
+        let finalExt = originalExt;
+        let sourceForMove = videoFile.path;
+
+        if (reencodeConfig.enabled && originalExt !== '.mp3') {
+            const reencodedTemp = `${videoFile.path}-reencoded.${reencodeConfig.container || 'mkv'}`;
+            job.phase = 'reencoding';
+            job.progress = 5;
+            job.message = 'Reencoding video...';
+
+            try {
+                await reencodeVideo(videoFile.path, reencodedTemp, reencodeConfig, (pct) => {
+                    job.progress = 5 + (pct * 0.75);        // map to 5% .. 80%
+                    job.message = `Reencoding video... ${Math.round(pct)}%`;
+                });
+
+                const originalSize  = fs.statSync(videoFile.path).size;
+                const reencodedSize = fs.statSync(reencodedTemp).size;
+
+                if (reencodeConfig.keepOriginalIfSmaller !== false && reencodedSize >= originalSize) {
+                    console.log(`[Upload] Reencode grew file (${originalSize} → ${reencodedSize}), keeping original`);
+                    fs.unlinkSync(reencodedTemp);
+                } else {
+                    const ratio = (reencodedSize / originalSize * 100).toFixed(1);
+                    console.log(`[Upload] Reencode: ${(originalSize / 1048576).toFixed(1)}MB → ${(reencodedSize / 1048576).toFixed(1)}MB (${ratio}%)`);
+                    fs.unlinkSync(videoFile.path);
+                    sourceForMove = reencodedTemp;
+                    finalExt = `.${reencodeConfig.container || 'mkv'}`;
+                }
+            } catch (e) {
+                console.error('[Upload] Reencode failed, using original:', e.message);
+                warnings.push('Reencoding failed, stored original: ' + e.message);
+                try { if (fs.existsSync(reencodedTemp)) fs.unlinkSync(reencodedTemp); } catch {}
+            }
+        }
+
+        job.progress = 80;
+        job.phase = 'finalizing';
+        job.message = 'Writing metadata files...';
+
+        // ---------- Everything below is your existing step 1b onward ----------
+        // (final path computation, move, probe, all metadata writes,
+        //  targeted cache refresh, direct cache patches, background Python)
+        //
+        // Copy from the previous answer's handler body starting at:
+        //     const finalFilename = `${baseName}${finalExt}`;
+        // through the end of the try-block, EXCEPT:
+        //   - do not use `req.*` — use the local `files`, `body`, and the
+        //     extracted `thumbnailFile`, `commentsFile`, `livechatFile`
+        //   - do not `res.json(...)` — instead set `job.result = {...}`
+        //     and leave the return value for the caller
+        //   - add periodic `job.progress = N; job.message = '...'` updates
+        //     so the client sees movement during the metadata phase
+
+        const finalFilename = `${baseName}${finalExt}`;
+        const channelRelativeDir = playlist ? `${channel}/${playlist}` : channel;
+        const videoRelativePath  = `${channelRelativeDir}/${finalFilename}`;
+        const videoFullPath      = path.join(__dirname, 'videos', videoRelativePath);
+
+        if (fs.existsSync(videoFullPath)) {
+            throw new Error(`File already exists: ${finalFilename}`);
+        }
+
+        fs.mkdirSync(path.dirname(videoFullPath), { recursive: true });
+        fs.renameSync(sourceForMove, videoFullPath);
+
+        const actualChannel = resolveActualChannelName(channel);
+
+        if (!fs.existsSync(path.join(__dirname, 'channelpic', `${actualChannel}.jpg`))) {
+            try { await generateChannelPicInline(actualChannel); }
+            catch { warnings.push('Could not generate channel picture.'); }
+        }
+        const subcountPath = path.join(__dirname, 'subcount', `${actualChannel}.txt`);
+        if (!fs.existsSync(subcountPath)) {
+            fs.mkdirSync(path.dirname(subcountPath), { recursive: true });
+            fs.writeFileSync(subcountPath, '10,000');
+        }
+
+        const info = await probeVideoInfo(videoFullPath);
+        const durationSec = info.durationSec;
+        const resolutionClass = classifyResolution(info.width, info.height);
+
+        // Display name
+        const displayName = (body.displayName || '').trim() || baseName;
+        const filenameTxtPath = path.join(__dirname, 'filenames', channelRelativeDir, `${baseName}.txt`);
+        fs.mkdirSync(path.dirname(filenameTxtPath), { recursive: true });
+        fs.writeFileSync(filenameTxtPath, displayName);
+
+        // Upload date
+        let uploadDate = (body.uploadDate || '').trim();
+        if (uploadDate && /^\d{4}-\d{2}-\d{2}$/.test(uploadDate)) {
+            const [y, m, d] = uploadDate.split('-');
+            uploadDate = `${d}.${m}.${y}`;
+        } else if (!uploadDate) {
+            uploadDate = formatDateDDMMYYYY(new Date());
+        }
+        const filedateTxtPath = path.join(__dirname, 'filedates', channelRelativeDir, `${baseName}.txt`);
+        fs.mkdirSync(path.dirname(filedateTxtPath), { recursive: true });
+        fs.writeFileSync(filedateTxtPath, uploadDate);
+
+        // Length
+        if (durationSec > 0) {
+            const lengthTxtPath = path.join(__dirname, 'videolengths', actualChannel, `${baseName}.txt`);
+            fs.mkdirSync(path.dirname(lengthTxtPath), { recursive: true });
+            fs.writeFileSync(lengthTxtPath, formatDurationHM(durationSec));
+        }
+
+        // View count
+        let viewCountRaw = (body.viewCount || '').trim();
+        let viewCountNum;
+        if (viewCountRaw) {
+            viewCountNum = parseInt(viewCountRaw.replace(/,/g, ''), 10);
+            if (isNaN(viewCountNum) || viewCountNum < 0) viewCountNum = 0;
+        } else {
+            let subcount = 10000;
+            if (fs.existsSync(subcountPath)) {
+                const raw = fs.readFileSync(subcountPath, 'utf8').trim().replace(/,/g, '');
+                const parsed = parseInt(raw, 10);
+                if (!isNaN(parsed) && parsed > 0) subcount = parsed;
+            }
+            const factor = 0.10 + Math.random() * 0.68;
+            const jitter = (Math.random() - 0.5) * subcount * 0.06;
+            viewCountNum = Math.max(0, Math.round(subcount * factor + jitter));
+        }
+        const viewcountTxtPath = path.join(__dirname, 'viewcounts', channelRelativeDir, `${baseName}.txt`);
+        fs.mkdirSync(path.dirname(viewcountTxtPath), { recursive: true });
+        fs.writeFileSync(viewcountTxtPath, viewCountNum.toLocaleString('en-US'));
+
+        // Likes/dislikes
+        let likes = parseInt(body.likes || '', 10);
+        let dislikes = parseInt(body.dislikes || '', 10);
+        const likesProvided = !isNaN(likes) && likes >= 0;
+        const dislikesProvided = !isNaN(dislikes) && dislikes >= 0;
+        if (likesProvided && dislikesProvided) {
+            // as-is
+        } else if (likesProvided) {
+            dislikes = Math.max(0, Math.round(likes * (0.008 + Math.random() * 0.02)));
+        } else if (dislikesProvided) {
+            const ratio = 0.008 + Math.random() * 0.02;
+            likes = dislikes > 0 ? Math.round(dislikes / ratio) : 0;
+        } else {
+            const likeRate = getRealisticLikeRate(viewCountNum);
+            likes = Math.max(1, Math.round(viewCountNum * likeRate));
+            dislikes = Math.max(0, Math.round(likes * (0.008 + Math.random() * 0.02)));
+        }
+        const videostatsPath = path.join(__dirname, 'videostats', channelRelativeDir, `${baseName}.txt`);
+        fs.mkdirSync(path.dirname(videostatsPath), { recursive: true });
+        fs.writeFileSync(videostatsPath, `${likes},${dislikes}`);
+
+        // Resolution + codec
+        if (resolutionClass) {
+            const resPath = path.join(__dirname, 'videoresolutions', channelRelativeDir, `${baseName}.txt`);
+            fs.mkdirSync(path.dirname(resPath), { recursive: true });
+            fs.writeFileSync(resPath, `${resolutionClass}\n${info.codec}`);
+        }
+
+        // Description
+        const description = (body.description || '').trim();
+        if (description) {
+            const descPath = path.join(__dirname, 'descriptions', actualChannel, `${baseName}.txt`);
+            fs.mkdirSync(path.dirname(descPath), { recursive: true });
+            fs.writeFileSync(descPath, description);
+        }
+
+        // Thumbnail
+        const thumbPath = path.join(__dirname, 'thumbnails', channelRelativeDir, `${baseName}.jpg`);
+        fs.mkdirSync(path.dirname(thumbPath), { recursive: true });
+        if (thumbnailFile) {
+            try {
+                await sharp(thumbnailFile.path)
+                    .resize(1280, 720, { fit: 'cover', position: 'centre' })
+                    .jpeg({ quality: 90 })
+                    .toFile(thumbPath);
+                fs.unlink(thumbnailFile.path, () => {});
+            } catch (e) {
+                warnings.push('Could not process provided thumbnail: ' + e.message);
+                fs.unlink(thumbnailFile.path, () => {});
+            }
+        }
+        if (!fs.existsSync(thumbPath)) {
+            await generateThumbnailForUpload(videoFullPath, thumbPath, durationSec, originalExt === '.mp3');
+            if (!fs.existsSync(thumbPath)) {
+                const placeholder = path.join(__dirname, 'LocalYT-Rev-Files', 'thumbnail-placeholder.jpg');
+                if (fs.existsSync(placeholder)) fs.copyFileSync(placeholder, thumbPath);
+            }
+        }
+
+        // Small thumbnail
+        const smallThumbPath = path.join(__dirname, 'thumbnails-small', channelRelativeDir, `${baseName}.jpg`);
+        if (fs.existsSync(thumbPath) && !fs.existsSync(smallThumbPath)) {
+            try {
+                fs.mkdirSync(path.dirname(smallThumbPath), { recursive: true });
+                await sharp(thumbPath).resize({ width: 300 }).jpeg({ quality: 85 }).toFile(smallThumbPath);
+            } catch { warnings.push('Could not generate small thumbnail.'); }
+        }
+
+        // Comments JSON
+        let commentsWritten = false;
+        if (commentsFile) {
+            try {
+                const raw = fs.readFileSync(commentsFile.path, 'utf8');
+                JSON.parse(raw);
+                const commentsPath = path.join(__dirname, 'comments', channelRelativeDir, `${baseName}.json`);
+                fs.mkdirSync(path.dirname(commentsPath), { recursive: true });
+                fs.writeFileSync(commentsPath, raw);
+                fs.unlink(commentsFile.path, () => {});
+                commentsWritten = true;
+            } catch (e) {
+                warnings.push('Invalid comments JSON: ' + e.message);
+                fs.unlink(commentsFile.path, () => {});
+            }
+        }
+
+        // Livechat JSON
+        let livechatWritten = false;
+        if (livechatFile) {
+            try {
+                const raw = fs.readFileSync(livechatFile.path, 'utf8');
+                const formatted = formatLivechatIfNeeded(JSON.parse(raw));
+                const livechatPath = path.join(__dirname, 'livechats', actualChannel, `${baseName}.json`);
+                fs.mkdirSync(path.dirname(livechatPath), { recursive: true });
+                fs.writeFileSync(livechatPath, JSON.stringify(formatted, null, 4));
+                fs.unlink(livechatFile.path, () => {});
+                livechatWritten = true;
+            } catch (e) {
+                warnings.push('Invalid livechat JSON: ' + e.message);
+                fs.unlink(livechatFile.path, () => {});
+            }
+        }
+
+        job.progress = 92;
+        job.message = 'Refreshing library cache...';
+
+        // Targeted cache refresh (your existing function)
+        try {
+            const r = refreshSingleChannelCache(actualChannel);
+            console.log(`[Upload] Cache refreshed for "${actualChannel}" (added: ${r.added}, removed: ${r.removed})`);
+        } catch (e) {
+            console.error('[Upload] Targeted cache refresh failed:', e);
+            warnings.push('Video cache not refreshed — run #Setup-or-Update.bat later.');
+        }
+
+        job.progress = 95;
+        job.message = 'Updating metadata cache...';
+
+        const cacheMeta = {
+            displayName,
+            fileDate: uploadDate,
+            viewCount: viewCountNum.toLocaleString('en-US'),
+            videoLength: durationSec > 0 ? formatDurationHM(durationSec) : '',
+            likes,
+            dislikes,
+            resolution: resolutionClass || undefined,
+            codec: info.codec || undefined,
+            hasThumbnail: fs.existsSync(thumbPath),
+            hasThumbnailSmall: fs.existsSync(smallThumbPath),
+            hasComments: commentsWritten,
+            hasLiveChat: livechatWritten,
+            subtitles: collectSubtitlesForVideo(actualChannel, baseName) || undefined
+        };
+        const cacheOk = patchMetadataCacheForUpload(actualChannel, videoRelativePath, cacheMeta);
+        if (!cacheOk) warnings.push('Metadata cache could not be updated.');
+
+        patchHomePreviewForUpload(actualChannel, videoRelativePath, displayName, uploadDate);
+        patchHomeMetaCacheForUpload(actualChannel, videoRelativePath, {
+            ...cacheMeta,
+            descriptionHtml: description ? description.slice(0, 500) : null
+        });
+
+        // Fire-and-forget Python regeneration
+        runPythonScript('generate_home_previews.py', ['-c', actualChannel])
+            .catch(e => console.error('[Upload/home-previews] failed:', e.message));
+        runPythonScript('generate_metadata_cache.py', ['-c', actualChannel])
+            .catch(e => console.error('[Upload/metadata-cache] failed:', e.message));
+
+        // Success
+        job.status = 'done';
+        job.phase = 'complete';
+        job.progress = 100;
+        job.message = 'Upload complete';
+        job.result = {
+            success: true,
+            channel: actualChannel,
+            playlist: playlist || null,
+            path: videoRelativePath,
+            videoUrl: `/video.html?src=${encodeURIComponent(videoRelativePath)}`,
+            warnings: warnings.length ? warnings : undefined
+        };
+    } catch (err) {
+        cleanupTempFiles(files);
+        throw err;
+    }
+}
+
+async function generateThumbnailForUpload(videoPath, thumbPath, durationSec, isAudio) {
+    const ffmpeg = findBinary('ffmpeg');
+    fs.mkdirSync(path.dirname(thumbPath), { recursive: true });
+    if (isAudio) {
+        try {
+            await runProcess(ffmpeg, ['-i', videoPath, '-an', '-vcodec', 'copy', '-y', thumbPath]);
+            if (fs.existsSync(thumbPath) && fs.statSync(thumbPath).size > 0) return;
+        } catch {}
+    }
+    const seekTime = durationSec > 2 ? Math.min(durationSec * 0.3, durationSec - 1) : 0;
+    try {
+        await runProcess(ffmpeg, [
+            '-ss', String(seekTime), '-i', videoPath,
+            '-vframes', '1', '-q:v', '2', '-y', thumbPath
+        ]);
+    } catch {}
+}
+
+function formatDurationHM(totalSeconds) {
+    totalSeconds = Math.floor(totalSeconds);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function formatDateDDMMYYYY(d) {
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${dd}.${mm}.${d.getFullYear()}`;
+}
+
+function sanitizeComponent(name) {
+    if (!name) return '';
+    let clean = String(name).replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
+    clean = clean.replace(/^[.\s]+|[.\s]+$/g, '');
+    if (clean === '.' || clean === '..' || clean === '') return '';
+    return clean;
+}
+
+function resolveActualChannelName(channelName) {
+    const videosDir = path.join(__dirname, 'videos');
+    try {
+        const items = fs.readdirSync(videosDir);
+        const lower = channelName.toLowerCase();
+        for (const item of items) {
+            if (item.toLowerCase() === lower) {
+                try {
+                    if (fs.statSync(path.join(videosDir, item)).isDirectory()) return item;
+                } catch {}
+            }
+        }
+    } catch {}
+    return channelName;
+}
+
+async function generateChannelPicInline(channelName) {
+    const targetPath = path.join(__dirname, 'channelpic', `${channelName}.jpg`);
+    if (fs.existsSync(targetPath)) return;
+    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+    const initial = (channelName.charAt(0) || '?').toUpperCase();
+    let hash = 0;
+    for (let i = 0; i < channelName.length; i++) {
+        hash = channelName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = Math.abs(hash % 360);
+    const svg = `<svg width="160" height="160" xmlns="http://www.w3.org/2000/svg">
+        <rect width="160" height="160" fill="hsl(${hue}, 60%, 45%)"/>
+        <text x="80" y="118" font-family="Arial, sans-serif" font-size="110" fill="white" text-anchor="middle" font-weight="bold">${initial}</text>
+    </svg>`;
+    await sharp(Buffer.from(svg)).jpeg({ quality: 95 }).toFile(targetPath);
+}
+
+function getRealisticLikeRate(viewCount) {
+    const tiers = [
+        [10000,       0.024, 0.042],
+        [100000,      0.019, 0.033],
+        [1000000,     0.014, 0.026],
+        [5000000,     0.009, 0.019],
+        [20000000,    0.006, 0.013],
+        [Infinity,    0.004, 0.010],
+    ];
+    for (const [upper, lo, hi] of tiers) {
+        if (viewCount < upper) {
+            const mode = (lo + hi) / 2;
+            const u = Math.random();
+            const c = (mode - lo) / (hi - lo);
+            if (u < c) return lo + Math.sqrt(u * (hi - lo) * (mode - lo));
+            return hi - Math.sqrt((1 - u) * (hi - lo) * (hi - mode));
+        }
+    }
+    return 0.005;
+}
+
+function parseOffsetToMs(val) {
+    if (!val) return null;
+    if (typeof val === 'number') return val;
+    if (/^\d+$/.test(String(val))) return parseInt(val, 10);
+    const s = String(val).replace('-', '').trim();
+    const parts = s.split(':').map(Number);
+    if (parts.some(isNaN)) return null;
+    if (parts.length === 3) return (parts[0] * 3600 + parts[1] * 60 + parts[2]) * 1000;
+    if (parts.length === 2) return (parts[0] * 60 + parts[1]) * 1000;
+    return null;
+}
+
+function formatLivechatIfNeeded(parsed) {
+    if (Array.isArray(parsed)) {
+        const already = parsed.length > 0 && parsed.every(item =>
+            item && typeof item === 'object' &&
+            'offsetMs' in item && 'author' in item && 'message' in item
+        );
+        if (already) return parsed;
+    }
+    let items = [];
+    if (Array.isArray(parsed)) items = parsed;
+    else if (typeof parsed === 'object' && parsed !== null) items = [parsed];
+    const messages = [];
+    let lastTs = 0, lastOffsetMs = -1;
+    for (const item of items) {
+        try {
+            const actions = item?.replayChatItemAction?.actions;
+            if (!actions || !actions.length) continue;
+            const action = actions[0];
+            let offsetMs = parseOffsetToMs(item?.replayChatItemAction?.videoOffsetTimeMsec);
+            const renderer = action?.addChatItemAction?.item?.liveChatTextMessageRenderer;
+            if (!renderer) continue;
+            const currentTs = parseInt(renderer.timestampUsec, 10) || 0;
+            if (offsetMs === null || offsetMs === 0) {
+                offsetMs = lastTs > 0 ? lastOffsetMs + Math.round((currentTs - lastTs) / 1000) : 0;
+            }
+            lastTs = currentTs;
+            lastOffsetMs = offsetMs;
+            const author = renderer?.authorName?.simpleText || 'Unknown Author';
+            const message = (renderer?.message?.runs || []).map(r => r.text || '').join('');
+            messages.push({ offsetMs, author, message });
+        } catch {}
+    }
+    return messages;
+}
+
+function cleanupTempFiles(files) {
+    if (!files) return;
+    const all = Array.isArray(files) ? files : Object.values(files).flat();
+    for (const f of all) {
+        try { if (f && f.path) fs.unlinkSync(f.path); } catch {}
+    }
+}
+
+function readTxtIfExists(p) {
+    try { return fs.existsSync(p) ? fs.readFileSync(p, 'utf8').trim() : null; } catch { return null; }
+}
+
+function collectSubtitlesForVideo(channel, basename) {
+    const subsDir = path.join(__dirname, 'subtitles', channel);
+    if (!fs.existsSync(subsDir)) return null;
+    try {
+        const files = fs.readdirSync(subsDir);
+        const langs = [];
+        for (const f of files) {
+            if (f.startsWith('._') || !f.endsWith('.vtt')) continue;
+            const stem = f.substring(0, f.length - 4);
+            if (stem === basename) langs.push('');
+            else if (stem.startsWith(basename + '.')) langs.push(stem.substring(basename.length + 1));
+        }
+        return langs.length > 0 ? langs : null;
+    } catch { return null; }
+}
+
+function buildChannelMetaForCache(channel) {
+    const chMeta = {};
+    chMeta.hasPic = fs.existsSync(path.join(__dirname, 'channelpic', `${channel}.jpg`));
+    chMeta.hasBanner = fs.existsSync(path.join(__dirname, 'channelbanner', `${channel}.jpg`));
+    const d = readTxtIfExists(path.join(__dirname, 'channeldesc', `${channel}.txt`));
+    if (d !== null) chMeta.description = d;
+    const s = readTxtIfExists(path.join(__dirname, 'subcount', `${channel}.txt`));
+    if (s !== null) chMeta.subCount = s;
+    const fs2 = readTxtIfExists(path.join(__dirname, 'subcount', 'fuzzy', `${channel}.txt`));
+    if (fs2 !== null) chMeta.fuzzySubCount = fs2;
+    const statsPath = path.join(__dirname, 'channelstats', `${channel}.json`);
+    if (fs.existsSync(statsPath)) {
+        try { chMeta.stats = JSON.parse(fs.readFileSync(statsPath, 'utf8')); } catch {}
+    }
+    const t = readTxtIfExists(path.join(__dirname, 'channeltags', `${channel}.txt`));
+    if (t !== null) chMeta.tags = t.split(',').map(x => x.trim()).filter(Boolean);
+    return chMeta;
+}
+
+function patchMetadataCacheForUpload(channel, videoRelPath, meta) {
+    const cachePath = path.join(__dirname, 'metadata_cache.json');
+    const relPath = videoRelPath.replace(/\\/g, '/');
+    const tmpPath = cachePath + '.upload-tmp';
+    try {
+        let cache;
+        if (fs.existsSync(cachePath)) {
+            cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+        } else {
+            cache = { generated_at: new Date().toISOString(), videos: {}, channels: {}, playlists: {} };
+        }
+        if (!cache.videos) cache.videos = {};
+        if (!cache.channels) cache.channels = {};
+        if (!cache.playlists) cache.playlists = {};
+        const videoEntry = {};
+        if (meta.displayName !== undefined) videoEntry.displayName = meta.displayName;
+        if (meta.fileDate !== undefined) videoEntry.fileDate = meta.fileDate;
+        if (meta.viewCount !== undefined) videoEntry.viewCount = meta.viewCount;
+        if (meta.videoLength !== undefined) videoEntry.videoLength = meta.videoLength;
+        if (meta.likes !== undefined) videoEntry.likes = meta.likes;
+        if (meta.dislikes !== undefined) videoEntry.dislikes = meta.dislikes;
+        if (meta.resolution) videoEntry.resolution = meta.resolution;
+        if (meta.codec) videoEntry.codec = meta.codec;
+        videoEntry.hasThumbnail = !!meta.hasThumbnail;
+        videoEntry.hasThumbnailSmall = !!meta.hasThumbnailSmall;
+        videoEntry.hasComments = !!meta.hasComments;
+        videoEntry.hasLiveChat = !!meta.hasLiveChat;
+        if (meta.subtitles) videoEntry.subtitles = meta.subtitles;
+        cache.videos[relPath] = videoEntry;
+        if (!cache.channels[channel]) {
+            cache.channels[channel] = buildChannelMetaForCache(channel);
+        }
+        cache.generated_at = new Date().toISOString();
+        fs.writeFileSync(tmpPath, JSON.stringify(cache));
+        fs.renameSync(tmpPath, cachePath);
+        return true;
+    } catch (e) {
+        console.error('[Upload] Failed to patch metadata_cache.json:', e.message);
+        try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch {}
+        return false;
+    }
+}
+
+function patchHomePreviewForUpload(channel, videoRelPath, displayName, fileDate) {
+    const previewPath = path.join(__dirname, 'channel-home-previews', `${channel}.json`);
+    if (!fs.existsSync(previewPath)) return;
+    try {
+        const previews = JSON.parse(fs.readFileSync(previewPath, 'utf8'));
+        if (!Array.isArray(previews)) return;
+        const filtered = previews.filter(p => p && p.path !== videoRelPath);
+        filtered.unshift({ type: 'video', path: videoRelPath, displayName, fileDate });
+        const capped = filtered.slice(0, 60);
+        const tmp = previewPath + '.upload-tmp';
+        fs.writeFileSync(tmp, JSON.stringify(capped, null, 2));
+        fs.renameSync(tmp, previewPath);
+    } catch (e) {
+        console.error('[Upload] Failed to patch home preview:', e.message);
+    }
+}
+
+function patchHomeMetaCacheForUpload(channel, videoRelPath, meta) {
+    const metaPath = path.join(__dirname, 'channel-home-meta-cache', `${channel}.json`);
+    if (!fs.existsSync(metaPath)) return;
+    try {
+        const cache = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+        cache[videoRelPath] = {
+            type: 'video',
+            displayName: meta.displayName,
+            fileDate: meta.fileDate,
+            viewCount: meta.viewCount,
+            videoLength: meta.videoLength,
+            descriptionHtml: meta.descriptionHtml || null
+        };
+        const tmp = metaPath + '.upload-tmp';
+        fs.writeFileSync(tmp, JSON.stringify(cache, null, 2));
+        fs.renameSync(tmp, metaPath);
+    } catch (e) {
+        console.error('[Upload] Failed to patch home meta cache:', e.message);
+    }
+}
+
+// ======================================================================
+// UPLOAD ENDPOINTS
+// ======================================================================
+
+app.get('/api/channels', (req, res) => {
+    if (!canUserUpload(req.session.userId)) {
+        return res.status(403).json({ error: 'Upload access required' });
+    }
+    const videosDir = path.join(__dirname, 'videos');
+    try {
+        const channels = fs.readdirSync(videosDir)
+            .filter(f => {
+                try {
+                    const full = path.join(videosDir, f);
+                    return fs.statSync(full).isDirectory() && !f.startsWith('.');
+                } catch { return false; }
+            })
+            .sort();
+        res.json(channels);
+    } catch {
+        res.json([]);
+    }
+});
+
+// --- PERMISSIONS (client needs this to show/hide the upload button) ---
+app.get('/api/permissions', (req, res) => {
+    const userId = req.session.userId;
+    res.json({
+        authenticated: !!userId,
+        canUpload: canUserUpload(userId),
+        isAdmin: isUserAdmin(userId)
+    });
+});
+
+// --- ADMIN CONFIG ---
+app.get('/api/admin/config', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    if (!isUserAdmin(userId)) return res.status(403).json({ error: 'Admin access required' });
+    res.json(loadAdminConfig());
+});
+
+app.post('/api/admin/config', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    if (!isUserAdmin(userId)) return res.status(403).json({ error: 'Admin access required' });
+
+    const current = loadAdminConfig();
+    const body = req.body || {};
+    const currentUsername = getUsernameById(userId);
+
+    const updated = {
+        uploadPolicy: ['none','admin','list','all'].includes(body.uploadPolicy)
+            ? body.uploadPolicy : current.uploadPolicy,
+        allowedUploaders: Array.isArray(body.allowedUploaders)
+            ? body.allowedUploaders.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim())
+            : current.allowedUploaders,
+        adminUsers: Array.isArray(body.adminUsers)
+            ? body.adminUsers.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim())
+            : current.adminUsers
+    };
+
+    // Safety: cannot remove the last remaining admin while bootstrap-mode has been exited
+    if (current.adminUsers.length > 0) {
+        if (updated.adminUsers.length === 0) {
+            return res.status(400).json({ error: 'At least one admin must remain. Add another admin first.' });
+        }
+        if (currentUsername &&
+            !updated.adminUsers.some(u => u.toLowerCase() === currentUsername.toLowerCase())) {
+            return res.status(400).json({
+                error: 'You cannot remove yourself as admin while other admins exist. Remove another admin first, or promote someone else then remove yourself.'
+            });
+        }
+    }
+
+    if (saveAdminConfig(updated)) {
+        console.log(`[Admin] Config updated by ${currentUsername || userId}: policy=${updated.uploadPolicy}, ${updated.adminUsers.length} admin(s), ${updated.allowedUploaders.length} allowed uploader(s)`);
+        res.json({ success: true, config: updated });
+    } else {
+        res.status(500).json({ error: 'Failed to save admin_config.json' });
+    }
+});
+
+// --- USER LIST (for the admin tab's datalists) ---
+app.get('/api/admin/users', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    if (!isUserAdmin(userId)) return res.status(403).json({ error: 'Admin access required' });
+    try {
+        const users = JSON.parse(fs.readFileSync(path.join(__dirname, 'users.json'), 'utf8'));
+        res.json(Object.keys(users).sort());
+    } catch {
+        res.json([]);
+    }
+});
+
+app.post('/upload-video',
+    videoUpload.fields([
+        { name: 'video', maxCount: 1 },
+        { name: 'thumbnail', maxCount: 1 },
+        { name: 'commentsJson', maxCount: 1 },
+        { name: 'livechatJson', maxCount: 1 }
+    ]),
+    async (req, res) => {
+        if (!req.session) {
+            console.error('[Upload] CRITICAL: req.session is undefined.');
+            console.error('[Upload] The /upload-video route is registered BEFORE app.use(session(...)).');
+            cleanupTempFiles(req.files);
+            return res.status(500).json({ error: 'Server misconfiguration: session middleware not loaded for /upload-video.' });
+        }
+
+        const userId = req.session.userId;
+        if (!userId) {
+            cleanupTempFiles(req.files);
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+
+        if (!canUserUpload(userId)) {
+            cleanupTempFiles(req.files);
+            return res.status(403).json({ error: 'You do not have permission to upload videos.' });
+        }
+
+        const videoFile = req.files?.video?.[0];
+        if (!videoFile) {
+            cleanupTempFiles(req.files);
+            return res.status(400).json({ error: 'No video file provided' });
+        }
+
+        const channel = sanitizeComponent(req.body.channel || '');
+        const playlist = sanitizeComponent(req.body.playlist || '');
+        if (!channel) {
+            cleanupTempFiles(req.files);
+            return res.status(400).json({ error: 'Channel name is required' });
+        }
+
+        const originalExt = path.extname(videoFile.originalname).toLowerCase();
+        const originalBase = path.basename(videoFile.originalname, originalExt);
+        const baseName = sanitizeComponent(originalBase) || 'video';
+        
+        const warnings = [];
+        
+        // ---- 1a. Optional reencode ----
+        // Runs on the multer temp file BEFORE it lands in /videos/, so a failed
+        // reencode leaves the library untouched. On any error we fall back to the
+        // original upload.
+        const reencodeConfig = (loadAdminConfig().reencodeOnUpload) || {};
+        let finalExt = originalExt;
+        let sourceForMove = videoFile.path;
+        let reencodePerformed = false;
+        
+        if (reencodeConfig.enabled) {
+            // Skip reencoding for MP3s — the codec config is for video, and
+            // audio-only uploads shouldn't be transcoded away from MP3.
+            if (originalExt === '.mp3') {
+                console.log(`[Upload] Skipping reencode for MP3 upload.`);
+            } else {
+                const reencodedTemp = `${videoFile.path}-reencoded.${reencodeConfig.container || 'mkv'}`;
+                try {
+                    await reencodeVideo(videoFile.path, reencodedTemp, reencodeConfig);
+        
+                    const originalSize = fs.statSync(videoFile.path).size;
+                    const reencodedSize = fs.statSync(reencodedTemp).size;
+        
+                    // Safety: if reencode made it bigger (rare but happens for
+                    // already-efficient sources), keep the original.
+                    if (reencodeConfig.keepOriginalIfSmaller !== false && reencodedSize >= originalSize) {
+                        console.log(`[Upload] Reencode grew file (${originalSize} → ${reencodedSize}), keeping original`);
+                        fs.unlinkSync(reencodedTemp);
+                    } else {
+                        const ratio = (reencodedSize / originalSize * 100).toFixed(1);
+                        console.log(`[Upload] Reencode: ${(originalSize/1048576).toFixed(1)}MB → ${(reencodedSize/1048576).toFixed(1)}MB (${ratio}%)`);
+                        fs.unlinkSync(videoFile.path);
+                        sourceForMove = reencodedTemp;
+                        finalExt = `.${reencodeConfig.container || 'mkv'}`;
+                        reencodePerformed = true;
+                    }
+                } catch (e) {
+                    console.error('[Upload] Reencode failed:', e);
+                    warnings.push('Video reencoding failed, using original file: ' + e.message);
+                    try { if (fs.existsSync(reencodedTemp)) fs.unlinkSync(reencodedTemp); } catch {}
+                }
+            }
+        }
+        
+        // ---- 1b. Compute final path (extension may have changed after reencode) ----
+        const finalFilename = `${baseName}${finalExt}`;
+        const channelRelativeDir = playlist ? `${channel}/${playlist}` : channel;
+        const videoRelativePath = `${channelRelativeDir}/${finalFilename}`;
+        const videoFullPath = path.join(__dirname, 'videos', videoRelativePath);
+        
+        if (fs.existsSync(videoFullPath)) {
+            cleanupTempFiles(req.files);
+            if (sourceForMove !== videoFile.path && fs.existsSync(sourceForMove)) {
+                try { fs.unlinkSync(sourceForMove); } catch {}
+            }
+            return res.status(409).json({ error: `File already exists: ${finalFilename}` });
+        }
+        
+        try {
+            // 1c. Move the (possibly reencoded) file into place
+            fs.mkdirSync(path.dirname(videoFullPath), { recursive: true });
+            fs.renameSync(sourceForMove, videoFullPath);
+
+            // 2. Resolve real on-disk channel name
+            const actualChannel = resolveActualChannelName(channel);
+
+            // 3. Channel scaffolding
+            if (!fs.existsSync(path.join(__dirname, 'channelpic', `${actualChannel}.jpg`))) {
+                try { await generateChannelPicInline(actualChannel); }
+                catch { warnings.push('Could not generate channel picture.'); }
+            }
+            const subcountPath = path.join(__dirname, 'subcount', `${actualChannel}.txt`);
+            if (!fs.existsSync(subcountPath)) {
+                fs.mkdirSync(path.dirname(subcountPath), { recursive: true });
+                fs.writeFileSync(subcountPath, '10,000');
+            }
+
+            // 4. Probe
+            const info = await probeVideoInfo(videoFullPath);
+            const durationSec = info.durationSec;
+            const resolutionClass = classifyResolution(info.width, info.height);
+
+            // 5. Display name
+            const displayName = (req.body.displayName || '').trim() || baseName;
+            const filenameTxtPath = path.join(__dirname, 'filenames', channelRelativeDir, `${baseName}.txt`);
+            fs.mkdirSync(path.dirname(filenameTxtPath), { recursive: true });
+            fs.writeFileSync(filenameTxtPath, displayName);
+
+            // 6. Upload date
+            let uploadDate = (req.body.uploadDate || '').trim();
+            if (uploadDate && /^\d{4}-\d{2}-\d{2}$/.test(uploadDate)) {
+                const [y, m, d] = uploadDate.split('-');
+                uploadDate = `${d}.${m}.${y}`;
+            } else if (!uploadDate) {
+                uploadDate = formatDateDDMMYYYY(new Date());
+            }
+            const filedateTxtPath = path.join(__dirname, 'filedates', channelRelativeDir, `${baseName}.txt`);
+            fs.mkdirSync(path.dirname(filedateTxtPath), { recursive: true });
+            fs.writeFileSync(filedateTxtPath, uploadDate);
+
+            // 7. Length
+            if (durationSec > 0) {
+                const lengthTxtPath = path.join(__dirname, 'videolengths', actualChannel, `${baseName}.txt`);
+                fs.mkdirSync(path.dirname(lengthTxtPath), { recursive: true });
+                fs.writeFileSync(lengthTxtPath, formatDurationHM(durationSec));
+            }
+
+            // 8. View count
+            let viewCountRaw = (req.body.viewCount || '').trim();
+            let viewCountNum;
+            if (viewCountRaw) {
+                viewCountNum = parseInt(viewCountRaw.replace(/,/g, ''), 10);
+                if (isNaN(viewCountNum) || viewCountNum < 0) viewCountNum = 0;
+            } else {
+                let subcount = 10000;
+                if (fs.existsSync(subcountPath)) {
+                    const raw = fs.readFileSync(subcountPath, 'utf8').trim().replace(/,/g, '');
+                    const parsed = parseInt(raw, 10);
+                    if (!isNaN(parsed) && parsed > 0) subcount = parsed;
+                }
+                const factor = 0.10 + Math.random() * 0.68;
+                const jitter = (Math.random() - 0.5) * subcount * 0.06;
+                viewCountNum = Math.max(0, Math.round(subcount * factor + jitter));
+            }
+            const viewcountTxtPath = path.join(__dirname, 'viewcounts', channelRelativeDir, `${baseName}.txt`);
+            fs.mkdirSync(path.dirname(viewcountTxtPath), { recursive: true });
+            fs.writeFileSync(viewcountTxtPath, viewCountNum.toLocaleString('en-US'));
+
+            // 9. Likes/dislikes
+            let likes = parseInt(req.body.likes || '', 10);
+            let dislikes = parseInt(req.body.dislikes || '', 10);
+            const likesProvided = !isNaN(likes) && likes >= 0;
+            const dislikesProvided = !isNaN(dislikes) && dislikes >= 0;
+            if (likesProvided && dislikesProvided) {
+                // use as-is
+            } else if (likesProvided) {
+                dislikes = Math.max(0, Math.round(likes * (0.008 + Math.random() * 0.02)));
+            } else if (dislikesProvided) {
+                const ratio = 0.008 + Math.random() * 0.02;
+                likes = dislikes > 0 ? Math.round(dislikes / ratio) : 0;
+            } else {
+                const likeRate = getRealisticLikeRate(viewCountNum);
+                likes = Math.max(1, Math.round(viewCountNum * likeRate));
+                dislikes = Math.max(0, Math.round(likes * (0.008 + Math.random() * 0.02)));
+            }
+            const videostatsPath = path.join(__dirname, 'videostats', channelRelativeDir, `${baseName}.txt`);
+            fs.mkdirSync(path.dirname(videostatsPath), { recursive: true });
+            fs.writeFileSync(videostatsPath, `${likes},${dislikes}`);
+
+            // 10. Resolution + codec
+            if (resolutionClass) {
+                const resPath = path.join(__dirname, 'videoresolutions', channelRelativeDir, `${baseName}.txt`);
+                fs.mkdirSync(path.dirname(resPath), { recursive: true });
+                fs.writeFileSync(resPath, `${resolutionClass}\n${info.codec}`);
+            }
+
+            // 11. Description
+            const description = (req.body.description || '').trim();
+            if (description) {
+                const descPath = path.join(__dirname, 'descriptions', actualChannel, `${baseName}.txt`);
+                fs.mkdirSync(path.dirname(descPath), { recursive: true });
+                fs.writeFileSync(descPath, description);
+            }
+
+            // 12. Thumbnail
+            const thumbPath = path.join(__dirname, 'thumbnails', channelRelativeDir, `${baseName}.jpg`);
+            fs.mkdirSync(path.dirname(thumbPath), { recursive: true });
+            const thumbnailFile = req.files?.thumbnail?.[0];
+            if (thumbnailFile) {
+                try {
+                    await sharp(thumbnailFile.path)
+                        .resize(1280, 720, { fit: 'cover', position: 'centre' })
+                        .jpeg({ quality: 90 })
+                        .toFile(thumbPath);
+                    fs.unlink(thumbnailFile.path, () => {});
+                } catch (e) {
+                    warnings.push('Could not process provided thumbnail: ' + e.message);
+                    fs.unlink(thumbnailFile.path, () => {});
+                }
+            }
+            if (!fs.existsSync(thumbPath)) {
+                await generateThumbnailForUpload(videoFullPath, thumbPath, durationSec, isAudio);
+                if (!fs.existsSync(thumbPath)) {
+                    const placeholder = path.join(__dirname, 'LocalYT-Rev-Files', 'thumbnail-placeholder.jpg');
+                    if (fs.existsSync(placeholder)) fs.copyFileSync(placeholder, thumbPath);
+                }
+            }
+
+            // 13. Small thumbnail
+            const smallThumbPath = path.join(__dirname, 'thumbnails-small', channelRelativeDir, `${baseName}.jpg`);
+            if (fs.existsSync(thumbPath) && !fs.existsSync(smallThumbPath)) {
+                try {
+                    fs.mkdirSync(path.dirname(smallThumbPath), { recursive: true });
+                    await sharp(thumbPath).resize({ width: 300 }).jpeg({ quality: 85 }).toFile(smallThumbPath);
+                } catch { warnings.push('Could not generate small thumbnail.'); }
+            }
+
+            // 14. Comments JSON
+            const commentsFile = req.files?.commentsJson?.[0];
+            let commentsWritten = false;
+            if (commentsFile) {
+                try {
+                    const raw = fs.readFileSync(commentsFile.path, 'utf8');
+                    JSON.parse(raw);
+                    const commentsPath = path.join(__dirname, 'comments', channelRelativeDir, `${baseName}.json`);
+                    fs.mkdirSync(path.dirname(commentsPath), { recursive: true });
+                    fs.writeFileSync(commentsPath, raw);
+                    fs.unlink(commentsFile.path, () => {});
+                    commentsWritten = true;
+                } catch (e) {
+                    warnings.push('Invalid comments JSON: ' + e.message);
+                    fs.unlink(commentsFile.path, () => {});
+                }
+            }
+
+            // 15. Livechat JSON
+            const livechatFile = req.files?.livechatJson?.[0];
+            let livechatWritten = false;
+            if (livechatFile) {
+                try {
+                    const raw = fs.readFileSync(livechatFile.path, 'utf8');
+                    const parsed = JSON.parse(raw);
+                    const formatted = formatLivechatIfNeeded(parsed);
+                    const livechatPath = path.join(__dirname, 'livechats', actualChannel, `${baseName}.json`);
+                    fs.mkdirSync(path.dirname(livechatPath), { recursive: true });
+                    fs.writeFileSync(livechatPath, JSON.stringify(formatted, null, 4));
+                    fs.unlink(livechatFile.path, () => {});
+                    livechatWritten = true;
+                } catch (e) {
+                    warnings.push('Invalid livechat JSON: ' + e.message);
+                    fs.unlink(livechatFile.path, () => {});
+                }
+            }
+
+            // 16. Refresh in-memory cache + video_cache.json (TARGETED to this channel only)
+            try {
+                const refreshResult = refreshSingleChannelCache(actualChannel);
+                console.log(`[Upload] Cache refreshed for "${actualChannel}" (added: ${refreshResult.added}, removed: ${refreshResult.removed}).`);
+            } catch (e) {
+                console.error('[Upload] Targeted cache refresh failed:', e);
+                warnings.push('Video cache not refreshed — new video may not appear until #Setup-or-Update.bat is run.');
+            }
+
+            // 17. Direct cache patches
+            const cacheMeta = {
+                displayName,
+                fileDate: uploadDate,
+                viewCount: viewCountNum.toLocaleString('en-US'),
+                videoLength: durationSec > 0 ? formatDurationHM(durationSec) : '',
+                likes,
+                dislikes,
+                resolution: resolutionClass || undefined,
+                codec: info.codec || undefined,
+                hasThumbnail: fs.existsSync(thumbPath),
+                hasThumbnailSmall: fs.existsSync(smallThumbPath),
+                hasComments: commentsWritten,
+                hasLiveChat: livechatWritten,
+                subtitles: collectSubtitlesForVideo(actualChannel, baseName) || undefined
+            };
+            const cacheOk = patchMetadataCacheForUpload(actualChannel, videoRelativePath, cacheMeta);
+            if (!cacheOk) {
+                warnings.push('Metadata cache could not be updated. Run #Setup-or-Update.bat to refresh.');
+            }
+            patchHomePreviewForUpload(actualChannel, videoRelativePath, displayName, uploadDate);
+            patchHomeMetaCacheForUpload(actualChannel, videoRelativePath, {
+                ...cacheMeta,
+                descriptionHtml: description ? description.slice(0, 500) : null
+            });
+
+            // 18. Background canonical regeneration (fire-and-forget)
+            runPythonScript('generate_home_previews.py', ['-c', actualChannel])
+                .then(({ stdout }) => {
+                    const tail = (stdout || '').trim().split('\n').pop();
+                    if (tail) console.log('[Upload/home-previews]', tail);
+                })
+                .catch(e => console.error('[Upload/home-previews] background refresh failed:', e.message));
+
+            runPythonScript('generate_metadata_cache.py', ['-c', actualChannel])
+                .then(({ stdout }) => {
+                    const tail = (stdout || '').trim().split('\n').pop();
+                    if (tail) console.log('[Upload/metadata-cache]', tail);
+                })
+                .catch(e => console.error('[Upload/metadata-cache] background refresh failed:', e.message));
+
+            // 19. Respond
+            res.json({
+                success: true,
+                channel: actualChannel,
+                playlist: playlist || null,
+                path: videoRelativePath,
+                videoUrl: `/video.html?src=${encodeURIComponent(videoRelativePath)}`,
+                warnings: warnings.length ? warnings : undefined
+            });
+        } catch (err) {
+            console.error('[Upload] Error:', err);
+            cleanupTempFiles(req.files);
+            res.status(500).json({ error: err.message || 'Upload failed' });
+        }
+    }
+);
 
 // ===== STARTUP =====
 (async () => {

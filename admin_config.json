@@ -1,0 +1,18 @@
+{
+  "uploadPolicy": "admin",
+  "allowedUploaders": [],
+  "adminUsers": [],
+  "reencodeOnUpload": {
+    "enabled": true,
+    "targetWidth": 1920,
+    "targetHeight": 1080,
+    "crf": 28,
+    "preset": 6,
+    "fpsCap": 60,
+    "videoCodec": "av1",
+    "audioCodec": "aac",
+    "audioBitrate": "128k",
+    "container": "mp4",
+    "keepOriginalIfSmaller": true
+  }
+}
