@@ -1354,11 +1354,12 @@
                 let pollFailures = 0;
         
                 const phaseLabels = {
-                    'starting':    { en: 'Starting...',                de: 'Startet...' },
-                    'reencoding':  { en: 'Reencoding video',           de: 'Video wird neu kodiert' },
-                    'finalizing':  { en: 'Generating previews',        de: 'Vorschauen werden erstellt' },
-                    'complete':    { en: 'Complete',                   de: 'Abgeschlossen' },
-                    'error':       { en: 'Error',                      de: 'Fehler' }
+                    'queued':      { en: 'Queued',                       de: 'In der Warteschlange' },
+                    'starting':    { en: 'Starting',                     de: 'Startet' },
+                    'reencoding':  { en: 'Reencoding video',             de: 'Video wird reencodiert' },
+                    'finalizing':  { en: 'Generating previews',          de: 'Vorschauen werden erstellt' },
+                    'complete':    { en: 'Complete',                     de: 'Abgeschlossen' },
+                    'error':       { en: 'Error',                        de: 'Fehler' }
                 };
         
                 const finalResult = await new Promise((resolve, reject) => {
@@ -1367,6 +1368,7 @@
                             if (Date.now() - pollStart > POLL_TIMEOUT_MS) {
                                 return reject(new Error(getLang('Processing timed out', 'Verarbeitung abgelaufen')));
                             }
+                    
                             const res = await fetch(`/upload-status/${jobId}`, { cache: 'no-store' });
                             if (!res.ok) {
                                 if (res.status === 404) {
@@ -1376,14 +1378,37 @@
                             }
                             pollFailures = 0;
                             const status = await res.json();
-        
-                            // Show current phase + percentage
-                            const label = (phaseLabels[status.phase] || phaseLabels.starting)[getLang('en', 'de') === 'de' ? 'de' : 'en'];
+                    
+                            const lang = getLang('en', 'de') === 'de' ? 'de' : 'en';
+                    
+                            // ----- Queued state -----
+                            if (status.status === 'queued' || status.phase === 'queued') {
+                                const pos = status.queuePosition || 1;
+                                const running = status.queueStatus?.running || 0;
+                                const queued  = status.queueStatus?.queued || 0;
+                                let msg = lang === 'de'
+                                    ? `Wartet in der Warteschlange (Position ${pos})...`
+                                    : `Waiting in queue (position ${pos})...`;
+                                // Show overall queue depth if more than just you
+                                if (queued > 1) {
+                                    msg += lang === 'de'
+                                        ? ` [${running} aktiv, ${queued} wartend]`
+                                        : ` [${running} active, ${queued} waiting]`;
+                                }
+                                statusEl.textContent = msg;
+                                statusEl.className = '';
+                                progressBar.style.width = '0%';
+                                setTimeout(tick, 5000);   // poll slower while queued
+                                return;
+                            }
+                    
+                            // ----- Processing state -----
+                            const label = (phaseLabels[status.phase] || phaseLabels.starting)[lang];
                             progressBar.style.width = Math.max(0, Math.min(100, status.progress)) + '%';
                             statusEl.textContent = status.progress > 0
                                 ? `${label}... ${status.progress}%`
                                 : `${label}...`;
-        
+                    
                             if (status.status === 'done') {
                                 progressBar.style.width = '100%';
                                 return resolve(status.result);
@@ -1391,9 +1416,9 @@
                             if (status.status === 'error') {
                                 return reject(new Error(status.error || getLang('Processing failed', 'Verarbeitung fehlgeschlagen')));
                             }
-                            setTimeout(tick, 2000);
+                    
+                            setTimeout(tick, 2000);   // fast poll while processing
                         } catch (e) {
-                            // Network hiccup: retry a few times before giving up.
                             pollFailures++;
                             if (pollFailures > 5) return reject(e);
                             setTimeout(tick, 3000);

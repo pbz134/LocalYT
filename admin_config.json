@@ -4,6 +4,7 @@
   "adminUsers": [],
   "reencodeOnUpload": {
     "enabled": true,
+    "concurrency": 1,
     "targetWidth": 1920,
     "targetHeight": 1080,
     "crf": 28,

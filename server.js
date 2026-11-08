@@ -37,24 +37,116 @@ const videoUpload = multer({
 });
 
 // ======================================================================
-// UPLOAD JOB TRACKING
+// ADMIN / PERMISSION CONFIG
 // ======================================================================
-// Each upload gets a UUID and a status object. The upload handler
-// returns the UUID immediately; the client polls /upload-status/:jobId
-// until it sees 'done' or 'error'.
 
+const adminConfigPath = path.join(__dirname, 'admin_config.json');
+
+const DEFAULT_ADMIN_CONFIG = {
+    uploadPolicy: 'admin',       // "none" | "admin" | "list" | "all"
+    allowedUploaders: [],        // usernames
+    adminUsers: []               // usernames
+};
+
+let adminConfigCache = null;
+
+function loadAdminConfig() {
+    if (adminConfigCache) return adminConfigCache;
+    try {
+        if (fs.existsSync(adminConfigPath)) {
+            const parsed = JSON.parse(fs.readFileSync(adminConfigPath, 'utf8'));
+            adminConfigCache = { ...DEFAULT_ADMIN_CONFIG, ...parsed };
+            // Sanitize
+            if (!Array.isArray(adminConfigCache.allowedUploaders)) adminConfigCache.allowedUploaders = [];
+            if (!Array.isArray(adminConfigCache.adminUsers)) adminConfigCache.adminUsers = [];
+            if (!['none','admin','list','all'].includes(adminConfigCache.uploadPolicy)) {
+                adminConfigCache.uploadPolicy = 'admin';
+            }
+        } else {
+            adminConfigCache = { ...DEFAULT_ADMIN_CONFIG };
+            fs.writeFileSync(adminConfigPath, JSON.stringify(adminConfigCache, null, 2));
+            console.log('[Admin] Created default admin_config.json');
+        }
+    } catch (err) {
+        console.error('[Admin] Failed to read admin_config.json, using defaults:', err.message);
+        adminConfigCache = { ...DEFAULT_ADMIN_CONFIG };
+    }
+    return adminConfigCache;
+}
+
+function saveAdminConfig(config) {
+    adminConfigCache = {
+        uploadPolicy: config.uploadPolicy,
+        allowedUploaders: config.allowedUploaders,
+        adminUsers: config.adminUsers
+    };
+    try {
+        fs.writeFileSync(adminConfigPath, JSON.stringify(adminConfigCache, null, 2));
+        return true;
+    } catch (err) {
+        console.error('[Admin] Failed to save admin_config.json:', err.message);
+        return false;
+    }
+}
+
+function getUsernameById(userId) {
+    if (!userId) return null;
+    try {
+        const users = JSON.parse(fs.readFileSync(path.join(__dirname, 'users.json'), 'utf8'));
+        for (const [name, u] of Object.entries(users)) {
+            if (u.id === userId) return name;
+        }
+    } catch {}
+    return null;
+}
+
+function isUserAdmin(userId) {
+    if (!userId) return false;
+    const config = loadAdminConfig();
+    const username = getUsernameById(userId);
+    if (!username) return false;
+    // Bootstrap mode: no admins configured → every logged-in user is admin
+    if (config.adminUsers.length === 0) return true;
+    return config.adminUsers.some(u => u.toLowerCase() === username.toLowerCase());
+}
+
+function canUserUpload(userId) {
+    if (!userId) return false;
+    const config = loadAdminConfig();
+    switch (config.uploadPolicy) {
+        case 'none':  return false;
+        case 'all':   return true;
+        case 'admin': return isUserAdmin(userId);
+        case 'list': {
+            if (isUserAdmin(userId)) return true;
+            const username = getUsernameById(userId);
+            if (!username) return false;
+            return config.allowedUploaders.some(u => u.toLowerCase() === username.toLowerCase());
+        }
+        default: return false;
+    }
+}
+
+// Load once at startup so the file is created before the first request
+loadAdminConfig();
+
+// ======================================================================
+// UPLOAD JOB TRACKING + QUEUE
+// ======================================================================
 const uploadJobs = new Map();
-const UPLOAD_JOB_TTL_MS = 60 * 60 * 1000;   // 1 hour
+const UPLOAD_JOB_TTL_MS = 60 * 60 * 1000;   // 1 hour after completion
 
 function createUploadJob() {
     const jobId = uuidv4();
     const job = {
         id: jobId,
-        status: 'processing',   // 'processing' | 'done' | 'error'
-        phase: 'starting',      // 'starting' | 'reencoding' | 'finalizing' | 'complete'
-        progress: 0,            // 0-100 overall
-        message: 'Processing upload...',
+        status: 'queued',           // 'queued' | 'processing' | 'done' | 'error'
+        phase: 'queued',            // 'queued' | 'starting' | 'reencoding' | 'finalizing' | 'complete' | 'error'
+        progress: 0,                // 0-100
+        message: 'Waiting in queue...',
+        queuePosition: 0,           // 1-based while queued, 0 while running or done
         createdAt: Date.now(),
+        completedAt: null,
         result: null,
         error: null
     };
@@ -62,18 +154,105 @@ function createUploadJob() {
     return job;
 }
 
-// Garbage-collect finished/abandoned jobs
+// Garbage-collect FINISHED jobs only — never delete a queued/processing job.
 setInterval(() => {
     const cutoff = Date.now() - UPLOAD_JOB_TTL_MS;
     let removed = 0;
     for (const [id, job] of uploadJobs) {
-        if (job.createdAt < cutoff) {
+        if ((job.status === 'done' || job.status === 'error') &&
+            (job.completedAt || job.createdAt) < cutoff) {
             uploadJobs.delete(id);
             removed++;
         }
     }
     if (removed > 0) console.log(`[Upload] Cleaned up ${removed} stale job(s)`);
 }, 15 * 60 * 1000);
+
+// ======================================================================
+// UPLOAD QUEUE
+// ======================================================================
+// Serializes processUploadAsync so only one upload is being reencoded /
+// finalized at a time. Uploads themselves are still received in parallel
+// by multer; only the CPU-heavy post-processing step is queued.
+
+class UploadQueue {
+    constructor(concurrency = 1, maxDepth = 20) {
+        this.concurrency = concurrency;   // 1 = strict FIFO
+        this.maxDepth = maxDepth;         // reject if this many are waiting
+        this.running = 0;
+        this.queue = [];                  // [{ job, files, body, resolve, reject }, ...]
+    }
+
+    isFull() {
+        return this.queue.length >= this.maxDepth;
+    }
+
+    enqueue(job, files, body) {
+        if (this.isFull()) {
+            return Promise.reject(new Error('Upload queue is full. Please try again later.'));
+        }
+        return new Promise((resolve, reject) => {
+            this.queue.push({ job, files, body, resolve, reject });
+            this._updateQueuePositions();
+            this._tick();
+        });
+    }
+
+    _updateQueuePositions() {
+        this.queue.forEach((entry, idx) => {
+            entry.job.queuePosition = idx + 1;
+            entry.job.message = `Waiting in queue (position ${idx + 1})...`;
+        });
+    }
+
+    _tick() {
+        while (this.running < this.concurrency && this.queue.length > 0) {
+            const entry = this.queue.shift();
+            this._updateQueuePositions();
+            this.running++;
+
+            // Promote job to 'processing'
+            entry.job.status = 'processing';
+            entry.job.phase = 'starting';
+            entry.job.queuePosition = 0;
+            entry.job.message = 'Processing upload...';
+
+            console.log(`[Upload] Starting job ${entry.job.id} (${this.running} running, ${this.queue.length} queued)`);
+
+            processUploadAsync(entry.job, entry.files, entry.body)
+                .then(() => {
+                    entry.job.completedAt = Date.now();
+                    entry.resolve();
+                })
+                .catch(err => {
+                    entry.job.completedAt = Date.now();
+                    entry.reject(err);
+                })
+                .finally(() => {
+                    this.running--;
+                    this._tick();
+                });
+        }
+    }
+
+    getStatus() {
+        return {
+            running: this.running,
+            queued: this.queue.length,
+            concurrency: this.concurrency,
+            maxDepth: this.maxDepth
+        };
+    }
+}
+
+// Read concurrency from admin_config so a beefy machine can run 2x.
+// Default 1 = recommended for AV1.
+const _adminCfg = loadAdminConfig();
+const _reencodeConcurrency = Math.max(1, parseInt(_adminCfg?.reencodeOnUpload?.concurrency, 10) || 1);
+const _uploadQueueDepth = Math.max(1, parseInt(_adminCfg?.reencodeOnUpload?.maxQueueDepth, 10) || 20);
+
+const uploadQueue = new UploadQueue(_reencodeConcurrency, _uploadQueueDepth);
+console.log(`[Upload] Queue initialized: concurrency=${_reencodeConcurrency}, maxDepth=${_uploadQueueDepth}`);
 
 const app = express();
 app.set('trust proxy', 1);
@@ -534,100 +713,6 @@ const metadataCachePath = path.join(__dirname, 'metadata_cache.json');
 const recommendationIndexPath = path.join(__dirname, 'recommendation_index.json');
 const folderVersionsPath = path.join(__dirname, 'folder_versions.json');
 const notificationsFilePath = path.join(__dirname, 'notifications.json');
-
-// ======================================================================
-// ADMIN / PERMISSION CONFIG
-// ======================================================================
-
-const adminConfigPath = path.join(__dirname, 'admin_config.json');
-
-const DEFAULT_ADMIN_CONFIG = {
-    uploadPolicy: 'admin',       // "none" | "admin" | "list" | "all"
-    allowedUploaders: [],        // usernames
-    adminUsers: []               // usernames
-};
-
-let adminConfigCache = null;
-
-function loadAdminConfig() {
-    if (adminConfigCache) return adminConfigCache;
-    try {
-        if (fs.existsSync(adminConfigPath)) {
-            const parsed = JSON.parse(fs.readFileSync(adminConfigPath, 'utf8'));
-            adminConfigCache = { ...DEFAULT_ADMIN_CONFIG, ...parsed };
-            // Sanitize
-            if (!Array.isArray(adminConfigCache.allowedUploaders)) adminConfigCache.allowedUploaders = [];
-            if (!Array.isArray(adminConfigCache.adminUsers)) adminConfigCache.adminUsers = [];
-            if (!['none','admin','list','all'].includes(adminConfigCache.uploadPolicy)) {
-                adminConfigCache.uploadPolicy = 'admin';
-            }
-        } else {
-            adminConfigCache = { ...DEFAULT_ADMIN_CONFIG };
-            fs.writeFileSync(adminConfigPath, JSON.stringify(adminConfigCache, null, 2));
-            console.log('[Admin] Created default admin_config.json');
-        }
-    } catch (err) {
-        console.error('[Admin] Failed to read admin_config.json, using defaults:', err.message);
-        adminConfigCache = { ...DEFAULT_ADMIN_CONFIG };
-    }
-    return adminConfigCache;
-}
-
-function saveAdminConfig(config) {
-    adminConfigCache = {
-        uploadPolicy: config.uploadPolicy,
-        allowedUploaders: config.allowedUploaders,
-        adminUsers: config.adminUsers
-    };
-    try {
-        fs.writeFileSync(adminConfigPath, JSON.stringify(adminConfigCache, null, 2));
-        return true;
-    } catch (err) {
-        console.error('[Admin] Failed to save admin_config.json:', err.message);
-        return false;
-    }
-}
-
-function getUsernameById(userId) {
-    if (!userId) return null;
-    try {
-        const users = JSON.parse(fs.readFileSync(path.join(__dirname, 'users.json'), 'utf8'));
-        for (const [name, u] of Object.entries(users)) {
-            if (u.id === userId) return name;
-        }
-    } catch {}
-    return null;
-}
-
-function isUserAdmin(userId) {
-    if (!userId) return false;
-    const config = loadAdminConfig();
-    const username = getUsernameById(userId);
-    if (!username) return false;
-    // Bootstrap mode: no admins configured → every logged-in user is admin
-    if (config.adminUsers.length === 0) return true;
-    return config.adminUsers.some(u => u.toLowerCase() === username.toLowerCase());
-}
-
-function canUserUpload(userId) {
-    if (!userId) return false;
-    const config = loadAdminConfig();
-    switch (config.uploadPolicy) {
-        case 'none':  return false;
-        case 'all':   return true;
-        case 'admin': return isUserAdmin(userId);
-        case 'list': {
-            if (isUserAdmin(userId)) return true;
-            const username = getUsernameById(userId);
-            if (!username) return false;
-            return config.allowedUploaders.some(u => u.toLowerCase() === username.toLowerCase());
-        }
-        default: return false;
-    }
-}
-
-// Load once at startup so the file is created before the first request
-loadAdminConfig();
 
 function ensurePreferencesFile() {
     if (!fs.existsSync(preferencesFilePath)) {
@@ -3457,6 +3542,25 @@ function runPythonScript(scriptName, args = []) {
     });
 }
 
+// Serialize Python scripts by name so two invocations of the same script
+// (e.g. from two queued uploads) don't race on the files they touch.
+const pythonScriptLocks = new Map();
+
+async function runPythonScriptSerialized(scriptName, args = []) {
+    const prev = pythonScriptLocks.get(scriptName);
+    if (prev) {
+        try { await prev; } catch { /* first run's failure doesn't block next */ }
+    }
+    const promise = runPythonScript(scriptName, args);
+    pythonScriptLocks.set(scriptName, promise);
+    promise.finally(() => {
+        if (pythonScriptLocks.get(scriptName) === promise) {
+            pythonScriptLocks.delete(scriptName);
+        }
+    }).catch(() => {});
+    return promise;
+}
+
 async function probeVideoInfo(filePath) {
     try {
         const { stdout } = await runProcess(findBinary('ffprobe'), [
@@ -3921,9 +4025,9 @@ async function processUploadAsync(job, files, body) {
         });
 
         // Fire-and-forget Python regeneration
-        runPythonScript('generate_home_previews.py', ['-c', actualChannel])
+        runPythonScriptSerialized('generate_home_previews.py', ['-c', actualChannel])
             .catch(e => console.error('[Upload/home-previews] failed:', e.message));
-        runPythonScript('generate_metadata_cache.py', ['-c', actualChannel])
+        runPythonScriptSerialized('generate_metadata_cache.py', ['-c', actualChannel])
             .catch(e => console.error('[Upload/metadata-cache] failed:', e.message));
 
         // Success
@@ -4344,317 +4448,54 @@ app.post('/upload-video',
         }
 
         const channel = sanitizeComponent(req.body.channel || '');
-        const playlist = sanitizeComponent(req.body.playlist || '');
         if (!channel) {
             cleanupTempFiles(req.files);
             return res.status(400).json({ error: 'Channel name is required' });
         }
 
-        const originalExt = path.extname(videoFile.originalname).toLowerCase();
-        const originalBase = path.basename(videoFile.originalname, originalExt);
-        const baseName = sanitizeComponent(originalBase) || 'video';
-        
-        const warnings = [];
-        
-        // ---- 1a. Optional reencode ----
-        // Runs on the multer temp file BEFORE it lands in /videos/, so a failed
-        // reencode leaves the library untouched. On any error we fall back to the
-        // original upload.
-        const reencodeConfig = (loadAdminConfig().reencodeOnUpload) || {};
-        let finalExt = originalExt;
-        let sourceForMove = videoFile.path;
-        let reencodePerformed = false;
-        
-        if (reencodeConfig.enabled) {
-            // Skip reencoding for MP3s — the codec config is for video, and
-            // audio-only uploads shouldn't be transcoded away from MP3.
-            if (originalExt === '.mp3') {
-                console.log(`[Upload] Skipping reencode for MP3 upload.`);
-            } else {
-                const reencodedTemp = `${videoFile.path}-reencoded.${reencodeConfig.container || 'mkv'}`;
-                try {
-                    await reencodeVideo(videoFile.path, reencodedTemp, reencodeConfig);
-        
-                    const originalSize = fs.statSync(videoFile.path).size;
-                    const reencodedSize = fs.statSync(reencodedTemp).size;
-        
-                    // Safety: if reencode made it bigger (rare but happens for
-                    // already-efficient sources), keep the original.
-                    if (reencodeConfig.keepOriginalIfSmaller !== false && reencodedSize >= originalSize) {
-                        console.log(`[Upload] Reencode grew file (${originalSize} → ${reencodedSize}), keeping original`);
-                        fs.unlinkSync(reencodedTemp);
-                    } else {
-                        const ratio = (reencodedSize / originalSize * 100).toFixed(1);
-                        console.log(`[Upload] Reencode: ${(originalSize/1048576).toFixed(1)}MB → ${(reencodedSize/1048576).toFixed(1)}MB (${ratio}%)`);
-                        fs.unlinkSync(videoFile.path);
-                        sourceForMove = reencodedTemp;
-                        finalExt = `.${reencodeConfig.container || 'mkv'}`;
-                        reencodePerformed = true;
-                    }
-                } catch (e) {
-                    console.error('[Upload] Reencode failed:', e);
-                    warnings.push('Video reencoding failed, using original file: ' + e.message);
-                    try { if (fs.existsSync(reencodedTemp)) fs.unlinkSync(reencodedTemp); } catch {}
-                }
-            }
-        }
-        
-        // ---- 1b. Compute final path (extension may have changed after reencode) ----
-        const finalFilename = `${baseName}${finalExt}`;
-        const channelRelativeDir = playlist ? `${channel}/${playlist}` : channel;
-        const videoRelativePath = `${channelRelativeDir}/${finalFilename}`;
-        const videoFullPath = path.join(__dirname, 'videos', videoRelativePath);
-        
-        if (fs.existsSync(videoFullPath)) {
+        // Reject early if the queue is already full — before we hand off
+        // and before we waste any more work on this upload.
+        if (uploadQueue.isFull()) {
             cleanupTempFiles(req.files);
-            if (sourceForMove !== videoFile.path && fs.existsSync(sourceForMove)) {
-                try { fs.unlinkSync(sourceForMove); } catch {}
-            }
-            return res.status(409).json({ error: `File already exists: ${finalFilename}` });
-        }
-        
-        try {
-            // 1c. Move the (possibly reencoded) file into place
-            fs.mkdirSync(path.dirname(videoFullPath), { recursive: true });
-            fs.renameSync(sourceForMove, videoFullPath);
-
-            // 2. Resolve real on-disk channel name
-            const actualChannel = resolveActualChannelName(channel);
-
-            // 3. Channel scaffolding
-            if (!fs.existsSync(path.join(__dirname, 'channelpic', `${actualChannel}.jpg`))) {
-                try { await generateChannelPicInline(actualChannel); }
-                catch { warnings.push('Could not generate channel picture.'); }
-            }
-            const subcountPath = path.join(__dirname, 'subcount', `${actualChannel}.txt`);
-            if (!fs.existsSync(subcountPath)) {
-                fs.mkdirSync(path.dirname(subcountPath), { recursive: true });
-                fs.writeFileSync(subcountPath, '10,000');
-            }
-
-            // 4. Probe
-            const info = await probeVideoInfo(videoFullPath);
-            const durationSec = info.durationSec;
-            const resolutionClass = classifyResolution(info.width, info.height);
-
-            // 5. Display name
-            const displayName = (req.body.displayName || '').trim() || baseName;
-            const filenameTxtPath = path.join(__dirname, 'filenames', channelRelativeDir, `${baseName}.txt`);
-            fs.mkdirSync(path.dirname(filenameTxtPath), { recursive: true });
-            fs.writeFileSync(filenameTxtPath, displayName);
-
-            // 6. Upload date
-            let uploadDate = (req.body.uploadDate || '').trim();
-            if (uploadDate && /^\d{4}-\d{2}-\d{2}$/.test(uploadDate)) {
-                const [y, m, d] = uploadDate.split('-');
-                uploadDate = `${d}.${m}.${y}`;
-            } else if (!uploadDate) {
-                uploadDate = formatDateDDMMYYYY(new Date());
-            }
-            const filedateTxtPath = path.join(__dirname, 'filedates', channelRelativeDir, `${baseName}.txt`);
-            fs.mkdirSync(path.dirname(filedateTxtPath), { recursive: true });
-            fs.writeFileSync(filedateTxtPath, uploadDate);
-
-            // 7. Length
-            if (durationSec > 0) {
-                const lengthTxtPath = path.join(__dirname, 'videolengths', actualChannel, `${baseName}.txt`);
-                fs.mkdirSync(path.dirname(lengthTxtPath), { recursive: true });
-                fs.writeFileSync(lengthTxtPath, formatDurationHM(durationSec));
-            }
-
-            // 8. View count
-            let viewCountRaw = (req.body.viewCount || '').trim();
-            let viewCountNum;
-            if (viewCountRaw) {
-                viewCountNum = parseInt(viewCountRaw.replace(/,/g, ''), 10);
-                if (isNaN(viewCountNum) || viewCountNum < 0) viewCountNum = 0;
-            } else {
-                let subcount = 10000;
-                if (fs.existsSync(subcountPath)) {
-                    const raw = fs.readFileSync(subcountPath, 'utf8').trim().replace(/,/g, '');
-                    const parsed = parseInt(raw, 10);
-                    if (!isNaN(parsed) && parsed > 0) subcount = parsed;
-                }
-                const factor = 0.10 + Math.random() * 0.68;
-                const jitter = (Math.random() - 0.5) * subcount * 0.06;
-                viewCountNum = Math.max(0, Math.round(subcount * factor + jitter));
-            }
-            const viewcountTxtPath = path.join(__dirname, 'viewcounts', channelRelativeDir, `${baseName}.txt`);
-            fs.mkdirSync(path.dirname(viewcountTxtPath), { recursive: true });
-            fs.writeFileSync(viewcountTxtPath, viewCountNum.toLocaleString('en-US'));
-
-            // 9. Likes/dislikes
-            let likes = parseInt(req.body.likes || '', 10);
-            let dislikes = parseInt(req.body.dislikes || '', 10);
-            const likesProvided = !isNaN(likes) && likes >= 0;
-            const dislikesProvided = !isNaN(dislikes) && dislikes >= 0;
-            if (likesProvided && dislikesProvided) {
-                // use as-is
-            } else if (likesProvided) {
-                dislikes = Math.max(0, Math.round(likes * (0.008 + Math.random() * 0.02)));
-            } else if (dislikesProvided) {
-                const ratio = 0.008 + Math.random() * 0.02;
-                likes = dislikes > 0 ? Math.round(dislikes / ratio) : 0;
-            } else {
-                const likeRate = getRealisticLikeRate(viewCountNum);
-                likes = Math.max(1, Math.round(viewCountNum * likeRate));
-                dislikes = Math.max(0, Math.round(likes * (0.008 + Math.random() * 0.02)));
-            }
-            const videostatsPath = path.join(__dirname, 'videostats', channelRelativeDir, `${baseName}.txt`);
-            fs.mkdirSync(path.dirname(videostatsPath), { recursive: true });
-            fs.writeFileSync(videostatsPath, `${likes},${dislikes}`);
-
-            // 10. Resolution + codec
-            if (resolutionClass) {
-                const resPath = path.join(__dirname, 'videoresolutions', channelRelativeDir, `${baseName}.txt`);
-                fs.mkdirSync(path.dirname(resPath), { recursive: true });
-                fs.writeFileSync(resPath, `${resolutionClass}\n${info.codec}`);
-            }
-
-            // 11. Description
-            const description = (req.body.description || '').trim();
-            if (description) {
-                const descPath = path.join(__dirname, 'descriptions', actualChannel, `${baseName}.txt`);
-                fs.mkdirSync(path.dirname(descPath), { recursive: true });
-                fs.writeFileSync(descPath, description);
-            }
-
-            // 12. Thumbnail
-            const thumbPath = path.join(__dirname, 'thumbnails', channelRelativeDir, `${baseName}.jpg`);
-            fs.mkdirSync(path.dirname(thumbPath), { recursive: true });
-            const thumbnailFile = req.files?.thumbnail?.[0];
-            if (thumbnailFile) {
-                try {
-                    await sharp(thumbnailFile.path)
-                        .resize(1280, 720, { fit: 'cover', position: 'centre' })
-                        .jpeg({ quality: 90 })
-                        .toFile(thumbPath);
-                    fs.unlink(thumbnailFile.path, () => {});
-                } catch (e) {
-                    warnings.push('Could not process provided thumbnail: ' + e.message);
-                    fs.unlink(thumbnailFile.path, () => {});
-                }
-            }
-            if (!fs.existsSync(thumbPath)) {
-                await generateThumbnailForUpload(videoFullPath, thumbPath, durationSec, isAudio);
-                if (!fs.existsSync(thumbPath)) {
-                    const placeholder = path.join(__dirname, 'LocalYT-Rev-Files', 'thumbnail-placeholder.jpg');
-                    if (fs.existsSync(placeholder)) fs.copyFileSync(placeholder, thumbPath);
-                }
-            }
-
-            // 13. Small thumbnail
-            const smallThumbPath = path.join(__dirname, 'thumbnails-small', channelRelativeDir, `${baseName}.jpg`);
-            if (fs.existsSync(thumbPath) && !fs.existsSync(smallThumbPath)) {
-                try {
-                    fs.mkdirSync(path.dirname(smallThumbPath), { recursive: true });
-                    await sharp(thumbPath).resize({ width: 300 }).jpeg({ quality: 85 }).toFile(smallThumbPath);
-                } catch { warnings.push('Could not generate small thumbnail.'); }
-            }
-
-            // 14. Comments JSON
-            const commentsFile = req.files?.commentsJson?.[0];
-            let commentsWritten = false;
-            if (commentsFile) {
-                try {
-                    const raw = fs.readFileSync(commentsFile.path, 'utf8');
-                    JSON.parse(raw);
-                    const commentsPath = path.join(__dirname, 'comments', channelRelativeDir, `${baseName}.json`);
-                    fs.mkdirSync(path.dirname(commentsPath), { recursive: true });
-                    fs.writeFileSync(commentsPath, raw);
-                    fs.unlink(commentsFile.path, () => {});
-                    commentsWritten = true;
-                } catch (e) {
-                    warnings.push('Invalid comments JSON: ' + e.message);
-                    fs.unlink(commentsFile.path, () => {});
-                }
-            }
-
-            // 15. Livechat JSON
-            const livechatFile = req.files?.livechatJson?.[0];
-            let livechatWritten = false;
-            if (livechatFile) {
-                try {
-                    const raw = fs.readFileSync(livechatFile.path, 'utf8');
-                    const parsed = JSON.parse(raw);
-                    const formatted = formatLivechatIfNeeded(parsed);
-                    const livechatPath = path.join(__dirname, 'livechats', actualChannel, `${baseName}.json`);
-                    fs.mkdirSync(path.dirname(livechatPath), { recursive: true });
-                    fs.writeFileSync(livechatPath, JSON.stringify(formatted, null, 4));
-                    fs.unlink(livechatFile.path, () => {});
-                    livechatWritten = true;
-                } catch (e) {
-                    warnings.push('Invalid livechat JSON: ' + e.message);
-                    fs.unlink(livechatFile.path, () => {});
-                }
-            }
-
-            // 16. Refresh in-memory cache + video_cache.json (TARGETED to this channel only)
-            try {
-                const refreshResult = refreshSingleChannelCache(actualChannel);
-                console.log(`[Upload] Cache refreshed for "${actualChannel}" (added: ${refreshResult.added}, removed: ${refreshResult.removed}).`);
-            } catch (e) {
-                console.error('[Upload] Targeted cache refresh failed:', e);
-                warnings.push('Video cache not refreshed — new video may not appear until #Setup-or-Update.bat is run.');
-            }
-
-            // 17. Direct cache patches
-            const cacheMeta = {
-                displayName,
-                fileDate: uploadDate,
-                viewCount: viewCountNum.toLocaleString('en-US'),
-                videoLength: durationSec > 0 ? formatDurationHM(durationSec) : '',
-                likes,
-                dislikes,
-                resolution: resolutionClass || undefined,
-                codec: info.codec || undefined,
-                hasThumbnail: fs.existsSync(thumbPath),
-                hasThumbnailSmall: fs.existsSync(smallThumbPath),
-                hasComments: commentsWritten,
-                hasLiveChat: livechatWritten,
-                subtitles: collectSubtitlesForVideo(actualChannel, baseName) || undefined
-            };
-            const cacheOk = patchMetadataCacheForUpload(actualChannel, videoRelativePath, cacheMeta);
-            if (!cacheOk) {
-                warnings.push('Metadata cache could not be updated. Run #Setup-or-Update.bat to refresh.');
-            }
-            patchHomePreviewForUpload(actualChannel, videoRelativePath, displayName, uploadDate);
-            patchHomeMetaCacheForUpload(actualChannel, videoRelativePath, {
-                ...cacheMeta,
-                descriptionHtml: description ? description.slice(0, 500) : null
+            return res.status(429).json({
+                error: 'Upload queue is full. Please try again later.'
             });
-
-            // 18. Background canonical regeneration (fire-and-forget)
-            runPythonScript('generate_home_previews.py', ['-c', actualChannel])
-                .then(({ stdout }) => {
-                    const tail = (stdout || '').trim().split('\n').pop();
-                    if (tail) console.log('[Upload/home-previews]', tail);
-                })
-                .catch(e => console.error('[Upload/home-previews] background refresh failed:', e.message));
-
-            runPythonScript('generate_metadata_cache.py', ['-c', actualChannel])
-                .then(({ stdout }) => {
-                    const tail = (stdout || '').trim().split('\n').pop();
-                    if (tail) console.log('[Upload/metadata-cache]', tail);
-                })
-                .catch(e => console.error('[Upload/metadata-cache] background refresh failed:', e.message));
-
-            // 19. Respond
-            res.json({
-                success: true,
-                channel: actualChannel,
-                playlist: playlist || null,
-                path: videoRelativePath,
-                videoUrl: `/video.html?src=${encodeURIComponent(videoRelativePath)}`,
-                warnings: warnings.length ? warnings : undefined
-            });
-        } catch (err) {
-            console.error('[Upload] Error:', err);
-            cleanupTempFiles(req.files);
-            res.status(500).json({ error: err.message || 'Upload failed' });
         }
+
+        // Snapshot the fields the async worker needs, then hand off.
+        const job = createUploadJob();
+        const files = req.files;
+        const body  = { ...req.body };
+
+        // Respond immediately so Cloudflare's 100s timeout never applies
+        res.json({ success: true, jobId: job.id });
+
+        uploadQueue.enqueue(job, files, body).catch(err => {
+            console.error(`[Upload] Job ${job.id} failed:`, err);
+            job.status = 'error';
+            job.phase = 'error';
+            job.error = err.message || 'Upload failed';
+            job.completedAt = Date.now();
+            cleanupTempFiles(files);
+        });
     }
 );
+
+app.get('/upload-status/:jobId', (req, res) => {
+    const job = uploadJobs.get(req.params.jobId);
+    if (!job) return res.status(404).json({ error: 'Job not found or expired' });
+    res.json({
+        jobId: job.id,
+        status: job.status,
+        phase: job.phase,
+        progress: Math.round(job.progress),
+        message: job.message,
+        queuePosition: job.queuePosition || 0,
+        queueStatus: uploadQueue.getStatus(),
+        result: job.result,
+        error: job.error
+    });
+});
 
 // ===== STARTUP =====
 (async () => {
