@@ -259,6 +259,7 @@ app.set('trust proxy', 1);
 const PORT = 3000;
 
 // Suppress harmless Windows EPERM session rename errors thrown by session-file-store
+/*
 const originalConsoleError = console.error;
 console.error = function(...args) {
     const message = args.join(' ');
@@ -267,6 +268,7 @@ console.error = function(...args) {
     }
     originalConsoleError.apply(console, args);
 };
+*/
 
 const tempUploadsDir = path.join(__dirname, 'temp-uploads');
 if (!fs.existsSync(tempUploadsDir)) {
@@ -684,16 +686,16 @@ app.use(session({
     store: new FileStore({
         path: sessionsDir,
         ttl: 86400,
-        retries: 3,
-        reapInterval: -1,
+        retries: 5,
+        reapInterval: 3600,
         fileExtension: '.session',
-        reapAsync: false,
+        reapAsync: true,
         reapSyncFallback: false,
         logFn: function() {},
         encoding: 'utf8',
         encrypt: false
     }),
-    secret: 'secret',
+    secret: process.env.SESSION_SECRET || 'local-dev-only-fallback-secret',
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -2883,7 +2885,15 @@ app.post('/login', (req, res) => {
             const prefData = JSON.parse(fs.readFileSync(preferencesFilePath, 'utf8'));
             hasPreferences = Object.keys(prefData[user.id] || {}).length > 0;
         } catch (e) {}
-        res.json({ success: true, hasPreferences });
+        
+        // Force the session to save to the file system before responding
+        req.session.save((err) => {
+            if (err) {
+                console.error("CRITICAL SESSION SAVE ERROR:", err);
+                return res.status(500).json({ error: 'Failed to save session. Check server console.' });
+            }
+            res.json({ success: true, hasPreferences });
+        });
     });
 });
 
@@ -4505,7 +4515,7 @@ app.get('/upload-status/:jobId', (req, res) => {
     loadPlaylistThumbnailCache();
     initializePlaylistShortLinks();
 
-    app.listen(PORT, () => {
-        console.log(`\nServer is running on http://localhost:${PORT}`);
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`\nServer is running on http://localhost:${PORT}, public link: https://www.localyt.net`);
     });
 })();
