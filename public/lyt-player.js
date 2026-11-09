@@ -136,7 +136,7 @@
             this._eqSaveTimer = null; // for debouncing server saves
 
             // Current LYT Player version
-            this.version = 'v2.8.0';
+            this.version = 'v2.8.5';
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -506,6 +506,7 @@
             if (this.dom.ambientOption) {
                 this.dom.ambientOption.classList.toggle('lyt_active', enabled);
             }
+            this.updateMainMenuValues();
 
             // Allow glow to overflow the wrapper
             const videoWrapper = this.wrapper.closest('.video-wrapper');
@@ -947,10 +948,10 @@
                     .lyt_hd_badge {
                         position: absolute;
                         top: 9px;
-                        right: 0px;
+                        right: 3px;
                         background-color: red;
                         color: white;
-                        font-size: 7px;;
+                        font-size: 8px;;
                         font-weight: bold;
                         font-family: 'Roboto', 'Arial', sans-serif;
                         padding: 0px 2px;
@@ -1425,15 +1426,19 @@
                     /* Progress Bar */
                     .lyt_progress_container {
                         width: 100%;
-                        height: calc(5px * var(--lyt-ui-scale));
+                        height: calc(4px * var(--lyt-ui-scale));
                         background: rgba(255,255,255,0.2);
                         cursor: pointer;
                         position: relative;
-                        margin-bottom: 4px;
+
                         transition: height 0.15s ease;
                     }
                     .lyt_progress_container:hover {
-                        height: calc(7px * var(--lyt-ui-scale));
+                        height: calc(5px * var(--lyt-ui-scale));
+                    }
+                    .lyt_progress_container:hover .lyt_progress_dot {
+                        opacity: 1;
+                        transform: translateY(-50%) scale(1);
                     }
                     .lyt_chapter_marker {
                         position: absolute;
@@ -1471,8 +1476,9 @@
                         position: absolute;
                         right: calc(-5.5px * var(--lyt-ui-scale));
                         top: 50%;
-                        transform: translateY(-50%);
-                        opacity: 1;
+                        opacity: 0;
+                        transform: translateY(-50%) scale(0.8); /* Start slightly smaller */
+                        transition: opacity 0.15s ease, transform 0.15s ease; /* Smooth fade & grow */
                         pointer-events: none;
                         box-shadow: 0 0 4px rgba(0,0,0,0.5);
                         z-index: 2;
@@ -1640,20 +1646,78 @@
                     /* Popup menus */
                     .lyt_popup_menu {
                         position: absolute;
-                        bottom: calc(42px * var(--lyt-ui-scale));
-                        right: 0;
+                        bottom: calc(54px * var(--lyt-ui-scale));
+                        right: 60px;
                         background: rgba(28,28,28,0.97);
                         padding: 0;
                         min-width: calc(var(--lyt-popup-min-width) * var(--lyt-ui-scale));
                         display: none;
                         z-index: 20;
-                        box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+                        box-sizing: border-box;
                     }
+                    
                     .lyt_popup_menu.lyt_show {
                         display: flex;
                         flex-direction: column;
                     }
                     
+                    /* ===== SETTINGS MENU SPECIFIC ===== */
+                    .lyt_settings_menu {
+                        min-width: 290px;
+                        width: max-content;
+                    }
+                    
+                    .lyt_settings_menu > .lyt_menu_content > .lyt_menu_option {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 10px 16px;
+                        box-sizing: border-box;
+                        width: 100%;
+                    }
+                    
+                    .lyt_settings_menu > .lyt_menu_content > .lyt_menu_option.lyt_active::before {
+                        content: none !important;
+                    }
+                    
+                    /* Grey text for selected option value */
+                    .lyt_menu_value {
+                        color: #aaa;
+                        font-size: calc(12px * var(--lyt-ui-scale));
+                        margin-left: 12px;
+                        font-family: 'Roboto', 'Arial', sans-serif;
+                        white-space: nowrap;
+                    }
+                    
+                    /* Custom Toggle Switch */
+                    .lyt_toggle_switch {
+                        width: 30px;
+                        height: 16px;
+                        background: rgba(255, 255, 255, 0.2);
+                        border-radius: 10px;
+                        position: relative;
+                        transition: background 0.2s;
+                        flex-shrink: 0;
+                        margin-left: 12px;
+                    }
+                    .lyt_toggle_switch::after {
+                        content: '';
+                        position: absolute;
+                        width: 12px;
+                        height: 12px;
+                        background: #fff;
+                        border-radius: 50%;
+                        top: 2px;
+                        left: 2px;
+                        transition: left 0.2s;
+                    }
+                    .lyt_toggle_switch.lyt_on {
+                        background: #3ea6ff; /* Blue active color */
+                    }
+                    .lyt_toggle_switch.lyt_on::after {
+                        left: 16px;
+                    }
+
                     /* Main menu content and submenu content wrappers */
                     .lyt_menu_content {
                         padding: 4px 0;
@@ -2295,10 +2359,10 @@
                             <div class="lyt_popup_menu lyt_settings_menu">
                                 <div class="lyt_menu_content">
                                     <!-- Equalizer option will be inserted here by JavaScript -->
-                                    <div class="lyt_menu_option lyt_opt_ambient">${this._t('ambient')}</div>
-                                    <div class="lyt_menu_option lyt_opt_speed" data-submenu="speed">${this._t('speed')}</div>
-                                    <div class="lyt_menu_option lyt_opt_subs" data-submenu="subtitles">${this._t('subtitles')}</div>
-                                    <div class="lyt_menu_option lyt_opt_quality" data-submenu="quality">${this._t('quality')}</div>
+                                    <div class="lyt_menu_option lyt_opt_ambient">${this._t('ambient')} <div class="lyt_toggle_switch"></div></div>
+                                    <div class="lyt_menu_option lyt_opt_speed" data-submenu="speed">${this._t('speed')} <span class="lyt_menu_value"></span></div>
+                                    <div class="lyt_menu_option lyt_opt_subs" data-submenu="subtitles">${this._t('subtitles')} <span class="lyt_menu_value"></span></div>
+                                    <div class="lyt_menu_option lyt_opt_quality" data-submenu="quality">${this._t('quality')} <span class="lyt_menu_value"></span></div>
                                 </div>
 
                                 <div class="lyt_popup_submenu lyt_speed_menu">
@@ -2399,6 +2463,7 @@
             this.buildSpeedMenu();
             this.buildSubtitlesMenu();
             this.buildQualityMenu();
+            this.updateMainMenuValues();
         }
         
         // ----- Equalizer UI Setup -----
@@ -2411,7 +2476,7 @@
             const eqOption = document.createElement('div');
             eqOption.className = 'lyt_menu_option lyt_opt_equalizer';
             eqOption.dataset.submenu = 'equalizer';
-            eqOption.textContent = 'Equalizer';
+            eqOption.innerHTML = `Equalizer <span class="lyt_menu_value"></span>`;
         
             if (!this._asmr) {
                 eqOption.classList.add('lyt_disabled');
@@ -2855,6 +2920,7 @@
 
             const html = `<button class="lyt_menu_option lyt_active" disabled>${label}</button>`;
             this.dom.qualityMenu.querySelector('.lyt_menu_content').innerHTML = html;
+            this.updateMainMenuValues();
         }
 
         // ----- setDescription method - ADD THIS -----
@@ -3897,8 +3963,45 @@
             this.dom.speedMenu.querySelectorAll('.lyt_speed_option').forEach(opt => {
                 opt.classList.toggle('lyt_active', parseFloat(opt.dataset.speed) === speed);
             });
+            this.updateMainMenuValues();
         }
         
+        updateMainMenuValues() {
+            if (!this.dom.mainMenuContent) return;
+
+            // 1. Speed
+            const speedVal = this.currentSpeed === 1 ? 'Normal' : this.currentSpeed + 'x';
+            const speedEl = this.dom.mainMenuContent.querySelector('.lyt_opt_speed .lyt_menu_value');
+            if (speedEl) speedEl.textContent = speedVal;
+
+            // 2. Subtitles
+            let subsVal = 'Off';
+            if (this.currentTrackIndex >= 0) {
+                const track = this.video.textTracks[this.currentTrackIndex];
+                subsVal = track ? (track.label || track.language || 'On') : 'On';
+            }
+            const subsEl = this.dom.mainMenuContent.querySelector('.lyt_opt_subs .lyt_menu_value');
+            if (subsEl) subsEl.textContent = subsVal;
+
+            // 3. Quality
+            let h = this.video.videoHeight || 0;
+            let qualVal = 'Auto';
+            if (h >= 2160) qualVal = '2160p';
+            else if (h >= 1440) qualVal = '1440p';
+            else if (h >= 1080) qualVal = '1080p';
+            else if (h >= 720) qualVal = '720p';
+            else if (h >= 480) qualVal = '480p';
+            else if (h > 0) qualVal = h + 'p';
+            const qualEl = this.dom.mainMenuContent.querySelector('.lyt_opt_quality .lyt_menu_value');
+            if (qualEl) qualEl.textContent = qualVal;
+
+            // 4. Ambient Switch
+            const ambientSwitch = this.dom.mainMenuContent.querySelector('.lyt_opt_ambient .lyt_toggle_switch');
+            if (ambientSwitch) {
+                ambientSwitch.classList.toggle('lyt_on', this._ambientEnabled);
+            }
+        }
+
         setSubtitleTrack(trackIndex) {
             // Check if the selected track actually has content (not just an empty WEBVTT file)
             if (trackIndex >= 0) {
@@ -3911,6 +4014,7 @@
                     this.dom.subtitlesMenu.querySelectorAll('.lyt_sub_option').forEach(opt => {
                         opt.classList.toggle('lyt_active', parseInt(opt.dataset.track) === -1);
                     });
+                    this.updateMainMenuValues();
                     this.dom.subtitlesDisplay.innerHTML = '';
                     return;
                 }
