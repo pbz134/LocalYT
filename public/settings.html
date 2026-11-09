@@ -864,6 +864,19 @@
 
                 <div class="setting-card">
                     <div class="card-info">
+                        <div class="card-label" id="showLocalYTLogoLabel">Show LocalYT logo</div>
+                        <div class="card-desc" id="showLocalYTLogoDesc">Bottom-right corner of player</div>
+                    </div>
+                    <div class="card-control">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="showLocalYTLogo">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="setting-card">
+                    <div class="card-info">
                         <div class="card-label" id="showEndScreenGridLabel">End screen recommendation grid</div>
                         <div class="card-desc" id="showEndScreenGridDesc">4×3 grid when autoplay is off</div>
                     </div>
@@ -1134,6 +1147,8 @@
             document.getElementById('playlistOrderDesc').textContent = getLang('Newest videos first (oldest on the right)', 'Neueste zuerst (älteste rechts)');
             document.getElementById('channelProfilePicLabel').textContent = getLang('Show channel profile pic', 'Kanal-Profilbild anzeigen');
             document.getElementById('channelProfilePicDesc').textContent = getLang('Bottom-right corner of player', 'Untere rechte Ecke des Players');
+            document.getElementById('showLocalYTLogoLabel').textContent = getLang('Show LocalYT logo', 'LocalYT-Logo anzeigen');
+            document.getElementById('showLocalYTLogoDesc').textContent = getLang('Bottom-right corner of player', 'Untere rechte Ecke des Players');
             document.getElementById('showEndScreenGridLabel').textContent = getLang('End screen recommendation grid', 'Empfehlungsraster am Ende');
             document.getElementById('showEndScreenGridDesc').textContent = getLang('4×3 grid when autoplay is off', '4×3-Raster wenn Autoplay deaktiviert ist');
             document.getElementById('showEndcardsLabel').textContent = getLang('Show video endcards', 'Video-Endkarten anzeigen');
@@ -1331,6 +1346,7 @@
                 playlistPageLayout: document.getElementById('playlistPageLayout').value,
                 invertPlaylistOrder: document.getElementById('invertPlaylistOrder').checked,
                 showChannelProfilePic: document.getElementById('showChannelProfilePic').checked,
+                showLocalYTLogo: document.getElementById('showLocalYTLogo').checked,
                 showEndScreenGrid: document.getElementById('showEndScreenGrid').checked,
                 showEndcards: document.getElementById('showEndcards').checked,
                 showRecommendationPopups: document.getElementById('showRecommendationPopups').checked,
@@ -1339,6 +1355,7 @@
             localStorage.setItem('playlistPageLayout', JSON.stringify({ view: userPart.playlistPageLayout }));
             localStorage.setItem('invertPlaylistOrder', JSON.stringify({ enabled: userPart.invertPlaylistOrder }));
             localStorage.setItem('showChannelProfilePic', JSON.stringify({ enabled: userPart.showChannelProfilePic }));
+            localStorage.setItem('showLocalYTLogo', JSON.stringify({ enabled: userPart.showLocalYTLogo }));
             localStorage.setItem('showEndScreenGrid', JSON.stringify({ enabled: userPart.showEndScreenGrid }));
             localStorage.setItem('showEndcards', JSON.stringify({ enabled: userPart.showEndcards }));
             localStorage.setItem('showRecommendationPopups', JSON.stringify({ enabled: userPart.showRecommendationPopups }));
@@ -1487,6 +1504,8 @@
             document.getElementById('invertPlaylistOrder').checked = invertOrder.enabled !== undefined ? invertOrder.enabled : true;
             const showPic = JSON.parse(localStorage.getItem('showChannelProfilePic') || '{}');
             document.getElementById('showChannelProfilePic').checked = showPic.enabled || false;
+            const showLogo = JSON.parse(localStorage.getItem('showLocalYTLogo') || '{}');
+            document.getElementById('showLocalYTLogo').checked = showLogo.enabled !== undefined ? showLogo.enabled : true;
             const endScreenGrid = JSON.parse(localStorage.getItem('showEndScreenGrid') || '{}');
             document.getElementById('showEndScreenGrid').checked = endScreenGrid.enabled !== undefined ? endScreenGrid.enabled : true;
             const endcards = JSON.parse(localStorage.getItem('showEndcards') || '{}');
@@ -1500,6 +1519,7 @@
                 if (data.playlistPageLayout) document.getElementById('playlistPageLayout').value = data.playlistPageLayout;
                 if (data.invertPlaylistOrder !== undefined) document.getElementById('invertPlaylistOrder').checked = data.invertPlaylistOrder;
                 if (data.showChannelProfilePic !== undefined) document.getElementById('showChannelProfilePic').checked = data.showChannelProfilePic;
+                if (data.showLocalYTLogo !== undefined) document.getElementById('showLocalYTLogo').checked = data.showLocalYTLogo;
                 if (data.showEndScreenGrid !== undefined) document.getElementById('showEndScreenGrid').checked = data.showEndScreenGrid;
                 if (data.showEndcards !== undefined) document.getElementById('showEndcards').checked = data.showEndcards;
                 if (data.showRecommendationPopups !== undefined) document.getElementById('showRecommendationPopups').checked = data.showRecommendationPopups;
@@ -1723,6 +1743,7 @@
                 playlistPageLayout: document.getElementById('playlistPageLayout').value,
                 invertPlaylistOrder: document.getElementById('invertPlaylistOrder').checked,
                 showChannelProfilePic: document.getElementById('showChannelProfilePic').checked,
+                showLocalYTLogo: document.getElementById('showLocalYTLogo').checked,
                 showEndScreenGrid: document.getElementById('showEndScreenGrid').checked,
                 showEndcards: document.getElementById('showEndcards').checked,
                 showRecommendationPopups: document.getElementById('showRecommendationPopups').checked,
@@ -1775,6 +1796,7 @@
                     if (config.playlistPageLayout) document.getElementById('playlistPageLayout').value = config.playlistPageLayout;
                     if (config.invertPlaylistOrder !== undefined) document.getElementById('invertPlaylistOrder').checked = config.invertPlaylistOrder;
                     if (config.showChannelProfilePic !== undefined) document.getElementById('showChannelProfilePic').checked = config.showChannelProfilePic;
+                    if (config.showLocalYTLogo !== undefined) document.getElementById('showLocalYTLogo').checked = config.showLocalYTLogo;
                     if (config.showEndScreenGrid !== undefined) document.getElementById('showEndScreenGrid').checked = config.showEndScreenGrid;
                     if (config.showEndcards !== undefined) document.getElementById('showEndcards').checked = config.showEndcards;
                     if (config.showRecommendationPopups !== undefined) document.getElementById('showRecommendationPopups').checked = config.showRecommendationPopups;

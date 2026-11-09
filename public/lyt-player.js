@@ -192,6 +192,9 @@
             // --- Recommendation popups setting ---
             this._showRecommendationPopups = true;
 
+            // --- LocalYT logo  ---
+            this._showLocalYTLogo = true;
+
             // --- Ambient light state ---
             this._ambientEnabled = false;
             this._ambientDisplay = null;
@@ -240,6 +243,7 @@
             this.loadTimelinePreview();
             this.loadPlayerUIScale();
             this.loadRoundedCornersSetting();
+            this.loadLocalYTLogoSetting();
             this.loadRecommendationPopupsSetting();
 
             // Set initial volume display
@@ -433,6 +437,61 @@
                     } catch (err) {}
                 }
             });
+        }
+
+        /**
+         * Load the "Show LocalYT logo" preference from localStorage + server.
+         */
+        loadLocalYTLogoSetting() {
+            // 1. Instant local preference (default: on)
+            try {
+                const local = JSON.parse(localStorage.getItem('showLocalYTLogo') || '{}');
+                if (local.enabled !== undefined) {
+                    this._showLocalYTLogo = local.enabled;
+                }
+            } catch (e) {}
+
+            // Apply immediately so there's no flicker
+            this.applyLocalYTLogoVisibility();
+
+            // 2. Server preference overrides if available
+            fetch('/user-settings')
+                .then(res => res.ok ? res.json() : null)
+                .then(settings => {
+                    if (settings && settings.showLocalYTLogo !== undefined) {
+                        this._showLocalYTLogo = settings.showLocalYTLogo;
+                        try {
+                            localStorage.setItem('showLocalYTLogo', JSON.stringify({
+                                enabled: this._showLocalYTLogo
+                            }));
+                        } catch (e) {}
+                        this.applyLocalYTLogoVisibility();
+                    }
+                })
+                .catch(() => {});
+
+            // 3. Cross-tab sync
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'showLocalYTLogo') {
+                    try {
+                        const newVal = JSON.parse(e.newValue || '{}');
+                        if (newVal.enabled !== undefined) {
+                            this._showLocalYTLogo = newVal.enabled;
+                            this.applyLocalYTLogoVisibility();
+                        }
+                    } catch (err) {}
+                }
+            });
+        }
+
+        /**
+         * Show or hide the brand logo in the controls row.
+         */
+        applyLocalYTLogoVisibility() {
+            const logo = this.wrapper.querySelector('.lyt_brand_logo');
+            if (logo) {
+                logo.style.display = this._showLocalYTLogo ? '' : 'none';
+            }
         }
 
         /**
@@ -887,7 +946,7 @@
                 }
                     .lyt_hd_badge {
                         position: absolute;
-                        top: 5px;
+                        top: 9px;
                         right: 0px;
                         background-color: red;
                         color: white;
@@ -1467,6 +1526,17 @@
                         height: calc(var(--lyt-btn-play-size) * var(--lyt-ui-scale));
                     }
                     
+                    /* Brand logo in bottom-right controls row */
+                    .lyt_brand_logo {
+                        height: calc(16px * var(--lyt-ui-scale));
+                        width: auto;
+                        display: block;
+                        margin: 0 6px;
+                        opacity: 1;
+                        pointer-events: none;
+                        user-select: none;
+                    }
+
                     /* Volume group */
                     .lyt_volume_group {
                         display: flex;
@@ -2248,6 +2318,9 @@
 
                                 <!-- Equalizer submenu will be inserted here by JavaScript -->
                             </div>
+
+                            <!-- Brand Logo (bottom-right, below the seek bar) -->
+                            <img class="lyt_brand_logo" src="Logo_Textonly.svg" alt="LocalYT" draggable="false">
 
                             <button class="lyt_btn lyt_btn_fullscreen" aria-label="Fullscreen">${SVG.fullscreen}</button>
                         </div>
