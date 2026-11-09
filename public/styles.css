@@ -204,10 +204,11 @@ body {
 .suggestions-wrapper {
     background-color: var(--main-bg-color);
     padding: 0px;
-    border-radius: 8px;
-    width: 380px;
-    flex-shrink: 0; /* Prevent flexbox from resizing this container */
+    border-radius: 0;
+    width: 360px;
+    flex-shrink: 0; 
     min-width: 0;
+    margin-left: 10px;
 }
 
 .video-suggestions {

@@ -367,11 +367,15 @@
         const isBlueTitles = JSON.parse(localStorage.getItem('titleColorScheme') || '{}').scheme === 'blue';
 
         let styleText = `
+            .suggestions-wrapper { background-color: #fff !important; }
             [style*="background-color: rgb(30, 30, 30)"],
             [style*="background-color: #1e1e1e"],
             .video-description, .video-item, .playlist-item, .post-item,
             .channel-top-section, .channel-content-section {
                 background-color: #FFFFFF !important;
+            }
+            .video-description.collapsed::after {
+                background: linear-gradient(rgba(255, 255, 255, 0), #FFFFFF) !important;
             }
             .video-info { background: transparent !important; }
             [style*="color: rgb(136, 136, 136)"],
@@ -393,8 +397,29 @@
             [style*="color: rgb(170, 170, 170)"],
             [style*="color: #aaaaaa"],
             .tab, .like-dislike-icons span, .share-container span,
-            .save-container span, .sub-count, .comment-like-btn span,
-            .description-toggle { color: #666666 !important; }
+            .save-container span, .sub-count, .comment-like-btn span { 
+                color: #666666 !important; 
+            }
+            
+            /* --- Description Toggle Light Mode Fixes --- */
+            .description-toggle { 
+                color: #065fd4 !important; /* YouTube Blue */
+            }
+            .description-toggle:hover {
+                text-decoration: underline !important;
+            }
+            
+            /* Classic Layout overrides for Light Mode */
+            .classic-layout-active .description-toggle,
+            body[data-video-layout="classic"] .description-toggle {
+                background-color: #f9f9f9 !important;
+                border-top-color: #e0e0e0 !important;
+                color: #0f0f0f !important;
+            }
+            .classic-layout-active .description-toggle:hover,
+            body[data-video-layout="classic"] .description-toggle:hover {
+                background-color: #f0f0f0 !important;
+            }
             #classicInfoBoxWrapper { background-color:#fff !important; border-color:#e0e0e0 !important; }
             #classicInfoBoxWrapper #classicActionsWrapper { border-top-color:#e0e0e0 !important; }
             .channel-name, .classic-channel-name-text { color: #000 !important; }
