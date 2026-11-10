@@ -1371,7 +1371,7 @@ async function initializeVideoCache() {
                 console.log(`Cache loaded: ${videoCache.size} videos.`);
                 const skip = await promptSkipScan();
                 if (skip) {
-                    console.log('⏩ Skipping incremental scan.');
+                    console.log('Skipping incremental scan.');
                     buildRecommendationIndex();
                     return;
                 }
