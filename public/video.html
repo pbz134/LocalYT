@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <base href="/">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LocalYT</title>
     <link rel="stylesheet" href="styles.css">
@@ -1554,6 +1555,45 @@
             return mimeTypes[extension.toLowerCase()] || 'video/mp4';
         }
 
+        /**
+         * Replace the address bar URL with the short /v/CODE form.
+         * Preserves ?t= timestamps. Skips user playlists (so refresh keeps the playlist context).
+         */
+        async function replaceUrlWithShortLink(videoSrc, playlistName, userPlaylistName) {
+            if (!videoSrc) return;
+        
+            try {
+                let apiUrl = `/api/shortlink?video=${encodeURIComponent(videoSrc)}`;
+                if (playlistName) {
+                    apiUrl += `&playlist=${encodeURIComponent(playlistName)}`;
+                }
+        
+                const res = await fetch(apiUrl);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!data.shortPath) return;
+        
+                let newUrl = data.shortPath;
+        
+                // User playlist has no global short code — carry its name through.
+                if (userPlaylistName) {
+                    newUrl += (newUrl.includes('?') ? '&' : '?') +
+                              'upl=' + encodeURIComponent(userPlaylistName);
+                }
+        
+                // Preserve the initial ?t= timestamp, if any.
+                const tParam = new URLSearchParams(window.location.search).get('t');
+                if (tParam) {
+                    newUrl += (newUrl.includes('?') ? '&' : '?') +
+                              't=' + encodeURIComponent(tParam);
+                }
+        
+                history.replaceState(null, '', newUrl);
+            } catch (e) {
+                console.warn('[ShortLink] Could not update URL:', e);
+            }
+        }
+
         // ===== COMMENT HELPERS =====
         function getAvatarColor(name) {
             let hash = 0;
@@ -2459,6 +2499,9 @@
             const playlistName = urlParams.get('playlist'); // Get playlist name
             const userPlaylistName = urlParams.get('userplaylist'); // Get user playlist name
             const timestamp = urlParams.get('t');
+            // Swap the address bar to the short link form (/v/CODE).
+            // Fire-and-forget; if it fails the URL just stays as video.html?src=...
+            replaceUrlWithShortLink(videoSrc, playlistName, userPlaylistName);
             const videoPlayer = document.getElementById('videoPlayer');
             const currentVideoTitle = document.getElementById('currentVideoTitle');
             const currentVideoDescription = document.getElementById('currentVideoDescription');

@@ -567,6 +567,10 @@ app.get('/v/:code', (req, res) => {
             redirectUrl += `&playlist=${encodeURIComponent(plCode)}`;
         }
     }
+    // User playlists aren't global, so we pass the name through as-is.
+    if (req.query.upl) {
+        redirectUrl += `&userplaylist=${encodeURIComponent(req.query.upl)}`;
+    }
     res.redirect(redirectUrl);
 });
 
@@ -574,6 +578,14 @@ app.get('/v/:code', (req, res) => {
 let playlistShortMap = new Map();
 let shortCodeToPlaylistMap = new Map();
 const PLAYLIST_SHORT_FILE = path.join(__dirname, 'playlist_shortlinks.json');
+
+let playlistCodeToChannelMap = new Map();
+
+function registerPlaylistChannel(code, channel) {
+    if (code && channel && !playlistCodeToChannelMap.has(code)) {
+        playlistCodeToChannelMap.set(code, channel);
+    }
+}
 
 function generatePlaylistShortCode() {
     if (!SHORT_CODE_CHARS) return null;
@@ -1495,6 +1507,16 @@ function initializePlaylistShortLinks() {
         savePlaylistLinksToFile();
         console.log(`${newCodesGenerated} new Playlist Short Links generated. Total: ${playlistShortMap.size}`);
     }
+
+    videoArray.forEach(video => {
+        const parts = video.path.split('/');
+        if (parts.length > 2) {
+            const channel = parts[0];
+            const playlistName = parts.slice(1, -1).join('/');
+            const code = playlistShortMap.get(playlistName);
+            if (code) registerPlaylistChannel(code, channel);
+        }
+    });
 }
 
 // --- HELPER FUNCTIONS ---
@@ -3597,6 +3619,58 @@ app.get('/search', (req, res) => {
     });
 });
 
+app.get('/api/playlist-shortlink', (req, res) => {
+    const playlist = req.query.playlist;
+    const channel = req.query.channel;
+    if (!playlist) return res.status(400).json({ error: 'Missing playlist' });
+
+    let code = playlistShortMap.get(playlist);
+    if (!code) {
+        code = getOrCreatePlaylistShortCode(playlist);
+    }
+    if (!code) return res.status(404).json({ error: 'Could not create short link' });
+
+    // Register the channel so /p/:code can resolve it later,
+    // even if this playlist wasn't in videoArray at startup.
+    if (channel) registerPlaylistChannel(code, channel);
+
+    res.json({ shortPath: `/p/${code}` });
+});
+
+// Standalone playlist short link redirect
+app.get('/p/:code', (req, res) => {
+    const code = req.params.code;
+    const playlistName = shortCodeToPlaylistMap.get(code);
+    if (!playlistName) {
+        return res.status(404).send('Playlist short link not found');
+    }
+
+    let channel = playlistCodeToChannelMap.get(code);
+    // Fallback: scan videoArray if the map is stale (e.g. playlist was uploaded
+    // after startup but never triggered /api/playlist-shortlink yet).
+    if (!channel) {
+        for (const video of videoArray) {
+            const parts = video.path.split('/');
+            if (parts.length > 2) {
+                const pl = parts.slice(1, -1).join('/');
+                if (pl === playlistName) {
+                    channel = parts[0];
+                    registerPlaylistChannel(code, channel);
+                    break;
+                }
+            }
+        }
+    }
+    if (!channel) {
+        return res.status(404).send('Could not resolve channel for playlist');
+    }
+
+    res.redirect(
+        `/playlist.html?channel=${encodeURIComponent(channel)}` +
+        `&playlist=${encodeURIComponent(playlistName)}`
+    );
+});
+
 app.get('/api/shortlink', (req, res) => {
     const video = req.query.video;
     const playlist = req.query.playlist;
@@ -3608,6 +3682,8 @@ app.get('/api/shortlink', (req, res) => {
         const plCode = getOrCreatePlaylistShortCode(playlist);
         if (plCode) {
             shortPath += `?pl=${plCode}`;
+            const channel = video.split('/')[0];
+            if (channel) registerPlaylistChannel(plCode, channel);
         }
     }
     res.json({ shortPath: shortPath });

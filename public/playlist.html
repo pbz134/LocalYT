@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <base href="/">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Playlist</title>
     <link rel="stylesheet" href="styles.css">
@@ -754,6 +755,21 @@
         return new Date(dateString);
     }
 
+    async function replaceUrlWithPlaylistShortLink(channel, playlist) {
+        if (!channel || !playlist) return;
+        try {
+            const res = await fetch(
+                `/api/playlist-shortlink?channel=${encodeURIComponent(channel)}` +
+                `&playlist=${encodeURIComponent(playlist)}`
+            );
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.shortPath) history.replaceState(null, '', data.shortPath);
+        } catch (e) {
+            console.warn('[Playlist ShortLink] Could not update URL:', e);
+        }
+    }
+
     // Natural sorting function for videos with numbers in titles
     function naturalCompare(a, b) {
         const extractNumbers = (str) => {
@@ -1114,8 +1130,9 @@
                 fetch(`/playlist-videos/${encodeURIComponent(channel)}/${encodeURIComponent(playlist)}`)
                     .then(response => response.json())
                     .then(videos => {
-                        allVideosData = videos; 
-                        
+                        allVideosData = videos;
+                        replaceUrlWithPlaylistShortLink(channel, playlist);
+
                         // Setup Classic Sidebar if in classic mode
                         if (document.body.classList.contains('classic-channel')) {
                             setupClassicSidebar(videos, channel, playlist);
