@@ -757,22 +757,10 @@ function stripExtension(filename) {
     return filename.replace(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i, '');
 }
 
-// Helper function to get video file extension
-function getVideoExtension(path) {
-    const match = path.match(/\.(mp4|mp3|mkv|avi|mov|wmv|flv|webm)$/i);
-    return match ? match[1] : 'mp4';
-}
-
-// Search state management
+// Search state — server does everything
 const searchState = {
-    index: null,
-    worker: null,
     lastSearchId: 0,
-    debounceTimer: null,
-    currentResults: [],
-    currentQuery: '',
-    currentFreeText: '',
-    currentOperators: {}
+    currentQuery: ''
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -814,50 +802,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             `<div style="color: white; padding: 20px;">${getLang('Enter a search term above', 'Gib oben einen Suchbegriff ein')}</div>`;
     }
 
-    // Load metadata cache before doing anything metadata-related
-    await MetadataCache.ready();
-
-    // Initialize Web Worker if available
-    if (window.Worker) {
-        try {
-            searchState.worker = new Worker('search-worker.js');
-            searchState.worker.onmessage = handleWorkerResponse;
-            
-            const indexResponse = await fetch('/search-index');
-            if (!indexResponse.ok) throw new Error('Failed to fetch search index');
-            const indexData = await indexResponse.json();
-            
-            searchState.worker.postMessage({
-                type: 'initialize',
-                index: indexData
-            });
-            
-            searchState.index = indexData;
-        } catch (error) {
-            console.error('Worker initialization failed:', error);
-            searchState.worker = null;
-        }
-    }
-
-    // Load search index directly if worker failed
-    if (!searchState.worker) {
-        try {
-            const indexResponse = await fetch('/search-index');
-            if (!indexResponse.ok) throw new Error('Failed to fetch search index');
-            searchState.index = await indexResponse.json();
-        } catch (error) {
-            console.error('Error loading search index:', error);
-            hideSkeletons();
-            showError(getLang('Error loading search. Please refresh.', 'Fehler beim Laden der Suche. Bitte aktualisiere die Seite.'));
-            return;
-        }
-    }
-
-    // Perform initial search if query exists
-    if (initialQuery) {
-        performSearch(initialQuery);
-    }
-
     // Search Navigation Logic
     searchInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
@@ -879,143 +823,66 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Initialize lazy loading
     setupLazyLoading();
+
+    // Perform initial search if query exists
+    if (initialQuery) {
+        performSearch(initialQuery);
+    }
 });
 
-function handleWorkerResponse(e) {
-    const { type, results, searchId } = e.data;
-
-    if (searchId !== searchState.lastSearchId) return;
-
-    if (type === 'search') {
-        searchState.currentResults = results;
-        hideSkeletons();
-        displaySearchResults(results);
-    }
-}
-
-function performSearch(query, maxResults = 100) {
-    if (!searchState.index) return;
-
-    const { operators, freeText } = parseSearchQuery(query);
+async function performSearch(query, maxResults = 100) {
+    if (!query) return;
 
     searchState.currentQuery = query;
-    searchState.currentFreeText = freeText;
-    searchState.currentOperators = operators;
     searchState.lastSearchId++;
+    const thisSearchId = searchState.lastSearchId;
 
     showSkeletons(8, 'searchResultsContainer', 'search');
 
-    if (freeText) {
-        if (searchState.worker) {
-            searchState.worker.postMessage({
-                type: 'search',
-                query: freeText.toLowerCase(),
-                searchId: searchState.lastSearchId,
-                maxResults
-            });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    try {
+        const url = `/search?q=${encodeURIComponent(query)}&maxResults=${maxResults}`;
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) throw new Error(`Search failed: HTTP ${response.status}`);
+        const data = await response.json();
+
+        // Ignore stale responses
+        if (thisSearchId !== searchState.lastSearchId) return;
+
+        hideSkeletons();
+        displaySearchResults(data);
+    } catch (e) {
+        if (thisSearchId !== searchState.lastSearchId) return;
+        hideSkeletons();
+        if (e.name === 'AbortError') {
+            showError(getLang('Search took too long. Try again.', 'Suche dauerte zu lange. Bitte erneut versuchen.'));
         } else {
-            const results = localSearch(freeText.toLowerCase(), maxResults);
-            searchState.currentResults = results;
-            hideSkeletons();
-            displaySearchResults(results);
+            showError(getLang('Search error: ', 'Suchfehler: ') + e.message);
         }
-    } else if (hasAnyOperator(operators)) {
-        // Operator-only search: browse all videos from the index, pre-filter
-        // so we slice AFTER filtering (avoids missing matches beyond maxResults)
-        const allVideos = (searchState.index && searchState.index.videos) || [];
-        const filtered = allVideos.filter(v => matchesOperators(v, operators));
-        const results = filtered.slice(0, maxResults).map(v => ({ ...v, score: 0 }));
-        searchState.currentResults = results;
-        hideSkeletons();
-        displaySearchResults(results);
-    } else {
-        hideSkeletons();
-        document.getElementById('searchResultsContainer').innerHTML =
-            `<div style="color: white; padding: 20px;">${getLang(
-                'Enter a search term above',
-                'Gib oben einen Suchbegriff ein'
-            )}</div>`;
+    } finally {
+        clearTimeout(timeoutId);
     }
 }
 
-function localSearch(query, maxResults = 100) {
-    if (!searchState.index || !query) return [];
-    
-    const queryLower = query.toLowerCase();
-    const queryTerms = queryLower.split(/\s+/).filter(term => term.length > 0);
-    const scoredResults = [];
-    
-    for (const video of searchState.index.videos) {
-        const lowerTitle = video.displayName.toLowerCase();
-        const lowerChannel = video.path.split('/')[0].toLowerCase();
-        
-        let titleMatchCount = 0;
-        let channelMatchCount = 0;
-        let baseScore = 0;
-
-        if (lowerTitle === queryLower) baseScore += 100;
-        if (lowerChannel === queryLower) baseScore += 80;
-
-        queryTerms.forEach(term => {
-            const termRegex = new RegExp(`\\b(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'i');
-            
-            if (termRegex.test(lowerTitle)) {
-                titleMatchCount++;
-                baseScore += 10;
-            }
-            if (termRegex.test(lowerChannel)) {
-                channelMatchCount++;
-                baseScore += 5;
-            }
-            if (video.description && termRegex.test(video.description.toLowerCase())) {
-                baseScore += 2;
-            }
-        });
-
-        if (titleMatchCount >= 4) baseScore *= 15;
-        else if (titleMatchCount === 3) baseScore *= 8;
-        else if (titleMatchCount === 2) baseScore *= 3;
-        
-        if (channelMatchCount >= 2) baseScore *= 2;
-
-        if (baseScore > 0) {
-            scoredResults.push({ ...video, score: baseScore });
-        }
-    }
-    
-    scoredResults.sort((a, b) => b.score - a.score);
-    return scoredResults.slice(0, maxResults);
-}
-
-async function displaySearchResults(results) {
-    await MetadataCache.ready();
+async function displaySearchResults(data) {
+    const results = data.videos || [];
     const resultsContainer = document.getElementById('searchResultsContainer');
 
     hideSkeletons();
     resultsContainer.innerHTML = '';
 
-    // Apply query operators (sync; uses metadata cache + result.description)
-    if (hasAnyOperator(searchState.currentOperators)) {
-        results = results.filter(v => matchesOperators(v, searchState.currentOperators));
-    }
-
-    if (!results || results.length === 0) {
-        resultsContainer.innerHTML = `
-            <div style="color: white; padding: 20px;">
-                ${getLang('No results found for', 'Keine Ergebnisse für')} "${searchState.currentQuery}"
-            </div>
-        `;
+    if (results.length === 0) {
+        const msg = data.freeText
+            ? `${getLang('No results found for', 'Keine Ergebnisse für')} "${data.query}"`
+            : `${getLang('No results matched your filters', 'Keine Ergebnisse passen zu deinen Filtern')}`;
+        resultsContainer.innerHTML = `<div style="color: white; padding: 20px;">${msg}</div>`;
         return;
     }
-    
-    // Group by channel for channel results
-    const channelCounts = {};
-    results.forEach(video => {
-        const channel = video.path.split('/')[0];
-        channelCounts[channel] = (channelCounts[channel] || 0) + 1;
-    });
-    
-    // Show channels with multiple matches first
+
+    // Channel cards — server already computed counts from the full match set
+    const channelCounts = data.channelCounts || {};
     for (const [channel, count] of Object.entries(channelCounts)) {
         if (count >= 5) {
             const channelElement = document.createElement('div');
@@ -1049,13 +916,13 @@ async function displaySearchResults(results) {
         createVideoElement(video, resultsContainer);
     });
     
-    // Add "Load more" if there might be more results
-    if (results.length >= 100) {
+    // Add "Load more" if the server reports more results available
+    if (data.hasMore) {
         const loadMore = document.createElement('div');
         loadMore.className = 'load-more';
         loadMore.textContent = getLang('Load more results...', 'Weitere Ergebnisse laden...');
         loadMore.addEventListener('click', () => {
-            performSearch(searchState.currentQuery, 500);
+            performSearch(data.query, 500);
         });
         resultsContainer.appendChild(loadMore);
     }
@@ -1097,16 +964,15 @@ function createVideoElement(video, container) {
     
     container.appendChild(videoElement);
 
-    // ---- METADATA: served from metadata_cache.json ----
+    // ---- METADATA: served directly in the /search response ----
     const metadataDiv = videoElement.querySelector('.video-metadata');
-    const cached = MetadataCache.getVideo(videoPath) || {};
-    const viewCount  = cached.viewCount || '0';
-    const fileDate   = cached.fileDate  || 'Unknown date';
-    const videoLength = cached.videoLength || '';
+    const viewCount   = video.viewCount   || '0';
+    const fileDate    = video.fileDate    || 'Unknown date';
+    const videoLength = video.videoLength || '';
 
     let formattedViewCount = viewCount;
     if (!isNaN(viewCount) && viewCount !== '0') {
-        formattedViewCount = parseInt(viewCount).toLocaleString();
+        formattedViewCount = parseInt(String(viewCount).replace(/,/g, '')).toLocaleString();
     }
 
     const lang = localStorage.getItem('language');
@@ -1114,7 +980,7 @@ function createVideoElement(video, container) {
         formattedViewCount = formattedViewCount.replace(/,/g, '.');
     }
 
-    const cleanFileDate = fileDate.replace(/\s+/g, ' ').trim();
+    const cleanFileDate = String(fileDate).replace(/\s+/g, ' ').trim();
     const dateToShow = isRelativeDatesEnabled()
         ? getRelativeTime(cleanFileDate, lang)
         : cleanFileDate;
@@ -1459,14 +1325,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Apply metadata-based filters asynchronously.
- * Reads from MetadataCache first, falls back to fetch for anything missing.
+ * Apply the client-side filters (length, resolution, subtitles, filetype).
+ * Fully synchronous — uses the enriched fields from the /search response
+ * (video.videoLength, video.resolution, video.subtitles) so nothing extra
+ * needs to be fetched.
  */
 async function applyMetadataFilters(results) {
     const container = document.getElementById('searchResultsContainer');
     if (!container) return;
-
-    await MetadataCache.ready();
 
     const items = container.querySelectorAll('.search-result-item');
     const channelItems = container.querySelectorAll('.channel-result');
@@ -1495,58 +1361,43 @@ async function applyMetadataFilters(results) {
         }
     }
 
-    // Subtitle filter (uses cache; fallback to old behaviour for anything missing)
+    // Subtitle filter (fields already present in the response)
     if (hasSubtitleFilter) {
         items.forEach((item, index) => {
             if (item.style.display === 'none' || !results[index]) return;
-            const cached = MetadataCache.getVideo(results[index].path);
-            if (cached) {
-                const hasSubs = Array.isArray(cached.subtitles) && cached.subtitles.length > 0;
-                if (!hasSubs) {
-                    item.style.display = 'none';
-                    item.dataset.filteredOut = 'true';
-                }
+            const hasSubs = Array.isArray(results[index].subtitles) && results[index].subtitles.length > 0;
+            if (!hasSubs) {
+                item.style.display = 'none';
+                item.dataset.filteredOut = 'true';
             }
         });
     }
     
     if (!hasLengthFilter && !hasResolutionFilter) return;
 
-    const filterPromises = Array.from(items).map(async (item, index) => {
-        if (item.style.display === 'none' || !results[index]) return { index, keep: true };
+    items.forEach((item, index) => {
+        if (item.style.display === 'none' || !results[index]) return;
         const video = results[index];
-        const videoPath = video.path;
-        const basePath = stripExtension(videoPath);
         let shouldKeep = true;
-        const cached = MetadataCache.getVideo(videoPath);
-        
-        try {
-            // Length check (from cache if possible)
-            if (hasLengthFilter) {
-                let lengthText = (cached && cached.videoLength) ? cached.videoLength : '';
-                if (!lengthText) {
-                    const lengthResponse = await fetch(`/videolengths/${encodeURIComponent(basePath)}.txt`);
-                    lengthText = lengthResponse.ok ? await lengthResponse.text() : '';
-                }
-                const seconds = parseDurationToSeconds(lengthText);
-                if (searchFilters.length === 'short' && seconds >= 180) shouldKeep = false;
-                if (searchFilters.length === 'medium' && (seconds < 180 || seconds > 1200)) shouldKeep = false;
-                if (searchFilters.length === 'long' && seconds <= 1200) shouldKeep = false;
-            }
-            
-            // Resolution check (from cache if possible)
-            if (shouldKeep && hasResolutionFilter) {
-                let resolution = (cached && cached.resolution) ? cached.resolution.trim().toLowerCase() : '';
+
+        // Length check
+        if (hasLengthFilter) {
+            const seconds = parseDurationToSeconds(video.videoLength || '');
+            if (searchFilters.length === 'short' && seconds >= 180) shouldKeep = false;
+            if (searchFilters.length === 'medium' && (seconds < 180 || seconds > 1200)) shouldKeep = false;
+            if (searchFilters.length === 'long' && seconds <= 1200) shouldKeep = false;
+        }
+
+        // Resolution check
+        if (shouldKeep && hasResolutionFilter) {
+            const resolution = (video.resolution || '').trim().toLowerCase();
+            const selectedResolutions = searchFilters.properties.filter(p => ['4k', '2k', '1080p', '720p'].includes(p));
+            if (selectedResolutions.length > 0) {
                 if (!resolution) {
-                    const resResponse = await fetch(`/videoresolutions/${encodeURIComponent(basePath)}.txt`);
-                    const resolutionText = resResponse.ok ? (await resResponse.text()).trim() : '';
-                    resolution = resolutionText.split('\n')[0].trim().toLowerCase();
-                }
-                
-                const selectedResolutions = searchFilters.properties.filter(p => ['4k', '2k', '1080p', '720p'].includes(p));
-                if (selectedResolutions.length > 0 && resolution) {
+                    shouldKeep = false;
+                } else {
                     const match = selectedResolutions.some(selRes => {
-                        switch(selRes) {
+                        switch (selRes) {
                             case '4k': return ['4k', '2160p', '3840x2160'].includes(resolution);
                             case '2k': return ['2k', '1440p', '2560x1440', 'qhd'].includes(resolution);
                             case '1080p': return ['1080p', 'hd', '1920x1080', 'fullhd', 'fhd'].includes(resolution);
@@ -1555,27 +1406,15 @@ async function applyMetadataFilters(results) {
                         }
                     });
                     if (!match) shouldKeep = false;
-                } else if (selectedResolutions.length > 0 && !resolution) {
-                    shouldKeep = false;
                 }
             }
-        } catch (e) {
-            console.warn(`Error filtering ${videoPath}:`, e);
         }
-        
+
         if (!shouldKeep) {
             item.style.display = 'none';
             item.dataset.filteredOut = 'true';
         }
-        return { index, keep: shouldKeep };
     });
-    
-    await Promise.all(filterPromises);
-    
-    const visibleItems = container.querySelectorAll('.search-result-item:not([style*="display: none"])');
-    if (visibleItems.length === 0 && items.length > 0) {
-        console.log('All results filtered out by current filter settings');
-    }
 }
 
 function parseDurationToSeconds(durationStr) {
@@ -1590,185 +1429,12 @@ function parseDurationToSeconds(durationStr) {
     
     return seconds;
 }
-
-// ======================================================================
-// QUERY OPERATORS
-// before:, after:, channel:, length:, views:, tag:
-// ======================================================================
-
-/**
- * Parses a raw query string into free text + operator filters.
- * Supports:
- *   before:YYYY-MM-DD
- *   after:YYYY-MM-DD
- *   channel:"Multi Word Channel"
- *   length:>1800  (supports >, >=, <, <=, =)
- *   views:>1000
- *   description:"some text"
- *   tag:"Gaming"  (multi-word tags supported via quotes)
- */
-function parseSearchQuery(rawQuery) {
-    const operators = {
-        before: null, after: null, channel: null,
-        length: null, views: null, tag: null
-    };
-
-    if (!rawQuery) return { operators, freeText: '' };
-
-    let remaining = rawQuery;
-
-    // Pass 1: numeric operators (length, views) — require a numeric value
-    const numRegex = /\b(length|views):\s*(?:"([^"]*)"|((?:>=|<=|>|<|=)\s*-?\d+(?:\.\d+)?)|(\S+))/gi;
-    remaining = remaining.replace(numRegex, (fullMatch, opName, quoted, cmpExpr, unquoted) => {
-        const op = opName.toLowerCase();
-        const tryParse = (str) => {
-            const m = String(str).match(/^(>=|<=|>|<|=)?\s*(-?\d+(?:\.\d+)?)$/);
-            return m ? { op: m[1] || '=', value: parseFloat(m[2]) } : null;
-        };
-
-        if (quoted !== undefined) {
-            const parsed = tryParse(quoted);
-            if (parsed) { operators[op] = parsed; return ' '; }
-            return fullMatch;
-        }
-        if (cmpExpr !== undefined) {
-            const parsed = tryParse(cmpExpr);
-            if (parsed) { operators[op] = parsed; return ' '; }
-            return fullMatch;
-        }
-        if (unquoted !== undefined) {
-            const parsed = tryParse(unquoted);
-            if (parsed) { operators[op] = parsed; return ' '; }
-        }
-        return fullMatch;
-    });
-
-    // Pass 2: string operators
-    const strRegex = /\b(before|after|channel|tag):\s*(?:"([^"]*)"|(\S+))/gi;
-    remaining = remaining.replace(strRegex, (fullMatch, opName, quoted, unquoted) => {
-        operators[opName.toLowerCase()] = quoted !== undefined ? quoted : unquoted;
-        return ' ';
-    });
-
-    return { operators, freeText: remaining.replace(/\s+/g, ' ').trim() };
-}
-
-function hasAnyOperator(operators) {
-    if (!operators) return false;
-    return Object.values(operators).some(v => v !== null && v !== undefined && v !== '');
-}
-
-function compareValue(actual, op, expected) {
-    switch (op) {
-        case '>':  return actual > expected;
-        case '>=': return actual >= expected;
-        case '<':  return actual < expected;
-        case '<=': return actual <= expected;
-        case '=':  return actual === expected;
-        default:   return true;
-    }
-}
-
-function parseFileDate(dateStr) {
-    // metadata cache fileDate format: DD.MM.YYYY
-    if (!dateStr) return null;
-    const parts = String(dateStr).trim().split('.');
-    if (parts.length !== 3) return null;
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const year = parseInt(parts[2], 10);
-    if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
-    return new Date(year, month, day);
-}
-
-function parseOperatorDate(dateStr) {
-    if (!dateStr) return null;
-    // Try ISO YYYY-MM-DD as local time to match fileDate parsing
-    const m = String(dateStr).match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-    if (m) {
-        return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
-    }
-    const d = new Date(dateStr);
-    return isNaN(d.getTime()) ? null : d;
-}
-
-function getVideoTags(video) {
-    const cached = MetadataCache.getVideo(video.path);
-    return (cached && cached.tags) || null;
-}
-
-function hasMatchingTag(tags, query) {
-    if (!tags) return false;
-    const q = String(query).toLowerCase();
-    if (Array.isArray(tags)) {
-        return tags.some(t => String(t).toLowerCase() === q);
-    }
-    if (typeof tags === 'string') {
-        // Comma-separated list, or single value
-        const list = tags.split(',').map(t => t.trim().toLowerCase());
-        return list.includes(q);
-    }
-    return false;
-}
-
-/**
- * Check whether a search result matches all provided operators.
- */
-function matchesOperators(video, operators) {
-    if (!video || !operators) return true;
-    const cached = MetadataCache.getVideo(video.path) || {};
-
-    // Channel
-    if (operators.channel) {
-        const channel = (video.path || '').split('/')[0];
-        if (channel.toLowerCase() !== operators.channel.toLowerCase()) return false;
-    }
-
-    // Before / After (fileDate is DD.MM.YYYY)
-    if (operators.before || operators.after) {
-        const fileDate = parseFileDate(cached.fileDate);
-        if (!fileDate) return false;
-
-        if (operators.before) {
-            const beforeDate = parseOperatorDate(operators.before);
-            if (beforeDate && fileDate >= beforeDate) return false;
-        }
-        if (operators.after) {
-            const afterDate = parseOperatorDate(operators.after);
-            if (afterDate && fileDate <= afterDate) return false;
-        }
-    }
-
-    // Length (seconds)
-    if (operators.length) {
-        const lengthStr = cached.videoLength || '';
-        if (!lengthStr) return false;
-        const seconds = parseDurationToSeconds(lengthStr);
-        if (!compareValue(seconds, operators.length.op, operators.length.value)) return false;
-    }
-
-    // Views
-    if (operators.views) {
-        const views = parseInt(cached.viewCount || '', 10);
-        if (isNaN(views)) return false;
-        if (!compareValue(views, operators.views.op, operators.views.value)) return false;
-    }
-
-    // Tag (case-insensitive, exact match against a tag element)
-    if (operators.tag) {
-        const tags = getVideoTags(video);
-        if (!hasMatchingTag(tags, operators.tag)) return false;
-    }
-
-    return true;
-}
     </script>
     <script src="search-suggestions.js"></script>
     <script src="profile-pic.js"></script>
     <script src="sidebar.js"></script>
     <script src="thumbnail-context-menu.js"></script>
     <script src="skeleton-loader.js"></script>
-    <script src="metadata-cache.js"></script>
     <script src="thumbnail-preview.js"></script>
 </body>
 </html>

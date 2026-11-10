@@ -12,6 +12,7 @@ const sharp = require('sharp');
 const cliProgress = require('cli-progress');
 const upload = multer({ dest: path.join(__dirname, 'temp-uploads') });
 const { spawn } = require('child_process');
+const compression = require('compression');
 
 // ---- VIDEO UPLOAD MULTER INSTANCE ----
 // Separate from `upload` (used for profile pics / topic images) because we
@@ -677,6 +678,7 @@ app.get('/channel.html', (req, res) => {
     res.send(htmlContent);
 });
 
+app.use(compression());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cookieParser());
 app.use(express.json());
@@ -3345,6 +3347,246 @@ app.get('/search-index', (req, res) => {
         displayName: v.displayName || path.basename(v.path)
     }));
     res.json({ videos: minimalData });
+});
+
+// ======================================================================
+// SERVER-SIDE SEARCH
+// ======================================================================
+
+function parseSearchQueryServer(rawQuery) {
+    const operators = {
+        before: null, after: null, channel: null,
+        length: null, views: null, tag: null
+    };
+    if (!rawQuery) return { operators, freeText: '' };
+
+    let remaining = rawQuery;
+
+    // Numeric operators: length:, views:  (supports >=, <=, >, <, =)
+    const numRegex = /\b(length|views):\s*(?:"([^"]*)"|((?:>=|<=|>|<|=)\s*-?\d+(?:\.\d+)?)|(\S+))/gi;
+    remaining = remaining.replace(numRegex, (fullMatch, opName, quoted, cmpExpr, unquoted) => {
+        const op = opName.toLowerCase();
+        const tryParse = (str) => {
+            const m = String(str).match(/^(>=|<=|>|<|=)?\s*(-?\d+(?:\.\d+)?)$/);
+            return m ? { op: m[1] || '=', value: parseFloat(m[2]) } : null;
+        };
+        if (quoted !== undefined) { const p = tryParse(quoted); if (p) { operators[op] = p; return ' '; } return fullMatch; }
+        if (cmpExpr !== undefined) { const p = tryParse(cmpExpr); if (p) { operators[op] = p; return ' '; } return fullMatch; }
+        if (unquoted !== undefined) { const p = tryParse(unquoted); if (p) { operators[op] = p; return ' '; } }
+        return fullMatch;
+    });
+
+    // String operators: before:, after:, channel:, tag:
+    const strRegex = /\b(before|after|channel|tag):\s*(?:"([^"]*)"|(\S+))/gi;
+    remaining = remaining.replace(strRegex, (fullMatch, opName, quoted, unquoted) => {
+        operators[opName.toLowerCase()] = quoted !== undefined ? quoted : unquoted;
+        return ' ';
+    });
+
+    return { operators, freeText: remaining.replace(/\s+/g, ' ').trim() };
+}
+
+function hasAnyOperatorServer(operators) {
+    if (!operators) return false;
+    return Object.values(operators).some(v => v !== null && v !== undefined && v !== '');
+}
+
+function compareValueServer(actual, op, expected) {
+    switch (op) {
+        case '>':  return actual > expected;
+        case '>=': return actual >= expected;
+        case '<':  return actual < expected;
+        case '<=': return actual <= expected;
+        case '=':  return actual === expected;
+        default:   return true;
+    }
+}
+
+function parseFileDateServer(dateStr) {
+    if (!dateStr) return null;
+    const parts = String(dateStr).trim().split('.');
+    if (parts.length !== 3) return null;
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const year = parseInt(parts[2], 10);
+    if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+    return new Date(year, month, day);
+}
+
+function parseOperatorDateServer(dateStr) {
+    if (!dateStr) return null;
+    const m = String(dateStr).match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+}
+
+function videoMatchesOperators(video, operators) {
+    if (!video || !operators) return true;
+    const cached = (metadataCache.videos && metadataCache.videos[video.path]) || {};
+
+    if (operators.channel) {
+        const channel = (video.path || '').split('/')[0];
+        if (channel.toLowerCase() !== operators.channel.toLowerCase()) return false;
+    }
+
+    if (operators.before || operators.after) {
+        const fileDate = parseFileDateServer(cached.fileDate || video.fileDate);
+        if (!fileDate) return false;
+        if (operators.before) {
+            const b = parseOperatorDateServer(operators.before);
+            if (b && fileDate >= b) return false;
+        }
+        if (operators.after) {
+            const a = parseOperatorDateServer(operators.after);
+            if (a && fileDate <= a) return false;
+        }
+    }
+
+    if (operators.length) {
+        const lengthStr = cached.videoLength || '';
+        if (!lengthStr) return false;
+        const seconds = parseDurationToSecondsServer(lengthStr);
+        if (!compareValueServer(seconds, operators.length.op, operators.length.value)) return false;
+    }
+
+    if (operators.views) {
+        const views = parseInt(String(cached.viewCount || '').replace(/,/g, ''), 10);
+        if (isNaN(views)) return false;
+        if (!compareValueServer(views, operators.views.op, operators.views.value)) return false;
+    }
+
+    if (operators.tag) {
+        const tags = video.tags || (cached && cached.tags) || [];
+        if (!Array.isArray(tags) || tags.length === 0) return false;
+        const q = String(operators.tag).toLowerCase();
+        if (!tags.some(t => String(t).toLowerCase() === q)) return false;
+    }
+
+    return true;
+}
+
+/**
+ * Score a pool of videos by free text. Returns ALL scored matches, sorted.
+ * Caller slices to maxResults — this lets us report an accurate `total`.
+ */
+function scoreVideosServer(pool, freeText) {
+    if (!freeText) return pool.map(v => ({ video: v, score: 0, isPriority: false }));
+
+    const queryLower = freeText.toLowerCase();
+    const queryTerms = queryLower.split(/\s+/).filter(t => t.length > 0)
+        .map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const termRegexes = queryTerms.map(term => new RegExp(`\\b(${term})\\b`, 'i'));
+
+    // Build channel set + priority channels once per request
+    const channelSet = new Set();
+    for (const v of pool) channelSet.add((v.path.split('/')[0] || '').toLowerCase());
+    const potentialChannels = new Set();
+    for (const re of termRegexes) {
+        channelSet.forEach(ch => { if (re.test(ch)) potentialChannels.add(ch); });
+    }
+
+    const scored = [];
+    for (const video of pool) {
+        const lowerTitle = (video.displayName || '').toLowerCase();
+        const lowerChannel = (video.path.split('/')[0] || '').toLowerCase();
+
+        let titleMatchCount = 0, channelMatchCount = 0, baseScore = 0;
+
+        if (lowerTitle === queryLower) baseScore += 100;
+        if (lowerChannel === queryLower) baseScore += 80;
+
+        for (const re of termRegexes) {
+            if (re.test(lowerTitle))   { titleMatchCount++;   baseScore += 10; }
+            if (re.test(lowerChannel)) { channelMatchCount++; baseScore += 5;  }
+        }
+
+        if (titleMatchCount >= 4)      baseScore *= 15;
+        else if (titleMatchCount === 3) baseScore *= 8;
+        else if (titleMatchCount === 2) baseScore *= 3;
+        if (channelMatchCount >= 2)     baseScore *= 2;
+
+        const isPriority = potentialChannels.has(lowerChannel);
+        if (isPriority && titleMatchCount > 0) baseScore += 15;
+
+        if (baseScore > 0) scored.push({ video, score: baseScore, isPriority });
+    }
+
+    scored.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        if (a.isPriority !== b.isPriority) return a.isPriority ? 1 : -1;
+        return 0;
+    });
+    return scored;
+}
+
+/**
+ * Enrich a list of videoArray entries with the fields the client needs
+ * to render a search result — including resolution + subtitles so the
+ * client doesn't need metadata_cache.json at all.
+ */
+function enrichForSearch(videos) {
+    return videos.map(video => {
+        const base = getVideoDetails([video])[0];
+        const cached = (metadataCache.videos && metadataCache.videos[video.path]) || {};
+        if (cached.resolution) base.resolution = cached.resolution;
+        if (Array.isArray(cached.subtitles)) base.subtitles = cached.subtitles;
+        return base;
+    });
+}
+
+app.get('/search', (req, res) => {
+    const rawQuery = (req.query.q || '').trim();
+    const maxResults = Math.min(500, Math.max(1, parseInt(req.query.maxResults, 10) || 100));
+
+    if (!rawQuery) {
+        return res.json({
+            videos: [], query: '', freeText: '', operators: {},
+            total: 0, hasMore: false, channelCounts: {}
+        });
+    }
+
+    const { operators, freeText } = parseSearchQueryServer(rawQuery);
+    const hasOperators = hasAnyOperatorServer(operators);
+
+    // 1. Operator filter first — this both improves correctness and
+    //    reduces the pool the scorer has to touch.
+    let pool = videoArray;
+    if (hasOperators) {
+        pool = pool.filter(v => videoMatchesOperators(v, operators));
+    }
+
+    // 2. Free-text scoring (or plain slice if operator-only)
+    const scored = freeText ? scoreVideosServer(pool, freeText) : null;
+
+    if (!freeText && !hasOperators) {
+        return res.json({
+            videos: [], query: rawQuery, freeText, operators,
+            total: 0, hasMore: false, channelCounts: {}
+        });
+    }
+
+    const matchedVideos = freeText ? scored.map(s => s.video) : pool;
+    const total = matchedVideos.length;
+    const page = matchedVideos.slice(0, maxResults);
+
+    // 3. Channel counts for the "channel card" header
+    const channelCounts = {};
+    for (const v of page) {
+        const ch = v.path.split('/')[0];
+        channelCounts[ch] = (channelCounts[ch] || 0) + 1;
+    }
+
+    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    res.json({
+        videos: enrichForSearch(page),
+        query: rawQuery,
+        freeText,
+        operators,
+        total,
+        hasMore: total > maxResults,
+        channelCounts
+    });
 });
 
 app.get('/api/shortlink', (req, res) => {
