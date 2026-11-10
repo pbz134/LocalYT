@@ -252,7 +252,13 @@
                         </ul>
                     <li>Much faster search behavior
                         <ul>
-                            <li>The search index never leaves the server, resulting in a huge speedup of search.html operations </li>
+                            <li>The search index never leaves the server, resulting in a huge speedup of search.html operations</li>
+                        </ul>
+                    <li>Live video transcoding
+                        <ul>
+                            <li>Activate live video transcoding in admin_config.json to allow users to stream videos in lower resolutions</li>
+                            <li>Videos will be reencoded on-the-fly, 4-core CPU or better is recommended</li>
+                            <li>Users can set a preferred transcoding resolution in settings.html</li>
                         </ul>
                     <li>Improved createVideostats.py with much more accurate and viewcount-aware Like/Dislike generation</li>
                     <li>Added a logo to the bottom-right corner of LYT Player; Toggle it in the Playback settings</li>

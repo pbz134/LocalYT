@@ -927,6 +927,18 @@
                     </div>
                 </div>
 
+                <div class="setting-card" id="preferredQualityCard" style="display:none;">
+                    <div class="card-info">
+                        <div class="card-label" id="preferredQualityLabel">Preferred video resolution</div>
+                        <div class="card-desc" id="preferredQualityDesc">Preferred video resolution for live transcoding</div>
+                    </div>
+                    <div class="card-control">
+                        <select class="setting-select" id="preferredQuality">
+                            <option value="0">Original</option>
+                        </select>
+                    </div>
+                </div>
+
             </div>
 
             <div class="save-bar">
@@ -1157,6 +1169,8 @@
             document.getElementById('showRecommendationPopupsDesc').textContent = getLang('Popups with recommended videos during playback', 'Popups mit empfohlenen Videos während der Wiedergabe');
             document.getElementById('showSeekBarPreviewsLabel').textContent = getLang('Show seek bar previews', 'Fortschrittsbalken-Vorschauen anzeigen');
             document.getElementById('showSeekBarPreviewsDesc').textContent = getLang('Previews when hovering over the progress bar', 'Vorschaubilder beim Hovern über den Fortschrittsbalken');
+            document.getElementById('preferredQualityLabel').textContent = getLang('Preferred video resolution', 'Bevorzugte Videoauflösung');
+            document.getElementById('preferredQualityDesc').textContent = getLang('Preferred video resolution for live transcoding', 'Bevorzugte Videoauflösung für Live-Transcodierung');
             document.getElementById('savePlaybackBtn').textContent = getLang('Save Playback Settings', 'Wiedergabe-Einstellungen speichern');
 
             // Content labels
@@ -1342,6 +1356,12 @@
             };
             localStorage.setItem('autoplaySettings', JSON.stringify(autoplaySettings));
 
+            const preferredQualityEl = document.getElementById('preferredQuality');
+            const preferredQuality = preferredQualityEl
+                ? (parseInt(preferredQualityEl.value, 10) || 0)
+                : 0;
+            localStorage.setItem('preferredQuality', JSON.stringify({ height: preferredQuality }));
+
             const userPart = {
                 playlistPageLayout: document.getElementById('playlistPageLayout').value,
                 invertPlaylistOrder: document.getElementById('invertPlaylistOrder').checked,
@@ -1350,7 +1370,8 @@
                 showEndScreenGrid: document.getElementById('showEndScreenGrid').checked,
                 showEndcards: document.getElementById('showEndcards').checked,
                 showRecommendationPopups: document.getElementById('showRecommendationPopups').checked,
-                showSeekBarPreviews: document.getElementById('showSeekBarPreviews').checked
+                showSeekBarPreviews: document.getElementById('showSeekBarPreviews').checked,
+                preferredQuality: preferredQuality
             };
             localStorage.setItem('playlistPageLayout', JSON.stringify({ view: userPart.playlistPageLayout }));
             localStorage.setItem('invertPlaylistOrder', JSON.stringify({ enabled: userPart.invertPlaylistOrder }));
@@ -1525,6 +1546,68 @@
                 if (data.showRecommendationPopups !== undefined) document.getElementById('showRecommendationPopups').checked = data.showRecommendationPopups;
                 if (data.showSeekBarPreviews !== undefined) document.getElementById('showSeekBarPreviews').checked = data.showSeekBarPreviews;
             }).catch(() => {});
+
+            // Load the preferred-quality dropdown (async: needs server's enabled list)
+            loadPreferredQualitySetting();
+        }
+
+        function loadPreferredQualitySetting() {
+            const prefLocal = JSON.parse(localStorage.getItem('preferredQuality') || '{}');
+            const prefLocalHeight = parseInt(prefLocal.height, 10) || 0;
+
+            Promise.all([
+                fetch('/api/transcode/available-qualities')
+                    .then(r => r.ok ? r.json() : { enabled: false, qualities: [] })
+                    .catch(() => ({ enabled: false, qualities: [] })),
+                fetch('/user-settings')
+                    .then(r => r.ok ? r.json() : {})
+                    .catch(() => ({}))
+            ]).then(([transcodeData, userSettings]) => {
+                const select = document.getElementById('preferredQuality');
+                const card = document.getElementById('preferredQualityCard');
+                if (!select || !card) return;
+
+                // Hide the card entirely if the admin disabled transcoding
+                // or no qualities are enabled.
+                if (!transcodeData.enabled || !transcodeData.qualities || transcodeData.qualities.length === 0) {
+                    card.style.display = 'none';
+                    return;
+                }
+                card.style.display = '';
+
+                // Rebuild options
+                select.innerHTML = '';
+                const originalOpt = document.createElement('option');
+                originalOpt.value = '0';
+                originalOpt.textContent = getLang('Original', 'Original');
+                select.appendChild(originalOpt);
+
+                transcodeData.qualities.forEach(q => {
+                    const opt = document.createElement('option');
+                    opt.value = String(q.height);
+                    opt.textContent = q.label;
+                    select.appendChild(opt);
+                });
+
+                // Server overrides localStorage
+                let finalHeight = prefLocalHeight;
+                if (userSettings && userSettings.preferredQuality !== undefined) {
+                    finalHeight = parseInt(userSettings.preferredQuality, 10) || 0;
+                    try {
+                        localStorage.setItem('preferredQuality', JSON.stringify({ height: finalHeight }));
+                    } catch (e) {}
+                }
+
+                // Guard: if the saved height is no longer in the enabled list,
+                // fall back to Original.
+                const exists = Array.from(select.options).some(
+                    o => parseInt(o.value, 10) === finalHeight
+                );
+                select.value = String(exists ? finalHeight : 0);
+            }).catch(() => {
+                const card = document.getElementById('preferredQualityCard');
+                if (card) card.style.display = 'none';
+            });
         }
 
         function loadContentSettings() {
@@ -1748,6 +1831,7 @@
                 showEndcards: document.getElementById('showEndcards').checked,
                 showRecommendationPopups: document.getElementById('showRecommendationPopups').checked,
                 showSeekBarPreviews: document.getElementById('showSeekBarPreviews').checked,
+                preferredQuality: parseInt(document.getElementById('preferredQuality')?.value, 10) || 0,
                 fuzzySubCount: document.getElementById('fuzzySubCount').checked,
                 hidePostImages: document.getElementById('hidePostImages').checked,
                 thumbnailPreviews: document.getElementById('thumbnailPreviews').checked
@@ -1801,6 +1885,10 @@
                     if (config.showEndcards !== undefined) document.getElementById('showEndcards').checked = config.showEndcards;
                     if (config.showRecommendationPopups !== undefined) document.getElementById('showRecommendationPopups').checked = config.showRecommendationPopups;
                     if (config.showSeekBarPreviews !== undefined) document.getElementById('showSeekBarPreviews').checked = config.showSeekBarPreviews;
+                    if (config.preferredQuality !== undefined) {
+                        const sel = document.getElementById('preferredQuality');
+                        if (sel) sel.value = String(config.preferredQuality);
+                    }
                     if (config.fuzzySubCount !== undefined) document.getElementById('fuzzySubCount').checked = config.fuzzySubCount;
                     if (config.hidePostImages !== undefined) document.getElementById('hidePostImages').checked = config.hidePostImages;
                     if (config.thumbnailPreviews !== undefined) document.getElementById('thumbnailPreviews').checked = config.thumbnailPreviews;

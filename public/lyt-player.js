@@ -115,6 +115,14 @@
             this._endScreenData = null;
             this._endScreenShown = false;
             
+            // Preferred quality (live transcoding) — read from localStorage/server
+            this._preferredQuality = 0;
+            this._preferenceApplied = false;
+
+            // Live-transcode seek offset. 0 = fresh stream from start of video
+            // (or cache-backed). >0 = stream that starts mid-video via ?start=N.
+            this._transcodeOffset = 0;
+
             // Loop state
             this.isLooping = false;
 
@@ -242,6 +250,7 @@
             this.bindEvents();
             this.loadTimelinePreview();
             this.loadPlayerUIScale();
+            this.loadPreferredQuality();
             this.loadRoundedCornersSetting();
             this.loadLocalYTLogoSetting();
             this.loadRecommendationPopupsSetting();
@@ -2908,19 +2917,79 @@
         }
 
         buildQualityMenu() {
-            let h = this.video.videoHeight || 0;
-            let label = 'Auto';
-            
-            if (h >= 2160) label = '2160p (4K)';
-            else if (h >= 1440) label = '1440p (2K)';
-            else if (h >= 1080) label = '1080p (HD)';
-            else if (h >= 720) label = '720p (HD)';
-            else if (h >= 480) label = '480p';
-            else if (h > 0) label = h + 'p';
+            // Preserve the original (non-transcode) source for switching back
+            if (!this._originalVideoSrc) {
+                this._originalVideoSrc = this.video.currentSrc || this.video.src;
+            }
 
-            const html = `<button class="lyt_menu_option lyt_active" disabled>${label}</button>`;
-            this.dom.qualityMenu.querySelector('.lyt_menu_content').innerHTML = html;
+            const h = this.video.videoHeight || 0;
+            let originalLabel = 'Auto';
+            if (h >= 2160) originalLabel = '2160p (4K)';
+            else if (h >= 1440) originalLabel = '1440p (2K)';
+            else if (h >= 1080) originalLabel = '1080p (HD)';
+            else if (h >= 720) originalLabel = '720p (HD)';
+            else if (h >= 480) originalLabel = '480p';
+            else if (h > 0) originalLabel = h + 'p';
+
+            const activeHeight = this._activeTranscodeHeight || null;
+            const autoActive = activeHeight === null ? ' lyt_active' : '';
+            const initialHtml =
+                `<button class="lyt_menu_option lyt_quality_option${autoActive}" data-quality="0">${originalLabel} (Original)</button>`;
+
+            this.dom.qualityMenu.querySelector('.lyt_menu_content').innerHTML = initialHtml;
+            this._refreshTranscodeQualities(originalLabel);
             this.updateMainMenuValues();
+        }
+
+        async _refreshTranscodeQualities(originalLabel) {
+            try {
+                const currentPath = this.getCurrentVideoPath();
+                if (!currentPath) return;
+                const r = await fetch(`/api/transcode/qualities?video=${encodeURIComponent(currentPath)}`);
+                if (!r.ok) return;
+                const data = await r.json();
+                if (!data.enabled || !data.qualities || data.qualities.length === 0) return;
+
+                // Server knows the real duration from ffprobe — store it so the
+                // time display survives when we're on a transcoded stream.
+                if (data.durationSec && isFinite(data.durationSec)) {
+                    this._knownDuration = data.durationSec;
+                    // If we're already on an fMP4 stream, refresh the display now
+                    if (!isFinite(this.video.duration)) {
+                        this.updateTime();
+                    }
+                }
+
+                const activeHeight = this._activeTranscodeHeight || null;
+                let html =
+                    `<button class="lyt_menu_option lyt_quality_option${activeHeight === null ? ' lyt_active' : ''}" data-quality="0">${originalLabel} (Original)</button>`;
+
+                for (const q of data.qualities) {
+                    const cls = activeHeight === q.height ? ' lyt_active' : '';
+                    html += `<button class="lyt_menu_option lyt_quality_option${cls}" data-quality="${q.height}">${q.label}</button>`;
+                }
+                this.dom.qualityMenu.querySelector('.lyt_menu_content').innerHTML = html;
+
+                // Auto-apply the user's preferred quality on the first render.
+                // Only fires once per page load, and only if the preference
+                // is present in this video's available qualities.
+                if (!this._preferenceApplied) {
+                    this._preferenceApplied = true;
+                    if (this._preferredQuality > 0) {
+                        const available = data.qualities.find(
+                            q => q.height === this._preferredQuality
+                        );
+                        if (available) {
+                            // Defer so the menu is fully painted before we tear it down
+                            setTimeout(() => {
+                                if (!this._activeTranscodeHeight) {
+                                    this.switchQuality(this._preferredQuality);
+                                }
+                            }, 100);
+                        }
+                    }
+                }
+            } catch (e) { /* silent */ }
         }
 
         // ----- setDescription method - ADD THIS -----
@@ -2970,6 +3039,28 @@
             this.video.addEventListener('loadedmetadata', () => {
                 this.buildSubtitlesMenu();
                 this.buildQualityMenu();
+
+                // Restore state after a quality switch
+                if (this._pendingSeekTime !== undefined) {
+                    try { this.video.currentTime = this._pendingSeekTime; } catch {}
+                    this._pendingSeekTime = undefined;
+                }
+                if (this._pendingVolume !== undefined) { this.video.volume = this._pendingVolume; this._pendingVolume = undefined; }
+                if (this._pendingMuted  !== undefined) { this.video.muted  = this._pendingMuted;  this._pendingMuted  = undefined; }
+                if (this._pendingSpeed  !== undefined) { this.video.playbackRate = this._pendingSpeed; this._pendingSpeed = undefined; }
+                if (this._pendingPlay)  { this.video.play().catch(() => {}); this._pendingPlay = false; }
+                this.showLoader(false);
+
+                // Cache-backed sources report a finite seekable range covering
+                // the whole video. If so, reset offset — native seeking applies.
+                setTimeout(() => {
+                    if (this._isCacheBacked() && this._transcodeOffset > 0) {
+                        // Snap logical time to actual: we're playing the original
+                        // video-time directly again.
+                        this._transcodeOffset = 0;
+                        this.updateTime();
+                    }
+                }, 500);
             });
         
             // Play/Pause button
@@ -3129,6 +3220,53 @@
             this.dom.settingsBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.toggleMenu(this.dom.settingsMenu);
+            });
+
+            // Quality submenu — switch between original and transcoded resolutions
+            this.dom.qualityMenu.addEventListener('click', (e) => {
+                const option = e.target.closest('.lyt_quality_option');
+                if (!option || option.disabled) return;
+                const height = parseInt(option.dataset.quality, 10);
+                if (isNaN(height)) return;
+                this.switchQuality(height);
+                this.closeAllMenus();
+            });
+
+            // Detect seeks beyond the buffered range on a live transcode stream.
+            // Restart ffmpeg at the seek position so the user doesn't wait for
+            // the linear stream to catch up. (Cache-backed seeks work natively.)
+            this.video.addEventListener('seeking', () => {
+                if (this._isCacheBacked()) return;
+                const buf = this.video.buffered;
+                if (buf.length === 0) return;
+                const streamTime = this.video.currentTime;
+                const bufStart = buf.start(0);
+                const bufEnd = buf.end(buf.length - 1);
+                if (streamTime > bufEnd + 0.5) {
+                    const absoluteTarget = this._transcodeOffset + streamTime;
+                    this._restartTranscodeAt(absoluteTarget);
+                }
+                // Backward seek before offset lands here too: streamTime will
+                // be clamped to 0, which is inside [bufStart..bufEnd], so no
+                // restart. Users seeking backward past the offset use the
+                // progress bar (which calls _seekToAbsolute directly).
+            });
+
+            // If a transcode stream errors out (killed, queue full, ffmpeg crash),
+            // fall back to the original source so the player never stays broken.
+            this.video.addEventListener('error', () => {
+                if (this._activeTranscodeHeight !== null) {
+                    console.warn('[LYT] Transcode stream failed — falling back to original');
+                    this._activeTranscodeHeight = null;
+                    this._cachedCodec = null;
+                    const sourceEl = this.video.querySelector('source');
+                    if (sourceEl) sourceEl.src = this._originalVideoSrc;
+                    else this.video.src = this._originalVideoSrc;
+                    this.showLoader(true);
+                    this.video.load();
+                    this.buildQualityMenu();
+                    this.showToast('Transcode unavailable — using original');
+                }
             });
 
             // Ambient light toggle in settings menu
@@ -3445,7 +3583,7 @@
 
         // ----- Endcards handler (called on timeupdate) -----
         handleEndcards() {
-            const duration = this.video.duration;
+            const duration = this._getEffectiveDuration();
             if (!duration || !isFinite(duration) || duration < 20) {
                 this.hideEndcards();
                 return;
@@ -3480,27 +3618,23 @@
          * Extract the current channel name from the video source URL.
          */
         getCurrentChannel() {
-            try {
-                if (!this.video.currentSrc) return null;
-                const url = new URL(this.video.currentSrc, window.location.origin);
-                const path = decodeURIComponent(url.pathname);
-                const videoPath = path.replace(/^\/videos\//, '');
-                if (!videoPath) return null;
-                return videoPath.split('/')[0];
-            } catch (e) {
-                return null;
-            }
+            const p = this.getCurrentVideoPath();
+            if (!p) return null;
+            return p.split('/')[0];
         }
 
         /**
          * Extract the full current video path from the video source URL.
+         * Handles both direct /videos/ playback and /transcode/<h>/ streaming.
          */
         getCurrentVideoPath() {
             try {
                 if (!this.video.currentSrc) return null;
                 const url = new URL(this.video.currentSrc, window.location.origin);
-                const path = decodeURIComponent(url.pathname);
-                return path.replace(/^\/videos\//, '');
+                const p = decodeURIComponent(url.pathname);
+                const m = p.match(/^\/transcode\/\d+\/(.+)$/);
+                if (m) return m[1];
+                return p.replace(/^\/videos\//, '');
             } catch (e) {
                 return null;
             }
@@ -3878,21 +4012,29 @@
             }, 650);
         }
 
+        _getEffectiveDuration() {
+            const d = this.video.duration;
+            if (isFinite(d) && d > 0) return d;
+            if (this._knownDuration && isFinite(this._knownDuration)) return this._knownDuration;
+            return 0;
+        }
+
         updateTime() {
-            const duration = this.video.duration || 0;
-            const current = this.video.currentTime || 0;
-            const percent = duration > 0 ? (current / duration) * 100 : 0;
+            const duration = this._getEffectiveDuration();
+            const streamTime = this.video.currentTime || 0;
+            const absoluteTime = this._transcodeOffset + streamTime;
+            const percent = duration > 0 ? (absoluteTime / duration) * 100 : 0;
 
             this.dom.progressPlayed.style.width = `${percent}%`;
-            this.dom.timeDisplay.textContent = `${formatTime(current)} / ${formatTime(duration)}`;
+            this.dom.timeDisplay.textContent = `${formatTime(absoluteTime)} / ${formatTime(duration)}`;
         }
 
         updateBuffer() {
-            if (this.video.buffered.length > 0) {
-                const bufferedEnd = this.video.buffered.end(this.video.buffered.length - 1);
-                const duration = this.video.duration || 1;
-                this.dom.bufferBar.style.width = `${(bufferedEnd / duration) * 100}%`;
-            }
+            if (this.video.buffered.length === 0) return;
+            const streamEnd = this.video.buffered.end(this.video.buffered.length - 1);
+            const absoluteEnd = this._transcodeOffset + streamEnd;
+            const duration = this._getEffectiveDuration() || 1;
+            this.dom.bufferBar.style.width = `${Math.min(100, (absoluteEnd / duration) * 100)}%`;
         }
 
         showLoader(show) {
@@ -3951,7 +4093,7 @@
             }, 400);
         }
 
-        // ----- NEW: Show volume icon in centre -----
+        // ----- Show volume icon in centre -----
         showVolumeAnimation(vol) {
             const icon = this._getVolumeIcon(vol);
             this.showCenterIcon(icon);
@@ -3965,7 +4107,134 @@
             });
             this.updateMainMenuValues();
         }
-        
+
+        // ----- Live transcoding: switch between original and lower resolutions -----
+        async switchQuality(targetHeight) {
+            console.log('[LYT] switchQuality ->', targetHeight);
+
+            const currentPath = this.getCurrentVideoPath();
+            console.log('[LYT] currentPath =', currentPath);
+            if (!currentPath) {
+                console.warn('[LYT] switchQuality: currentPath null, aborting');
+                return;
+            }
+            if (!this._originalVideoSrc) {
+                this._originalVideoSrc = this.video.currentSrc || this.video.src;
+            }
+
+            // Capture known duration before we leave the original source —
+            // the transcoded fMP4 stream won't report one.
+            if (isFinite(this.video.duration) && this.video.duration > 0) {
+                this._knownDuration = this.video.duration;
+            }
+
+            const currentTime = this.video.currentTime;
+            const wasPlaying = !this.video.paused;
+
+            this._pendingSeekTime = currentTime;
+            this._pendingPlay     = wasPlaying;
+            this._pendingVolume   = this.video.volume;
+            this._pendingMuted    = this.video.muted;
+            this._pendingSpeed    = this.video.playbackRate;
+            this._cachedCodec     = null;
+
+            let newSrc;
+            if (targetHeight === 0) {
+                newSrc = this._originalVideoSrc;
+                this._activeTranscodeHeight = null;
+                this._transcodeOffset = 0;
+            } else {
+                const encodedPath = currentPath.split('/').map(p => encodeURIComponent(p)).join('/');
+                // Preserve mid-stream position when changing quality after a seek.
+                const keepOffset = Math.floor(this._transcodeOffset);
+                const query = keepOffset > 0 ? `?start=${keepOffset}` : '';
+                newSrc = `/transcode/${targetHeight}/${encodedPath}${query}`;
+                this._activeTranscodeHeight = targetHeight;
+                // this._transcodeOffset stays as-is
+            }
+            console.log('[LYT] switching source to:', newSrc);
+
+            const sourceEl = this.video.querySelector('source');
+            if (sourceEl) sourceEl.src = newSrc;
+            else this.video.src = newSrc;
+
+            this.showLoader(true);
+            this.video.load();
+            this.buildQualityMenu();
+        }
+
+        /**
+         * True if the current source supports native seeking
+         * (original file, or a cache-served transcode with Range support).
+         * False while live-streaming an uncached transcode.
+         */
+        _isCacheBacked() {
+            if (this._activeTranscodeHeight === null) return true;
+            const dur = this._getEffectiveDuration();
+            if (dur <= 0) return false;
+            const seekable = this.video.seekable;
+            if (!seekable || seekable.length === 0) return false;
+            return seekable.end(seekable.length - 1) >= dur - 1;
+        }
+
+        /**
+         * Seek to an absolute position in the video timeline.
+         * Uses native seek when possible; otherwise restarts the transcode
+         * at that position (streaming-only, no cache write).
+         */
+        async _seekToAbsolute(absoluteTime) {
+            const dur = this._getEffectiveDuration();
+            if (dur > 0) absoluteTime = Math.max(0, Math.min(dur, absoluteTime));
+            else absoluteTime = Math.max(0, absoluteTime);
+
+            if (this._isCacheBacked()) {
+                this.video.currentTime = absoluteTime;
+                return;
+            }
+
+            const streamTime = absoluteTime - this._transcodeOffset;
+            const buf = this.video.buffered;
+            if (buf.length > 0) {
+                const bufStart = buf.start(0);
+                const bufEnd = buf.end(buf.length - 1);
+                if (streamTime >= bufStart && streamTime <= bufEnd) {
+                    this.video.currentTime = streamTime;
+                    return;
+                }
+            }
+            await this._restartTranscodeAt(absoluteTime);
+        }
+
+        /**
+         * Kill the current transcode stream and restart ffmpeg at the given
+         * absolute video position. Cache is not written for this stream.
+         */
+        async _restartTranscodeAt(absoluteTime) {
+            if (this._activeTranscodeHeight === null) return;
+            const currentPath = this.getCurrentVideoPath();
+            if (!currentPath) return;
+
+            const wasPlaying = !this.video.paused;
+            this._pendingPlay = wasPlaying;
+            this._pendingVolume = this.video.volume;
+            this._pendingMuted = this.video.muted;
+            this._pendingSpeed = this.video.playbackRate;
+            this._pendingSeekTime = 0;  // start of new stream = absoluteTime
+
+            const target = Math.floor(absoluteTime);
+            this._transcodeOffset = target;
+
+            const encodedPath = currentPath.split('/').map(p => encodeURIComponent(p)).join('/');
+            const newSrc = `/transcode/${this._activeTranscodeHeight}/${encodedPath}?start=${target}`;
+
+            const sourceEl = this.video.querySelector('source');
+            if (sourceEl) sourceEl.src = newSrc;
+            else this.video.src = newSrc;
+
+            this.showLoader(true);
+            this.video.load();
+        }
+
         updateMainMenuValues() {
             if (!this.dom.mainMenuContent) return;
 
@@ -4135,8 +4404,9 @@
             const upHandler = (ev) => {
                 const upX = ev.changedTouches ? ev.changedTouches[0].clientX : ev.clientX;
                 const p = calcPercent(upX);
-                if (this.video.duration) {
-                    this.video.currentTime = p * this.video.duration;
+                const dur = this._getEffectiveDuration();
+                if (dur > 0) {
+                    this._seekToAbsolute(p * dur);
                 }
                 document.removeEventListener('mousemove', moveHandler);
                 document.removeEventListener('mouseup', upHandler);
@@ -4227,6 +4497,10 @@
                     if (e.ctrlKey) {
                         this.jumpToPreviousChapter();
                         this.showChapterSkipOverlay('left');
+                    } else if (!this._isCacheBacked() && this.video.currentTime < 5 && this._transcodeOffset > 0) {
+                        // At start of an offset stream — go back relative to the offset
+                        this._seekToAbsolute(Math.max(0, this._transcodeOffset - 5));
+                        this.showSeekAnimation('left');
                     } else {
                         this.video.currentTime -= 5;
                         this.showSeekAnimation('left');
@@ -4239,7 +4513,7 @@
                         this.jumpToNextChapter();
                         this.showChapterSkipOverlay('right');
                     } else {
-                        this.video.currentTime += 5;
+                        this.video.currentTime += 5;  // seeking handler restarts if beyond buffer
                         this.showSeekAnimation('right');
                     }
                     break;
@@ -4611,6 +4885,9 @@
         }
 
         async getCodecInfo() {
+            if (this._activeTranscodeHeight) {
+                return `H.264 (transcoded ${this._activeTranscodeHeight}p)`;
+            }
             const video = this.video;
             
             // 1. Check if we already have a cached codec
@@ -4880,7 +5157,7 @@
                 this.dom.progressContainer.addEventListener('mousemove', throttle((e) => {
                     const rect = this.dom.progressContainer.getBoundingClientRect();
                     const percent = (e.clientX - rect.left) / rect.width;
-                    const duration = this.video.duration;
+                    const duration = this._getEffectiveDuration();
                     if (!duration || !isFinite(duration)) return;
                     const time = percent * duration;
                     
@@ -4994,6 +5271,32 @@
             }
         }
         
+        /**
+         * Load the user's preferred transcode quality from localStorage and server.
+         * "0" (or missing) means "Original" — no auto-switch.
+         */
+        loadPreferredQuality() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('preferredQuality') || '{}');
+                if (saved.height !== undefined) {
+                    this._preferredQuality = parseInt(saved.height, 10) || 0;
+                }
+            } catch (e) {}
+
+            fetch('/user-settings')
+                .then(res => res.ok ? res.json() : null)
+                .then(settings => {
+                    if (settings && settings.preferredQuality !== undefined) {
+                        this._preferredQuality = parseInt(settings.preferredQuality, 10) || 0;
+                        try {
+                            localStorage.setItem('preferredQuality',
+                                JSON.stringify({ height: this._preferredQuality }));
+                        } catch (e) {}
+                    }
+                })
+                .catch(() => {});
+        }
+
         /**
          * Set the player UI scale.
          * @param {number} scale - The new scale factor (0.5 - 2.0).
@@ -5227,7 +5530,7 @@
             // Remove existing markers
             this.dom.progressContainer.querySelectorAll('.lyt_chapter_marker').forEach(el => el.remove());
 
-            const duration = this.video.duration;
+            const duration = this._getEffectiveDuration();
             if (!duration || !isFinite(duration) || this.chapters.length === 0) return;
 
             for (const chapter of this.chapters) {

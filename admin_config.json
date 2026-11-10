@@ -15,5 +15,18 @@
     "audioBitrate": "128k",
     "container": "mp4",
     "keepOriginalIfSmaller": true
+  },
+  "transcoding": {
+    "enabled": true,
+    "engine": "qsv",
+    "resolutions": { "480": true, "360": true, "240": true, "144": true },
+    "maxConcurrent": 2,
+    "cacheMaxAgeDays": 60,
+    "cacheCleanupIntervalHours": 6,
+    "qsvQuality": 26,
+    "qsvPreset": "veryfast",
+    "x264Crf": 26,
+    "x264Preset": "veryfast",
+    "audioBitrate": "128k"
   }
 }

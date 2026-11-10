@@ -76,7 +76,9 @@ function loadAdminConfig() {
 }
 
 function saveAdminConfig(config) {
+    const existing = adminConfigCache || {};
     adminConfigCache = {
+        ...existing,                       // preserve transcoding, reencodeOnUpload, anything else
         uploadPolicy: config.uploadPolicy,
         allowedUploaders: config.allowedUploaders,
         adminUsers: config.adminUsers
@@ -270,6 +272,12 @@ console.error = function(...args) {
     originalConsoleError.apply(console, args);
 };
 */
+
+// Prevent Node 24 server crash on unhandled rejection
+process.on('unhandledRejection', (err) => {
+    if (err && err.cancelled) return;
+    console.error('[Fatal] Unhandled rejection:', err);
+});
 
 const tempUploadsDir = path.join(__dirname, 'temp-uploads');
 if (!fs.existsSync(tempUploadsDir)) {
@@ -4749,6 +4757,496 @@ app.get('/upload-status/:jobId', (req, res) => {
     });
 });
 
+// ======================================================================
+// LIVE TRANSCODING SYSTEM
+// ======================================================================
+// Streams lower resolutions on-demand via ffmpeg, caching the results so
+// subsequent viewers get instant Range-supported playback.
+//
+// Cache retention (all configurable in admin_config.json under "transcoding"):
+//   cacheMaxAgeDays            - delete cache file if untouched this many days
+//                                (0 = disable cleanup entirely)
+//   cacheCleanupIntervalHours  - how often to sweep (1h tick, honours this value)
+//
+// A cache file's mtime is refreshed every time it is served, so
+// "cacheMaxAgeDays: 60" means "evict after 60 days of no watches" - not
+// "evict 60 days after it was created".
+
+const TRANSCODE_CACHE_DIR = path.join(__dirname, 'transcode-cache');
+if (!fs.existsSync(TRANSCODE_CACHE_DIR)) {
+    fs.mkdirSync(TRANSCODE_CACHE_DIR, { recursive: true });
+}
+app.use('/transcode-cache', express.static(TRANSCODE_CACHE_DIR));
+
+const _transcodeProbeCache = new Map();
+const _transcodeJobs = new Map();
+
+// Kill a transcode if every viewer has left and nobody reconnects within this window.
+// Long enough to survive a page reload; short enough to free the queue slot fast.
+const TRANSCODE_CLIENT_GRACE_MS = 10000;
+
+class TranscodeCancelledError extends Error {
+    constructor(msg) {
+        super(msg || 'Transcode cancelled');
+        this.cancelled = true;
+    }
+}
+
+class TranscodeQueue {
+    constructor(concurrency) {
+        this.concurrency = Math.max(1, concurrency);
+        this.running = 0;
+        this.queue = [];
+    }
+    isFull() { return this.queue.length >= 20; }
+    enqueue(fn) {
+        return new Promise((resolve, reject) => {
+            this.queue.push({ fn, resolve, reject });
+            this._tick();
+        });
+    }
+    _tick() {
+        while (this.running < this.concurrency && this.queue.length > 0) {
+            const { fn, resolve, reject } = this.queue.shift();
+            this.running++;
+            Promise.resolve()
+                .then(fn)
+                .then(resolve, reject)
+                .finally(() => {
+                    this.running--;
+                    this._tick();
+                });
+        }
+    }
+    getStatus() { return { running: this.running, queued: this.queue.length }; }
+}
+
+let _transcodeQueueInstance = null;
+function getTranscodeQueue() {
+    if (!_transcodeQueueInstance) {
+        _transcodeQueueInstance = new TranscodeQueue(getTranscodeConfig().maxConcurrent);
+    }
+    return _transcodeQueueInstance;
+}
+
+function getTranscodeConfig() {
+    const cfg = loadAdminConfig();
+    const tc = cfg.transcoding || {};
+
+    // parseInt(undefined) -> NaN -> fall back to default.
+    // parseInt(0) -> 0 -> accept literally (0 means "no cleanup").
+    const parsedAge = parseInt(tc.cacheMaxAgeDays, 10);
+    const parsedInterval = parseInt(tc.cacheCleanupIntervalHours, 10);
+
+    return {
+        enabled: !!tc.enabled,
+        engine: tc.engine || 'qsv',
+        resolutions: tc.resolutions || { '480': true, '360': true, '240': true, '144': true },
+        maxConcurrent: Math.max(1, parseInt(tc.maxConcurrent, 10) || 1),
+        cacheMaxAgeDays: Number.isFinite(parsedAge) ? parsedAge : 60,
+        cacheCleanupIntervalHours: Math.max(1, Number.isFinite(parsedInterval) ? parsedInterval : 6),
+        qsvQuality: parseInt(tc.qsvQuality, 10) || 26,
+        qsvPreset: tc.qsvPreset || 'veryfast',
+        x264Crf: parseInt(tc.x264Crf, 10) || 26,
+        x264Preset: tc.x264Preset || 'veryfast',
+        audioBitrate: tc.audioBitrate || '96k'
+    };
+}
+
+function getEnabledTranscodeHeights() {
+    const cfg = getTranscodeConfig();
+    if (!cfg.enabled) return [];
+    return Object.entries(cfg.resolutions)
+        .filter(([, on]) => on === true)
+        .map(([h]) => parseInt(h, 10))
+        .filter(h => h > 0)
+        .sort((a, b) => b - a);
+}
+
+function getTranscodeCachePath(videoRelPath, targetHeight) {
+    const baseName = videoRelPath.replace(/\.[^.]+$/, '');
+    const safe = baseName.replace(/[<>:"|?*\x00-\x1f]/g, '_');
+    return path.join(TRANSCODE_CACHE_DIR, `${targetHeight}p`, `${safe}.mp4`);
+}
+
+function _touchCacheFile(filePath) {
+    try { const n = new Date(); fs.utimesSync(filePath, n, n); } catch {}
+}
+
+async function getCachedSourceProbe(videoRelPath) {
+    if (_transcodeProbeCache.has(videoRelPath)) return _transcodeProbeCache.get(videoRelPath);
+    const full = path.join(__dirname, 'videos', videoRelPath);
+    if (!fs.existsSync(full)) return null;
+    const info = await probeVideoInfo(full);
+    _transcodeProbeCache.set(videoRelPath, info);
+    return info;
+}
+
+function buildTranscodeArgs(sourcePath, targetHeight, cfg) {
+    const targetWidth = Math.floor(targetHeight * 16 / 9 / 2) * 2;
+    const useQsv = (cfg.engine === 'qsv' || cfg.engine === 'auto');
+
+    const args = ['-hide_banner', '-loglevel', 'error', '-i', sourcePath];
+
+    if (useQsv) {
+        args.push(
+            '-c:v', 'h264_qsv',
+            '-global_quality', String(cfg.qsvQuality),
+            '-preset', cfg.qsvPreset,
+            '-vf', `scale=${targetWidth}:${targetHeight}:flags=bilinear`
+        );
+    } else {
+        args.push(
+            '-c:v', 'libx264',
+            '-crf', String(cfg.x264Crf),
+            '-preset', cfg.x264Preset,
+            '-vf', `scale=${targetWidth}:${targetHeight}:flags=bilinear`
+        );
+    }
+
+    args.push(
+        '-c:a', 'aac',
+        '-b:a', cfg.audioBitrate,
+        '-movflags', '+frag_keyframe+empty_moov+default_base_moof',
+        '-f', 'mp4'
+    );
+    return args;
+}
+
+/**
+ * Start (or attach to) a transcode. First caller gets a live fMP4 stream.
+ * The output is written to a .tmp file that becomes the cache on success.
+ */
+function _attachClientToJob(job, res) {
+    job.clients.add(res);
+    if (job.killTimer) {
+        clearTimeout(job.killTimer);
+        job.killTimer = null;
+    }
+    res.on('close', () => {
+        job.clients.delete(res);
+        if (job.clients.size === 0 && !job.killed && !job.completed) {
+            job.killTimer = setTimeout(() => {
+                if (job.clients.size === 0 && !job.killed && !job.completed) {
+                    job.killed = true;
+                    console.log(`[Transcode] Killing abandoned transcode (no viewers for ${TRANSCODE_CLIENT_GRACE_MS / 1000}s)`);
+                    try { job.proc.kill(); } catch {}
+                }
+            }, TRANSCODE_CLIENT_GRACE_MS);
+        }
+    });
+}
+
+function startOrAttachTranscode(videoRelPath, targetHeight, res, options = {}) {
+    const startOffset = Math.max(0, Math.floor(options.startOffset || 0));
+    const cacheable = options.cache !== false && startOffset === 0;
+    const key = `${videoRelPath}|${targetHeight}|${startOffset}`;
+
+    if (res.destroyed) {
+        return Promise.reject(new TranscodeCancelledError('Client disconnected before start'));
+    }
+
+    // If the caller is asking for a different offset for the SAME (video, quality),
+    // the client has seeked. Kill any in-flight job for that pair immediately,
+    // otherwise it burns CPU for up to 10s (grace period) before the queue frees up.
+    if (startOffset > 0) {
+        for (const [k, j] of _transcodeJobs) {
+            if (k !== key && k.startsWith(`${videoRelPath}|${targetHeight}|`) && !j.completed && !j.killed) {
+                console.log(`[Transcode] Killing prior offset job for seek priority: ${k}`);
+                j.killed = true;
+                try { j.proc.kill(); } catch {}
+            }
+        }
+    }
+
+    // ---------- Attach to an in-flight transcode ----------
+    if (_transcodeJobs.has(key)) {
+        const job = _transcodeJobs.get(key);
+        _attachClientToJob(job, res);
+        return job.promise
+            .then(() => {
+                if (res.destroyed) return;
+                if (job.killed) throw new TranscodeCancelledError();
+                const cachePath = getTranscodeCachePath(videoRelPath, targetHeight);
+                if (fs.existsSync(cachePath)) {
+                    _touchCacheFile(cachePath);
+                    res.sendFile(cachePath);
+                } else {
+                    throw new Error('Transcode produced no output');
+                }
+            })
+            .catch(err => {
+                if (!res.destroyed && !res.headersSent) {
+                    res.status(err.cancelled ? 503 : 500)
+                       .send(err.cancelled ? 'Transcode cancelled' : 'Transcode failed');
+                }
+                throw err;
+            });
+    }
+
+    // ---------- Start a new transcode ----------
+    const cfg = getTranscodeConfig();
+    const sourcePath = path.join(__dirname, 'videos', videoRelPath);
+    const cachePath = getTranscodeCachePath(videoRelPath, targetHeight);
+    const tmpPath = cachePath + '.tmp';
+    if (cacheable) fs.mkdirSync(path.dirname(cachePath), { recursive: true });
+
+    // buildTranscodeArgs already returns:
+    //   ['-hide_banner','-loglevel','error','-i',src,'-c:v',...,'-f','mp4']
+    // We rebuild it here so we can insert -ss BEFORE -i (input seek).
+    const base = buildTranscodeArgs(sourcePath, targetHeight, cfg);
+    const iIdx = base.indexOf('-i');
+    const args = ['-hide_banner', '-loglevel', 'error'];
+    if (startOffset > 0) args.push('-ss', String(startOffset));
+    args.push(...base.slice(iIdx));   // "-i <src>" onward, including "-f mp4"
+    args.push('pipe:1');
+
+    console.log(`[Transcode] Start ${videoRelPath} → ${targetHeight}p (${cfg.engine})`);
+    const startedAt = Date.now();
+    const proc = spawn(findBinary('ffmpeg'), args, { windowsHide: true });
+    const writeStream = cacheable ? fs.createWriteStream(tmpPath) : null;
+
+    const job = {
+        promise: null,
+        clients: new Set(),
+        killTimer: null,
+        killed: false,
+        completed: false,
+        proc,
+        writeStream,
+        tmpPath,
+        cachePath,
+        startedAt
+    };
+    _transcodeJobs.set(key, job);
+    _attachClientToJob(job, res);
+
+    // The FIRST client streams the live output; late-attaching clients wait
+    // for the promise and receive the cached file at the end.
+    if (!res.headersSent) {
+        res.writeHead(200, {
+            'Content-Type': 'video/mp4',
+            'Cache-Control': 'no-cache',
+            'Accept-Ranges': 'none'
+        });
+    }
+
+    proc.stdout.on('data', chunk => {
+        if (writeStream) writeStream.write(chunk);
+        if (!job.killed && !res.destroyed && !res.writableEnded) {
+            try { res.write(chunk); } catch {}
+        }
+    });
+
+    let stderrBuf = '';
+    proc.stderr.on('data', d => {
+        stderrBuf += d.toString();
+        if (stderrBuf.length > 3000) stderrBuf = stderrBuf.slice(-1500);
+    });
+
+    job.promise = new Promise((resolve, reject) => {
+        const finalize = (code) => {
+            job.completed = true;
+
+            if (job.killed) {
+                if (writeStream) try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch {}
+                const secs = ((Date.now() - startedAt) / 1000).toFixed(1);
+                console.log(`[Transcode] Cancelled ${videoRelPath} → ${targetHeight}p${startOffset > 0 ? `@${startOffset}s` : ''} after ${secs}s`);
+                if (!res.destroyed && !res.writableEnded) { try { res.end(); } catch {} }
+                reject(new TranscodeCancelledError());
+                return;
+            }
+
+            if (code === 0) {
+                if (cacheable) {
+                    try { fs.renameSync(tmpPath, cachePath); }
+                    catch (e) { console.error('[Transcode] Rename failed:', e.message); }
+                }
+                const secs = ((Date.now() - startedAt) / 1000).toFixed(1);
+                const sizeMB = cacheable && fs.existsSync(cachePath)
+                    ? (fs.statSync(cachePath).size / 1048576).toFixed(1) : 'stream';
+                console.log(`[Transcode] Done ${videoRelPath} → ${targetHeight}p${startOffset > 0 ? `@${startOffset}s` : ''} (${secs}s, ${sizeMB})`);
+                if (!res.destroyed && !res.writableEnded) { try { res.end(); } catch {} }
+                resolve();
+            } else {
+                if (writeStream) try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch {}
+                console.error(`[Transcode] FAILED (${code}): ${stderrBuf.slice(-500)}`);
+                if (!res.destroyed && !res.writableEnded) { try { res.end(); } catch {} }
+                reject(new Error(`ffmpeg exited ${code}`));
+            }
+        };
+
+        proc.on('close', code => {
+            if (job.killTimer) { clearTimeout(job.killTimer); job.killTimer = null; }
+            if (writeStream) writeStream.end(() => finalize(code));
+            else finalize(code);
+        });
+        proc.on('error', err => {
+            writeStream.destroy();
+            try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch {}
+            job.completed = true;
+            if (!res.destroyed && !res.writableEnded) { try { res.end(); } catch {} }
+            reject(err);
+        });
+    });
+
+    // Clean up the job registry 30s after completion OR failure.
+    // Using .then(cleanup, cleanup) instead of .finally() avoids creating
+    // a second rejected promise that nobody handles (which crashes Node 24).
+    const cleanup = () => setTimeout(() => {
+        if (_transcodeJobs.get(key) === job) _transcodeJobs.delete(key);
+    }, 30000);
+    job.promise.then(cleanup, cleanup);
+    return job.promise;
+}
+
+// --- Global list of enabled transcode qualities (for the settings page) ---
+app.get('/api/transcode/available-qualities', (req, res) => {
+    const cfg = getTranscodeConfig();
+    if (!cfg.enabled) return res.json({ enabled: false, qualities: [] });
+    const heights = getEnabledTranscodeHeights();
+    res.json({
+        enabled: true,
+        qualities: heights.map(h => ({ height: h, label: `${h}p` }))
+    });
+});
+
+// --- Available qualities endpoint ---
+app.get('/api/transcode/qualities', async (req, res) => {
+    const videoRelPath = req.query.video;
+    if (!videoRelPath || typeof videoRelPath !== 'string') {
+        return res.status(400).json({ error: 'Missing video parameter' });
+    }
+    const cfg = getTranscodeConfig();
+    if (!cfg.enabled) return res.json({ enabled: false, qualities: [] });
+
+    const info = await getCachedSourceProbe(videoRelPath);
+    if (!info) return res.status(404).json({ error: 'Video not found' });
+
+    const sourceHeight = info.height || 0;
+    const qualities = getEnabledTranscodeHeights()
+        .filter(h => h < sourceHeight)
+        .map(h => ({
+            height: h,
+            label: `${h}p`,
+            cached: fs.existsSync(getTranscodeCachePath(videoRelPath, h))
+        }));
+
+    res.json({
+        enabled: true,
+        sourceHeight,
+        durationSec: info.durationSec || 0,   // used by client to fix "Infinity" on fMP4 streams
+        qualities
+    });
+});
+
+// --- Transcode stream endpoint ---
+app.get('/transcode/:quality/*', async (req, res) => {
+    const quality = parseInt(req.params.quality, 10);
+    const videoRelPath = decodeURIComponent(req.params[0] || '');
+    const startOffset = Math.max(0, parseInt(req.query.start, 10) || 0);
+    if (!videoRelPath || !quality) return res.status(400).send('Bad request');
+    if (videoRelPath.includes('..') || videoRelPath.includes('\0')) {
+        return res.status(400).send('Invalid path');
+    }
+
+    const cfg = getTranscodeConfig();
+    if (!cfg.enabled) return res.status(403).send('Transcoding disabled');
+    if (!getEnabledTranscodeHeights().includes(quality)) return res.status(400).send('Quality not enabled');
+
+    const videosDir = path.join(__dirname, 'videos');
+    const sourcePath = path.resolve(videosDir, videoRelPath);
+    if (!sourcePath.startsWith(videosDir + path.sep)) return res.status(400).send('Invalid path');
+    if (!fs.existsSync(sourcePath)) return res.status(404).send('Video not found');
+
+    const info = await getCachedSourceProbe(videoRelPath);
+    if (info && info.height && info.height <= quality) {
+        return res.status(400).send('Source is already this resolution or lower');
+    }
+
+    // Cache hit — always serve from cache (ignores ?start, Range works natively).
+    const cachePath = getTranscodeCachePath(videoRelPath, quality);
+    if (fs.existsSync(cachePath)) {
+        _touchCacheFile(cachePath);
+        return res.sendFile(cachePath);
+    }
+
+    const key = `${videoRelPath}|${quality}|${startOffset}`;
+    const queue = getTranscodeQueue();
+    if (queue.isFull() && !_transcodeJobs.has(key)) {
+        return res.status(503).send('Transcode queue is full. Try again later.');
+    }
+
+    try {
+        await queue.enqueue(() => startOrAttachTranscode(videoRelPath, quality, res, { startOffset }));
+    } catch (err) {
+        if (res.destroyed || res.headersSent) return;
+        if (err.cancelled) res.status(503).send('Transcode cancelled');
+        else res.status(500).send('Transcode failed');
+    }
+});
+
+// --- Cache retention sweep (tick hourly; honours cacheCleanupIntervalHours) ---
+let _lastTranscodeCleanup = 0;
+setInterval(() => {
+    const cfg = getTranscodeConfig();
+    if (!cfg.cacheMaxAgeDays) return;   // 0 or negative → cleanup disabled
+
+    const intervalMs = cfg.cacheCleanupIntervalHours * 3600000;
+    if (Date.now() - _lastTranscodeCleanup < intervalMs) return;
+    _lastTranscodeCleanup = Date.now();
+
+    const cutoff = Date.now() - cfg.cacheMaxAgeDays * 86400000;
+    let removed = 0, bytes = 0;
+    try {
+        for (const q of fs.readdirSync(TRANSCODE_CACHE_DIR)) {
+            const qDir = path.join(TRANSCODE_CACHE_DIR, q);
+            try { if (!fs.statSync(qDir).isDirectory()) continue; } catch { continue; }
+            const walk = (dir) => {
+                for (const f of fs.readdirSync(dir)) {
+                    const fp = path.join(dir, f);
+                    try {
+                        const st = fs.statSync(fp);
+                        if (st.isDirectory()) walk(fp);
+                        else if (fp.endsWith('.mp4') && st.mtimeMs < cutoff) {
+                            bytes += st.size;
+                            fs.unlinkSync(fp);
+                            removed++;
+                        }
+                    } catch {}
+                }
+            };
+            walk(qDir);
+        }
+        if (removed > 0) {
+            console.log(`[Transcode] Cache cleanup: ${removed} file(s), ` +
+                `${(bytes / 1073741824).toFixed(2)} GB freed ` +
+                `(older than ${cfg.cacheMaxAgeDays}d)`);
+        }
+    } catch (err) {
+        console.error('[Transcode] Cleanup error:', err.message);
+    }
+}, 60 * 60 * 1000);
+
+// --- Clean up orphaned .tmp files left by a crashed server ---
+(function cleanupOrphanedTmp() {
+    try {
+        const walk = (dir) => {
+            for (const f of fs.readdirSync(dir)) {
+                const fp = path.join(dir, f);
+                if (fs.statSync(fp).isDirectory()) walk(fp);
+                else if (f.endsWith('.tmp')) { try { fs.unlinkSync(fp); } catch {} }
+            }
+        };
+        walk(TRANSCODE_CACHE_DIR);
+    } catch {}
+})();
+
+console.log(`[Transcode] Initialized. Engine: ${getTranscodeConfig().engine}, ` +
+    `heights: ${getEnabledTranscodeHeights().join(', ') || 'none'}, ` +
+    `cache retention: ${getTranscodeConfig().cacheMaxAgeDays || 'disabled'}d ` +
+    `(sweep every ${getTranscodeConfig().cacheCleanupIntervalHours}h)`);
+
 // ===== STARTUP =====
 (async () => {
     await initializeVideoCache();
@@ -4758,6 +5256,6 @@ app.get('/upload-status/:jobId', (req, res) => {
     initializePlaylistShortLinks();
 
     app.listen(PORT, '0.0.0.0', () => {
-        console.log(`\nServer is running on http://localhost:${PORT}, public link: https://www.localyt.net`);
+        console.log(`\nServer is running on http://localhost:${PORT}`);
     });
 })();
