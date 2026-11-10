@@ -55,19 +55,7 @@ if /i not "%~1"=="hidden" (
 )
 
 REM If we reach here, it's either the first run (prompting), or the hidden run.
-echo.
-echo       :::        ::::::::   ::::::::      :::     :::     :::   ::: :::::::::::
-echo      :+:       :+:    :+: :+:    :+:   :+: :+:   +:    :+:   :+:     :+:
-echo     +:+       +:+    +:+ +:+         +:+   +:+  +:+      +:+ +:+      +:+
-echo    +#+       +#+    +#+ +#+        +#++:++#++: +#+       +#++:       +#+
-echo   +#+       +#+    +#+ +#+        +#+     +#+ +#+        +#+        +#+
-echo  #+#       #+#    #+# #+#    #+# #+#     #+# #+#        #+#        #+#
-echo ########## ########   ########  ###     ### ########## ###        ###
-echo.
-echo https://github.com/pbz134/LocalYT
-echo.
-echo Using Node: %NODE_CMD%
-echo.
+echo. & echo       :::        ::::::::   ::::::::      :::     :::     :::   ::: ::::::::::: & echo      :+:       :+:    :+: :+:    :+:   :+: :+:   :+:     :+:   :+:     :+:      & echo     +:+       +:+    +:+ +:+         +:+   +:+  +:+      +:+ +:+      +:+       & echo    +#+       +#+    +#+ +#+        +#++:++#++: +#+       +#++:       +#+        & echo   +#+       +#+    +#+ +#+        +#+     +#+ +#+        +#+        +#+         & echo  #+#       #+#    #+# #+#    #+# #+#     #+# #+#        #+#        #+#          & echo ########## ########   ########  ###     ### ########## ### & echo. & echo. & echo https://github.com/pbz134/LocalYT & echo. & echo Using Node: %NODE_CMD% & echo.
 
 if not defined SESSION_SECRET (
     echo [SECURITY] No SESSION_SECRET found in #Setup.env.
@@ -84,7 +72,7 @@ if not defined SESSION_SECRET (
 )
 
 REM Launch the VISIBLE server window
-start "LocalYT Server" cmd /c "cls & echo. & echo       :::        ::::::::   ::::::::      :::     :::     :::   ::: ::::::::::: & echo      :+:       :+:    :+: :+:    :+:   :+: :+:   +:    :+:   +:     :+:      & echo     +:+       +:+    +:+ +:+         +:+   +:+  +:+      +:+ +:+      +:+       & echo    +#+       +#+    +#+ +#+        +#++:++#++: +#+       +#++:       +#+        & echo   +#+       +#+    +#+ +#+        +#+     +#+ +#+        +#+        +#+         & echo  #+#       #+#    #+# #+#    #+# #+#     #+# #+#        #+#        #+#          & echo ########## ########   ########  ###     ### ########## ###        ### & echo. & echo https://github.com/pbz134/LocalYT & echo. & echo Using Node: %NODE_CMD% & set SESSION_SECRET=!SESSION_SECRET! & "%NODE_CMD%" server.js"
+start "LocalYT Server" cmd /c "cls & echo. & echo       :::        ::::::::   ::::::::      :::     :::     :::   ::: ::::::::::: & echo      :+:       :+:    :+: :+:    :+:   :+: :+:   :+:     :+:   :+:     :+:      & echo     +:+       +:+    +:+ +:+         +:+   +:+  +:+      +:+ +:+      +:+       & echo    +#+       +#+    +#+ +#+        +#++:++#++: +#+       +#++:       +#+        & echo   +#+       +#+    +#+ +#+        +#+     +#+ +#+        +#+        +#+         & echo  #+#       #+#    #+# #+#    #+# #+#     #+# #+#        #+#        #+#          & echo ########## ########   ########  ###     ### ########## ###        ### & echo. & echo. & echo Using Node: %NODE_CMD% & set SESSION_SECRET=!SESSION_SECRET! & "%NODE_CMD%" server.js"
 
 REM Wait for server to accept connections (silent — no window)
 :wait_loop
