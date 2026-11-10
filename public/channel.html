@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <base href="/">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Channel Videos</title>
     <link rel="stylesheet" href="styles.css">
@@ -1707,6 +1708,27 @@
             return localStorage.getItem('language') === 'de' ? de : en;
         }
 
+        let _channelShortPath = null;
+        
+        async function replaceUrlWithChannelShortLink(channelName, tab) {
+            if (!channelName) return;
+            try {
+                if (!_channelShortPath) {
+                    const res = await fetch(`/api/channel-shortlink?channel=${encodeURIComponent(channelName)}`);
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    if (!data.shortPath) return;
+                    _channelShortPath = data.shortPath;
+                }
+                const url = tab && tab !== 'home'
+                    ? `${_channelShortPath}/${tab}`
+                    : _channelShortPath;
+                history.replaceState(null, '', url);
+            } catch (e) {
+                console.warn('[Channel ShortLink] Could not update URL:', e);
+            }
+        }
+
         // Check if relative dates are enabled (reads fresh each time)
         function isRelativeDatesEnabled() {
             const setting = JSON.parse(localStorage.getItem('relativeDates') || '{"enabled":true}');
@@ -2484,8 +2506,15 @@
                 if (targetTab) targetTab.classList.add('active');
                 if (targetContent) targetContent.classList.add('active');
 
-                const newUrl = buildChannelUrl(channel, tabName);
-                history.pushState({ tab: tabName }, '', newUrl);
+                if (_channelShortPath) {
+                    const shortUrl = tabName !== 'home'
+                        ? `${_channelShortPath}/${tabName}`
+                        : _channelShortPath;
+                    history.pushState({ tab: tabName }, '', shortUrl);
+                } else {
+                    // Fallback: code hasn't arrived yet — use long form so nothing breaks
+                    history.pushState({ tab: tabName }, '', buildChannelUrl(channel, tabName));
+                }
 
                 if (!loadedTabs.has(tabName)) {
                     loadTabContent(tabName);
@@ -4147,6 +4176,7 @@
             }
 
             history.replaceState({ tab: initialTab, query: initialTab === 'search' ? (new URLSearchParams(window.location.search).get('q') || '') : '' }, '', buildChannelUrl(channel, initialTab) + (initialTab === 'search' && new URLSearchParams(window.location.search).get('q') ? '&q=' + encodeURIComponent(new URLSearchParams(window.location.search).get('q')) : ''));
+            replaceUrlWithChannelShortLink(channel, initialTab);
 
             function executeChannelSearch(query) {
                 if (!query) {
@@ -4162,7 +4192,9 @@
                 document.getElementById('searchTab').classList.add('active');
                 document.querySelector('.tab-search-bar').classList.add('active');
 
-                const searchUrl = buildChannelUrl(channel, 'search') + '&q=' + encodeURIComponent(query);
+                const searchUrl = _channelShortPath
+                    ? `${_channelShortPath}/search?q=${encodeURIComponent(query)}`
+                    : buildChannelUrl(channel, 'search') + '&q=' + encodeURIComponent(query);
                 history.pushState({ tab: 'search', query: query }, '', searchUrl);
                 loadedTabs.add('search');
 

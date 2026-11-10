@@ -625,6 +625,51 @@ function savePlaylistLinksToFile() {
     }
 }
 
+// --- CHANNEL SHORT LINK SYSTEM ---
+let channelShortMap = new Map();
+let shortCodeToChannelMap = new Map();
+const CHANNEL_SHORT_FILE = path.join(__dirname, 'channel_shortlinks.json');
+
+function generateChannelShortCode() {
+    if (!SHORT_CODE_CHARS) return null;
+    let code;
+    let attempts = 0;
+    do {
+        code = '';
+        for (let i = 0; i < 7; i++) {
+            code += SHORT_CODE_CHARS.charAt(Math.floor(Math.random() * SHORT_CODE_CHARS.length));
+        }
+        attempts++;
+        if (attempts > 100) break;
+    } while (
+        shortCodeToChannelMap.has(code) ||
+        shortCodeToVideoMap.has(code) ||
+        shortCodeToPlaylistMap.has(code)
+    );
+    return code;
+}
+
+function getOrCreateChannelShortCode(channelName) {
+    if (!channelName || typeof channelName !== 'string') return null;
+    if (channelShortMap.has(channelName)) return channelShortMap.get(channelName);
+    const code = generateChannelShortCode();
+    if (!code) return null;
+    channelShortMap.set(channelName, code);
+    shortCodeToChannelMap.set(code, channelName);
+    saveChannelLinksToFile();
+    return code;
+}
+
+function saveChannelLinksToFile() {
+    const obj = {};
+    channelShortMap.forEach((val, key) => { obj[key] = val; });
+    try {
+        fs.writeFileSync(CHANNEL_SHORT_FILE, JSON.stringify(obj, null, 2));
+    } catch (err) {
+        console.error('Error saving channel links:', err);
+    }
+}
+
 // --- VIDEO TAGS API ---
 app.get('/api/video-tags', (req, res) => {
     const video = req.query.video;
@@ -1517,6 +1562,42 @@ function initializePlaylistShortLinks() {
             if (code) registerPlaylistChannel(code, channel);
         }
     });
+}
+
+function initializeChannelShortLinks() {
+    if (fs.existsSync(CHANNEL_SHORT_FILE)) {
+        try {
+            const data = fs.readFileSync(CHANNEL_SHORT_FILE, 'utf8');
+            const links = JSON.parse(data);
+            for (const [name, code] of Object.entries(links)) {
+                channelShortMap.set(name, code);
+                shortCodeToChannelMap.set(code, name);
+            }
+            console.log(`${channelShortMap.size} Channel Short Links loaded.`);
+        } catch (err) {
+            console.error('Error loading channel links:', err);
+        }
+    }
+    let newCodesGenerated = 0;
+    const channelsFound = new Set();
+    videoArray.forEach(video => {
+        const parts = video.path.split('/');
+        if (parts.length > 0 && parts[0]) channelsFound.add(parts[0]);
+    });
+    channelsFound.forEach(channelName => {
+        if (!channelShortMap.has(channelName)) {
+            const code = generateChannelShortCode();
+            if (code) {
+                channelShortMap.set(channelName, code);
+                shortCodeToChannelMap.set(code, channelName);
+                newCodesGenerated++;
+            }
+        }
+    });
+    if (newCodesGenerated > 0) {
+        saveChannelLinksToFile();
+        console.log(`${newCodesGenerated} new Channel Short Links generated. Total: ${channelShortMap.size}`);
+    }
 }
 
 // --- HELPER FUNCTIONS ---
@@ -3671,6 +3752,34 @@ app.get('/p/:code', (req, res) => {
     );
 });
 
+// Returns { shortPath: "/c/CODE" } for a given channel
+app.get('/api/channel-shortlink', (req, res) => {
+    const channel = req.query.channel;
+    if (!channel) return res.status(400).json({ error: 'Missing channel' });
+    const code = getOrCreateChannelShortCode(channel);
+    if (!code) return res.status(404).json({ error: 'Could not create short link' });
+    res.json({ shortPath: `/c/${code}` });
+});
+
+// Standalone channel short link redirect (supports /c/CODE and /c/CODE/<tab>)
+app.get('/c/:code/:tab?', (req, res) => {
+    const code = req.params.code;
+    const tab = req.params.tab;
+    const channelName = shortCodeToChannelMap.get(code);
+    if (!channelName) return res.status(404).send('Channel short link not found');
+
+    let redirectUrl = `/channel.html?channel=${encodeURIComponent(channelName)}`;
+    const validTabs = ['videos', 'playlists', 'about', 'posts', 'search', 'streams', 'related'];
+    if (tab && validTabs.includes(tab)) {
+        redirectUrl += `/${tab}`;
+    }
+    // Preserve ?q=… on search URLs
+    if (req.query.q) {
+        redirectUrl += (redirectUrl.includes('?') ? '&' : '?') + 'q=' + encodeURIComponent(req.query.q);
+    }
+    res.redirect(redirectUrl);
+});
+
 app.get('/api/shortlink', (req, res) => {
     const video = req.query.video;
     const playlist = req.query.playlist;
@@ -5342,6 +5451,7 @@ console.log(`[Transcode] Initialized. Engine: ${getTranscodeConfig().engine}, ` 
     initializeRecommendationIndex();
     loadPlaylistThumbnailCache();
     initializePlaylistShortLinks();
+    initializeChannelShortLinks();
 
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`\nServer is running on http://localhost:${PORT}`);
