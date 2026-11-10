@@ -4886,13 +4886,25 @@ function buildTranscodeArgs(sourcePath, targetHeight, cfg) {
     const targetWidth = Math.floor(targetHeight * 16 / 9 / 2) * 2;
     const useQsv = (cfg.engine === 'qsv' || cfg.engine === 'auto');
 
-    const args = ['-hide_banner', '-loglevel', 'error', '-i', sourcePath];
+    const args = ['-hide_banner', '-loglevel', 'error'];
+
+    if (useQsv) {
+        // Use hardware decoding for the source file.
+        args.push('-hwaccel', 'qsv');
+        args.push('-hwaccel_output_format', 'qsv');
+    }
+
+    args.push('-i', sourcePath);
 
     if (useQsv) {
         args.push(
             '-c:v', 'h264_qsv',
             '-global_quality', String(cfg.qsvQuality),
             '-preset', cfg.qsvPreset,
+            // Additional tuning for speed/latency
+            '-async_depth', '4',      // Allow more parallel encoding tasks
+            '-bf', '0',               // Disable B-frames for lower latency
+            '-look_ahead', '0',       // Disable lookahead for faster encoding
             '-vf', `scale=${targetWidth}:${targetHeight}:flags=bilinear`
         );
     } else {
