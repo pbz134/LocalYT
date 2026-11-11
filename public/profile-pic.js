@@ -419,14 +419,14 @@
             }
             .classic-layout-active .description-toggle,
             body[data-video-layout="classic"] .description-toggle {
-                background-color: #f9f9f9 !important;
+                background-color: #ffffff !important;
                 border-top-color: #e0e0e0 !important;
                 color: #666666 !important;
                 text-decoration: none !important;
             }
             .classic-layout-active .description-toggle:hover,
             body[data-video-layout="classic"] .description-toggle:hover {
-                background-color: #f9f9f9 !important;
+                background-color: #ffffff !important;
                 color: #0f0f0f !important;
                 text-decoration: none !important;
             }

@@ -4821,7 +4821,7 @@ sourceElement.src = `/videos/${videoSrc.split('/').map(encodePathSegment).join('
                             
                             body.classic-layout-active .suggestion-item {
                                 margin-left: 0 !important;
-                                margin-bottom: 8px !important;
+                                margin-bottom: 0px !important;
                                 align-items: flex-start !important;
                             }
                             
@@ -5100,14 +5100,16 @@ sourceElement.src = `/videos/${videoSrc.split('/').map(encodePathSegment).join('
                             body[data-video-layout="classic"] .description-toggle {
                                 text-align: center;
                                 text-transform: uppercase;
-                                background-color: #282828;
+                                background-color: #282828 !important;
                                 margin-top: 0;
-                                padding: 10px 15px;
+                                padding: 5px 15px;
                                 border-top: 1px solid #555;
                                 text-decoration: none !important;
                                 color: #fff !important;
                                 font-weight: 400 !important;
+                                font-size: 12px !important;
                                 -webkit-text-stroke: 0.25px currentColor;
+                                line-height: 1.2;
                             }
 
                             .classic-layout-active .description-toggle:hover,
@@ -5115,6 +5117,10 @@ sourceElement.src = `/videos/${videoSrc.split('/').map(encodePathSegment).join('
                                 background-color: #282828 !important;
                                 color: #888 !important;
                                 text-decoration: none !important;
+                                font-weight: 400 !important;
+                                font-size: 12px !important;
+                                -webkit-text-stroke: 0.25px currentColor;
+                                line-height: 1.2;
                             }
 
                             /* === Like/Dislike hover & tooltip (classic) === */
