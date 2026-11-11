@@ -22,7 +22,7 @@ sidebarCSS.textContent = `
 
     /* Prevents text inside from squishing/reflowing while the sidebar width animates */
     .sidebar-inner {
-        width: 270px;
+        width: 300px;
         padding-right: 8px;
         box-sizing: border-box;
     }
@@ -469,12 +469,12 @@ function toggleNav() {
     const sidebar = document.getElementById("mySidebar");
     const main = document.getElementById("main");
     
-    if (sidebar.style.width === "270px") {
+    if (sidebar.style.width === "300px") {
         sidebar.style.width = "0";
         if (main) main.style.marginLeft = "0";
     } else {
-        sidebar.style.width = "270px";
-        if (main) main.style.marginLeft = "270px";
+        sidebar.style.width = "300px";
+        if (main) main.style.marginLeft = "300px";
     }
 }
 window.toggleNav = toggleNav;

@@ -2563,8 +2563,15 @@
 
                 videoPlayer.innerHTML = '';
 
-                const sourceElement = document.createElement('source');
-                sourceElement.src = `/videos/${encodeURIComponent(videoSrc)}`;
+// Encode each segment individually so / stays a real slash.
+function encodePathSegment(seg) {
+    return encodeURIComponent(seg).replace(/[!'()*]/g, c =>
+        '%' + c.charCodeAt(0).toString(16).toUpperCase()
+    );
+}
+
+const sourceElement = document.createElement('source');
+sourceElement.src = `/videos/${videoSrc.split('/').map(encodePathSegment).join('/')}`;
                 sourceElement.type = mimeType;
                 videoPlayer.appendChild(sourceElement);
 
@@ -3840,31 +3847,36 @@
                 // added on top at display time so it survives reloads.
                 const displayLikes = likes + (isLiked ? 1 : 0);
                 const displayDislikes = dislikes + (isDisliked ? 1 : 0);
-
-                likeCount.textContent = displayLikes;
-                dislikeCount.textContent = displayDislikes;
-
+            
+                const locale = getLang('en-US', 'de-DE');
+                likeCount.textContent = Number(displayLikes).toLocaleString(locale);
+                dislikeCount.textContent = Number(displayDislikes).toLocaleString(locale);
+            
                 const totalReactions = displayLikes + displayDislikes;
                 let likePercentage = 0;
                 if (totalReactions > 0) {
                     likePercentage = (displayLikes / totalReactions) * 100;
                 }
                 likeBar.style.width = `${likePercentage}%`;
-
+            
                 if (isLiked) {
                     likeButton.style.filter =
                         'invert(21%) sepia(93%) saturate(7454%) hue-rotate(203deg) brightness(100%) contrast(109%)';
+                    likeButton.classList.add('lyt-liked');
                 } else {
                     likeButton.style.filter =
                         'invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%)';
+                    likeButton.classList.remove('lyt-liked');
                 }
-
+            
                 if (isDisliked) {
                     dislikeButton.style.filter =
                         'invert(21%) sepia(93%) saturate(7454%) hue-rotate(203deg) brightness(100%) contrast(109%)';
+                    dislikeButton.classList.add('lyt-disliked');
                 } else {
                     dislikeButton.style.filter =
                         'invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%)';
+                    dislikeButton.classList.remove('lyt-disliked');
                 }
             }
 
@@ -4681,6 +4693,48 @@
             if (layout === 'classic' && channelInfo) {
                 channelInfo.classList.add('classic-layout');
 
+            // =============================================
+            // LIKE/DISLIKE + SHARE/SAVE HOVER + TOOLTIP (Classic Layout)
+            // =============================================
+            (function setupClassicHoverEffects() {
+                // Like / Dislike grouping (existing)
+                const iconsContainer = document.querySelector('.like-dislike-icons');
+                if (iconsContainer && !iconsContainer.querySelector('.lyt-like-group')) {
+                    const likeBtn = document.getElementById('likeButton');
+                    const likeCnt = document.getElementById('likeCount');
+                    const disBtn  = document.getElementById('dislikeButton');
+                    const disCnt  = document.getElementById('dislikeCount');
+                    if (likeBtn && likeCnt && disBtn && disCnt) {
+                        const likeGroup = document.createElement('span');
+                        likeGroup.className = 'lyt-like-group';
+                        likeGroup.setAttribute('data-tooltip', getLang('I like this', 'Das gefällt mir'));
+            
+                        const disGroup = document.createElement('span');
+                        disGroup.className = 'lyt-dislike-group';
+                        disGroup.setAttribute('data-tooltip', getLang('I dislike this', 'Das gefällt mir nicht'));
+            
+                        iconsContainer.insertBefore(likeGroup, likeBtn);
+                        likeGroup.appendChild(likeBtn);
+                        likeGroup.appendChild(likeCnt);
+            
+                        iconsContainer.insertBefore(disGroup, disBtn);
+                        disGroup.appendChild(disBtn);
+                        disGroup.appendChild(disCnt);
+                    }
+                }
+            
+                // Share / Save tooltips (new)
+                const shareContainer = document.getElementById('shareContainer');
+                if (shareContainer) {
+                    shareContainer.setAttribute('data-tooltip', getLang('Share', 'Teilen'));
+                }
+            
+                const saveContainer = document.getElementById('saveContainer');
+                if (saveContainer) {
+                    saveContainer.setAttribute('data-tooltip', getLang('Add to', 'Hinzufügen'));
+                }
+            })();
+
                 // --- WRAP ELEMENTS IN CLASSIC INFO BOX ---
                 const videoTitle = document.getElementById('currentVideoTitle');
                 const infoBoxWrapper = document.createElement('div');
@@ -4698,44 +4752,110 @@
                 const subCount = document.getElementById('subCount');
                 const channelTextGroup = document.querySelector('.channel-text-group');
 
-                if (subscribeBtn && subCount && channelTextGroup) {
-                    let wrapper = document.getElementById('subscribeCountWrapper');
-                    if (!wrapper) {
-                        wrapper = document.createElement('div');
-                        wrapper.id = 'subscribeCountWrapper';
-                        wrapper.className = 'subscribe-count-wrapper';
-                        channelTextGroup.appendChild(wrapper);
-                    }
-                    // Append button first, then count to the right
-                    wrapper.appendChild(subscribeBtn);
-                    wrapper.appendChild(subCount);
+                                if (subscribeBtn && subCount && channelTextGroup) {
+                                    let wrapper = document.getElementById('subscribeCountWrapper');
+                                    if (!wrapper) {
+                                        wrapper = document.createElement('div');
+                                        wrapper.id = 'subscribeCountWrapper';
+                                        wrapper.className = 'subscribe-count-wrapper';
+                                        channelTextGroup.appendChild(wrapper);
+                                    }
+                                    // Append button first, then count to the right
+                                    wrapper.appendChild(subscribeBtn);
+                                    wrapper.appendChild(subCount);
+                
+                                    // Helper to format compact numbers (K/M)
+                                    const formatCompactNumber = (num) => {
+                                        const decSep = getLang('.', ','); // Dot for EN, comma for DE
+                                        if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '').replace('.', decSep) + 'M';
+                                        if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '').replace('.', decSep) + 'K';
+                                        return num.toString();
+                                    };
+                
+                                    // Strip "subscribers" text for classic layout & condense to K/M
+                                    const processClassicSubCount = () => {
+                                        const currentText = subCount.textContent.trim();
+                                        if (currentText && !subCount.dataset.fullText) {
+                                            subCount.dataset.fullText = currentText;
+                                        }
+                                        
+                                        let numberPart = currentText.split(' ')[0];
+                                        let cleanNum = numberPart.replace(/[.,]/g, ''); // Remove commas/dots
+                                        
+                                        // If backend already sent "822K" or "1.2M", keep the number part as is
+                                        if (/[KkMm]$/.test(cleanNum)) {
+                                            if (subCount.textContent !== numberPart) subCount.textContent = numberPart;
+                                            return;
+                                        }
+                
+                                        let num = parseInt(cleanNum, 10);
+                                        if (!isNaN(num)) {
+                                            let formatted = formatCompactNumber(num);
+                                            if (subCount.textContent !== formatted) {
+                                                subCount.textContent = formatted;
+                                            }
+                                        } else if (currentText.includes(' ') && subCount.textContent !== numberPart) {
+                                            subCount.textContent = numberPart;
+                                        }
+                                    };
+                
+                                    const classicSubCountObserver = new MutationObserver(processClassicSubCount);
+                                    classicSubCountObserver.observe(subCount, { childList: true, characterData: true, subtree: true });
+                                    
+                                    // Run immediately in case it's already loaded
+                                    processClassicSubCount();
+                                }
 
-                    // Strip "subscribers" text for classic layout (keep just the number)
-                    // Use a MutationObserver because the sub count text loads asynchronously
-                    const classicSubCountObserver = new MutationObserver(() => {
-                        const currentText = subCount.textContent.trim();
-                        if (currentText && !subCount.dataset.fullText) {
-                            subCount.dataset.fullText = currentText;
-                        }
-                        if (currentText.includes(' ')) {
-                            subCount.textContent = currentText.split(' ')[0];
-                        }
-                    });
-                    classicSubCountObserver.observe(subCount, { childList: true, characterData: true,
-                    subtree: true });
-                    // Also run immediately in case it's already loaded
-                    classicSubCountObserver.takeRecords();
-                    const currentText = subCount.textContent.trim();
-                    if (currentText && !subCount.dataset.fullText) {
-                        subCount.dataset.fullText = currentText;
-                    }
-                    if (currentText.includes(' ')) {
-                        subCount.textContent = currentText.split(' ')[0];
-                    }
-                }
+                            // Inject Classic CSS
+                            classicStyleEl.textContent = `                            
+                            
+                            body.classic-layout-active .video-wrapper {
+                                flex: 0 1 60% !important;
+                                max-width: 1024px !important;
+                            }
+                            
+                            body.classic-layout-active .suggestions-wrapper {
+                                width: 460px !important;
+                                margin-left: 16px !important;
+                            }
+                            
+                            body.classic-layout-active .suggestion-item {
+                                margin-left: 0 !important;
+                                margin-bottom: 8px !important;
+                                align-items: flex-start !important;
+                            }
+                            
+                            body.classic-layout-active .suggestion-item img,
+                            body.classic-layout-active .suggestion-item img.video-thumbnail {
+                                width: 180px !important;
+                                height: 101.25px !important;    /* Maintains 16:9 aspect ratio */
+                                margin-right: 12px !important;
+                            }
+                            
+                            body.classic-layout-active .suggestion-info {
+                                 width: calc(100% - 192px) !important;
+                            }
+                            
+                            body.classic-layout-active .suggestion-title {
+                                 font-size: 15px !important;
+                                 margin-bottom: 6px !important;
+                            }
+                            
+                            body.classic-layout-active .suggestion-channel,
+                            body.classic-layout-active .view-count {
+                                font-size: 13px !important;
+                                margin-bottom: 3px !important;
+                            }
+                            /* === Center layout & maintain fixed scale (Classic only) === */
+                            body.classic-layout-active .content-wrapper {
+                                margin-left: 0 !important;
+                            }
 
-                // Inject Classic CSS
-                classicStyleEl.textContent = `
+                            body.classic-layout-active .video-player-container {
+                                max-width: 1750px !important; /* Locks the layout to YouTube's classic max width */
+                                margin: 0 auto !important;    /* Centers the locked container on the screen */
+                                justify-content: center !important; /* Centers the video + sidebar group inside it */
+                            }
                             /* Square Comment Avatars */
                             .classic-layout-active .comment-avatar,
                             body[data-video-layout="classic"] .comment-avatar {
@@ -4774,7 +4894,8 @@
                                 border-bottom: none;
                                 margin-bottom: 10px;
                                 font-weight: normal !important;
-                                font-size: 18px !important;
+                                font-size: 20px !important;
+                                line-height: 1.3 !important;
                             }
 
                             #classicInfoBoxWrapper .channel-info.classic-layout {
@@ -4850,6 +4971,7 @@
                                 visibility: visible !important;
                                 margin-right: 0px !important;
                                 margin-top: 20px !important;
+                                transform: translateY(6px);
                             }
 
                             /* --- LIKE BAR STYLING (On the divider) --- */
@@ -4878,7 +5000,7 @@
                                 flex-direction: row;
                                 align-items: center;
                                 margin-left: auto !important;
-                                margin-right: 20px !important;
+                                margin-right: 5px !important;
                                 margin-top: 4px !important;
                                 order: initial;
                             }
@@ -4922,18 +5044,44 @@
                             .channel-info.classic-layout .sub-count {
                                 display: flex !important;
                                 align-items: center;
-                                background-color: #fafafa !important;
+                                background-color: #272727 !important; /* Dark mode default */
                                 padding: 0px 12px;
                                 height: 24px;
                                 align-self: center;
-                                background-color: var(--secondary-bg-color, #333) !important;
-                                border: 1px solid #666;
-                                border-left: none;
-                                color: #fff;
+                                border: 1px solid #444 !important;
+                                border-left: none !important;
+                                color: #aaa !important;
                                 font-size: 12px;
                                 font-family: 'RobotoRegular', Arial, sans-serif;
                                 white-space: nowrap;
                                 margin: 0 !important;
+                            }
+
+                            /* Remove dark background hover on sidebar videos */
+                            body.classic-layout-active .suggestion-item:hover {
+                                background-color: transparent !important;
+                            }
+
+                            /* Keep the current video highlighted even when hovered */
+                            body.classic-layout-active .suggestion-item.current-video-item:hover {
+                                background-color: #3f3f3f !important;
+                            }
+
+                            /* Light Mode: Keep background transparent on hover */
+                            body.light-mode.classic-layout-active .suggestion-item:hover {
+                                background-color: transparent !important;
+                            }
+
+                            /* Light Mode: Preserve the current video highlight on hover */
+                            body.light-mode.classic-layout-active .suggestion-item.current-video-item:hover {
+                                background-color: #999 !important;
+                            }
+
+                            /* Light Mode Override */
+                            body.light-mode .channel-info.classic-layout .sub-count {
+                                background-color: #fafafa !important;
+                                color: #555 !important;
+                                border-color: #ccc !important;
                             }
 
                             .channel-info.classic-layout .subscribe-button.subscribed + .sub-count {
@@ -4955,6 +5103,166 @@
                                 margin-top: 0;
                                 padding: 10px 15px;
                                 border-top: 1px solid #555;
+                            }
+                            /* === Like/Dislike hover & tooltip (classic) === */
+                            .channel-info.classic-layout .like-dislike-icons .lyt-like-group,
+                            .channel-info.classic-layout .like-dislike-icons .lyt-dislike-group {
+                                display: inline-flex;
+                                align-items: center;
+                                position: relative;
+                                cursor: pointer;
+                                margin-right: 0;
+                                color: inherit;
+                            }
+                            
+                            .channel-info.classic-layout .lyt-like-group img,
+                            .channel-info.classic-layout .lyt-dislike-group img {
+                                transition: filter 0.15s ease;
+                            }
+                            
+                            .channel-info.classic-layout .lyt-like-group > span,
+                            .channel-info.classic-layout .lyt-dislike-group > span {
+                                transition: color 0.15s ease;
+                            }
+                            
+                            /* Darken the counter text */
+                            .channel-info.classic-layout .lyt-like-group:hover > span,
+                            .channel-info.classic-layout .lyt-dislike-group:hover > span {
+                                color: #686a6a !important;
+                            }
+                            
+                            /* Darken non-active (gray) icons */
+                            .channel-info.classic-layout .lyt-like-group:hover img:not(.lyt-liked),
+                            .channel-info.classic-layout .lyt-dislike-group:hover img:not(.lyt-disliked) {
+                                filter: invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(70%) contrast(88%) !important;
+                            }
+                            
+                            /* Tooltip body */
+                            .channel-info.classic-layout .lyt-like-group::before,
+                            .channel-info.classic-layout .lyt-dislike-group::before {
+                                content: attr(data-tooltip);
+                                position: absolute;
+                                bottom: calc(100% + 10px);
+                                left: 50%;
+                                transform: translateX(-50%);
+                                background-color: #000;
+                                color: #fff;
+                                font-size: 12px;
+                                font-family: 'RobotoRegular', Arial, sans-serif;
+                                padding: 6px 10px;
+                                border-radius: 3px;
+                                white-space: nowrap;
+                                opacity: 0;
+                                pointer-events: none;
+                                transition: opacity 0.15s ease;
+                                z-index: 100;
+                                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+                            }
+                            
+                            /* Tooltip triangle pointer */
+                            .channel-info.classic-layout .lyt-like-group::after,
+                            .channel-info.classic-layout .lyt-dislike-group::after {
+                                content: '';
+                                position: absolute;
+                                bottom: calc(100% + 5px);
+                                left: 50%;
+                                transform: translateX(-50%);
+                                border: 5px solid transparent;
+                                border-top: 6px solid #000;
+                                border-bottom: none;
+                                opacity: 0;
+                                pointer-events: none;
+                                transition: opacity 0.15s ease;
+                                z-index: 100;
+                            }
+                            
+                            /* Reveal tooltip on hover */
+                            .channel-info.classic-layout .lyt-like-group:hover::before,
+                            .channel-info.classic-layout .lyt-dislike-group:hover::before,
+                            .channel-info.classic-layout .lyt-like-group:hover::after,
+                            .channel-info.classic-layout .lyt-dislike-group:hover::after {
+                                opacity: 1;
+                            }
+                            /* === Share / Save hover & tooltip (classic) === */
+                            .channel-info.classic-layout #shareContainer,
+                            .channel-info.classic-layout #saveContainer {
+                                position: relative;
+                                cursor: pointer;
+                            }
+                            
+                            .channel-info.classic-layout #shareContainer img,
+                            .channel-info.classic-layout #saveContainer img {
+                                transition: filter 0.15s ease;
+                            }
+                            
+                            .channel-info.classic-layout #shareContainer span,
+                            .channel-info.classic-layout #saveContainer span {
+                                transition: color 0.15s ease;
+                            }
+                            
+                            /* Darken text on hover */
+                            .channel-info.classic-layout #shareContainer:hover span,
+                            .channel-info.classic-layout #saveContainer:hover span {
+                                color: #686a6a !important;
+                            }
+                            
+                            /* Darken share icon */
+                            .channel-info.classic-layout #shareContainer:hover img {
+                                filter: invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(70%) contrast(88%) !important;
+                            }
+                            
+                            /* Darken save icon — skip when already in "saved" state */
+                            .channel-info.classic-layout #saveContainer:hover img:not([src*="saved.svg"]) {
+                                filter: invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(70%) contrast(88%) !important;
+                            }
+                            
+                            /* Tooltip body */
+                            .channel-info.classic-layout #shareContainer::before,
+                            .channel-info.classic-layout #saveContainer::before {
+                                content: attr(data-tooltip);
+                                position: absolute;
+                                bottom: calc(100% + 10px);
+                                left: 50%;
+                                transform: translateX(-50%);
+                                background-color: #000;
+                                color: #fff;
+                                font-size: 12px;
+                                font-family: 'RobotoRegular', Arial, sans-serif;
+                                padding: 6px 10px;
+                                border-radius: 3px;
+                                white-space: nowrap;
+                                opacity: 0;
+                                pointer-events: none;
+                                transition: opacity 0.15s ease;
+                                z-index: 100;
+                                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+                            }
+                            
+                            /* Tooltip triangle — 6px top edge so it overlaps 1px into the bubble */
+                            .channel-info.classic-layout #shareContainer::after,
+                            .channel-info.classic-layout #saveContainer::after {
+                                content: '';
+                                position: absolute;
+                                bottom: calc(100% + 5px);
+                                left: 50%;
+                                transform: translateX(-50%);
+                                width: 0;
+                                height: 0;
+                                border: 5px solid transparent;
+                                border-top: 6px solid #000;
+                                border-bottom: none;
+                                opacity: 0;
+                                pointer-events: none;
+                                transition: opacity 0.15s ease;
+                                z-index: 100;
+                            }
+                            
+                            /* Reveal on hover */
+                            .channel-info.classic-layout #shareContainer:hover::before,
+                            .channel-info.classic-layout #saveContainer:hover::before,
+                            .channel-info.classic-layout #shareContainer:hover::after,
+                            .channel-info.classic-layout #saveContainer:hover::after {
+                                opacity: 1;
                             }
                         `;
 
