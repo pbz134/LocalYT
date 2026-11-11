@@ -5093,6 +5093,7 @@ sourceElement.src = `/videos/${videoSrc.split('/').map(encodePathSegment).join('
                             .classic-layout-active .video-description,
                             body[data-video-layout="classic"] .video-description {
                                 margin-bottom: 0;
+                                color: #d2cfcf !important;
                             }
 
                             .classic-layout-active .description-toggle,
@@ -5103,7 +5104,19 @@ sourceElement.src = `/videos/${videoSrc.split('/').map(encodePathSegment).join('
                                 margin-top: 0;
                                 padding: 10px 15px;
                                 border-top: 1px solid #555;
+                                text-decoration: none !important;
+                                color: #fff !important;
+                                font-weight: 400 !important;
+                                -webkit-text-stroke: 0.25px currentColor;
                             }
+
+                            .classic-layout-active .description-toggle:hover,
+                            body[data-video-layout="classic"] .description-toggle:hover {
+                                background-color: #282828 !important;
+                                color: #888 !important;
+                                text-decoration: none !important;
+                            }
+
                             /* === Like/Dislike hover & tooltip (classic) === */
                             .channel-info.classic-layout .like-dislike-icons .lyt-like-group,
                             .channel-info.classic-layout .like-dislike-icons .lyt-dislike-group {
