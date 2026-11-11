@@ -401,6 +401,9 @@
                 color: #666666 !important; 
             }
             
+            /* --- Black comment text on Light Mode --- */
+           .comment-text { color: #000000 !important; }
+
             /* --- Description Toggle Light Mode Fixes --- */
             .description-toggle { 
                 color: #065fd4 !important; /* YouTube Blue */
@@ -440,7 +443,15 @@
             .post-content-text, .classic-playlist-description { color: #000 !important; }
             .subscriber-count { color: #737373 !important; }
             ::placeholder { color: #737373 !important; }
-            .search-icon { filter: invert(0.6) !important; }
+            .search-icon { 
+                filter: invert(0.6) !important; 
+            }
+            .search-container::after {
+                background-color: #e5e5e5 !important;
+                border-color: #ccc !important; /* Changed to border-color to cover all sides */
+            }
+            .top-bar input:focus { border-color: #333 !important; }
+            .search-container:focus-within::after { border-color: #333 !important; }
             .tab-search-icon { filter: invert(0) !important; }
             #channelSearchInput, #searchInput { color: #000 !important; }
             .search-filters-toggle { background:#e0e0e0 !important; color:#0f0f0f !important; }

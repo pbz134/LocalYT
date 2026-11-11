@@ -66,13 +66,15 @@ body {
 
 .top-bar input {
     width: 100%;
-    padding: 10px 50px 10px 15px;
+    padding: 5px 70px 5px 15px;
     font-size: 16px;
     border: 2px solid #444;
+    border-right: none; /* Removes the double border issue */
     background-color: var(--input-bg-color);
     color: #fff;
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
     transition: border-color 0.3s ease;
+    box-sizing: border-box; /* Ensures precise height calculation */
 }
 
 .top-bar input:focus {
@@ -416,14 +418,15 @@ body {
     right: 0;
     top: 0;
     height: 100%;
-    width: 44px;
+    width: 60px;
     object-fit: contain;
-    padding: 10px;
+    padding: 6px;
     box-sizing: border-box;
     cursor: pointer;
     background-color: transparent;
     border: none;
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+    z-index: 2;
+    transition: filter 0.3s ease;
 }
 
 img.search-icon {
@@ -432,8 +435,28 @@ img.search-icon {
     user-select: none;
 }
 
-.search-container:focus-within .search-icon {
+/* Background and border container */
+.search-container::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0; /* Forces it to match the input's exact height */
+    width: 60px;
+    background-color: var(--secondary-bg-color);
+    border: 2px solid #444; /* Applies a full border to complete the outline */
+    box-sizing: border-box;
+    z-index: 1;
+    pointer-events: none;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.search-container:focus-within::after {
     border-color: #fff;
+}
+
+.search-container:focus-within .search-icon {
+    border-left-color: #fff;
 }
 /* --- End search icon --- */
 
@@ -479,6 +502,10 @@ img.search-icon {
     display: none;
 }
 
+.touch-device .search-container::after {
+    display: none !important;
+}
+
 .touch-device .search-container {
     flex: 0;
     max-width: none;
@@ -495,6 +522,8 @@ img.search-icon {
     position: static;
     right: auto;
     margin-top: 0;
+    background-color: transparent;
+    border: none;
 }
 
 .touch-device #mainLogo {
@@ -520,6 +549,8 @@ img.search-icon {
     right: auto !important;
     margin-top: 0;
     margin-right: 5px;
+    background-color: transparent !important;
+    border: none !important;
 }
 
 .touch-device .user-actions {
