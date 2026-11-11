@@ -608,41 +608,16 @@
 
                 <div class="settings-section-header">Video & Channel Layout</div>
 
+                <!-- COMBINED PAGE STYLE -->
                 <div class="setting-card">
                     <div class="card-info">
-                        <div class="card-label" id="videoPageLayoutLabel">Video page style</div>
-                        <div class="card-desc" id="videoPageLayoutDesc">Modern or Classic layout (view count on right, buttons stacked)</div>
+                        <div class="card-label" id="pageStyleLabel">Page style</div>
+                        <div class="card-desc" id="pageStyleDesc">Modern or Classic layout for video and channel pages</div>
                     </div>
                     <div class="card-control">
-                        <select class="setting-select" id="videoPageLayout">
+                        <select class="setting-select" id="pageStyle">
                             <option value="modern">Modern</option>
                             <option value="classic">Classic</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="setting-card">
-                    <div class="card-info">
-                        <div class="card-label" id="channelPageStyleLabel">Channel page style</div>
-                        <div class="card-desc" id="channelPageStyleDesc">Modern rounded header or classic square-in-banner</div>
-                    </div>
-                    <div class="card-control">
-                        <select class="setting-select" id="channelPageStyle">
-                            <option value="modern">Modern</option>
-                            <option value="legacy">Classic</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="setting-card">
-                    <div class="card-info">
-                        <div class="card-label" id="channelDefaultViewLabel">Default channel video layout</div>
-                        <div class="card-desc" id="channelDefaultViewDesc">Grid or list for channel videos tab</div>
-                    </div>
-                    <div class="card-control">
-                        <select class="setting-select" id="channelDefaultView">
-                            <option value="grid">Grid</option>
-                            <option value="list">List</option>
                         </select>
                     </div>
                 </div>
@@ -664,7 +639,21 @@
                     </div>
                 </div>
 
-                <div class="settings-section-header">Playlist Layout</div>
+                <div class="settings-section-header">Layout</div>
+
+                <!-- Default channel video layout (moved here) -->
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="channelDefaultViewLabel">Default channel video layout</div>
+                        <div class="card-desc" id="channelDefaultViewDesc">Grid or list for channel videos tab</div>
+                    </div>
+                    <div class="card-control">
+                        <select class="setting-select" id="channelDefaultView">
+                            <option value="grid">Grid</option>
+                            <option value="list">List</option>
+                        </select>
+                    </div>
+                </div>
 
                 <div class="setting-card">
                     <div class="card-info">
@@ -1099,7 +1088,7 @@
             return localStorage.getItem('language') === 'de' ? de : en;
         }
 
-        // --- UI Translations (updated for new setting) ---
+        // --- UI Translations (updated for combined Page style) ---
         function applyTranslations() {
             document.getElementById('searchInput').placeholder = getLang('Search', 'Suchen');
 
@@ -1123,10 +1112,8 @@
             document.querySelector('#presetSelector option[value="classic"]').textContent = getLang('Classic', 'Klassisch');
 
             // Appearance labels
-            document.getElementById('videoPageLayoutLabel').textContent = getLang('Video page style', 'Videoseiten-Stil');
-            document.getElementById('videoPageLayoutDesc').textContent = getLang('Modern or Classic layout (view count on right, buttons stacked)', 'Modernes oder klassisches Layout');
-            document.getElementById('channelPageStyleLabel').textContent = getLang('Channel page style', 'Kanalseiten-Stil');
-            document.getElementById('channelPageStyleDesc').textContent = getLang('Modern rounded header or classic square-in-banner', 'Moderner abgerundeter Header oder klassisch');
+            document.getElementById('pageStyleLabel').textContent = getLang('Page style', 'Seiten-Stil');
+            document.getElementById('pageStyleDesc').textContent = getLang('Modern or Classic layout for video and channel pages', 'Modernes oder klassisches Layout für Video- und Kanalseiten');
             document.getElementById('channelDefaultViewLabel').textContent = getLang('Default channel video layout', 'Standard-Kanalvideo-Layout');
             document.getElementById('channelDefaultViewDesc').textContent = getLang('Grid or list for channel videos tab', 'Raster oder Liste für Kanal-Videos');
             // videos per row
@@ -1198,10 +1185,11 @@
             document.getElementById('doneCropBtn').textContent = getLang('Done', 'Fertig');
 
             // Dropdown translations
-            const videoPageLayout = document.getElementById('videoPageLayout');
-            if (videoPageLayout) { videoPageLayout.options[0].text = getLang('Modern', 'Modern'); videoPageLayout.options[1].text = getLang('Classic', 'Klassisch'); }
-            const channelPageStyle = document.getElementById('channelPageStyle');
-            if (channelPageStyle) { channelPageStyle.options[0].text = 'Modern'; channelPageStyle.options[1].text = getLang('Classic', 'Klassisch'); }
+            const pageStyleSelect = document.getElementById('pageStyle');
+            if (pageStyleSelect) {
+                pageStyleSelect.options[0].text = getLang('Modern', 'Modern');
+                pageStyleSelect.options[1].text = getLang('Classic', 'Klassisch');
+            }
             const channelDefaultView = document.getElementById('channelDefaultView');
             if (channelDefaultView) { channelDefaultView.options[0].text = getLang('Grid', 'Raster'); channelDefaultView.options[1].text = getLang('List', 'Liste'); }
             const videosPerRow = document.getElementById('videosPerRow');
@@ -1259,7 +1247,6 @@
                 loadContentSettings();
                 loadAllTags();
             }
-            // Account and profile have no special loading needed, but profile pic loading is done on page load
         }
 
         function handleHashChange() {
@@ -1274,9 +1261,8 @@
                 e.preventDefault();
                 const targetTab = link.dataset.tab;
                 if (window.location.hash !== '#' + targetTab) {
-                    window.location.hash = targetTab; // triggers hashchange
+                    window.location.hash = targetTab;
                 } else {
-                    // If hash already correct, manually switch (in case hashchange doesn't fire)
                     switchTab(targetTab);
                 }
             });
@@ -1315,9 +1301,13 @@
 
         // --- Appearance Save ---
         async function saveAppearance() {
+            const pageStyleValue = document.getElementById('pageStyle').value; // 'modern' | 'classic'
+            const channelPageStyleValue = pageStyleValue === 'classic' ? 'legacy' : 'modern';
+
             const settings = {
-                videoPageLayout: document.getElementById('videoPageLayout').value,
-                channelPageStyle: document.getElementById('channelPageStyle').value,
+                pageStyle: pageStyleValue,
+                videoPageLayout: pageStyleValue,
+                channelPageStyle: channelPageStyleValue,
                 channelDefaultView: document.getElementById('channelDefaultView').value,
                 videosPerRow: parseInt(document.getElementById('videosPerRow').value, 10),
                 commenterProfileStyle: document.getElementById('commenterProfileStyle').value,
@@ -1327,8 +1317,11 @@
                 sidebarSvgIcons: document.getElementById('sidebarSvgIcons').checked,
                 playerUIScale: parseFloat(document.getElementById('playerUIScale').value)
             };
-            localStorage.setItem('videoPageLayout', JSON.stringify({ layout: settings.videoPageLayout }));
-            localStorage.setItem('channelPageStyle', JSON.stringify({ style: settings.channelPageStyle }));
+
+            // Write to all three localStorage keys so existing pages keep working
+            localStorage.setItem('pageStyle', JSON.stringify({ style: pageStyleValue }));
+            localStorage.setItem('videoPageLayout', JSON.stringify({ layout: pageStyleValue }));
+            localStorage.setItem('channelPageStyle', JSON.stringify({ style: channelPageStyleValue }));
             localStorage.setItem('channelDefaultView', JSON.stringify({ view: settings.channelDefaultView }));
             localStorage.setItem('videosPerRow', JSON.stringify({ value: settings.videosPerRow }));
             localStorage.setItem('commenterProfileStyle', JSON.stringify({ style: settings.commenterProfileStyle }));
@@ -1340,7 +1333,6 @@
 
             if (await updateUserSettings(settings)) {
                 showStatus('appearanceStatus', getLang('Appearance settings saved!', 'Erscheinungsbild gespeichert!'), true);
-                // Dispatch custom event to notify channel page (if open)
                 document.dispatchEvent(new CustomEvent('videosPerRowChanged'));
             } else {
                 showStatus('appearanceStatus', getLang('Error saving to server.', 'Fehler beim Speichern.'), false);
@@ -1413,7 +1405,7 @@
             const items = container.querySelectorAll('.pref-item');
             const newPrefs = {};
             let total = 0;
-            
+
             items.forEach(item => {
                 const tag = item.dataset.tag;
                 const inputEl = item.querySelector('.pref-value');
@@ -1428,15 +1420,12 @@
                 for (const tag in newPrefs) {
                     newPrefs[tag] = Math.round(newPrefs[tag] * factor * 100) / 100;
                 }
-                // Fix rounding errors
                 const newTotal = Object.values(newPrefs).reduce((a, b) => a + b, 0);
                 if (newTotal !== 100 && Object.keys(newPrefs).length > 0) {
                     const diff = Math.round((100 - newTotal) * 100) / 100;
                     const firstTag = Object.keys(newPrefs)[0];
                     newPrefs[firstTag] = Math.round((newPrefs[firstTag] + diff) * 100) / 100;
                 }
-                
-                // Update the UI with normalized values
                 items.forEach(item => {
                     const tag = item.dataset.tag;
                     const inputEl = item.querySelector('.pref-value');
@@ -1464,12 +1453,24 @@
 
         // --- Loading functions ---
         function loadAppearanceSettings() {
-            const videoPageLayout = JSON.parse(localStorage.getItem('videoPageLayout') || '{}');
-            document.getElementById('videoPageLayout').value = videoPageLayout.layout || 'modern';
-            const channelPageStyle = JSON.parse(localStorage.getItem('channelPageStyle') || '{}');
-            document.getElementById('channelPageStyle').value = channelPageStyle.style || 'modern';
+            // --- Combined Page Style ---
+            const pageStyleSetting = JSON.parse(localStorage.getItem('pageStyle') || '{}');
+            let pageStyle = pageStyleSetting.style;
+
+            if (!pageStyle) {
+                // Backward compat: derive from old keys
+                const videoLayout = JSON.parse(localStorage.getItem('videoPageLayout') || '{}');
+                const channelStyle = JSON.parse(localStorage.getItem('channelPageStyle') || '{}');
+                const isClassic = videoLayout.layout === 'classic' ||
+                                  channelStyle.style === 'legacy' ||
+                                  channelStyle.style === 'classic';
+                pageStyle = isClassic ? 'classic' : 'modern';
+            }
+            document.getElementById('pageStyle').value = pageStyle;
+
             const channelDefaultView = JSON.parse(localStorage.getItem('channelDefaultView') || '{}');
             document.getElementById('channelDefaultView').value = channelDefaultView.view || 'grid';
+
             const videosPerRow = JSON.parse(localStorage.getItem('videosPerRow') || '{}');
             document.getElementById('videosPerRow').value = videosPerRow.value || 4;
             const commenterStyle = JSON.parse(localStorage.getItem('commenterProfileStyle') || '{}');
@@ -1486,8 +1487,15 @@
             document.getElementById('playerUIScale').value = playerScale.scale !== undefined ? playerScale.scale : 1;
 
             fetch('/user-settings').then(res => res.json()).then(data => {
-                if (data.videoPageLayout) document.getElementById('videoPageLayout').value = data.videoPageLayout;
-                if (data.channelPageStyle) document.getElementById('channelPageStyle').value = data.channelPageStyle;
+                // Page style: prefer new key, fall back to old keys
+                if (data.pageStyle) {
+                    document.getElementById('pageStyle').value = data.pageStyle;
+                } else if (data.videoPageLayout || data.channelPageStyle) {
+                    const isClassic = data.videoPageLayout === 'classic' ||
+                                      data.channelPageStyle === 'legacy' ||
+                                      data.channelPageStyle === 'classic';
+                    document.getElementById('pageStyle').value = isClassic ? 'classic' : 'modern';
+                }
                 if (data.channelDefaultView) document.getElementById('channelDefaultView').value = data.channelDefaultView;
                 if (data.videosPerRow) document.getElementById('videosPerRow').value = data.videosPerRow;
                 if (data.commenterProfileStyle) document.getElementById('commenterProfileStyle').value = data.commenterProfileStyle;
@@ -1567,15 +1575,12 @@
                 const card = document.getElementById('preferredQualityCard');
                 if (!select || !card) return;
 
-                // Hide the card entirely if the admin disabled transcoding
-                // or no qualities are enabled.
                 if (!transcodeData.enabled || !transcodeData.qualities || transcodeData.qualities.length === 0) {
                     card.style.display = 'none';
                     return;
                 }
                 card.style.display = '';
 
-                // Rebuild options
                 select.innerHTML = '';
                 const originalOpt = document.createElement('option');
                 originalOpt.value = '0';
@@ -1589,7 +1594,6 @@
                     select.appendChild(opt);
                 });
 
-                // Server overrides localStorage
                 let finalHeight = prefLocalHeight;
                 if (userSettings && userSettings.preferredQuality !== undefined) {
                     finalHeight = parseInt(userSettings.preferredQuality, 10) || 0;
@@ -1598,8 +1602,6 @@
                     } catch (e) {}
                 }
 
-                // Guard: if the saved height is no longer in the enabled list,
-                // fall back to Original.
                 const exists = Array.from(select.options).some(
                     o => parseInt(o.value, 10) === finalHeight
                 );
@@ -1670,8 +1672,7 @@
                     <input type="number" class="pref-value" data-tag="${tag}" value="${value}" min="0" max="100" step="0.1">
                     <button class="btn-remove" title="Remove Tag">&times;</button>
                 </div>`;
-            
-            // When value changes, redistribute percentages
+
             const input = div.querySelector('.pref-value');
             input.addEventListener('change', function() {
                 redistributePercentages(this);
@@ -1679,10 +1680,9 @@
             input.addEventListener('input', function() {
                 redistributePercentages(this);
             });
-            
+
             div.querySelector('.btn-remove').addEventListener('click', () => {
                 div.remove();
-                // Rebalance remaining tags
                 rebalanceAll();
             });
             container.appendChild(div);
@@ -1694,14 +1694,12 @@
             const items = container.querySelectorAll('.pref-item');
             const newValue = parseFloat(changedInput.value) || 0;
             const tag = changedInput.dataset.tag;
-            
-            // Clamp to 0-100
+
             const clampedValue = Math.max(0, Math.min(100, newValue));
             if (clampedValue !== newValue) {
                 changedInput.value = clampedValue;
             }
-            
-            // If value is 100, set all others to 0
+
             if (clampedValue === 100) {
                 items.forEach(item => {
                     const input = item.querySelector('.pref-value');
@@ -1711,8 +1709,7 @@
                 });
                 return;
             }
-            
-            // Calculate current total of all other tags
+
             let otherTotal = 0;
             let otherItems = [];
             items.forEach(item => {
@@ -1723,8 +1720,7 @@
                     otherItems.push({ item, input, val });
                 }
             });
-            
-            // If all other tags sum to 0, distribute remaining percentage equally
+
             if (otherTotal === 0) {
                 const remaining = 100 - clampedValue;
                 const count = otherItems.length;
@@ -1733,7 +1729,6 @@
                     let sum = 0;
                     otherItems.forEach(({ input, val }, index) => {
                         if (index === count - 1) {
-                            // Last item gets the remainder to fix rounding
                             const remainder = Math.round((remaining - sum) * 100) / 100;
                             input.value = remainder;
                         } else {
@@ -1744,15 +1739,13 @@
                 }
                 return;
             }
-            
-            // Redistribute proportionally
+
             const remaining = 100 - clampedValue;
             let distributedSum = 0;
             otherItems.forEach(({ input, val }, index) => {
                 const proportion = val / otherTotal;
                 let newVal = Math.round((remaining * proportion) * 100) / 100;
-                
-                // For the last item, use remainder to fix rounding
+
                 if (index === otherItems.length - 1) {
                     newVal = Math.round((remaining - distributedSum) * 100) / 100;
                 }
@@ -1764,10 +1757,9 @@
         function rebalanceAll() {
             const container = document.getElementById('preferencesContainer');
             const items = container.querySelectorAll('.pref-item');
-            
+
             if (items.length === 0) return;
-            
-            // Get current values
+
             const values = [];
             let total = 0;
             items.forEach(item => {
@@ -1776,8 +1768,7 @@
                 values.push({ item, input, val });
                 total += val;
             });
-            
-            // If total is 0, distribute equally
+
             if (total === 0) {
                 const each = Math.round((100 / items.length) * 100) / 100;
                 let sum = 0;
@@ -1792,8 +1783,7 @@
                 });
                 return;
             }
-            
-            // Normalize to 100%
+
             let sum = 0;
             values.forEach(({ input, val }, index) => {
                 let newVal = Math.round((val / total) * 100 * 100) / 100;
@@ -1813,8 +1803,7 @@
                     playlistNext: document.getElementById('autoplayPlaylistNext').checked,
                     nonPlaylistMode: document.getElementById('autoplayNonPlaylistMode').value
                 },
-                videoPageLayout: document.getElementById('videoPageLayout').value,
-                channelPageStyle: document.getElementById('channelPageStyle').value,
+                pageStyle: document.getElementById('pageStyle').value,
                 channelDefaultView: document.getElementById('channelDefaultView').value,
                 videosPerRow: parseInt(document.getElementById('videosPerRow').value, 10),
                 commenterProfileStyle: document.getElementById('commenterProfileStyle').value,
@@ -1867,8 +1856,15 @@
                         document.getElementById('autoplayNonPlaylistMode').value = config.autoplaySettings.nonPlaylistMode || 'first-recommended';
                         toggleAutoplayCards();
                     }
-                    if (config.videoPageLayout) document.getElementById('videoPageLayout').value = config.videoPageLayout;
-                    if (config.channelPageStyle) document.getElementById('channelPageStyle').value = config.channelPageStyle;
+                    // Page style: new key first, fall back to old keys
+                    if (config.pageStyle) {
+                        document.getElementById('pageStyle').value = config.pageStyle;
+                    } else if (config.videoPageLayout !== undefined || config.channelPageStyle !== undefined) {
+                        const isClassic = config.videoPageLayout === 'classic' ||
+                                          config.channelPageStyle === 'legacy' ||
+                                          config.channelPageStyle === 'classic';
+                        document.getElementById('pageStyle').value = isClassic ? 'classic' : 'modern';
+                    }
                     if (config.channelDefaultView) document.getElementById('channelDefaultView').value = config.channelDefaultView;
                     if (config.videosPerRow) document.getElementById('videosPerRow').value = config.videosPerRow;
                     if (config.commenterProfileStyle) document.getElementById('commenterProfileStyle').value = config.commenterProfileStyle;
@@ -1907,8 +1903,7 @@
 
             if (presetName === 'modern') {
                 settings = {
-                    videoPageLayout: 'modern',
-                    channelPageStyle: 'modern',
+                    pageStyle: 'modern',
                     channelDefaultView: 'grid',
                     videosPerRow: 4,
                     commenterProfileStyle: 'modern',
@@ -1918,8 +1913,7 @@
                 };
             } else if (presetName === 'classic') {
                 settings = {
-                    videoPageLayout: 'classic',
-                    channelPageStyle: 'legacy',
+                    pageStyle: 'classic',
                     channelDefaultView: 'grid',
                     videosPerRow: 4,
                     commenterProfileStyle: 'classic',
@@ -1931,25 +1925,39 @@
                 return;
             }
 
-            if (settings.videoPageLayout) document.getElementById('videoPageLayout').value = settings.videoPageLayout;
-            if (settings.channelPageStyle) document.getElementById('channelPageStyle').value = settings.channelPageStyle;
-            if (settings.channelDefaultView) document.getElementById('channelDefaultView').value = settings.channelDefaultView;
-            if (settings.videosPerRow) document.getElementById('videosPerRow').value = settings.videosPerRow;
-            if (settings.commenterProfileStyle) document.getElementById('commenterProfileStyle').value = settings.commenterProfileStyle;
-            if (settings.roundedCorners !== undefined) document.getElementById('roundedCorners').checked = settings.roundedCorners;
-            if (settings.sidebarSvgIcons !== undefined) document.getElementById('sidebarSvgIcons').checked = settings.sidebarSvgIcons;
-            if (settings.playlistPageLayout) document.getElementById('playlistPageLayout').value = settings.playlistPageLayout;
+            if (settings.pageStyle) {
+                document.getElementById('pageStyle').value = settings.pageStyle;
+                const pageStyleVal = settings.pageStyle;
+                const channelStyleVal = pageStyleVal === 'classic' ? 'legacy' : 'modern';
+                localStorage.setItem('pageStyle', JSON.stringify({ style: pageStyleVal }));
+                localStorage.setItem('videoPageLayout', JSON.stringify({ layout: pageStyleVal }));
+                localStorage.setItem('channelPageStyle', JSON.stringify({ style: channelStyleVal }));
+            }
+            if (settings.channelDefaultView) {
+                document.getElementById('channelDefaultView').value = settings.channelDefaultView;
+                localStorage.setItem('channelDefaultView', JSON.stringify({ view: settings.channelDefaultView }));
+            }
+            if (settings.videosPerRow) {
+                document.getElementById('videosPerRow').value = settings.videosPerRow;
+                localStorage.setItem('videosPerRow', JSON.stringify({ value: settings.videosPerRow }));
+            }
+            if (settings.commenterProfileStyle) {
+                document.getElementById('commenterProfileStyle').value = settings.commenterProfileStyle;
+                localStorage.setItem('commenterProfileStyle', JSON.stringify({ style: settings.commenterProfileStyle }));
+            }
+            if (settings.roundedCorners !== undefined) {
+                document.getElementById('roundedCorners').checked = settings.roundedCorners;
+                localStorage.setItem('roundedCorners', JSON.stringify({ enabled: settings.roundedCorners }));
+            }
+            if (settings.sidebarSvgIcons !== undefined) {
+                document.getElementById('sidebarSvgIcons').checked = settings.sidebarSvgIcons;
+                localStorage.setItem('sidebarSvgIcons', JSON.stringify(settings.sidebarSvgIcons));
+            }
+            if (settings.playlistPageLayout) {
+                document.getElementById('playlistPageLayout').value = settings.playlistPageLayout;
+                localStorage.setItem('playlistPageLayout', JSON.stringify({ view: settings.playlistPageLayout }));
+            }
 
-            if (settings.videoPageLayout) localStorage.setItem('videoPageLayout', JSON.stringify({ layout: settings.videoPageLayout }));
-            if (settings.channelPageStyle) localStorage.setItem('channelPageStyle', JSON.stringify({ style: settings.channelPageStyle }));
-            if (settings.channelDefaultView) localStorage.setItem('channelDefaultView', JSON.stringify({ view: settings.channelDefaultView }));
-            if (settings.videosPerRow) localStorage.setItem('videosPerRow', JSON.stringify({ value: settings.videosPerRow }));
-            if (settings.commenterProfileStyle) localStorage.setItem('commenterProfileStyle', JSON.stringify({ style: settings.commenterProfileStyle }));
-            if (settings.roundedCorners !== undefined) localStorage.setItem('roundedCorners', JSON.stringify({ enabled: settings.roundedCorners }));
-            if (settings.sidebarSvgIcons !== undefined) localStorage.setItem('sidebarSvgIcons', JSON.stringify(settings.sidebarSvgIcons));
-            if (settings.playlistPageLayout) localStorage.setItem('playlistPageLayout', JSON.stringify({ view: settings.playlistPageLayout }));
-
-            // Dispatch event to notify channel page
             document.dispatchEvent(new CustomEvent('videosPerRowChanged'));
         }
 
@@ -1991,7 +1999,6 @@
                 }
                 createPrefItem(tagName, 0, container);
                 input.value = '';
-                // Rebalance after adding
                 rebalanceAll();
             });
             document.getElementById('resetPrefsBtn').addEventListener('click', () => {
@@ -2071,7 +2078,6 @@
                 }
             })
             .catch(() => {
-                // Fallback: keep placeholder
                 document.getElementById('profilePicDisplay').src = '/LocalYT-Rev-Files/user-profile-placeholder.jpg';
             });
 
