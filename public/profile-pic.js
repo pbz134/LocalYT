@@ -413,15 +413,22 @@
             }
             
             /* Classic Layout overrides for Light Mode */
+            .classic-layout-active .video-description,
+            body[data-video-layout="classic"] .video-description {
+                color: #0f0f0f !important;
+            }
             .classic-layout-active .description-toggle,
             body[data-video-layout="classic"] .description-toggle {
                 background-color: #f9f9f9 !important;
                 border-top-color: #e0e0e0 !important;
-                color: #0f0f0f !important;
+                color: #666666 !important;
+                text-decoration: none !important;
             }
             .classic-layout-active .description-toggle:hover,
             body[data-video-layout="classic"] .description-toggle:hover {
-                background-color: #f0f0f0 !important;
+                background-color: #f9f9f9 !important;
+                color: #0f0f0f !important;
+                text-decoration: none !important;
             }
             #classicInfoBoxWrapper { background-color:#fff !important; border-color:#e0e0e0 !important; }
             #classicInfoBoxWrapper #classicActionsWrapper { border-top-color:#e0e0e0 !important; }
