@@ -161,7 +161,7 @@
 
         const sectionHeaders = document.querySelectorAll('.settings-section-header');
         const headerMap = {
-            'Video & Channel Layout': { en: 'Video & Channel Layout', de: 'Video & Kanal-Layout' },
+            'Video & Channel Layout': { en: 'Video & Channel Layout', de: 'Video- & Kanal-Layout' },
             'Playlist Layout': { en: 'Playlist Layout', de: 'Playlist-Layout' },
             'Visual Style': { en: 'Visual Style', de: 'Visueller Stil' },
             'Player': { en: 'Player', de: 'Player' },
@@ -1389,7 +1389,7 @@
                 if (!jobId) throw new Error('Server did not return a job ID');
         
                 // ---------------- Phase 2: poll the job ----------------
-                statusEl.textContent = getLang('Upload received. Server is processing...', 'Upload erhalten. Server verarbeitet...');
+                statusEl.textContent = getLang('Upload received. Processing...', 'Upload erhalten. Verarbeiten...');
                 progressBar.style.width = '0%';
         
                 const pollStart = Date.now();
@@ -1432,7 +1432,7 @@
                                 let msg = lang === 'de'
                                     ? `Wartet in der Warteschlange (Position ${pos})...`
                                     : `Waiting in queue (position ${pos})...`;
-                                // Show overall queue depth if more than just you
+                                // Show overall queue depth if more than just one
                                 if (queued > 1) {
                                     msg += lang === 'de'
                                         ? ` [${running} aktiv, ${queued} wartend]`
