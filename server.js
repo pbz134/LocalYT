@@ -4010,31 +4010,32 @@ async function probeVideoInfo(filePath) {
     try {
         const { stdout } = await runProcess(findBinary('ffprobe'), [
             '-v', 'error',
-            '-select_streams', 'v:0',
-            '-show_entries', 'stream=width,height,codec_name,r_frame_rate,avg_frame_rate:format=duration',
+            '-show_entries',
+            'stream=codec_type,codec_name,width,height,r_frame_rate,avg_frame_rate:format=duration',
             '-of', 'json',
             filePath
         ]);
         const data = JSON.parse(stdout);
-        const stream = (data.streams && data.streams[0]) || {};
+        const streams = data.streams || [];
+        const videoStream = streams.find(s => s.codec_type === 'video') || {};
+        const audioStream = streams.find(s => s.codec_type === 'audio') || {};
         const duration = parseFloat((data.format && data.format.duration) || '0');
 
-        // Prefer avg_frame_rate (actual playback rate) over r_frame_rate (base rate).
-        // Both are "num/den" strings. e.g. "30000/1001" → 29.97 fps.
         let fps = 0;
-        const fpsStr = stream.avg_frame_rate || stream.r_frame_rate || '0/0';
+        const fpsStr = videoStream.avg_frame_rate || videoStream.r_frame_rate || '0/0';
         const [fpsNum, fpsDen] = String(fpsStr).split('/').map(Number);
         if (fpsDen && fpsNum && isFinite(fpsNum / fpsDen)) fps = fpsNum / fpsDen;
 
         return {
             durationSec: isFinite(duration) && duration > 0 ? duration : 0,
-            width: parseInt(stream.width, 10) || 0,
-            height: parseInt(stream.height, 10) || 0,
-            codec: (stream.codec_name || 'Unknown').toUpperCase(),
+            width: parseInt(videoStream.width, 10) || 0,
+            height: parseInt(videoStream.height, 10) || 0,
+            codec: (videoStream.codec_name || 'Unknown').toUpperCase(),
+            audioCodec: (audioStream.codec_name || '').toLowerCase(),
             fps: fps
         };
     } catch {
-        return { durationSec: 0, width: 0, height: 0, codec: 'Unknown', fps: 0 };
+        return { durationSec: 0, width: 0, height: 0, codec: 'Unknown', audioCodec: '', fps: 0 };
     }
 }
 
@@ -5018,8 +5019,6 @@ function getTranscodeConfig() {
     const cfg = loadAdminConfig();
     const tc = cfg.transcoding || {};
 
-    // parseInt(undefined) -> NaN -> fall back to default.
-    // parseInt(0) -> 0 -> accept literally (0 means "no cleanup").
     const parsedAge = parseInt(tc.cacheMaxAgeDays, 10);
     const parsedInterval = parseInt(tc.cacheCleanupIntervalHours, 10);
 
@@ -5034,7 +5033,11 @@ function getTranscodeConfig() {
         qsvPreset: tc.qsvPreset || 'veryfast',
         x264Crf: parseInt(tc.x264Crf, 10) || 26,
         x264Preset: tc.x264Preset || 'veryfast',
-        audioBitrate: tc.audioBitrate || '96k'
+        audioBitrate: tc.audioBitrate || '96k',
+        // 'auto'   -> copy AAC/MP3, re-encode everything else (recommended)
+        // 'copy'   -> always copy (may fail for Opus/Vorbis/etc. in MP4)
+        // 'encode' -> always re-encode to AAC (old behaviour)
+        audioMode: ['auto', 'copy', 'encode'].includes(tc.audioMode) ? tc.audioMode : 'auto'
     };
 }
 
@@ -5067,14 +5070,13 @@ async function getCachedSourceProbe(videoRelPath) {
     return info;
 }
 
-function buildTranscodeArgs(sourcePath, targetHeight, cfg) {
+function buildTranscodeArgs(sourcePath, targetHeight, cfg, sourceAudioCodec) {
     const targetWidth = Math.floor(targetHeight * 16 / 9 / 2) * 2;
     const useQsv = (cfg.engine === 'qsv' || cfg.engine === 'auto');
 
     const args = ['-hide_banner', '-loglevel', 'error'];
 
     if (useQsv) {
-        // Use hardware decoding for the source file.
         args.push('-hwaccel', 'qsv');
         args.push('-hwaccel_output_format', 'qsv');
     }
@@ -5086,10 +5088,9 @@ function buildTranscodeArgs(sourcePath, targetHeight, cfg) {
             '-c:v', 'h264_qsv',
             '-global_quality', String(cfg.qsvQuality),
             '-preset', cfg.qsvPreset,
-            // Additional tuning for speed/latency
-            '-async_depth', '4',      // Allow more parallel encoding tasks
-            '-bf', '0',               // Disable B-frames for lower latency
-            '-look_ahead', '0',       // Disable lookahead for faster encoding
+            '-async_depth', '4',
+            '-bf', '0',
+            '-look_ahead', '0',
             '-vf', `scale=${targetWidth}:${targetHeight}:flags=bilinear`
         );
     } else {
@@ -5101,9 +5102,20 @@ function buildTranscodeArgs(sourcePath, targetHeight, cfg) {
         );
     }
 
+    // Audio: copy when it's MP4/fMP4-compatible, otherwise re-encode to AAC.
+    // Copying avoids the second-generation AAC artifacts (clicks / pops)
+    // that show up even at "the same bitrate".
+    const audioMode = cfg.audioMode || 'auto';
+    const copyableAudioCodecs = new Set(['aac', 'mp3']);
+    const canCopy = sourceAudioCodec && copyableAudioCodecs.has(String(sourceAudioCodec).toLowerCase());
+
+    if (audioMode === 'copy' || (audioMode === 'auto' && canCopy)) {
+        args.push('-c:a', 'copy');
+    } else {
+        args.push('-c:a', 'aac', '-b:a', cfg.audioBitrate);
+    }
+
     args.push(
-        '-c:a', 'aac',
-        '-b:a', cfg.audioBitrate,
         '-movflags', '+frag_keyframe+empty_moov+default_base_moof',
         '-f', 'mp4'
     );
@@ -5188,10 +5200,16 @@ function startOrAttachTranscode(videoRelPath, targetHeight, res, options = {}) {
     const tmpPath = cachePath + '.tmp';
     if (cacheable) fs.mkdirSync(path.dirname(cachePath), { recursive: true });
 
+    // The caller already probed the source (getCachedSourceProbe). Fall back to
+    // the in-memory probe cache if it wasn't passed in. This lets
+    // buildTranscodeArgs decide whether to copy or re-encode the audio track.
+    const sourceInfo = options.sourceInfo || _transcodeProbeCache.get(videoRelPath) || null;
+    const sourceAudioCodec = sourceInfo ? sourceInfo.audioCodec : '';
+
     // buildTranscodeArgs already returns:
     //   ['-hide_banner','-loglevel','error','-i',src,'-c:v',...,'-f','mp4']
     // We rebuild it here so we can insert -ss BEFORE -i (input seek).
-    const base = buildTranscodeArgs(sourcePath, targetHeight, cfg);
+    const base = buildTranscodeArgs(sourcePath, targetHeight, cfg, sourceAudioCodec);
     const iIdx = base.indexOf('-i');
     const args = ['-hide_banner', '-loglevel', 'error'];
     if (startOffset > 0) args.push('-ss', String(startOffset));
@@ -5375,7 +5393,12 @@ app.get('/transcode/:quality/*', async (req, res) => {
     }
 
     try {
-        await queue.enqueue(() => startOrAttachTranscode(videoRelPath, quality, res, { startOffset }));
+        await queue.enqueue(() =>
+            startOrAttachTranscode(videoRelPath, quality, res, {
+                startOffset,
+                sourceInfo: info
+            })
+        );
     } catch (err) {
         if (res.destroyed || res.headersSent) return;
         if (err.cancelled) res.status(503).send('Transcode cancelled');
@@ -5454,6 +5477,6 @@ console.log(`[Transcode] Initialized. Engine: ${getTranscodeConfig().engine}, ` 
     initializeChannelShortLinks();
 
     app.listen(PORT, '0.0.0.0', () => {
-        console.log(`\nServer is running on http://localhost:${PORT}`);
+        console.log(`\nServer is running on http://localhost:${PORT}, Public link: https://www.localyt.net`);
     });
 })();

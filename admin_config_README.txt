@@ -30,7 +30,8 @@ admin_config.json looks like this by default (see below for an explanation):
     "qsvPreset": "veryfast",
     "x264Crf": 26,
     "x264Preset": "veryfast",
-    "audioBitrate": "96k"
+    "audioBitrate": "128k",
+    "audioMode": "auto"
   }
 }
 

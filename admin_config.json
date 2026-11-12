@@ -27,6 +27,7 @@
     "qsvPreset": "veryfast",
     "x264Crf": 26,
     "x264Preset": "veryfast",
-    "audioBitrate": "128k"
+    "audioBitrate": "128k",
+    "audioMode": "auto"
   }
 }
