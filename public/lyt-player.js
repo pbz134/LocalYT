@@ -1575,7 +1575,7 @@
                     
                     .lyt_volume_bar {
                         width: calc(64px * var(--lyt-ui-scale));
-                        height: 4px;
+                        height: calc(4px * var(--lyt-ui-scale));
                         background: rgba(255,255,255,0.3);
                         cursor: pointer;
                         position: relative;
@@ -1597,19 +1597,19 @@
                     .lyt_volume_bar::before {
                         content: '';
                         position: absolute;
-                        top: -10px;
+                        top:    calc(-10px * var(--lyt-ui-scale));
                         left: 0;
                         right: 0;
-                        bottom: -10px;
+                        bottom: calc(-10px * var(--lyt-ui-scale));
                         cursor: pointer;
                     }
                     .lyt_volume_dot {
-                        width: 13px;
-                        height: 13px;
+                        width:  calc(12px * var(--lyt-ui-scale));
+                        height: calc(12px * var(--lyt-ui-scale));
                         background: #fff;
                         border-radius: 50%;
                         position: absolute;
-                        right: -6.5px;
+                        right: calc(-6px * var(--lyt-ui-scale));
                         top: 50%;
                         transform: translateY(-50%);
                         box-shadow: 0 0 4px rgba(0,0,0,0.5);
