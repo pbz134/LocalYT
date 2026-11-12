@@ -5477,6 +5477,6 @@ console.log(`[Transcode] Initialized. Engine: ${getTranscodeConfig().engine}, ` 
     initializeChannelShortLinks();
 
     app.listen(PORT, '0.0.0.0', () => {
-        console.log(`\nServer is running on http://localhost:${PORT}, Public link: https://www.localyt.net`);
+        console.log(`\nServer is running on http://localhost:${PORT}`);
     });
 })();
