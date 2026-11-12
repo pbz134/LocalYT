@@ -12,10 +12,14 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
+            padding: 20px 0;
+            box-sizing: border-box;
             background: var(--main-bg-color);
             color: #fff;
         }
+
+        #loginSection { flex-shrink: 0; }
 
         .logo {
             width: 200px;
@@ -116,13 +120,8 @@
             display: none;
         }
 
-        .status-message.yellow {
-            color: #ffaa00;
-        }
-
-        .status-message.red {
-            color: #ff4444;
-        }
+        .status-message.yellow { color: #ffaa00; }
+        .status-message.red    { color: #ff4444; }
 
         /* ===== PREFERENCE SELECTION ===== */
 
@@ -132,9 +131,10 @@
             align-items: center;
             justify-content: center;
             width: 100%;
-            max-width: 540px;
+            max-width: 720px;
             padding: 24px;
             box-sizing: border-box;
+            flex-shrink: 0;
         }
 
         .pref-section.visible {
@@ -142,9 +142,27 @@
             animation: fadeInUp 0.5s ease;
         }
 
+        #prefPage1,
+        #prefPage2 {
+            flex-shrink: 0;
+            width: 100%;
+        }
+
+        #prefPage2 { max-width: 540px; }
+
         @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(16px); }
             to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .pref-question {
+            width: 100%;
+            margin-bottom: 22px;
+            flex-shrink: 0;
+        }
+
+        .pref-question:last-of-type {
+            margin-bottom: 8px;
         }
 
         .pref-title {
@@ -156,6 +174,11 @@
             line-height: 1.35;
         }
 
+        .pref-question .pref-title {
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
         .pref-subtitle {
             font-size: 14px;
             color: #777;
@@ -163,12 +186,300 @@
             margin-bottom: 26px;
         }
 
+        .pref-question .pref-subtitle {
+            font-size: 13px;
+            margin-bottom: 14px;
+        }
+
+        /* --- Look choice cards --- */
+        .look-choice {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            width: 100%;
+            align-items: start;
+        }
+
+        .look-card {
+            cursor: pointer;
+            border: 2px solid #363636;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+            background: #141414;
+            position: relative;
+            user-select: none;
+            min-width: 0;
+        }
+
+        .look-card:hover { border-color: #555; }
+
+        .look-card.selected {
+            border-color: #ff0000;
+            box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.18);
+        }
+
+        .look-card-badge {
+            position: absolute;
+            top: 8px; left: 8px;
+            z-index: 2;
+            background: rgba(0, 0, 0, 0.72);
+            color: #fff;
+            padding: 3px 9px;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .look-card.selected .look-card-badge {
+            background: #ff0000;
+        }
+
+        /* --- Schematic preview --- */
+        .look-preview {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 11;
+            padding: 10px;
+            background: #0f0f0f;
+            box-sizing: border-box;
+            font-size: 9px;
+            color: #ccc;
+            transition: background-color 0.2s ease;
+        }
+
+        .lp-sidebar {
+            position: absolute;
+            top: 10px; right: 10px; bottom: 10px;
+            width: 28%;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .look-preview.classic .lp-sidebar { width: 32%; }
+
+        .lp-sidebar-thumb {
+            background: linear-gradient(135deg, #222, #2a2a2a);
+            border-radius: 3px;
+            flex: 1;
+            min-height: 0;
+            transition: background 0.2s ease;
+        }
+
+        .lp-main {
+            width: 64%;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .look-preview.classic .lp-main { width: 60%; }
+
+        .lp-player {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: radial-gradient(circle at 30% 40%, #2a2a2a, #151515 70%);
+            border-radius: 3px;
+            position: relative;
+            transition: background 0.2s ease;
+        }
+
+        .lp-player::after {
+            content: '▶';
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.22);
+            transition: color 0.2s ease;
+        }
+
+        .lp-title {
+            font-size: 10px;
+            color: #fff;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 2px;
+            transition: color 0.2s ease;
+        }
+
+        .lp-channel-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .lp-avatar {
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: #444;
+            flex-shrink: 0;
+            transition: background-color 0.2s ease;
+        }
+
+        .lp-channel {
+            font-size: 9px;
+            color: #999;
+            transition: color 0.2s ease;
+        }
+
+        .lp-sub-btn {
+            padding: 1px 6px;
+            background: #cc0000;
+            color: #fff;
+            border-radius: 2px;
+            font-size: 8px;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        .lp-actions {
+            display: flex;
+            gap: 4px;
+            margin-top: 2px;
+        }
+
+        .lp-pill {
+            padding: 2px 7px;
+            background: #272727;
+            border-radius: 10px;
+            font-size: 8px;
+            color: #ddd;
+            white-space: nowrap;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        /* --- Classic info box --- */
+        .lp-info-box {
+            background: #282828;
+            border: 1px solid #3f3f3f;
+            border-radius: 2px;
+            padding: 5px 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 2px;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+
+        .lp-info-box .lp-title { margin-top: 0; }
+
+        .lp-divider {
+            height: 1px;
+            background: #3f3f3f;
+            margin: 2px 0;
+            transition: background-color 0.2s ease;
+        }
+
+        /* --- Mode choice (compact swatch cards) --- */
+        .mode-choice {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            max-width: 420px;
+            margin: 0 auto;
+            align-items: start;
+        }
+
+        .mode-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 14px;
+            border: 2px solid #363636;
+            border-radius: 10px;
+            background: #141414;
+            cursor: pointer;
+            transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+            user-select: none;
+            min-width: 0;
+        }
+
+        .mode-card:hover { border-color: #555; }
+
+        .mode-card.selected {
+            border-color: #ff0000;
+            box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.18);
+        }
+
+        .mode-swatch {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid transparent;
+        }
+
+        .mode-swatch-light {
+            background: #f9f9f9;
+            border-color: #e0e0e0;
+        }
+
+        .mode-swatch-light::before {
+            content: '';
+            position: absolute;
+            top: 20%; left: 10%;
+            width: 55%; height: 50%;
+            background: #d8d8d8;
+            border-radius: 3px;
+        }
+
+        .mode-swatch-light::after {
+            content: '';
+            position: absolute;
+            bottom: 15%; left: 10%;
+            width: 40%; height: 8%;
+            background: #bbb;
+            border-radius: 2px;
+        }
+
+        .mode-swatch-dark {
+            background: #0f0f0f;
+            border-color: #2a2a2a;
+        }
+
+        .mode-swatch-dark::before {
+            content: '';
+            position: absolute;
+            top: 20%; left: 10%;
+            width: 55%; height: 50%;
+            background: #1a1a1a;
+            border-radius: 3px;
+        }
+
+        .mode-swatch-dark::after {
+            content: '';
+            position: absolute;
+            bottom: 15%; left: 10%;
+            width: 40%; height: 8%;
+            background: #666;
+            border-radius: 2px;
+        }
+
+        .mode-card span {
+            font-size: 14px;
+            color: #ccc;
+            transition: color 0.2s;
+        }
+
+        .mode-card.selected span { color: #fff; }
+
+        /* --- Tag grid --- */
         .pref-grid {
             display: flex;
             flex-wrap: wrap;
             gap: 9px;
             justify-content: center;
-            margin-bottom: 28px;
             min-height: 48px;
             width: 100%;
         }
@@ -181,7 +492,7 @@
             color: #bbb;
             font-size: 13px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: background-color 0.2s, border-color 0.2s, color 0.2s;
             user-select: none;
             white-space: nowrap;
             opacity: 0;
@@ -207,12 +518,14 @@
             pointer-events: none;
         }
 
+        /* --- Footer --- */
         .pref-footer {
             display: flex;
             align-items: center;
             justify-content: space-between;
             width: 100%;
             gap: 16px;
+            flex-shrink: 0;
         }
 
         .pref-counter {
@@ -231,14 +544,12 @@
             border: none;
             border-radius: 8px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: background-color 0.2s, color 0.2s;
             letter-spacing: 0.3px;
             width: auto;
         }
 
-        .pref-btn:hover:not(:disabled) {
-            background-color: #cc0000;
-        }
+        .pref-btn:hover:not(:disabled) { background-color: #cc0000; }
 
         .pref-btn:disabled {
             background-color: #2a2a2a;
@@ -246,19 +557,26 @@
             cursor: not-allowed;
         }
 
+        .pref-links {
+            display: flex;
+            gap: 22px;
+            justify-content: center;
+            margin-top: 16px;
+            flex-shrink: 0;
+        }
+
         .pref-skip {
             display: block;
             text-align: center;
-            margin-top: 16px;
             color: #555;
             font-size: 13px;
             text-decoration: none;
             transition: color 0.2s ease;
         }
 
-        .pref-skip:hover {
-            color: #999;
-        }
+        .pref-skip:hover { color: #999; }
+
+        .pref-links .pref-skip { display: inline-block; }
 
         .pref-loading {
             display: flex;
@@ -271,8 +589,7 @@
         }
 
         .pref-loading .spinner {
-            width: 18px;
-            height: 18px;
+            width: 18px; height: 18px;
             border: 2px solid #2a2a2a;
             border-top: 2px solid #ff0000;
             border-radius: 50%;
@@ -281,9 +598,7 @@
             flex-shrink: 0;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         .pref-empty {
             color: #555;
@@ -297,10 +612,94 @@
             transform: translateY(-8px) !important;
             pointer-events: none;
         }
+
+        /* =========================================================
+           LIGHT MODE OVERRIDES FOR THE QUESTIONNAIRE
+           ========================================================= */
+
+        body.pref-light,
+        body.pref-light.login-page {
+            color: #0f0f0f;
+        }
+
+        body.pref-light .pref-title     { color: #0f0f0f; }
+        body.pref-light .pref-subtitle  { color: #666; }
+        body.pref-light .pref-counter   { color: #777; }
+        body.pref-light .pref-skip      { color: #888; }
+        body.pref-light .pref-skip:hover { color: #444; }
+        body.pref-light .pref-loading   { color: #888; }
+        body.pref-light .pref-empty     { color: #888; }
+
+        body.pref-light .pref-btn:disabled {
+            background-color: #d0d0d0;
+            color: #888;
+        }
+
+        /* Look cards */
+        body.pref-light .look-card {
+            background: #f9f9f9;
+            border-color: #d0d0d0;
+        }
+        body.pref-light .look-card:hover { border-color: #aaa; }
+        body.pref-light .look-card.selected { border-color: #ff0000; }
+        body.pref-light .look-card-badge {
+            background: rgba(255, 255, 255, 0.85);
+            color: #222;
+        }
+        body.pref-light .look-card.selected .look-card-badge {
+            background: #ff0000;
+            color: #fff;
+        }
+
+        /* Mode cards */
+        body.pref-light .mode-card {
+            background: #f9f9f9;
+            border-color: #d0d0d0;
+        }
+        body.pref-light .mode-card:hover { border-color: #aaa; }
+        body.pref-light .mode-card.selected { border-color: #ff0000; }
+        body.pref-light .mode-card span { color: #333; }
+        body.pref-light .mode-card.selected span { color: #0f0f0f; }
+
+        /* Tags */
+        body.pref-light .pref-tag {
+            background: #e8e8e8;
+            border-color: #d0d0d0;
+            color: #555;
+        }
+        body.pref-light .pref-tag:hover {
+            background: #dcdcdc;
+            border-color: #bbb;
+            color: #222;
+        }
+        body.pref-light .pref-tag.selected {
+            background: #ff0000;
+            border-color: #ff0000;
+            color: #fff;
+        }
+
+        /* Live previews — repaint immediately on mode toggle */
+        body.pref-light .look-preview       { background: #f9f9f9; }
+        body.pref-light .lp-sidebar-thumb   { background: linear-gradient(135deg, #e5e5e5, #d8d8d8); }
+        body.pref-light .lp-player          { background: radial-gradient(circle at 30% 40%, #e8e8e8, #d8d8d8 70%); }
+        body.pref-light .lp-player::after   { color: rgba(0, 0, 0, 0.18); }
+        body.pref-light .lp-title           { color: #0f0f0f; }
+        body.pref-light .lp-channel         { color: #606060; }
+        body.pref-light .lp-avatar          { background: #c8c8c8; }
+        body.pref-light .lp-pill            { background: #e8e8e8; color: #0f0f0f; }
+        body.pref-light .lp-info-box        { background: #f9f9f9; border-color: #e0e0e0; }
+        body.pref-light .lp-divider         { background: #e0e0e0; }
+
+        @media (max-width: 600px) {
+            .look-choice,
+            .mode-choice {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body class="login-page">
-    <img src="LocalYT-Rev-Files/logo.svg" alt="Logo" class="logo" id="logo">
+    <img src="LocalYT-Rev-Files/Logo.svg" alt="Logo" class="logo" id="logo">
 
     <!-- ===== LOGIN FORM ===== -->
     <div id="loginSection">
@@ -323,41 +722,125 @@
         </div>
     </div>
 
-    <!-- ===== PREFERENCE SELECTION ===== -->
+    <!-- ===== FIRST-LOGIN QUESTIONNAIRE ===== -->
     <div id="prefSection" class="pref-section">
 
-        <!-- Phase 1 — Top Tags -->
-        <div id="prefPhase1">
-            <h2 class="pref-title">Which type of videos do you like most?</h2>
-            <p class="pref-subtitle">Select up to 5</p>
-            <div class="pref-grid" id="topTagsGrid">
-                <div class="pref-loading">
-                    <div class="spinner"></div>
-                    Loading tags…
-                </div>
-            </div>
-            <div class="pref-footer">
-                <span class="pref-counter" id="prefCounter">0 / 5 selected</span>
-                <button class="pref-btn" id="prefOkBtn" disabled>OK</button>
-            </div>
-            <a href="#" class="pref-skip" id="prefSkip1">Skip for now</a>
-        </div>
+        <!-- ============================================================
+             PAGE 1 — Look + Mode
+             ============================================================ -->
+        <div id="prefPage1">
 
-        <!-- Phase 2 — Similar Tags -->
-        <div id="prefPhase2" style="display:none;">
-            <h2 class="pref-title">Are there any specific preferences?</h2>
-            <p class="pref-subtitle">Select any that interest you</p>
-            <div class="pref-grid" id="similarTagsGrid">
-                <div class="pref-loading">
-                    <div class="spinner"></div>
-                    Finding recommendations…
+            <div class="pref-question">
+                <h2 class="pref-title">Which look do you prefer?</h2>
+                <p class="pref-subtitle">You can change this any time in Settings</p>
+                <div class="look-choice">
+                    <!-- Modern -->
+                    <div class="look-card" data-look="modern">
+                        <div class="look-card-badge">Modern</div>
+                        <div class="look-preview">
+                            <div class="lp-sidebar">
+                                <div class="lp-sidebar-thumb"></div>
+                                <div class="lp-sidebar-thumb"></div>
+                                <div class="lp-sidebar-thumb"></div>
+                                <div class="lp-sidebar-thumb"></div>
+                            </div>
+                            <div class="lp-main">
+                                <div class="lp-player"></div>
+                                <div class="lp-title">Sample Video Title</div>
+                                <div class="lp-channel-row">
+                                    <div class="lp-avatar"></div>
+                                    <span class="lp-channel">ExampleChannel</span>
+                                    <span class="lp-sub-btn">Subscribe</span>
+                                </div>
+                                <div class="lp-actions">
+                                    <span class="lp-pill">👍 42K</span>
+                                    <span class="lp-pill">👎</span>
+                                    <span class="lp-pill">Share</span>
+                                    <span class="lp-pill">Save</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Classic -->
+                    <div class="look-card" data-look="classic">
+                        <div class="look-card-badge">Classic</div>
+                        <div class="look-preview classic">
+                            <div class="lp-sidebar">
+                                <div class="lp-sidebar-thumb"></div>
+                                <div class="lp-sidebar-thumb"></div>
+                                <div class="lp-sidebar-thumb"></div>
+                                <div class="lp-sidebar-thumb"></div>
+                            </div>
+                            <div class="lp-main">
+                                <div class="lp-player"></div>
+                                <div class="lp-info-box">
+                                    <div class="lp-title">Sample Video Title</div>
+                                    <div class="lp-channel-row">
+                                        <div class="lp-avatar"></div>
+                                        <span class="lp-channel">ExampleChannel</span>
+                                        <span class="lp-sub-btn">Subscribe</span>
+                                    </div>
+                                    <div class="lp-divider"></div>
+                                    <div class="lp-actions">
+                                        <span class="lp-pill">Share</span>
+                                        <span class="lp-pill">Save</span>
+                                        <span class="lp-pill">👍 42K 👎</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <div class="pref-question">
+                <h2 class="pref-title">Light or dark mode?</h2>
+                <p class="pref-subtitle">Also changeable in Settings later</p>
+                <div class="mode-choice">
+                    <div class="mode-card" data-mode="light">
+                        <div class="mode-swatch mode-swatch-light"></div>
+                        <span>Light</span>
+                    </div>
+                    <div class="mode-card" data-mode="dark">
+                        <div class="mode-swatch mode-swatch-dark"></div>
+                        <span>Dark</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="pref-footer">
                 <span></span>
-                <button class="pref-btn" id="prefDoneBtn">Done</button>
+                <button class="pref-btn" id="continueBtn" disabled>Continue</button>
             </div>
-            <a href="#" class="pref-skip" id="prefSkip2">Skip for now</a>
+            <div class="pref-links">
+                <a href="#" class="pref-skip" id="skip1">Skip for now</a>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             PAGE 2 — Tags
+             ============================================================ -->
+        <div id="prefPage2" style="display:none;">
+
+            <div class="pref-question">
+                <h2 class="pref-title">Which type of videos do you like most?</h2>
+                <p class="pref-subtitle">Select up to 5</p>
+                <div class="pref-grid" id="topTagsGrid">
+                    <div class="pref-loading">
+                        <div class="spinner"></div>
+                        Loading tags…
+                    </div>
+                </div>
+            </div>
+
+            <div class="pref-footer">
+                <span class="pref-counter" id="prefCounter">0 / 5 selected</span>
+                <button class="pref-btn" id="finishBtn">Finish</button>
+            </div>
+            <div class="pref-links">
+                <a href="#" class="pref-skip" id="backBtn">Back</a>
+                <a href="#" class="pref-skip" id="skip2">Skip tags</a>
+            </div>
         </div>
     </div>
 
@@ -372,12 +855,55 @@
         const statusMessage  = document.getElementById('statusMessage');
         const loginSection   = document.getElementById('loginSection');
         const prefSection    = document.getElementById('prefSection');
+        const prefPage1      = document.getElementById('prefPage1');
+        const prefPage2      = document.getElementById('prefPage2');
+        const continueBtn    = document.getElementById('continueBtn');
+        const finishBtn      = document.getElementById('finishBtn');
+        const backBtn        = document.getElementById('backBtn');
+        const skip1          = document.getElementById('skip1');
+        const skip2          = document.getElementById('skip2');
 
-        let refreshTimer      = null;
-        let selectedPhase1    = [];
-        let selectedPhase2    = [];
+        // ===== STATE =====
+        let refreshTimer   = null;
+        let selectedLook   = null;       // 'modern' | 'classic' | null
+        let selectedMode   = null;       // 'light' | 'dark' | null
+        let selectedPhase1 = [];         // tag names
+        let allTopTags     = [];
+        let tagsLoaded     = false;
+        let tagsLoading    = false;
 
-        // ===== BRUTE-FORCE PROTECTION (unchanged) =====
+        // ===== LOGO SVG COLORING =====
+        let originalLogoSvg = null;
+
+        async function updateLoginLogo(mode) {
+            const logo = document.getElementById('logo');
+            if (!logo) return;
+            
+            const targetColor = mode === 'light' ? '#333333' : '#ffffff';
+            if (logo.dataset.currentLogoColor === targetColor) return;
+            
+            try {
+                if (!originalLogoSvg) {
+                    const res = await fetch('LocalYT-Rev-Files/Logo.svg');
+                    originalLogoSvg = await res.text();
+                }
+                
+                const protectedSvg = originalLogoSvg.replace(
+                    /(<g clip-path="url\(#clip1_2733_1405\)">[\s\S]*?<\/g>)/,
+                    (match) => match.replace(/fill="white"/g, 'fill="KEEP_WHITE"')
+                );
+                let modifiedSvg = protectedSvg.replace(/fill="white"/g, `fill="${targetColor}"`);
+                modifiedSvg = modifiedSvg.replace(/fill="KEEP_WHITE"/g, 'fill="white"');
+                
+                const base64Svg = btoa(unescape(encodeURIComponent(modifiedSvg)));
+                logo.src = `data:image/svg+xml;base64,${base64Svg}`;
+                logo.dataset.currentLogoColor = targetColor;
+            } catch (e) {
+                console.error('Failed to update logo color:', e);
+            }
+        }
+
+        // ===== BRUTE-FORCE PROTECTION =====
         function formatTime(ms) {
             const s = Math.ceil(ms / 1000);
             const m = Math.floor(s / 60);
@@ -402,7 +928,7 @@
             if (d.blocked) d.permanent ? showPermBlock() : showTempBlock(d.remainingTime);
         }).catch(() => {});
 
-        // ===== LOGIN HANDLER (modified) =====
+        // ===== LOGIN HANDLER =====
         loginForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const username = usernameInput.value;
@@ -426,7 +952,6 @@
                     alert(data.error || 'Invalid username or password');
                     return;
                 }
-                // Success
                 if (data.hasPreferences) {
                     window.location.href = 'index.html';
                 } else {
@@ -440,7 +965,7 @@
             });
         });
 
-        // ===== TRANSITION TO PREFERENCE SELECTION =====
+        // ===== TRANSITION TO QUESTIONNAIRE =====
         function transitionToPreferences() {
             loginSection.classList.add('fade-out');
             loginSection.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
@@ -449,39 +974,136 @@
             setTimeout(() => {
                 loginSection.style.display = 'none';
                 prefSection.classList.add('visible');
-                loadTopTags();
+                refreshContinueButton();
             }, 420);
         }
 
-        // ===== PHASE 1 — TOP TAGS =====
+        // ===== LOOK SELECTION =====
+        document.querySelectorAll('.look-card').forEach(card => {
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.look-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                selectedLook = card.dataset.look;
+                refreshContinueButton();
+            });
+        });
+
+        // ===== MODE SELECTION (also repaints the previews) =====
+        document.querySelectorAll('.mode-card').forEach(card => {
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                selectedMode = card.dataset.mode;
+                applyPageMode(selectedMode);
+                updateLoginLogo(selectedMode);
+                refreshContinueButton();
+            });
+        });
+
+        function applyPageMode(mode) {
+            const root = document.documentElement;
+            if (mode === 'light') {
+                root.style.setProperty('--main-bg-color', '#f1f1f1');
+                root.style.setProperty('--secondary-bg-color', '#ffffff');
+                root.style.setProperty('--input-bg-color', '#f1f1f1');
+                document.body.classList.add('pref-light');
+            } else if (mode === 'dark') {
+                root.style.setProperty('--main-bg-color', '#0f0f0f');
+                root.style.setProperty('--secondary-bg-color', '#212121');
+                root.style.setProperty('--input-bg-color', '#1a1a1a');
+                document.body.classList.remove('pref-light');
+            }
+        }
+
+        // ===== CONTINUE BUTTON STATE =====
+        function refreshContinueButton() {
+            continueBtn.disabled = !(selectedLook && selectedMode);
+        }
+
+        // ===== PAGE 1 → PAGE 2 =====
+        continueBtn.addEventListener('click', () => {
+            if (continueBtn.disabled) return;
+            prefPage1.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            prefPage1.style.opacity = '0';
+            prefPage1.style.transform = 'translateY(-8px)';
+
+            setTimeout(() => {
+                prefPage1.style.display = 'none';
+                prefPage2.style.display = 'block';
+                prefPage2.style.animation = 'fadeInUp 0.4s ease';
+                loadTopTags();
+            }, 320);
+        });
+
+        // ===== PAGE 2 → PAGE 1 =====
+        backBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            prefPage2.style.display = 'none';
+            prefPage1.style.display = 'block';
+            prefPage1.style.transition = 'none';
+            prefPage1.style.opacity = '1';
+            prefPage1.style.transform = 'translateY(0)';
+            void prefPage1.offsetWidth;
+            prefPage1.style.transition = '';
+        });
+
+        // ===== FINISH (saves tags + look + mode) =====
+        finishBtn.addEventListener('click', () => {
+            saveAndRedirect(selectedPhase1, selectedLook, selectedMode);
+        });
+
+        // ===== SKIP TAGS (saves look + mode only) =====
+        skip2.addEventListener('click', (e) => {
+            e.preventDefault();
+            saveAndRedirect([], selectedLook, selectedMode);
+        });
+
+        // ===== SKIP FOR NOW (page 1 — saves whatever is selected) =====
+        skip1.addEventListener('click', (e) => {
+            e.preventDefault();
+            saveAndRedirect([], selectedLook, selectedMode);
+        });
+
+        // ===== TAGS =====
         async function loadTopTags() {
+            if (tagsLoaded || tagsLoading) return;
+            tagsLoading = true;
             try {
                 const tags = await (await fetch('/api/top-tags')).json();
+                allTopTags = Array.isArray(tags) ? tags : [];
                 const grid = document.getElementById('topTagsGrid');
                 grid.innerHTML = '';
 
-                if (!tags.length) {
+                if (allTopTags.length === 0) {
                     grid.innerHTML = '<div class="pref-empty">No tags available yet. You can set preferences later in Settings.</div>';
-                    document.getElementById('prefOkBtn').style.display = 'none';
                     document.getElementById('prefCounter').style.display = 'none';
+                    tagsLoaded = true;
                     return;
                 }
 
-                tags.forEach((tag, i) => {
+                allTopTags.forEach((tag, i) => {
                     const el = document.createElement('div');
                     el.className = 'pref-tag';
                     el.textContent = tag;
                     el.style.animationDelay = `${i * 28}ms`;
-                    el.addEventListener('click', () => togglePhase1(el, tag));
+                    el.addEventListener('click', () => toggleTag(el, tag));
                     grid.appendChild(el);
                 });
+
+                tagsLoaded = true;
+                refreshPhase1UI();
             } catch (err) {
+                allTopTags = [];
                 document.getElementById('topTagsGrid').innerHTML =
-                    '<div class="pref-empty">Failed to load tags. You can set preferences later.</div>';
+                    '<div class="pref-empty">Failed to load tags. You can set preferences later in Settings.</div>';
+                document.getElementById('prefCounter').style.display = 'none';
+                tagsLoaded = true;
+            } finally {
+                tagsLoading = false;
             }
         }
 
-        function togglePhase1(el, tag) {
+        function toggleTag(el, tag) {
             if (el.classList.contains('selected')) {
                 el.classList.remove('selected');
                 selectedPhase1 = selectedPhase1.filter(t => t !== tag);
@@ -494,9 +1116,10 @@
         }
 
         function refreshPhase1UI() {
-            document.getElementById('prefCounter').textContent = `${selectedPhase1.length} / 5 selected`;
-            document.getElementById('prefOkBtn').disabled = selectedPhase1.length === 0;
-
+            const counter = document.getElementById('prefCounter');
+            if (allTopTags.length > 0) {
+                counter.textContent = `${selectedPhase1.length} / 5 selected`;
+            }
             document.querySelectorAll('#topTagsGrid .pref-tag').forEach(el => {
                 if (!el.classList.contains('selected') && selectedPhase1.length >= 5) {
                     el.classList.add('max-reached');
@@ -506,102 +1129,23 @@
             });
         }
 
-        document.getElementById('prefOkBtn').addEventListener('click', () => {
-            if (selectedPhase1.length) showPhase2();
-        });
-
-        document.getElementById('prefSkip1').addEventListener('click', e => {
-            e.preventDefault();
-            saveAndRedirect([]);
-        });
-
-        // ===== PHASE 2 — SIMILAR TAGS =====
-        async function showPhase2() {
-            const phase1 = document.getElementById('prefPhase1');
-            phase1.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-            phase1.style.opacity = '0';
-            phase1.style.transform = 'translateY(-8px)';
-
-            setTimeout(() => {
-                phase1.style.display = 'none';
-                const phase2 = document.getElementById('prefPhase2');
-                phase2.style.display = 'block';
-                phase2.style.animation = 'fadeInUp 0.4s ease';
-                loadSimilarTags();
-            }, 320);
-        }
-
-        async function loadSimilarTags() {
-            try {
-                const tags = await (await fetch('/api/similar-tags', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ selectedTags: selectedPhase1 })
-                })).json();
-
-                const grid = document.getElementById('similarTagsGrid');
-                grid.innerHTML = '';
-
-                if (!tags.length) {
-                    grid.innerHTML = '<div class="pref-empty">No specific recommendations found. Click Done to continue.</div>';
-                    return;
-                }
-
-                tags.forEach((tag, i) => {
-                    const el = document.createElement('div');
-                    el.className = 'pref-tag';
-                    el.textContent = tag;
-                    el.style.animationDelay = `${i * 28}ms`;
-                    el.addEventListener('click', () => togglePhase2(el, tag));
-                    grid.appendChild(el);
-                });
-            } catch (err) {
-                document.getElementById('similarTagsGrid').innerHTML =
-                    '<div class="pref-empty">Failed to load recommendations. Click Done to continue.</div>';
-            }
-        }
-
-        function togglePhase2(el, tag) {
-            el.classList.toggle('selected');
-            if (el.classList.contains('selected')) {
-                selectedPhase2.push(tag);
-            } else {
-                selectedPhase2 = selectedPhase2.filter(t => t !== tag);
-            }
-        }
-
-        document.getElementById('prefDoneBtn').addEventListener('click', () => {
-            saveAndRedirect([...selectedPhase1, ...selectedPhase2]);
-        });
-
-        document.getElementById('prefSkip2').addEventListener('click', e => {
-            e.preventDefault();
-            saveAndRedirect(selectedPhase1);
-        });
-
-        // ===== SAVE & REDIRECT (MODIFIED - saves percentages) =====
-        async function saveAndRedirect(tags) {
-            if (tags.length) {
+        // ===== SAVE & REDIRECT =====
+        async function saveAndRedirect(tags, look, mode) {
+            // 1) Tags → /save-preferences (as percentages summing to 100)
+            if (tags && tags.length) {
                 try {
-                    // Convert selected tags to percentages that sum to 100%
                     const totalTags = tags.length;
-                    // Each selected tag gets an equal share (rounded to 2 decimals)
                     const basePercentage = Math.round((100 / totalTags) * 100) / 100;
-                    
-                    // Build preferences object with percentages
+
                     const preferences = {};
-                    tags.forEach(tag => {
-                        preferences[tag] = basePercentage;
-                    });
-                    
-                    // Adjust for rounding errors (add any remainder to the first tag)
+                    tags.forEach(tag => { preferences[tag] = basePercentage; });
+
                     const sum = Object.values(preferences).reduce((a, b) => a + b, 0);
                     if (sum !== 100 && tags.length > 0) {
                         const remainder = Math.round((100 - sum) * 100) / 100;
                         preferences[tags[0]] = Math.round((preferences[tags[0]] + remainder) * 100) / 100;
                     }
-                    
-                    // Save as percentages directly
+
                     await fetch('/save-preferences', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -611,6 +1155,55 @@
                     console.error('Error saving preferences:', err);
                 }
             }
+
+            // 2) Look + Mode — mirror what settings.html writes
+            if (look || mode) {
+                if (look) {
+                    const pageStyle    = look;
+                    const channelStyle = look === 'classic' ? 'legacy' : 'modern';
+                    try {
+                        localStorage.setItem('pageStyle',        JSON.stringify({ style: pageStyle }));
+                        localStorage.setItem('videoPageLayout',  JSON.stringify({ layout: pageStyle }));
+                        localStorage.setItem('channelPageStyle', JSON.stringify({ style: channelStyle }));
+                    } catch (e) {
+                        console.error('localStorage write failed:', e);
+                    }
+                }
+                if (mode) {
+                    try {
+                        localStorage.setItem('appearanceMode', mode);
+                    } catch (e) {
+                        console.error('localStorage write failed:', e);
+                    }
+                }
+
+                try {
+                    let existing = {};
+                    try {
+                        const r = await fetch('/user-settings');
+                        if (r.ok) existing = await r.json();
+                    } catch { /* ignore */ }
+
+                    const merged = { ...existing };
+                    if (look) {
+                        merged.pageStyle        = look;
+                        merged.videoPageLayout  = look;
+                        merged.channelPageStyle = look === 'classic' ? 'legacy' : 'modern';
+                    }
+                    if (mode) {
+                        merged.appearanceMode = mode;
+                    }
+
+                    await fetch('/user-settings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ settings: merged })
+                    });
+                } catch (err) {
+                    console.error('Error saving user settings:', err);
+                }
+            }
+
             window.location.href = 'index.html';
         }
     </script>
