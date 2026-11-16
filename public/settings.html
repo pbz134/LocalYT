@@ -600,6 +600,7 @@
                         <option value="none">None</option>
                         <option value="modern">Modern</option>
                         <option value="classic">Classic</option>
+                        <option value="retro">Retro</option>
                     </select>
                 </div>
             </div>
@@ -612,12 +613,13 @@
                 <div class="setting-card">
                     <div class="card-info">
                         <div class="card-label" id="pageStyleLabel">Page style</div>
-                        <div class="card-desc" id="pageStyleDesc">Modern or Classic layout for video and channel pages</div>
+                        <div class="card-desc" id="pageStyleDesc">Pick between three layouts for video and channel pages</div>
                     </div>
                     <div class="card-control">
                         <select class="setting-select" id="pageStyle">
                             <option value="modern">Modern</option>
                             <option value="classic">Classic</option>
+                            <option value="retro">Retro</option>
                         </select>
                     </div>
                 </div>
@@ -1124,10 +1126,11 @@
             document.querySelector('#presetSelector option[value="none"]').textContent = getLang('None', 'Keine');
             document.querySelector('#presetSelector option[value="modern"]').textContent = getLang('Modern', 'Modern');
             document.querySelector('#presetSelector option[value="classic"]').textContent = getLang('Classic', 'Klassisch');
+            document.querySelector('#presetSelector option[value="retro"]').textContent = getLang('Retro', 'Retro');
 
             // Appearance labels
             document.getElementById('pageStyleLabel').textContent = getLang('Page style', 'Seiten-Stil');
-            document.getElementById('pageStyleDesc').textContent = getLang('Modern or Classic layout for video and channel pages', 'Modernes oder klassisches Layout für Video- und Kanalseiten');
+            document.getElementById('pageStyleDesc').textContent = getLang('Pick between three layouts for video and channel pages', 'Modernes oder klassisches Layout für Video- und Kanalseiten');
             document.getElementById('channelDefaultViewLabel').textContent = getLang('Default channel video layout', 'Standard-Kanalvideo-Layout');
             document.getElementById('channelDefaultViewDesc').textContent = getLang('Grid or list for channel videos tab', 'Raster oder Liste für Kanal-Videos');
             // videos per row
@@ -1205,6 +1208,7 @@
             if (pageStyleSelect) {
                 pageStyleSelect.options[0].text = getLang('Modern', 'Modern');
                 pageStyleSelect.options[1].text = getLang('Classic', 'Klassisch');
+                pageStyleSelect.options[2].text = getLang('Retro', 'Retro');
             }
             const channelDefaultView = document.getElementById('channelDefaultView');
             if (channelDefaultView) { channelDefaultView.options[0].text = getLang('Grid', 'Raster'); channelDefaultView.options[1].text = getLang('List', 'Liste'); }
@@ -1321,6 +1325,12 @@
             }
         }
 
+        // --- Theme Toggle Helper ---
+        function applyPageStyleToBody() {
+            const pageStyleSetting = JSON.parse(localStorage.getItem('pageStyle') || '{}');
+            document.body.classList.toggle('retro-theme', pageStyleSetting.style === 'retro');
+        }
+
         // --- Appearance Save ---
         async function saveAppearance() {
             const pageStyleValue = document.getElementById('pageStyle').value; // 'modern' | 'classic'
@@ -1359,6 +1369,7 @@
             } else {
                 showStatus('appearanceStatus', getLang('Error saving to server.', 'Fehler beim Speichern.'), false);
             }
+            applyPageStyleToBody();
         }
 
         // --- Playback Save ---
@@ -1528,8 +1539,10 @@
                 if (data.roundedCorners !== undefined) document.getElementById('roundedCorners').checked = data.roundedCorners;
                 if (data.sidebarSvgIcons !== undefined) document.getElementById('sidebarSvgIcons').checked = data.sidebarSvgIcons;
                 if (data.playerUIScale !== undefined) document.getElementById('playerUIScale').value = data.playerUIScale;
+                applyPageStyleToBody();
                 document.getElementById('presetSelector').value = 'none';
             }).catch(() => {});
+            applyPageStyleToBody();
         }
 
         function loadPlaybackSettings() {
@@ -1950,6 +1963,16 @@
                     sidebarSvgIcons: true,
                     playlistPageLayout: 'list'
                 };
+            } else if (presetName === 'retro') {
+                settings = {
+                    pageStyle: 'retro',
+                    channelDefaultView: 'grid',
+                    videosPerRow: 4,
+                    commenterProfileStyle: 'classic',
+                    roundedCorners: false,
+                    sidebarSvgIcons: true,
+                    playlistPageLayout: 'list'
+                };
             } else {
                 return;
             }
@@ -1988,6 +2011,7 @@
             }
 
             document.dispatchEvent(new CustomEvent('videosPerRowChanged'));
+            applyPageStyleToBody();
         }
 
         // --- Event Listeners Setup ---
