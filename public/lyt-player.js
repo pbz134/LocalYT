@@ -60,7 +60,9 @@
         settings: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>',
         fullscreen: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>',
         fullscreenExit: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>',
-        back: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>'
+        back: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>',
+        speedClock: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>',
+                classicSettings: '<svg viewBox="0 0 100 100" fill="currentColor"><g><rect x="44.5" y="18" width="11" height="13" transform="rotate(0 50 50)" /><rect x="44.5" y="18" width="11" height="13" transform="rotate(45 50 50)" /><rect x="44.5" y="18" width="11" height="13" transform="rotate(90 50 50)" /><rect x="44.5" y="18" width="11" height="13" transform="rotate(135 50 50)" /><rect x="44.5" y="18" width="11" height="13" transform="rotate(180 50 50)" /><rect x="44.5" y="18" width="11" height="13" transform="rotate(225 50 50)" /><rect x="44.5" y="18" width="11" height="13" transform="rotate(270 50 50)" /><rect x="44.5" y="18" width="11" height="13" transform="rotate(315 50 50)" /><circle cx="50" cy="50" r="24.5" /></g><circle cx="50" cy="50" r="12" fill="#1b1b1b" /></svg>'
     };
 
     class LYTPlayer {
@@ -144,7 +146,7 @@
             this._eqSaveTimer = null; // for debouncing server saves
 
             // Current LYT Player version
-            this.version = 'v2.8.5';
+            this.version = 'v3.0.0'; // Current LYT Player version
             
             // Speed options
             this.speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -203,6 +205,10 @@
             // --- LocalYT logo  ---
             this._showLocalYTLogo = true;
 
+            // --- Player visual style ---
+            // 'standard' = current look, 'classic' = legacy look (styling TBD)
+            this._playerStyle = 'standard';
+
             // --- Ambient light state ---
             this._ambientEnabled = false;
             this._ambientDisplay = null;
@@ -253,6 +259,7 @@
             this.loadPreferredQuality();
             this.loadRoundedCornersSetting();
             this.loadLocalYTLogoSetting();
+            this.loadPlayerStyleSetting();
             this.loadRecommendationPopupsSetting();
 
             // Set initial volume display
@@ -500,6 +507,70 @@
             const logo = this.wrapper.querySelector('.lyt_brand_logo');
             if (logo) {
                 logo.style.display = this._showLocalYTLogo ? '' : 'none';
+            }
+        }
+
+        /**
+         * Load the "LYT Player style" preference from localStorage + server.
+         */
+        loadPlayerStyleSetting() {
+            // 1. Instant local preference (default: standard)
+            try {
+                const local = JSON.parse(localStorage.getItem('playerStyle') || '{}');
+                if (local.style === 'standard' || local.style === 'classic') {
+                    this._playerStyle = local.style;
+                }
+            } catch (e) {}
+
+            this.applyPlayerStyle();
+
+            // 2. Server preference overrides if available
+            fetch('/user-settings')
+                .then(res => res.ok ? res.json() : null)
+                .then(settings => {
+                    if (settings && (settings.playerStyle === 'standard' || settings.playerStyle === 'classic')) {
+                        this._playerStyle = settings.playerStyle;
+                        try {
+                            localStorage.setItem('playerStyle', JSON.stringify({
+                                style: this._playerStyle
+                            }));
+                        } catch (e) {}
+                        this.applyPlayerStyle();
+                    }
+                })
+                .catch(() => {});
+
+            // 3. Cross-tab sync
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'playerStyle') {
+                    try {
+                        const newVal = JSON.parse(e.newValue || '{}');
+                        if (newVal.style === 'standard' || newVal.style === 'classic') {
+                            this._playerStyle = newVal.style;
+                            this.applyPlayerStyle();
+                        }
+                    } catch (err) {}
+                }
+            });
+        }
+
+        /**
+         * Apply the chosen style to the player wrapper.
+         */
+        applyPlayerStyle() {
+            if (!this.wrapper) return;
+            const isClassic = this._playerStyle === 'classic';
+            this.wrapper.classList.toggle('lyt_style_classic', isClassic);
+            this.wrapper.classList.toggle('lyt_style_standard', !isClassic);
+
+            // Update logo source based on style
+            const logo = this.wrapper.querySelector('.lyt_brand_logo');
+            if (logo) {
+                if (isClassic) {
+                    logo.src = 'Logo_Textonly_Classic.svg';
+                } else {
+                    logo.src = 'Logo_Textonly.svg';
+                }
             }
         }
 
@@ -1543,7 +1614,7 @@
                     
                     /* Brand logo in bottom-right controls row */
                     .lyt_brand_logo {
-                        height: calc(16px * var(--lyt-ui-scale));
+                        height: calc(17px * var(--lyt-ui-scale));
                         width: auto;
                         display: block;
                         margin: 0 6px;
@@ -2283,6 +2354,162 @@
                     }
                     /* ===== END AMBIENT LIGHT ===== */
 
+                    /* ===== CLASSIC STYLE OVERRIDES ===== */
+                    .fluid_video_wrapper.lyt_style_classic .lyt_controls_container {
+                        background: #1b1b1b !important;
+                        padding: 0 0 4px 0 !important; /* Removes side padding so the progress bar spans fully */
+                    }
+
+                    .fluid_video_wrapper.lyt_style_classic .lyt_controls_row {
+                        padding: 0 12px; /* Adds the side padding back to the buttons/time row */
+                    }
+
+                    .fluid_video_wrapper.lyt_style_classic .lyt_btn,
+                    .fluid_video_wrapper.lyt_style_classic .lyt_time,
+                    .fluid_video_wrapper.lyt_style_classic .lyt_chapter_title {
+                        color: #757575 !important;
+                    }
+
+                    .fluid_video_wrapper.lyt_style_classic .lyt_btn:hover {
+                        color: #fff !important;
+                        background: none !important;
+                    }
+
+                    .fluid_video_wrapper.lyt_style_classic .lyt_bottom_darken {
+                        display: none !important;
+                    }
+
+                    .fluid_video_wrapper.lyt_style_classic .lyt_progress_played {
+                        background: #9b1b1b !important;
+                    }
+
+                    /* Larger cog icon */
+                    .fluid_video_wrapper.lyt_style_classic .lyt_icon_classic svg {
+                        width: calc(32px * var(--lyt-ui-scale)) !important;
+                        height: calc(32px * var(--lyt-ui-scale)) !important;
+                    }
+
+                    /* Thicker progress bar */
+                    .fluid_video_wrapper.lyt_style_classic .lyt_progress_container {
+                        height: calc(10px * var(--lyt-ui-scale)) !important;
+                        transition: none !important;
+                    }
+                    .fluid_video_wrapper.lyt_style_classic .lyt_progress_container:hover {
+                        height: calc(10px * var(--lyt-ui-scale)) !important;
+                    }
+
+                    /* Scaled up progress dot to match the thicker bar */
+                    .fluid_video_wrapper.lyt_style_classic .lyt_progress_dot {
+                        opacity: 1 !important;
+                        transform: translateY(-50%) scale(1) !important;
+                        background: #eaeaea !important;
+                        box-shadow: none !important;
+                        width: calc(18px * var(--lyt-ui-scale)) !important;
+                        height: calc(18px * var(--lyt-ui-scale)) !important;
+                        right: calc(-8px * var(--lyt-ui-scale)) !important;
+                        transition: none !important;
+                    }
+
+                    .fluid_video_wrapper.lyt_style_classic .lyt_progress_dot::before {
+                        content: '';
+                        position: absolute;
+                        top: 50%; left: 50%;
+                        transform: translate(-50%, -50%);
+                        width: calc(8px * var(--lyt-ui-scale));
+                        height: calc(8px * var(--lyt-ui-scale));
+                        background: #adadad;
+                        border-radius: 50%;
+                    }
+
+                    .lyt_btn_speed {
+                        display: none !important;
+                    }
+                    .fluid_video_wrapper.lyt_style_classic .lyt_btn_speed {
+                        display: flex !important;
+                    }
+
+                    .lyt_icon_classic {
+                        display: none !important;
+                    }
+                    .fluid_video_wrapper.lyt_style_classic .lyt_icon_classic {
+                        display: block !important;
+                    }
+                    .fluid_video_wrapper.lyt_style_classic .lyt_icon_standard {
+                        display: none !important;
+                    }
+
+                    /* ===== CLASSIC LOADING SPINNER ===== */
+                    .lyt-classic-spinner {
+                        display: none;
+                    }
+
+                    .fluid_video_wrapper.lyt_style_classic .lyt-spinner svg {
+                        display: none !important;
+                    }
+
+                    .fluid_video_wrapper.lyt_style_classic .lyt-spinner {
+                        position: relative;
+                        width: 50px;
+                        height: 50px;
+                    }
+
+                    .fluid_video_wrapper.lyt_style_classic .lyt-classic-spinner {
+                        display: block !important;
+                        position: absolute;
+                        top: 0; left: 0; right: 0; bottom: 0;
+                        animation: lyt-classic-spin 0.8s steps(8) infinite;
+                    }
+
+                    .lyt-spinner-dot {
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        width: 14px;
+                        height: 14px;
+                        margin: -7px 0 0 -7px;
+                        background: #ccc;
+                        border-radius: 50%;
+                    }
+
+                    /* Harsher falloff to simulate older, stepped animations */
+                    .lyt-spinner-dot:nth-child(1) { opacity: 0; }    /* 0deg */
+                    .lyt-spinner-dot:nth-child(2) { opacity: 0.05; } /* 45deg */
+                    .lyt-spinner-dot:nth-child(3) { opacity: 0.15; } /* 90deg */
+                    .lyt-spinner-dot:nth-child(4) { opacity: 0.3; }  /* 135deg */
+                    .lyt-spinner-dot:nth-child(5) { opacity: 0.5; }  /* 180deg */
+                    .lyt-spinner-dot:nth-child(6) { opacity: 0.7; }  /* 225deg */
+                    .lyt-spinner-dot:nth-child(7) { opacity: 0.9; }  /* 270deg */
+                    .lyt-spinner-dot:nth-child(8) { opacity: 1.0; }  /* 315deg - Brightest */
+
+                    @keyframes lyt-classic-spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+
+                    /* ===== CLASSIC TIME DISPLAY ===== */
+                    .fluid_video_wrapper.lyt_style_classic .lyt-time-current {
+                        color: #fff !important;
+                    }
+
+                    /* ===== CLASSIC VOLUME SLIDER ===== */
+                    .fluid_video_wrapper.lyt_style_classic .lyt_volume_bar {
+                        height: calc(6px * var(--lyt-ui-scale)) !important;
+                        background: rgba(255, 255, 255, 0.15) !important; /* Dark track */
+                    }
+
+                    .fluid_video_wrapper.lyt_style_classic .lyt_volume_fill {
+                        background: linear-gradient(to bottom, #c90000, #9b1b1b) !important; 
+                        box-shadow: 0 calc(2px * var(--lyt-ui-scale)) 0 rgba(255, 255, 255, 0.4) !important; 
+                    }
+
+                    .fluid_video_wrapper.lyt_style_classic .lyt_volume_dot {
+                        width: calc(6px * var(--lyt-ui-scale)) !important;
+                        height: calc(18px * var(--lyt-ui-scale)) !important; /* Or whatever height you set earlier */
+                        background: linear-gradient(to bottom, #eaeaea, #999999) !important; 
+                        box-shadow: 0 calc(2px * var(--lyt-ui-scale)) 0 rgba(255, 255, 255, 0.4) !important; 
+                        border-radius: 3px !important; 
+                        right: calc(-3px * var(--lyt-ui-scale)) !important; 
+                    }
                 </style>
 
                 <!-- Poster/Thumbnail Overlay -->
@@ -2363,8 +2590,14 @@
                         <div class="lyt_controls_right">
                             <button class="lyt_btn lyt_btn_subtitles" aria-label="Subtitles">${SVG.subtitles}</button>
                             
-                            <!-- Settings Button -->
-                            <button class="lyt_btn lyt_btn_settings" aria-label="Settings">${SVG.settings}</button>
+                            <!-- Classic Speed Button (hidden by default) -->
+                            <button class="lyt_btn lyt_btn_speed" aria-label="Speed">${SVG.speedClock}</button>
+
+                            <!-- Settings Button (swaps icons in classic mode) -->
+                            <button class="lyt_btn lyt_btn_settings" aria-label="Settings">
+                                <span class="lyt_icon_standard">${SVG.settings}</span>
+                                <span class="lyt_icon_classic">${SVG.classicSettings}</span>
+                            </button>
                             <div class="lyt_popup_menu lyt_settings_menu">
                                 <div class="lyt_menu_content">
                                     <!-- Equalizer option will be inserted here by JavaScript -->
@@ -2401,7 +2634,22 @@
                 </div>
                 
                 <!-- Loading Spinner -->
-                <div class="vast_video_loading"><div class="lyt-spinner"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="20"></circle></svg></div></div>
+                <div class="vast_video_loading">
+                    <div class="lyt-spinner">
+                        <svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="20"></circle></svg>
+                        <!-- Classic Spinner Dots -->
+                        <div class="lyt-classic-spinner">
+                            <div class="lyt-spinner-dot" style="transform: rotate(0deg) translateY(-22px);"></div>
+                            <div class="lyt-spinner-dot" style="transform: rotate(45deg) translateY(-22px);"></div>
+                            <div class="lyt-spinner-dot" style="transform: rotate(90deg) translateY(-22px);"></div>
+                            <div class="lyt-spinner-dot" style="transform: rotate(135deg) translateY(-22px);"></div>
+                            <div class="lyt-spinner-dot" style="transform: rotate(180deg) translateY(-22px);"></div>
+                            <div class="lyt-spinner-dot" style="transform: rotate(225deg) translateY(-22px);"></div>
+                            <div class="lyt-spinner-dot" style="transform: rotate(270deg) translateY(-22px);"></div>
+                            <div class="lyt-spinner-dot" style="transform: rotate(315deg) translateY(-22px);"></div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Channel Profile Picture Overlay -->
                 <img class="lyt_channel_profile_pic" src="" alt="Channel Profile">
@@ -3222,6 +3470,22 @@
                 this.toggleMenu(this.dom.settingsMenu);
             });
 
+            // Classic Speed Button Logic
+            this.dom.speedBtn = this.wrapper.querySelector('.lyt_btn_speed');
+            if (this.dom.speedBtn) {
+                this.dom.speedBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isOpen = this.dom.settingsMenu.classList.contains('lyt_show');
+                    this.toggleMenu(this.dom.settingsMenu);
+                    // If we just opened it, jump straight to the speed submenu
+                    if (!isOpen) {
+                        this.hideAllSubmenus();
+                        this.hideMainMenu();
+                        this.dom.speedMenu.classList.add('lyt_show');
+                    }
+                });
+            }
+
             // Quality submenu — switch between original and transcoded resolutions
             this.dom.qualityMenu.addEventListener('click', (e) => {
                 const option = e.target.closest('.lyt_quality_option');
@@ -4020,13 +4284,38 @@
         }
 
         updateTime() {
-            const duration = this._getEffectiveDuration();
-            const streamTime = this.video.currentTime || 0;
-            const absoluteTime = this._transcodeOffset + streamTime;
-            const percent = duration > 0 ? (absoluteTime / duration) * 100 : 0;
+            // Prevent the progress bar from fighting the user while they are actively dragging it
+            if (this._seeking) return;
 
-            this.dom.progressPlayed.style.width = `${percent}%`;
-            this.dom.timeDisplay.textContent = `${formatTime(absoluteTime)} / ${formatTime(duration)}`;
+            let current = this.video.currentTime;
+            let duration = this.video.duration;
+
+            // Handle live-transcode offset
+            if (this._transcodeOffset > 0 && !this._isCacheBacked()) {
+                current += this._transcodeOffset;
+                if (isFinite(duration)) {
+                    duration += this._transcodeOffset;
+                }
+            }
+
+            // Fallback to known duration if the stream reports Infinity/NaN (e.g., live transcodes)
+            if (!isFinite(duration) || isNaN(duration)) {
+                duration = this._knownDuration || 0;
+            }
+
+            // Update the time display text
+            if (this.dom.timeDisplay) {
+                // Wrapped the current time in a span so it can be targeted by CSS
+                this.dom.timeDisplay.innerHTML = `<span class="lyt-time-current">${formatTime(current)}</span> / ${formatTime(duration)}`;
+            }
+
+            // Update the progress bar fill width
+            if (duration > 0) {
+                const percent = (current / duration) * 100;
+                if (this.dom.progressPlayed) {
+                    this.dom.progressPlayed.style.width = `${percent}%`;
+                }
+            }
         }
 
         updateBuffer() {

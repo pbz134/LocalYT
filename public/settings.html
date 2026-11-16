@@ -838,6 +838,20 @@
 
                 <div class="settings-section-header">LYT PLAYER</div>
 
+                <!-- LYT Player style -->
+                <div class="setting-card">
+                    <div class="card-info">
+                        <div class="card-label" id="lytPlayerStyleLabel">LYT Player style</div>
+                        <div class="card-desc" id="lytPlayerStyleDesc">Modify LYT Player's styling</div>
+                    </div>
+                    <div class="card-control">
+                        <select class="setting-select" id="lytPlayerStyle">
+                            <option value="standard">Standard</option>
+                            <option value="classic">Classic</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="setting-card">
                     <div class="card-info">
                         <div class="card-label" id="channelProfilePicLabel">Show channel profile pic</div>
@@ -1144,6 +1158,8 @@
             document.getElementById('playlistPageLayoutDesc').textContent = getLang('Grid or list view for playlists', 'Raster- oder Listenansicht');
             document.getElementById('playlistOrderLabel').textContent = getLang('Invert playlist order', 'Playlist-Reihenfolge umkehren');
             document.getElementById('playlistOrderDesc').textContent = getLang('Newest videos first (oldest on the right)', 'Neueste zuerst (älteste rechts)');
+            document.getElementById('lytPlayerStyleLabel').textContent = getLang('LYT Player style', 'LYT-Player-Stil');
+            document.getElementById('lytPlayerStyleDesc').textContent = getLang("Modify LYT Player's styling", 'Passe das Styling von LYT Player an');
             document.getElementById('channelProfilePicLabel').textContent = getLang('Show channel profile pic', 'Kanal-Profilbild anzeigen');
             document.getElementById('channelProfilePicDesc').textContent = getLang('Bottom-right corner of player', 'Untere rechte Ecke des Players');
             document.getElementById('showLocalYTLogoLabel').textContent = getLang('Show LocalYT logo', 'LocalYT-Logo anzeigen');
@@ -1208,6 +1224,12 @@
             if (nonPlaylist) { nonPlaylist.options[0].text = getLang('First recommended', 'Erstes empfohlenes'); nonPlaylist.options[1].text = getLang('Random recommended', 'Zufällig empfohlen'); nonPlaylist.options[2].text = getLang('Random from database', 'Zufällig aus Datenbank'); }
             const playerScale = document.getElementById('playerUIScale');
             if (playerScale) { playerScale.options[5].text = getLang('100% (Default)', '100% (Standard)'); }
+
+            const lytPlayerStyleSelect = document.getElementById('lytPlayerStyle');
+            if (lytPlayerStyleSelect) {
+                lytPlayerStyleSelect.options[0].text = getLang('Standard', 'Standard');
+                lytPlayerStyleSelect.options[1].text = getLang('Classic', 'Klassisch');
+            }
         }
 
         // ==================== Tab Switching with Hash Routing ====================
@@ -1357,6 +1379,7 @@
             const userPart = {
                 playlistPageLayout: document.getElementById('playlistPageLayout').value,
                 invertPlaylistOrder: document.getElementById('invertPlaylistOrder').checked,
+                playerStyle: document.getElementById('lytPlayerStyle').value,
                 showChannelProfilePic: document.getElementById('showChannelProfilePic').checked,
                 showLocalYTLogo: document.getElementById('showLocalYTLogo').checked,
                 showEndScreenGrid: document.getElementById('showEndScreenGrid').checked,
@@ -1369,6 +1392,7 @@
             localStorage.setItem('invertPlaylistOrder', JSON.stringify({ enabled: userPart.invertPlaylistOrder }));
             localStorage.setItem('showChannelProfilePic', JSON.stringify({ enabled: userPart.showChannelProfilePic }));
             localStorage.setItem('showLocalYTLogo', JSON.stringify({ enabled: userPart.showLocalYTLogo }));
+            localStorage.setItem('playerStyle', JSON.stringify({ style: userPart.playerStyle }));
             localStorage.setItem('showEndScreenGrid', JSON.stringify({ enabled: userPart.showEndScreenGrid }));
             localStorage.setItem('showEndcards', JSON.stringify({ enabled: userPart.showEndcards }));
             localStorage.setItem('showRecommendationPopups', JSON.stringify({ enabled: userPart.showRecommendationPopups }));
@@ -1531,6 +1555,8 @@
             document.getElementById('playlistPageLayout').value = playlistLayout.view || 'grid';
             const invertOrder = JSON.parse(localStorage.getItem('invertPlaylistOrder') || '{}');
             document.getElementById('invertPlaylistOrder').checked = invertOrder.enabled !== undefined ? invertOrder.enabled : true;
+            const playerStyle = JSON.parse(localStorage.getItem('playerStyle') || '{}');
+            document.getElementById('lytPlayerStyle').value = playerStyle.style || 'standard';
             const showPic = JSON.parse(localStorage.getItem('showChannelProfilePic') || '{}');
             document.getElementById('showChannelProfilePic').checked = showPic.enabled || false;
             const showLogo = JSON.parse(localStorage.getItem('showLocalYTLogo') || '{}');
@@ -1547,6 +1573,7 @@
             fetch('/user-settings').then(res => res.json()).then(data => {
                 if (data.playlistPageLayout) document.getElementById('playlistPageLayout').value = data.playlistPageLayout;
                 if (data.invertPlaylistOrder !== undefined) document.getElementById('invertPlaylistOrder').checked = data.invertPlaylistOrder;
+                if (data.playerStyle) document.getElementById('lytPlayerStyle').value = data.playerStyle;
                 if (data.showChannelProfilePic !== undefined) document.getElementById('showChannelProfilePic').checked = data.showChannelProfilePic;
                 if (data.showLocalYTLogo !== undefined) document.getElementById('showLocalYTLogo').checked = data.showLocalYTLogo;
                 if (data.showEndScreenGrid !== undefined) document.getElementById('showEndScreenGrid').checked = data.showEndScreenGrid;
@@ -1814,6 +1841,7 @@
                 playerUIScale: parseFloat(document.getElementById('playerUIScale').value),
                 playlistPageLayout: document.getElementById('playlistPageLayout').value,
                 invertPlaylistOrder: document.getElementById('invertPlaylistOrder').checked,
+                playerStyle: document.getElementById('lytPlayerStyle').value,
                 showChannelProfilePic: document.getElementById('showChannelProfilePic').checked,
                 showLocalYTLogo: document.getElementById('showLocalYTLogo').checked,
                 showEndScreenGrid: document.getElementById('showEndScreenGrid').checked,
@@ -1875,6 +1903,7 @@
                     if (config.playerUIScale !== undefined) document.getElementById('playerUIScale').value = config.playerUIScale;
                     if (config.playlistPageLayout) document.getElementById('playlistPageLayout').value = config.playlistPageLayout;
                     if (config.invertPlaylistOrder !== undefined) document.getElementById('invertPlaylistOrder').checked = config.invertPlaylistOrder;
+                    if (config.playerStyle !== undefined) document.getElementById('lytPlayerStyle').value = config.playerStyle;
                     if (config.showChannelProfilePic !== undefined) document.getElementById('showChannelProfilePic').checked = config.showChannelProfilePic;
                     if (config.showLocalYTLogo !== undefined) document.getElementById('showLocalYTLogo').checked = config.showLocalYTLogo;
                     if (config.showEndScreenGrid !== undefined) document.getElementById('showEndScreenGrid').checked = config.showEndScreenGrid;
