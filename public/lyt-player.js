@@ -2504,7 +2504,7 @@
 
                     .fluid_video_wrapper.lyt_style_classic .lyt_volume_dot {
                         width: calc(6px * var(--lyt-ui-scale)) !important;
-                        height: calc(18px * var(--lyt-ui-scale)) !important; /* Or whatever height you set earlier */
+                        height: calc(16px * var(--lyt-ui-scale)) !important;
                         background: linear-gradient(to bottom, #eaeaea, #999999) !important; 
                         box-shadow: 0 calc(2px * var(--lyt-ui-scale)) 0 rgba(255, 255, 255, 0.4) !important; 
                         border-radius: 3px !important; 
