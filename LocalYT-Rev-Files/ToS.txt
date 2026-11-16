@@ -1,0 +1,4 @@
+// Put your ToS writing here, if available
+// This will be used as a pop-up on all of LocalYT's pages (.html) for new users (logged in or not)
+// This content will not cause a pop-up if empty, comments are excluded from this ToS content
+// Before setting and using a ToS writing, please set a custom salt at line 21 inside of tos-popup.js
