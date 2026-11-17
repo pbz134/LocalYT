@@ -1551,6 +1551,7 @@
 
         applyAppearanceMode();
         applyLogoColor();
+        injectRetroTopBarStyle();
 
         const logo = document.getElementById('mainLogo');
         if (logo && !document.getElementById('logo-version')) {
@@ -1696,7 +1697,43 @@
         userActions.appendChild(menuInstance);
 
         injectMenuStyles();
-    }
+
+        // Re-apply when Retro mode is toggled (settings page, other tabs, etc.)
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'playerStyle') injectRetroTopBarStyle();
+        });
+        }
+
+    // Scroll with the page in Retro styling
+    function injectRetroTopBarStyle() {
+        let styleEl = document.getElementById('lyt-retro-topbar-style');
+        let isRetro = false;
+        try {
+            isRetro = JSON.parse(localStorage.getItem('playerStyle') || '{}').style === 'classic';
+        } catch (e) {}
+    
+        if (!isRetro) {
+            if (styleEl) styleEl.remove();
+            return;
+        }
+        if (styleEl) return;
+    
+        styleEl = document.createElement('style');
+        styleEl.id = 'lyt-retro-topbar-style';
+    styleEl.textContent = `
+        .top-bar {
+            position: static !important;
+        }
+        .user-actions {
+            position: relative !important;
+        }
+        /* Cancel the space that was reserved for the fixed header */
+        .video-player-container {
+            padding-top: 16px !important;
+        }
+    `;
+            document.head.appendChild(styleEl);
+        }
 
     function injectMenuStyles() {
         if (document.getElementById('profile-menu-styles')) return;

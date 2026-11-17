@@ -2415,8 +2415,8 @@
                         position: absolute;
                         top: 50%; left: 50%;
                         transform: translate(-50%, -50%);
-                        width: calc(8px * var(--lyt-ui-scale));
-                        height: calc(8px * var(--lyt-ui-scale));
+                        width: calc(6px * var(--lyt-ui-scale));
+                        height: calc(6px * var(--lyt-ui-scale));
                         background: #adadad;
                         border-radius: 50%;
                     }

@@ -1208,7 +1208,7 @@
             if (pageStyleSelect) {
                 pageStyleSelect.options[0].text = getLang('Modern', 'Modern');
                 pageStyleSelect.options[1].text = getLang('Classic', 'Klassisch');
-                pageStyleSelect.options[2].text = getLang('Retro', 'Retro');
+                pageStyleSelect.options[2].text = getLang('Retro (BETA)', 'Retro (BETA)');
             }
             const channelDefaultView = document.getElementById('channelDefaultView');
             if (channelDefaultView) { channelDefaultView.options[0].text = getLang('Grid', 'Raster'); channelDefaultView.options[1].text = getLang('List', 'Liste'); }
@@ -1333,13 +1333,16 @@
 
         // --- Appearance Save ---
         async function saveAppearance() {
-            const pageStyleValue = document.getElementById('pageStyle').value; // 'modern' | 'classic'
-            const channelPageStyleValue = pageStyleValue === 'classic' ? 'legacy' : 'modern';
+            const pageStyleValue = document.getElementById('pageStyle').value; // 'modern' | 'classic' | 'retro'
+            const classicLike = (pageStyleValue === 'classic' || pageStyleValue === 'retro');
+
+            const channelPageStyleValue = classicLike ? 'legacy' : 'modern';
+            const videoPageLayoutValue  = classicLike ? 'classic' : 'modern';
 
             const settings = {
-                pageStyle: pageStyleValue,
-                videoPageLayout: pageStyleValue,
-                channelPageStyle: channelPageStyleValue,
+                pageStyle: pageStyleValue,               // stays 'retro' — drives retro-theme
+                videoPageLayout: videoPageLayoutValue,   // 'classic' for both classic & retro
+                channelPageStyle: channelPageStyleValue, // 'legacy' for both classic & retro
                 channelDefaultView: document.getElementById('channelDefaultView').value,
                 videosPerRow: parseInt(document.getElementById('videosPerRow').value, 10),
                 commenterProfileStyle: document.getElementById('commenterProfileStyle').value,
@@ -1980,10 +1983,12 @@
             if (settings.pageStyle) {
                 document.getElementById('pageStyle').value = settings.pageStyle;
                 const pageStyleVal = settings.pageStyle;
-                const channelStyleVal = pageStyleVal === 'classic' ? 'legacy' : 'modern';
-                localStorage.setItem('pageStyle', JSON.stringify({ style: pageStyleVal }));
-                localStorage.setItem('videoPageLayout', JSON.stringify({ layout: pageStyleVal }));
-                localStorage.setItem('channelPageStyle', JSON.stringify({ style: channelStyleVal }));
+                const classicLikeVal = (pageStyleVal === 'classic' || pageStyleVal === 'retro');
+                const channelStyleVal = classicLikeVal ? 'legacy' : 'modern';
+                const videoLayoutVal  = classicLikeVal ? 'classic' : 'modern';
+                localStorage.setItem('pageStyle',        JSON.stringify({ style:  pageStyleVal }));
+                localStorage.setItem('videoPageLayout',  JSON.stringify({ layout: videoLayoutVal }));
+                localStorage.setItem('channelPageStyle', JSON.stringify({ style:  channelStyleVal }));
             }
             if (settings.channelDefaultView) {
                 document.getElementById('channelDefaultView').value = settings.channelDefaultView;

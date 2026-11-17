@@ -64,6 +64,22 @@
             }
         })();
     </script>
+    <script>
+    (function applyPageStyle() {
+        function getStyle() {
+            let s = JSON.parse(localStorage.getItem('pageStyle') || '{}').style;
+            if (!s) {
+                const vl = JSON.parse(localStorage.getItem('videoPageLayout') || '{}').layout;
+                const cs = JSON.parse(localStorage.getItem('channelPageStyle') || '{}').style;
+                s = (vl === 'classic' || cs === 'legacy' || cs === 'classic') ? 'classic' : 'modern';
+            }
+            return s;
+        }
+        if (getStyle() === 'retro') {
+            document.documentElement.classList.add('retro-theme');
+        }
+    })();
+    </script>
     <script src="metadata-cache.js"></script>
     <script src="lyt-player.js">
     </script>
@@ -4674,8 +4690,13 @@ sourceElement.src = `/videos/${videoSrc.split('/').map(encodePathSegment).join('
         // ==============================
         (function applyVideoPageLayout() {
             const setting = JSON.parse(localStorage.getItem('videoPageLayout') || '{}');
+            const pageStyleSetting = JSON.parse(localStorage.getItem('pageStyle') || '{}');
             const layout = setting.layout || 'modern';
+            const pageStyle = pageStyleSetting.style || 'modern';
             const channelInfo = document.getElementById('channelInfo');
+
+            // Retro inherits the entire Classic layout
+            const isClassicLayout = (layout === 'classic' || layout === 'retro' || pageStyle === 'classic' || pageStyle === 'retro');
 
             // Create or get the style element for classic layout rules
             let classicStyleEl = document.getElementById('classic-layout-styles');
@@ -4691,7 +4712,7 @@ sourceElement.src = `/videos/${videoSrc.split('/').map(encodePathSegment).join('
             // Helper to clean up wrapper when switching modes
             const cleanupWrapper = () => {};
 
-            if (layout === 'classic' && channelInfo) {
+            if (isClassicLayout && channelInfo) {
                 channelInfo.classList.add('classic-layout');
 
             // =============================================
@@ -5356,7 +5377,14 @@ sourceElement.src = `/videos/${videoSrc.split('/').map(encodePathSegment).join('
                     const text = desc.textContent;
                     const match = text.match(/^([\d.,]+)\s*(views|Aufrufe)\s*-\s*/);
                     if (match) {
-                        vcEl.textContent = match[0].replace(/\s*-\s*$/, '').trim();
+                        let countText = match[0].replace(/\s*-\s*$/, '').trim();
+                        
+                        // Retro mode: Strip the word "views" or "Aufrufe"
+                        if (document.documentElement.classList.contains('retro-theme')) {
+                            countText = countText.replace(/\s*(views|Aufrufe)/i, '').trim();
+                        }
+                        
+                        vcEl.textContent = countText;
                         desc.textContent = text.replace(match[0], '');
                         if (typeof checkDescriptionCollapse === 'function') checkDescriptionCollapse();
                     }
@@ -5606,6 +5634,177 @@ sourceElement.src = `/videos/${videoSrc.split('/').map(encodePathSegment).join('
                 });
             }
         }
+    </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Only run in Retro mode to save resources
+        if (!document.documentElement.classList.contains('retro-theme')) return;
+    
+        const channelNameEl = document.getElementById('channelName');
+        if (!channelNameEl) return;
+    
+        // 1. Create the wrapper so the name and count sit on the same line
+        const nameWrapper = document.createElement('div');
+        nameWrapper.style.cssText = 'display: flex; align-items: baseline; gap: 4px;';
+        channelNameEl.parentNode.insertBefore(nameWrapper, channelNameEl);
+        nameWrapper.appendChild(channelNameEl);
+    
+        // 2. Create the video count element
+        const videoCountEl = document.createElement('span');
+        videoCountEl.id = 'retroVideoCount';
+        videoCountEl.className = 'retro-video-count';
+        // Make it clickable to go to the channel
+        videoCountEl.onclick = () => { 
+            if (typeof openChannelPage === 'function') openChannelPage(); 
+        };
+        nameWrapper.appendChild(videoCountEl);
+    
+        // 3. Fetch the channel video count using /search-index (like channel.html does)
+        const urlParams = new URLSearchParams(window.location.search);
+        const src = urlParams.get('src');
+        if (!src) return;
+        const channel = src.split('/')[0];
+    
+        fetch('/search-index')
+            .then(res => res.ok ? res.json() : { videos: [] })
+            .then(data => {
+                const count = (data.videos || []).filter(v => v.path.startsWith(channel + '/')).length;
+                if (count > 0) {
+                    const isDe = localStorage.getItem('language') === 'de';
+                    const formattedCount = count.toLocaleString(isDe ? 'de-DE' : 'en-US');
+                    const text = isDe
+                        ? `<span class="meta-separator">·</span> ${formattedCount} Videos`
+                        : `<span class="meta-separator">·</span> ${formattedCount} videos`;
+                    videoCountEl.innerHTML = text;
+                }
+            })
+            .catch(err => console.warn('Could not fetch channel video count:', err));
+    });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Only run in Retro mode
+            if (!document.documentElement.classList.contains('retro-theme')) return;
+
+            // Wait for the Classic layout script to finish its DOM moves
+            setTimeout(() => {
+                if (document.getElementById('retro-tabs-wrapper')) return;
+
+                // --- SWAP CLASSIC ICONS BACK TO STANDARD ---
+                const likeBtn = document.getElementById('likeButton');
+                const dislikeBtn = document.getElementById('dislikeButton');
+                if (likeBtn) likeBtn.src = 'LocalYT-Rev-Files/like.svg';
+                if (dislikeBtn) dislikeBtn.src = 'LocalYT-Rev-Files/dislike.svg';
+                // -------------------------------------------
+
+                // --- REALIGN RIGHT-SIDE ELEMENTS ---
+                const channelRight = document.querySelector('.channel-right');
+                const likeDislikeContainer = document.getElementById('likeDislikeContainer');
+                const viewCountClassic = document.getElementById('viewCountClassic');
+               const likeBarWrapper = document.getElementById('likeBarClassicWrapper');
+
+                if (channelRight && likeDislikeContainer) {
+                    // Move them out of the divider and into the right column
+                    if (viewCountClassic) channelRight.appendChild(viewCountClassic);
+                    channelRight.appendChild(likeDislikeContainer);
+                    if (likeBarWrapper) channelRight.appendChild(likeBarWrapper);
+                }
+                // -----------------------------------
+
+                const desc = document.getElementById('currentVideoDescription');
+                if (!desc) return;
+
+                const toggle = document.getElementById('descriptionToggle');
+
+                // 1. Create the Tab Bar and Sliding Viewport
+                const container = document.createElement('div');
+                container.id = 'retro-tabs-wrapper';
+                container.innerHTML = `
+                    <div class="retro-tabs-container">
+                        <button class="retro-tab active" data-target="0">About</button>
+                        <button class="retro-tab" data-target="1">Share</button>
+                        <button class="retro-tab" data-target="2">Add to</button>
+                    </div>
+                    <div class="retro-tab-viewport">
+                        <div class="retro-tab-track">
+                            <div class="retro-tab-pane" id="pane-about"></div>
+                            <div class="retro-tab-pane" id="pane-share"></div>
+                            <div class="retro-tab-pane" id="pane-save"></div>
+                        </div>
+                    </div>
+                `;
+
+                // 2. Insert the container right where the description used to be
+                desc.parentNode.insertBefore(container, desc);
+
+                // 3. Move the Description into the "About" Pane
+                document.getElementById('pane-about').appendChild(desc);
+                if (toggle) document.getElementById('pane-about').appendChild(toggle);
+
+                // 4. Move the Share Modal contents into the "Share" Pane
+                const shareContent = document.querySelector('#shareModal .modal-content');
+                if (shareContent) {
+                    const closeBtn = shareContent.querySelector('.modal-close');
+                    if (closeBtn) closeBtn.style.display = 'none';
+                    const h2 = shareContent.querySelector('h2');
+                    if (h2) h2.style.display = 'none';
+                    
+                    document.getElementById('pane-share').appendChild(shareContent);
+                }
+
+                // 5. Move the Save Modal contents into the "Add to" Pane
+                const saveContent = document.querySelector('#saveModal .save-modal-content');
+                if (saveContent) {
+                    const closeBtn = saveContent.querySelector('.save-modal-close');
+                    if (closeBtn) closeBtn.style.display = 'none';
+                    const h2 = saveContent.querySelector('h2');
+                    if (h2) h2.style.display = 'none';
+
+                    document.getElementById('pane-save').appendChild(saveContent);
+                }
+
+                // 6. Set up the Tab Switching Logic
+                const tabs = container.querySelectorAll('.retro-tab');
+                const track = container.querySelector('.retro-tab-track');
+
+                function switchTab(index) {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabs[index].classList.add('active');
+                    track.style.transform = `translateX(-${index * 33.3333}%)`;
+                }
+
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        switchTab(parseInt(tab.dataset.target));
+                    });
+                });
+
+                // 7. NEW: Create Large Like/Dislike Buttons for Retro Layout
+                const largeActions = document.createElement('div');
+                largeActions.className = 'retro-large-actions';
+                largeActions.innerHTML = `
+                    <button class="retro-action-btn">
+                        <svg viewBox="0 0 24 24" width="32" height="32"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>
+                        <span>Like</span>
+                    </button>
+                    <button class="retro-action-btn">
+                        <svg viewBox="0 0 24 24" width="32" height="32"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z"/></svg>
+                    </button>
+                `;
+
+                // Insert the large buttons right before the tabs wrapper
+                container.parentNode.insertBefore(largeActions, container);
+
+                // 8. NEW: Clean up dividers (removes the first horizontal line)
+                // This targets common divider elements above the new buttons
+                const headerArea = largeActions.previousElementSibling;
+                if (headerArea) {
+                    headerArea.style.borderBottom = 'none';
+                    if (headerArea.tagName === 'HR') headerArea.style.display = 'none';
+                }
+
+            }, 800); // Wait 800ms for Classic layout to finish moving things
+        });
     </script>
     <script src="profile-pic.js"> </script>
     <script src="lyt-player-custom-stats.js"> </script>
