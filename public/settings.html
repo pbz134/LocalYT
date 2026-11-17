@@ -505,47 +505,9 @@
             display: block;
         }
 
-        /* --- Presets dropdown --- */
-        .preset-select {
-            background-color: #222;
-            border: 1px solid #444;
-            color: #fff;
-            padding: 8px 12px;
-            font-size: 14px;
-            cursor: pointer;
+        /* Presets dropdown inherits from .setting-select */
+        #presetSelector {
             min-width: 200px;
-            border-radius: 4px;
-        }
-        .preset-select:focus {
-            outline: none;
-            border-color: #2196F3;
-        }
-        .preset-card {
-            background-color: #1a1a1a;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 16px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 20px;
-            margin-bottom: 24px;
-        }
-        .preset-card .preset-info {
-            flex: 1;
-        }
-        .preset-card .preset-label {
-            font-size: 15px;
-            color: #eee;
-            font-weight: 500;
-        }
-        .preset-card .preset-desc {
-            font-size: 13px;
-            color: #888;
-            margin-top: 2px;
-        }
-        .preset-card .preset-control {
-            flex-shrink: 0;
         }
     </style>
 </head>
@@ -590,13 +552,13 @@
             <h1>Appearance</h1>
 
             <!-- PRESETS -->
-            <div class="preset-card">
-                <div class="preset-info">
-                    <div class="preset-label" id="presetLabel">Presets</div>
-                    <div class="preset-desc" id="presetDesc">Apply a predefined set of appearance settings</div>
+            <div class="setting-card" style="margin-bottom: 24px;">
+                <div class="card-info">
+                    <div class="card-label" id="presetLabel">Presets</div>
+                    <div class="card-desc" id="presetDesc">Apply a predefined set of appearance settings</div>
                 </div>
-                <div class="preset-control">
-                    <select class="preset-select" id="presetSelector">
+                <div class="card-control">
+                    <select class="setting-select" id="presetSelector" style="min-width: 200px;">
                         <option value="none">None</option>
                         <option value="modern">Modern</option>
                         <option value="classic">Classic</option>
