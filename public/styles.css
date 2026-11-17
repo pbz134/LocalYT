@@ -212,10 +212,6 @@ body {
     margin: 0 0 0 -4px;
 }
 
-body:has(.lyt_style_classic) .current-video-title {
-    font-size: 22px;
-}
-
 .suggestions-wrapper {
     background-color: var(--main-bg-color);
     padding: 0px;
@@ -1375,164 +1371,81 @@ img.search-icon {
 }
 
 /* ============================================================
-   RETRO THEME — inherits full Classic layout (see JS above).
-   Only colour tweaks below the video differ from Classic.
+   RETRO THEME (Strictly scoped to html.retro-theme & no global colors)
    ============================================================ */
 
 html.retro-theme .like-dislike-icons img {
     filter: invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(90%) contrast(88%);
 }
 
-html.retro-theme body.classic-layout-active #classicActionsWrapper {
-    border-top-color: #8a6d1f;             /* retro divider colour */
+html.retro-theme #classicActionsWrapper {
+    border-top-color: #8a6d1f !important;
 }
 
-html.retro-theme body.classic-layout-active #classicActionsWrapper .share-container span,
-html.retro-theme body.classic-layout-active #classicActionsWrapper .save-container span {
-    color: #6b5a2e;                        /* retro label colour */
+html.retro-theme #classicActionsWrapper .share-container span,
+html.retro-theme #classicActionsWrapper .save-container span {
+    color: #6b5a2e !important;
 }
 
-html.retro-theme body.classic-layout-active #classicActionsWrapper img {
-    /* retro icon tint — the classic SVG filter stacked with a warm hue shift */
-    filter: invert(35%) sepia(40%) saturate(400%) hue-rotate(20deg) brightness(80%);
+html.retro-theme #classicActionsWrapper img {
+    filter: invert(35%) sepia(40%) saturate(400%) hue-rotate(20deg) brightness(80%) !important;
 }
 
-/* Retro like ratio — must beat the injected #classic-layout-styles
-   template, which loads after styles.css and uses body.classic-layout-active.
-   Adding that prefix bumps specificity to (1,2,2) / (0,3,2) — always wins. */
-html.retro-theme body.classic-layout-active #likeBar,
-html.retro-theme body.classic-layout-active #likeBarClassicWrapper .like-bar,
-html.retro-theme body.classic-layout-active .like-bar,
+html.retro-theme #likeBar,
+html.retro-theme #likeBarClassicWrapper .like-bar,
 html.retro-theme .like-bar,
 html.retro-theme #likeBar {
-    background-color: #559900 !important;   /* green — like ratio */
+    background-color: #559900 !important;
 }
 
-html.retro-theme body.classic-layout-active #likeBarClassicWrapper,
-html.retro-theme body.classic-layout-active .like-dislike-bar-container,
+html.retro-theme #likeBarClassicWrapper,
+html.retro-theme .like-dislike-bar-container,
 html.retro-theme .like-dislike-bar-container,
 html.retro-theme #likeBarClassicWrapper {
-    background-color: #cccccc !important;   /* grey — dislike remainder */
+    background-color: #cccccc !important;
 }
 
-
-/* ============================================================
-   RETRO MODE — Below Video Tweaks
-   ============================================================ */
-
-/* 1. Remove the weird negative margin from the view count so we have a true right edge */
-html.retro-theme body.classic-layout-active .view-count-classic {
+html.retro-theme .view-count-classic {
     margin-right: 0 !important;
 }
 
-/* 2. Make the like/dislike icons smaller */
-html.retro-theme body.classic-layout-active .like-dislike-icons img {
+html.retro-theme .like-dislike-icons img {
     width: 16px !important;
     height: 16px !important;
-    margin-right: 4px !important; /* Tighter spacing next to the number */
+    margin-right: 4px !important;
 }
 
-/* 3. Make the counts smaller */
-html.retro-theme body.classic-layout-active .like-dislike-icons span {
+html.retro-theme .like-dislike-icons span {
     font-size: 12px !important;
-    margin-right: 10px !important; /* Space between like count and dislike icon */
+    margin-right: 10px !important;
 }
 
-html.retro-theme body.classic-layout-active #likeDislikeContainer {
+html.retro-theme #likeDislikeContainer {
     transform: translateY(-8px);
 }
 
-/* 4. Flush the right edge of the dislike count with the right edge of the view count */
-html.retro-theme body.classic-layout-active #dislikeCount {
+html.retro-theme #dislikeCount {
     margin-right: 0 !important;
-}
-
-/* ============================================================
-   RETRO MODE — Channel Video Count
-   ============================================================ */
-
-.retro-video-count {
-    display: none;
-    font-size: 13px;
-    color: #888;
-    font-family: 'RobotoRegular', Arial, sans-serif;
-    cursor: pointer;
-    user-select: none;
-    white-space: nowrap;
-}
-
-.retro-video-count:hover {
-    text-decoration: underline;
 }
 
 html.retro-theme .retro-video-count {
     display: inline-block;
 }
 
-html.retro-theme {
-    --main-bg-color: #ebebeb;
-    --secondary-bg-color: #e0e0e0;
-    --input-bg-color: #ffffff;
-    --button-bg-color: #ebebeb;
-    color: #0f0f0f;
-}
-
-html.retro-theme .top-bar {
-    background-color: #ebebeb;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-}
-
-html.retro-theme .top-bar input {
-    background-color: #ffffff;
-    color: #0f0f0f;
-    border-color: #bbb;
-}
-
-html.retro-theme .search-container::after {
-    background-color: #e0e0e0;
-    border-color: #bbb;
-}
-
-html.retro-theme .search-container:focus-within::after,
-html.retro-theme .top-bar input:focus {
-    border-color: #888;
-}
-
-html.retro-theme .settings-sidebar a {
-    color: #555;
-}
-
-html.retro-theme .settings-sidebar a:hover,
-html.retro-theme .settings-sidebar a.active {
-    color: #0f0f0f;
-}
-
-html.retro-theme .settings-content h1,
-html.retro-theme .tab-panel h1 {
-    color: #0f0f0f;
-}
-
-/* ============================================================
-   RETRO MODE — Tabbed Share/Save UI
-   ============================================================ */
-
-/* Hide the old Share and Save buttons in the channel row */
-html.retro-theme body.classic-layout-active #shareContainer,
-html.retro-theme body.classic-layout-active #saveContainer {
+html.retro-theme #shareContainer,
+html.retro-theme #saveContainer {
     display: none !important;
 }
 
-/* Tab Bar - Aligned to the right */
 html.retro-theme .retro-tabs-container {
     display: flex !important;
-    justify-content: flex-end !important; /* Pushes tabs to the right */
+    justify-content: flex-end !important; 
     border-bottom: 1px solid #ccc !important;
     margin: 10px 0 15px 0 !important;
     padding-top: 10px !important;
     width: 100% !important;
 }
 
-/* Individual Tabs */
 html.retro-theme .retro-tab {
     background: transparent !important;
     border: none !important;
@@ -1552,7 +1465,6 @@ html.retro-theme .retro-tab.active {
     color: #333 !important;
 }
 
-/* The Red Line (#e62117) */
 html.retro-theme .retro-tab::after {
     content: '' !important;
     position: absolute !important;
@@ -1569,13 +1481,11 @@ html.retro-theme .retro-tab.active::after {
     background-color: #e62117 !important;
 }
 
-/* Sliding Viewport */
 html.retro-theme .retro-tab-viewport {
     width: 100% !important;
     overflow: hidden !important;
 }
 
-/* The sliding track (holds all 3 panes) */
 html.retro-theme .retro-tab-track {
     display: flex !important;
     width: 300% !important;
@@ -1583,7 +1493,6 @@ html.retro-theme .retro-tab-track {
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-/* Individual panes */
 html.retro-theme .retro-tab-pane {
     width: 33.3333% !important;
     box-sizing: border-box !important;
@@ -1591,9 +1500,6 @@ html.retro-theme .retro-tab-pane {
     padding: 10px 0 !important;
 }
 
-/* --- Clean up the moved elements for Retro --- */
-
-/* About Pane Text */
 html.retro-theme #pane-about .video-description {
     margin-top: 0 !important;
     padding: 0 !important;
@@ -1601,7 +1507,6 @@ html.retro-theme #pane-about .video-description {
     color: #555 !important;
 }
 
-/* 1. Keep the white background box perfectly in place */
 html.retro-theme #pane-share .modal-content,
 html.retro-theme #pane-save .save-modal-content {
     background: #ffffff !important;
@@ -1613,18 +1518,15 @@ html.retro-theme #pane-save .save-modal-content {
     max-height: none !important;
     overflow: visible !important;
     color: #333 !important;
-    
-    padding-top: 15px !important; /* Gives the buttons room to move up without clipping */
+    padding-top: 15px !important;
 }
 
-/* 2. Move ONLY the content (buttons) inside the box up */
 html.retro-theme #pane-share .modal-content > *,
 html.retro-theme #pane-save .save-modal-content > * {
     position: relative !important;
-    top: -15px !important; /* Adjust this to move the buttons up */
+    top: -15px !important;
 }
 
-/* Retro styled buttons inside the Share pane */
 html.retro-theme #pane-share button {
     background-color: #f1f1f1 !important;
     border: 1px solid #999 !important;
@@ -1641,7 +1543,6 @@ html.retro-theme #pane-share button:hover {
     border-color: #666 !important;
 }
 
-/* Retro styled elements inside the Save pane */
 html.retro-theme #pane-save .save-playlist-item {
     color: #333 !important;
     border-bottom: 1px solid #eee !important;
@@ -1661,12 +1562,7 @@ html.retro-theme #pane-save .create-playlist-row button {
     font-weight: bold !important;
 }
 
-/* ============================================================
-   RETRO MODE — Info Box & Alignment Tweaks
-   ============================================================ */
-
-/* 1. Remove the brighter background from the Classic info box */
-html.retro-theme body.classic-layout-active #classicInfoBoxWrapper {
+html.retro-theme #classicInfoBoxWrapper {
     background-color: transparent !important;
     border: none !important;
     box-shadow: none !important;
@@ -1674,40 +1570,36 @@ html.retro-theme body.classic-layout-active #classicInfoBoxWrapper {
     margin: 0 !important;
 }
 
-/* 2. Make view count and description text darker (#333333) */
-html.retro-theme body.classic-layout-active .view-count-classic,
+html.retro-theme .view-count-classic,
 html.retro-theme #pane-about .video-description,
 html.retro-theme #currentVideoDescription {
     color: #333333 !important;
 }
 
-html.retro-theme body.classic-layout-active .view-count-classic {
+html.retro-theme .view-count-classic {
     margin: 0 0 8px 0 !important;
     font-size: 23px !important;
-    transform: translateY(18px) !important; /* Use this to push it down visually */
+    transform: translateY(18px) !important; 
 }
 
-/* 3. Align the right column and remove gaps */
-html.retro-theme body.classic-layout-active .channel-right {
+html.retro-theme .channel-right {
     position: relative !important;
     flex-direction: column !important;
     align-items: flex-end !important;
     justify-content: flex-end !important;
     gap: 12px !important;
-    margin-top: -7px !important; /* Nudge up to align with Subscribe button */
+    margin-top: -7px !important; 
     transform: none !important; 
     width: auto !important;
 }
 
-/* 4. Reset the icons */
-html.retro-theme body.classic-layout-active .channel-right #likeDislikeContainer {
+html.retro-theme .channel-right #likeDislikeContainer {
     transform: translateX(20px) !important;
-    margin-top: 10px !important; /* Push it down from the bar above it */
+    margin-top: 10px !important; 
     margin-bottom: 10px !important;
 }
 
-/* 5. Float the like bar above the icons */
-html.retro-theme body.classic-layout-active #likeBarClassicWrapper {
+html.retro-theme #likeBarClassicWrapper {
     position: absolute !important;
     bottom: 30px !important;
     right: 10px !important;
@@ -1715,31 +1607,11 @@ html.retro-theme body.classic-layout-active #likeBarClassicWrapper {
     width: 180px !important;
 }
 
-/* 6. Ensure the divider sits below everything */
-html.retro-theme body.classic-layout-active #classicActionsWrapper {
+html.retro-theme #classicActionsWrapper {
     min-height: 0 !important;
     padding-top: 10px !important;
     margin-top: 10px !important;
 }
-
-/* ============================================================
-   RETRO MODE — Left-side Action Buttons (Like / Dislike)
-   ============================================================
-   The left-side retro action buttons (.retro-action-btn) should
-   display the same SVG icons + labels as the right-side
-   #likeDislikeContainer buttons.
-
-   Expected markup per button (preferred):
-     <button class="retro-action-btn">
-       <img src="LocalYT-Rev-Files/like.svg" alt=""> Like
-     </button>
-     <button class="retro-action-btn">
-       <img src="LocalYT-Rev-Files/dislike.svg" alt=""> Dislike
-     </button>
-
-   A pseudo-element fallback is also provided for buttons that
-   only carry a like/dislike class or data-action attribute.
-   ============================================================ */
 
 html.retro-theme .retro-action-btn {
     display: inline-flex;
@@ -1763,7 +1635,6 @@ html.retro-theme .retro-action-btn:hover {
     color: #e62117;
 }
 
-/* Icon (matches right-side #likeDislikeContainer look) */
 html.retro-theme .retro-action-btn > img,
 html.retro-theme .retro-action-btn > svg {
     width: 18px;
@@ -1785,7 +1656,6 @@ html.retro-theme .retro-action-btn > span {
     color: inherit;
 }
 
-/* --- Pseudo-element fallback for text-only buttons --- */
 html.retro-theme .retro-action-btn.like-btn:not(:has(img))::before,
 html.retro-theme .retro-action-btn[data-action="like"]:not(:has(img))::before {
     content: '';
@@ -1814,20 +1684,6 @@ html.retro-theme .retro-action-btn[data-action="dislike"]:not(:has(img))::before
     flex-shrink: 0;
 }
 
-/* ============================================================
-   RETRO MODE — Divider Cleanup, Action Button Realignment
-   & Like/Dislike Interactivity
-   ============================================================
-   1. Nudge the left-side like/dislike buttons up, enlarge them,
-      and give them "I like this" / "I dislike this" hover tooltips.
-   2. Disable the smaller right-side like/dislike cluster so only
-      the left buttons are clickable in retro mode.
-   3. Remove the upper divider (border-top of #classicActionsWrapper).
-   4. Pull the lower divider + About/Share/Add-to tab bar up to line
-      up with the left-side buttons.
-   ============================================================ */
-
-/* ---------- 1. Left-side buttons: size, position, tooltip ---------- */
 html.retro-theme .retro-action-btn {
     margin-top: -10px !important;
     margin-bottom: -4px !important;
@@ -1846,7 +1702,6 @@ html.retro-theme .retro-action-btn[data-action="dislike"]:not(:has(img))::before
     height: 22px !important;
 }
 
-/* Tooltip bubble (shared for both buttons) */
 html.retro-theme .retro-action-btn::after {
     position: absolute;
     bottom: calc(100% + 6px);
@@ -1866,7 +1721,6 @@ html.retro-theme .retro-action-btn::after {
     z-index: 100;
 }
 
-/* Move the button itself to the right */
 html.retro-theme .retro-action-btn {
     position: relative;
     left: 10px;
@@ -1876,7 +1730,6 @@ html.retro-theme .retro-action-btn:hover::after {
     opacity: 1;
 }
 
-/* Tooltip text per button type */
 html.retro-theme .retro-action-btn.like-btn::after,
 html.retro-theme .retro-action-btn[data-action="like"]::after {
     content: 'I like this';
@@ -1887,15 +1740,13 @@ html.retro-theme .retro-action-btn[data-action="dislike"]::after {
     content: 'I dislike this';
 }
 
-/* ---------- 2. Right-side small cluster — non-interactive ---------- */
-html.retro-theme body.classic-layout-active #likeDislikeContainer,
-html.retro-theme body.classic-layout-active #likeDislikeContainer .like-dislike-icons img {
+html.retro-theme #likeDislikeContainer,
+html.retro-theme #likeDislikeContainer .like-dislike-icons img {
     pointer-events: none !important;
     cursor: default !important;
 }
 
-/* ---------- 3. Kill the upper divider and its spacing ---------- */
-html.retro-theme body.classic-layout-active #classicActionsWrapper {
+html.retro-theme #classicActionsWrapper {
     border-top: none !important;
     border-top-width: 0 !important;
     border-top-style: none !important;
@@ -1908,75 +1759,71 @@ html.retro-theme body.classic-layout-active #classicActionsWrapper {
     min-height: 0 !important;
 }
 
-/* ---------- 4. Pull the tab bar (lower divider + tabs) up ---------- */
 html.retro-theme .retro-tabs-container {
     margin-top: -22px !important;
     padding-top: 2px !important;
     margin-bottom: 10px !important;
 }
 
-body:has(.lyt_style_classic) .video-player-container,
-body:has(.lyt_style_classic) .video-wrapper {
+html.retro-theme .video-player-container,
+html.retro-theme .video-wrapper {
     flex: 0 0 73% !important;
     width: 73% !important;
     max-width: 73% !important;
     min-width: 0 !important;
 }
 
-/* Let width drive the video size instead of a height cap */
-body:has(.lyt_style_classic) .fluid_video_wrapper video {
+html.retro-theme .fluid_video_wrapper video {
     max-height: none;
 }
 
-/* Retro: thicker channel name */
-body:has(.lyt_style_classic) .channel-name {
+html.retro-theme .channel-name {
     font-weight: 500 !important;
 }
 
-body:has(.lyt_style_classic) .video-player-container {
+html.retro-theme .video-player-container {
     padding-left: 16px !important;
 }
 
-body:has(.lyt_style_classic) .channel-left {
+html.retro-theme .channel-left {
     position: relative;
     left: 15px;
 }
 
-body:has(.lyt_style_classic) .current-video-title,
-body:has(.lyt_style_classic) .video-description,
-body:has(.lyt_style_classic) #commentsTotalAmount,
-
-/* 1. Shift the whole comment (avatar + text + buttons) by 15px */
-body:has(.lyt_style_classic) .comment-item,
-body:has(.lyt_style_classic) .comment-container {
+html.retro-theme .current-video-title,
+html.retro-theme .video-description {
     position: relative;
     left: 15px;
 }
 
-/* 2. Remove the internal indentation so text aligns under the username */
-body:has(.lyt_style_classic) .comment-text,
-body:has(.lyt_style_classic) .comments-count,
-body:has(.lyt_style_classic) .comment-actions {
+html.retro-theme .comment-item,
+html.retro-theme .comment-container {
+    position: relative;
+    left: 15px;
+}
+
+html.retro-theme .comment-text,
+html.retro-theme .comments-count,
+html.retro-theme .comment-actions {
     margin-left: 0 !important;
     padding-left: 0 !important;
 }
 
-/* 3. (Optional) Ensure a nice gap between the avatar and the username */
-body:has(.lyt_style_classic) .comment-avatar,
-body:has(.lyt_style_classic) .comment-profile-pic {
+html.retro-theme .comment-avatar,
+html.retro-theme .comment-profile-pic {
     margin-right: 12px !important;
 }
 
-body:has(.lyt_style_classic) .channel-right {
+html.retro-theme .channel-right {
     position: relative;
     left: 8px;
 }
 
-body:has(.lyt_style_classic) .video-wrapper {
+html.retro-theme .video-wrapper {
     position: relative;
 }
-body:has(.lyt_style_classic) .video-wrapper::before,
-body:has(.lyt_style_classic) .video-wrapper::after {
+html.retro-theme .video-wrapper::before,
+html.retro-theme .video-wrapper::after {
     content: '';
     position: absolute;
     top: 0;
@@ -1986,23 +1833,18 @@ body:has(.lyt_style_classic) .video-wrapper::after {
     pointer-events: none;
     z-index: 1;
 }
-body:has(.lyt_style_classic) .video-wrapper::before { left: 0; }
-body:has(.lyt_style_classic) .video-wrapper::after  { right: 0; }
+html.retro-theme .video-wrapper::before { left: 0; }
+html.retro-theme .video-wrapper::after  { right: 0; }
 
-
-/* Retro: thicker commenter username */
-body:has(.lyt_style_classic) .comment-author {
+html.retro-theme .comment-author {
     font-weight: 700 !important;
 }
 
-/* Retro: thicker "Uploaded on ..." date (first line of description) */
-body:has(.lyt_style_classic) .video-description::first-line {
+html.retro-theme .video-description::first-line {
     font-weight: 800 !important;
 }
 
-/* Retro: Strip the box and center the "Show more/less" text */
-body.classic-layout-active:has(.lyt_style_classic) .description-toggle,
-body:has(.lyt_style_classic) .video-description .description-toggle {
+html.retro-theme .description-toggle {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -2018,54 +1860,44 @@ body:has(.lyt_style_classic) .video-description .description-toggle {
     color: #666 !important;
 }
 
-/* Force transparent background on all states */
-body.classic-layout-active:has(.lyt_style_classic) .description-toggle:hover,
-body.classic-layout-active:has(.lyt_style_classic) .description-toggle:active,
-body.classic-layout-active:has(.lyt_style_classic) .description-toggle:focus,
-body:has(.lyt_style_classic) .video-description .description-toggle:hover,
-body:has(.lyt_style_classic) .video-description .description-toggle:active,
-body:has(.lyt_style_classic) .video-description .description-toggle:focus {
+html.retro-theme .description-toggle:hover,
+html.retro-theme .description-toggle:active,
+html.retro-theme .description-toggle:focus {
     background: none !important;
     background-color: transparent !important;
     box-shadow: none !important;
 }
 
-/* Retro: Create the thin horizontal lines */
-body:has(.lyt_style_classic) .description-toggle::before,
-body:has(.lyt_style_classic) .description-toggle::after {
+html.retro-theme .description-toggle::before,
+html.retro-theme .description-toggle::after {
     content: '';
     flex: 1;
     height: 1px;
     background-color: #ddd !important;
 }
 
-/* Add spacing between the text and the lines */
-body:has(.lyt_style_classic) .description-toggle::before {
+html.retro-theme .description-toggle::before {
     margin-right: 15px;
 }
-body:has(.lyt_style_classic) .description-toggle::after {
+html.retro-theme .description-toggle::after {
     margin-left: 15px;
 }
 
-/* 1. Remove the fade-out transition gradient */
-body:has(.lyt_style_classic) .video-description.collapsed::after {
+html.retro-theme .video-description.collapsed::after {
     display: none !important;
     background: none !important;
     background-image: none !important;
 }
 
-/* 2. Ensure the text is hard-clipped and doesn't overflow */
-body:has(.lyt_style_classic) .video-description {
+html.retro-theme .video-description {
     overflow: hidden !important;
 }
 
-/* 3. Add a small gap above the button */
-body:has(.lyt_style_classic) .description-toggle {
+html.retro-theme .description-toggle {
     margin-top: 8px !important;
 }
 
-/* Retro: Collapse description by number of lines */
-body:has(.lyt_style_classic) .video-description.collapsed {
+html.retro-theme .video-description.collapsed {
     display: -webkit-box !important;
     -webkit-line-clamp: 7 !important;
     -webkit-box-orient: vertical;
@@ -2073,25 +1905,19 @@ body:has(.lyt_style_classic) .video-description.collapsed {
     max-height: none !important;
 }
 
-/* Move only the "Comments" text left */
-body:has(.lyt_style_classic) .comments-count {
+html.retro-theme .comments-count {
     position: relative;
     left: 15px;
 }
 
-/* =========================================
-   Retro: Subscribe Button & Sub Count
-   ========================================= */
-
-/* 1. Main Subscribe Button */
-body:has(.lyt_style_classic) .subscribe-button {
+html.retro-theme .subscribe-button {
     background: linear-gradient(to bottom, #fefefe 0%, #e1e1e1 100%) !important;
     color: #333 !important;
     border: 1px solid #b3b3b3 !important;
     border-radius: 2px !important;
     font-weight: 700 !important;
-    height: 26px !important; /* Reduced from 32px */
-    padding: 0 12px 0 32px !important; /* Adjusted left padding for the smaller logo */
+    height: 26px !important; 
+    padding: 0 12px 0 32px !important; 
     position: relative !important;
     display: inline-flex !important;
     align-items: center !important;
@@ -2102,31 +1928,28 @@ body:has(.lyt_style_classic) .subscribe-button {
     transition: background 0.1s ease !important;
 }
 
-/* Subscribe button hover effect */
-body:has(.lyt_style_classic) .subscribe-button:hover {
+html.retro-theme .subscribe-button:hover {
     background: linear-gradient(to bottom, #f0f0f0 0%, #d6d6d6 100%) !important;
     border-color: #999 !important;
 }
 
-/* 2. The Red Logo Square */
-body:has(.lyt_style_classic) .subscribe-button::before {
+html.retro-theme .subscribe-button::before {
     content: '' !important;
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;
     bottom: 0 !important;
-    width: 26px !important; /* Reduced from 32px so it stays a perfect square */
+    width: 26px !important; 
     background-color: #e62117 !important;
     background-image: url('LocalYT-Rev-Files/Logo-Small-Swapped.svg') !important;
-    background-size: 14px 14px !important; /* Reduced icon size to fit */
+    background-size: 14px 14px !important; 
     background-position: center !important;
     background-repeat: no-repeat !important;
     border-right: 1px solid #e62117 !important;
     border-radius: 1px 0 0 1px !important;
 }
 
-/* 3. Subscriber Count Bubble */
-body:has(.lyt_style_classic) .sub-count {
+html.retro-theme .sub-count {
     background: linear-gradient(to bottom, #ffffff 0%, #f1f1f1 100%) !important;
     border: 1px solid #b3b3b3 !important;
     border-radius: 2px !important;
@@ -2144,23 +1967,21 @@ body:has(.lyt_style_classic) .sub-count {
     transform: translateX(8px) !important;
 }
 
-/* 4. The "Speed Bubble" Arrow pointing left */
-body:has(.lyt_style_classic) .sub-count::before {
+html.retro-theme .sub-count::before {
     content: '' !important;
     position: absolute !important;
     left: -6px !important;
     top: 50% !important;
     width: 10px !important;
     height: 10px !important;
-    background: #fefefe !important; /* Matches top of gradient */
+    background: #fefefe !important; 
     border-left: 1px solid #b3b3b3 !important;
     border-bottom: 1px solid #b3b3b3 !important;
     transform: translateY(-50%) rotate(45deg) !important;
     z-index: 1 !important;
 }
 
-/* Retro: Balance the spacing above and below the main video title */
-body:has(.lyt_style_classic) .current-video-title {
+html.retro-theme .current-video-title {
     margin-top: 16px !important;
     margin-bottom: 12px !important;
 }
