@@ -1466,7 +1466,7 @@ html.retro-theme .retro-tab {
     cursor: pointer !important;
     position: relative !important;
     outline: none !important;
-    transition: color 0.2s !important;
+    /* no transition: hover color must switch instantly, no fade */
 }
 
 html.retro-theme .retro-tab:hover,
@@ -1482,7 +1482,7 @@ html.retro-theme .retro-tab::after {
     bottom: -1px !important;
     height: 4px !important;
     background-color: transparent !important;
-    transition: background-color 0.2s !important;
+    /* no transition: the red underline must appear/disappear instantly, no fade */
 }
 
 html.retro-theme .retro-tab:hover::after,
