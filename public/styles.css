@@ -1888,6 +1888,10 @@ html.retro-theme .comment-item,
 html.retro-theme .comment-container {
     position: relative;
     left: 15px;
+    /* the 15px left shift makes the full-width box reach 15px PAST the
+       right divider; pulling the box back keeps the text clear of it,
+       with a 15px gap matching the left side */
+    margin-right: 30px;
 }
 
 html.retro-theme .comment-text,
