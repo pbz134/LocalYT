@@ -2380,7 +2380,7 @@
                     }
 
                     .fluid_video_wrapper.lyt_style_classic .lyt_progress_played {
-                        background: #9b1b1b !important;
+                        background: #e62117 !important;
                     }
 
                     /* Larger cog icon */
