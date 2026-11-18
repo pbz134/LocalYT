@@ -2577,18 +2577,20 @@
             if (videoSrc) {
                 const videoExtension = getVideoExtension(videoSrc);
                 const mimeType = getMimeType(videoExtension);
+                const isAudioOnly = mimeType.startsWith('audio/');
 
                 videoPlayer.innerHTML = '';
+            videoPlayer.dataset.mediaType = isAudioOnly ? 'audio' : 'video';
 
-// Encode each segment individually so / stays a real slash.
-function encodePathSegment(seg) {
-    return encodeURIComponent(seg).replace(/[!'()*]/g, c =>
-        '%' + c.charCodeAt(0).toString(16).toUpperCase()
-    );
-}
+            // Encode each segment individually so / stays a real slash.
+            function encodePathSegment(seg) {
+                return encodeURIComponent(seg).replace(/[!'()*]/g, c =>
+                    '%' + c.charCodeAt(0).toString(16).toUpperCase()
+                );
+            }
 
-const sourceElement = document.createElement('source');
-sourceElement.src = `/videos/${videoSrc.split('/').map(encodePathSegment).join('/')}`;
+            const sourceElement = document.createElement('source');
+            sourceElement.src = `/videos/${videoSrc.split('/').map(encodePathSegment).join('/')}`;
                 sourceElement.type = mimeType;
                 videoPlayer.appendChild(sourceElement);
 

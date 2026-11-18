@@ -3169,21 +3169,41 @@
             if (!this._originalVideoSrc) {
                 this._originalVideoSrc = this.video.currentSrc || this.video.src;
             }
-
+        
+            // Audio files have no resolution → no quality row/submenu at all.
+            // dataset.mediaType is set by video.html; the videoWidth/Height===0
+            // fallback covers the initial call before loadedmetadata fires.
+            const isAudio =
+                (this.video.dataset && this.video.dataset.mediaType === 'audio') ||
+                (this.video.videoWidth === 0 && this.video.videoHeight === 0);
+        
+            const qualityRow = this.dom.mainMenuContent.querySelector('.lyt_opt_quality');
+        
+            if (isAudio) {
+                if (qualityRow) qualityRow.style.display = 'none';
+                if (this.dom.qualityMenu) this.dom.qualityMenu.style.display = 'none';
+                return;
+            }
+        
+            // Video path: make sure the row/submenu are visible again
+            // (they may have been hidden by an earlier audio-only call during init).
+            if (qualityRow) qualityRow.style.display = '';
+            if (this.dom.qualityMenu) this.dom.qualityMenu.style.display = '';
+        
             const h = this.video.videoHeight || 0;
             let originalLabel = 'Auto';
             if (h >= 2160) originalLabel = '2160p (4K)';
             else if (h >= 1440) originalLabel = '1440p (2K)';
             else if (h >= 1080) originalLabel = '1080p (HD)';
-            else if (h >= 720) originalLabel = '720p (HD)';
-            else if (h >= 480) originalLabel = '480p';
-            else if (h > 0) originalLabel = h + 'p';
-
+            else if (h >= 720)  originalLabel = '720p (HD)';
+            else if (h >= 480)  originalLabel = '480p';
+            else if (h > 0)     originalLabel = h + 'p';
+        
             const activeHeight = this._activeTranscodeHeight || null;
             const autoActive = activeHeight === null ? ' lyt_active' : '';
             const initialHtml =
                 `<button class="lyt_menu_option lyt_quality_option${autoActive}" data-quality="0">${originalLabel} (Original)</button>`;
-
+        
             this.dom.qualityMenu.querySelector('.lyt_menu_content').innerHTML = initialHtml;
             this._refreshTranscodeQualities(originalLabel);
             this.updateMainMenuValues();
@@ -3285,6 +3305,17 @@
             this.video.addEventListener('playing', () => this.showLoader(false));
             this.video.addEventListener('volumechange', () => this.updateVolumeIcon());
             this.video.addEventListener('loadedmetadata', () => {
+                // Defensive re-check: audio files have no video track.
+                // buildQualityMenu() also guards against this, but doing it here
+                // guarantees the row/submenu are suppressed even if the initial
+                // buildQualityMenu() (from setupControls, before metadata) slipped
+                // through because videoWidth/videoHeight were still 0.
+                if (this.video.videoWidth === 0 && this.video.videoHeight === 0) {
+                    const qualityRow = this.dom.mainMenuContent.querySelector('.lyt_opt_quality');
+                    if (qualityRow) qualityRow.style.display = 'none';
+                    if (this.dom.qualityMenu) this.dom.qualityMenu.style.display = 'none';
+                }
+
                 this.buildSubtitlesMenu();
                 this.buildQualityMenu();
 
@@ -3846,7 +3877,7 @@
         }
 
         // ----- Endcards handler (called on timeupdate) -----
-        handleEndcards() {
+        handleEndcards() { // THIS IS LINE 3883
             const duration = this._getEffectiveDuration();
             if (!duration || !isFinite(duration) || duration < 20) {
                 this.hideEndcards();
