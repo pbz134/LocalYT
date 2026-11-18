@@ -11,7 +11,8 @@ FILES_TO_BACKUP = [
     "login_attempts.json",
     "shortlinks.json",
     "playlist_shortlinks.json",
-    "playlist_cache.json",
+    "channel_shortlinks.json",
+    "channel-home-preview-manifest.json",
     "subscriptions.json",
     "user-playlists.json",
     "userPreferences.json",
@@ -22,7 +23,11 @@ FILES_TO_BACKUP = [
     "users.json",
     "watchHistory.json",
     "likes.json",
-    "dislikes.json"
+    "dislikes.json",
+    "last_video_state.json",
+    "notifications.json",
+    "notification_read_state.json",
+    "admin_config.json"
 ]
 
 # Define the directories to back up
