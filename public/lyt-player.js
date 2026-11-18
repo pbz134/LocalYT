@@ -2375,6 +2375,10 @@
                         background: none !important;
                     }
 
+                    .fluid_video_wrapper.lyt_style_classic .lyt_title_display {
+                        text-shadow: none;
+                    }
+
                     .fluid_video_wrapper.lyt_style_classic .lyt_bottom_darken {
                         display: none !important;
                     }
