@@ -1412,6 +1412,9 @@ html.retro-theme #likeBarClassicWrapper {
 
 html.retro-theme .view-count-classic {
     margin-right: 0 !important;
+    position: relative;
+    left: 5px; /* shift right so its right edge lines up with the end of
+                   the dislike count (which sits in a translateX(20px) row) */
 }
 
 html.retro-theme .like-dislike-icons img {
@@ -1684,8 +1687,9 @@ html.retro-theme .channel-right #likeDislikeContainer {
 html.retro-theme #likeBarClassicWrapper {
     position: absolute !important;
     bottom: 30px !important;
-    right: 10px !important;
-    top: auto !important; 
+    right: 15px !important; /* aligned so the bar's right end lines up with
+                               the end of the dislike count */
+    top: auto !important;
     width: 180px !important;
 }
 
