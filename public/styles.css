@@ -43,6 +43,9 @@ body {
     position: fixed;
     top: 0;
     width: 100%;
+    box-sizing: border-box; /* width: 100% must INCLUDE the 20px side padding,
+                               otherwise the fixed header is 40px wider than
+                               the viewport (100% + 40px under content-box) */
     z-index: 1000;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -217,7 +220,9 @@ body {
     padding: 0px;
     border-radius: 0;
     width: 360px;
-    flex-shrink: 0; 
+    flex-shrink: 1; /* was 0: with the 70% video column this row is 7px wider
+                       than its container, causing a page-level horizontal
+                       scrollbar; letting the sidebar shrink absorbs it */
     min-width: 0;
     margin-left: 10px;
 }
@@ -1485,6 +1490,18 @@ html.retro-theme .retro-tab.active::after {
 html.retro-theme .retro-tab-viewport {
     width: 100% !important;
     overflow: hidden !important;
+}
+
+/* ============================================================
+   GLOBAL: no horizontal page scrollbar (all themes, all pages)
+   Root-level clipping discards any residual page-level
+   horizontal overflow (e.g. elements sized against 100vw under
+   Firefox's classic scrollbars). Safe for position: sticky,
+   since the root element is already the page's scroll
+   container.
+   ============================================================ */
+html {
+    overflow-x: hidden !important;
 }
 
 html.retro-theme .retro-tab-track {
