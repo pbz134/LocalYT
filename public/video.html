@@ -2967,17 +2967,13 @@ sourceElement.src = `/videos/${videoSrc.split('/').map(encodePathSegment).join('
                             renderSuggestionItem(video, playlistContainer, playlistName, isCurrent);
                             playlistVideoCount++;
 
-                            // Auto-focus on the currently playing video in the sidebar (runs once on load)
-                            // Skip on touch devices to prevent the page from auto-scrolling to the playlist manager.
-                            if (isCurrent && !document.documentElement.classList.contains('touch-device')) {
+                            // Auto-focus on the currently playing video inside the playlist container.
+                            // Scroll only the container itself — never the page (works on touch + desktop).
+                            if (isCurrent) {
                                 requestAnimationFrame(() => {
-                                    const currentItem = playlistContainer.querySelector(
-                                        '.current-video-item');
+                                    const currentItem = playlistContainer.querySelector('.current-video-item');
                                     if (currentItem) {
-                                        currentItem.scrollIntoView({
-                                            behavior: 'smooth',
-                                            block: 'center'
-                                        });
+                                        scrollContainerToItem(playlistContainer, currentItem);
                                     }
                                 });
                             }
@@ -3017,15 +3013,12 @@ sourceElement.src = `/videos/${videoSrc.split('/').map(encodePathSegment).join('
                                 userPlaylistName);
                             playlistVideoCount++;
 
-                            if (isCurrent && !document.documentElement.classList.contains('touch-device')) {
+                            // Same as above — scroll only the user-playlist container, not the page.
+                            if (isCurrent) {
                                 requestAnimationFrame(() => {
-                                    const currentItem = userPlaylistContainer.querySelector(
-                                        '.current-video-item');
+                                    const currentItem = userPlaylistContainer.querySelector('.current-video-item');
                                     if (currentItem) {
-                                        currentItem.scrollIntoView({
-                                            behavior: 'smooth',
-                                            block: 'center'
-                                        });
+                                        scrollContainerToItem(userPlaylistContainer, currentItem);
                                     }
                                 });
                             }
@@ -3110,6 +3103,23 @@ sourceElement.src = `/videos/${videoSrc.split('/').map(encodePathSegment).join('
                     }
                 }
             }, 100);
+
+            /**
+             * Scroll a single container element so that `item` is centered within it.
+             * Unlike Element.scrollIntoView(), this never scrolls ancestor scrollers
+             * or the page — so the playlist manager can auto-focus the current video
+             * without yanking the viewport down to it.
+             */
+            function scrollContainerToItem(container, item) {
+                if (!container || !item) return;
+                const containerRect = container.getBoundingClientRect();
+                const itemRect = item.getBoundingClientRect();
+                const targetTop = container.scrollTop
+                    + (itemRect.top - containerRect.top)
+                    - (containerRect.height / 2)
+                    + (itemRect.height / 2);
+                container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+            }
 
             // Helper to render sidebar items
             function renderSuggestionItem(video, container, playlistParam, isCurrent, userPlaylistParam = null) {
