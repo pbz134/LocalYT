@@ -1517,6 +1517,19 @@
             return localStorage.getItem('language') === 'de' ? de : en;
         }
 
+        // Localize the static description toggle text immediately (in Retro mode the
+        // toggle is always visible via CSS, so the hardcoded HTML text would show in
+        // English until a code path overwrites it)
+        document.addEventListener('DOMContentLoaded', () => {
+            const descToggleInit = document.getElementById('descriptionToggle');
+            if (descToggleInit) {
+                const initText = getLang('Show more', 'Mehr anzeigen');
+                const initSpan = descToggleInit.querySelector('.description-toggle-text');
+                if (initSpan) initSpan.textContent = initText;
+                else descToggleInit.textContent = initText;
+            }
+        });
+
         // Handle logo clicks
         document.addEventListener('DOMContentLoaded', () => {
             const mainLogo = document.getElementById('mainLogo');
@@ -2288,7 +2301,9 @@
                 desc.style.maxHeight = targetHeight + 'px';
                 desc.classList.add('collapsed');
                 toggle.style.display = 'block';
-                toggle.textContent = getLang('Show more', 'Mehr anzeigen');
+                const toggleTextEl = toggle.querySelector('.description-toggle-text');
+                if (toggleTextEl) toggleTextEl.textContent = getLang('Show more', 'Mehr anzeigen');
+                else toggle.textContent = getLang('Show more', 'Mehr anzeigen');
             } else {
                 desc.style.maxHeight = '';
                 desc.classList.remove('collapsed');
@@ -2297,17 +2312,21 @@
         }
 
         document.addEventListener('click', function(e) {
-            if (e.target && e.target.id === 'descriptionToggle') {
+            if (e.target && (e.target.id === 'descriptionToggle' || (e.target.classList && e.target.classList.contains('description-toggle-text')))) {
+                const toggleEl = document.getElementById('descriptionToggle');
+                const toggleTextEl = toggleEl.querySelector('.description-toggle-text');
                 const desc = document.getElementById('currentVideoDescription');
                 if (desc.classList.contains('collapsed')) {
                     desc.classList.remove('collapsed');
                     desc.style.maxHeight = desc.scrollHeight + 'px';
-                    e.target.textContent = getLang('Show less', 'Weniger anzeigen');
+                    if (toggleTextEl) toggleTextEl.textContent = getLang('Show less', 'Weniger anzeigen');
+                    else toggleEl.textContent = getLang('Show less', 'Weniger anzeigen');
                 } else {
                     desc.classList.add('collapsed');
                     const lineHeight = parseFloat(getComputedStyle(desc).lineHeight) || 20;
                     desc.style.maxHeight = (lineHeight * 8) + 'px';
-                    e.target.textContent = getLang('Show more', 'Mehr anzeigen');
+                    if (toggleTextEl) toggleTextEl.textContent = getLang('Show more', 'Mehr anzeigen');
+                    else toggleEl.textContent = getLang('Show more', 'Mehr anzeigen');
                 }
             }
         });
@@ -5130,8 +5149,9 @@
                                 color: #d2cfcf !important;
                             }
 
-                            .classic-layout-active .description-toggle,
-                            body[data-video-layout="classic"] .description-toggle {
+                            /* Retro mode has its own description-toggle styling in styles.css — exclude it here */
+                            html:not(.retro-theme) .classic-layout-active .description-toggle,
+                            html:not(.retro-theme) body[data-video-layout="classic"] .description-toggle {
                                 text-align: center;
                                 text-transform: uppercase;
                                 background-color: #282828 !important;
@@ -5146,8 +5166,8 @@
                                 line-height: 1.2;
                             }
 
-                            .classic-layout-active .description-toggle:hover,
-                            body[data-video-layout="classic"] .description-toggle:hover {
+                            html:not(.retro-theme) .classic-layout-active .description-toggle:hover,
+                            html:not(.retro-theme) body[data-video-layout="classic"] .description-toggle:hover {
                                 background-color: #282828 !important;
                                 color: #888 !important;
                                 text-decoration: none !important;
@@ -5733,9 +5753,9 @@
                 container.id = 'retro-tabs-wrapper';
                 container.innerHTML = `
                     <div class="retro-tabs-container">
-                        <button class="retro-tab active" data-target="0">About</button>
-                        <button class="retro-tab" data-target="1">Share</button>
-                        <button class="retro-tab" data-target="2">Add to</button>
+                        <button class="retro-tab active" data-target="0">${getLang('About', 'Über')}</button>
+                        <button class="retro-tab" data-target="1">${getLang('Share', 'Teilen')}</button>
+                        <button class="retro-tab" data-target="2">${getLang('Add to', 'Hinzufügen')}</button>
                     </div>
                     <div class="retro-tab-viewport">
                         <div class="retro-tab-track">
@@ -5751,7 +5771,17 @@
 
                 // 3. Move the Description into the "About" Pane
                 document.getElementById('pane-about').appendChild(desc);
-                if (toggle) document.getElementById('pane-about').appendChild(toggle);
+                if (toggle) {
+                    document.getElementById('pane-about').appendChild(toggle);
+                    // Wrap the toggle text in a span so the hover bevel can wrap only the text
+                    if (!toggle.querySelector('.description-toggle-text')) {
+                        const toggleTextSpan = document.createElement('span');
+                        toggleTextSpan.className = 'description-toggle-text';
+                        toggleTextSpan.textContent = toggle.textContent.trim();
+                        toggle.textContent = '';
+                        toggle.appendChild(toggleTextSpan);
+                    }
+                }
 
                 // 4. Move the Share Modal contents into the "Share" Pane
                 const shareContent = document.querySelector('#shareModal .modal-content');
@@ -5773,6 +5803,18 @@
                     if (h2) h2.style.display = 'none';
 
                     document.getElementById('pane-save').appendChild(saveContent);
+
+                    // 5b. Playlist dropdown picker for the "Add to" pane (replaces the
+                    // click-to-save list, which is only filled by the save-icon path)
+                    const retroList = saveContent.querySelector('#savePlaylistList');
+                    if (retroList) retroList.style.display = 'none';
+                    const retroCreateRow = saveContent.querySelector('.create-playlist-row');
+                    const retroPickerRow = document.createElement('div');
+                    retroPickerRow.className = 'retro-playlist-picker-row';
+                    retroPickerRow.innerHTML = `
+                        <select id="retroPlaylistSelect" aria-label="${getLang('Choose playlist', 'Playlist auswählen')}"></select>
+                        <button id="retroPlaylistAddBtn">${getLang('Add', 'Hinzufügen')}</button>`;
+                    saveContent.insertBefore(retroPickerRow, retroCreateRow || null);
                 }
 
                 // 6. Set up the Tab Switching Logic
@@ -5788,8 +5830,103 @@
                 tabs.forEach(tab => {
                     tab.addEventListener('click', () => {
                         switchTab(parseInt(tab.dataset.target));
+                        // Refresh the playlist picker every time "Add to" is opened
+                        if (parseInt(tab.dataset.target) === 2 && typeof window.loadRetroPlaylists === 'function') {
+                            window.loadRetroPlaylists();
+                        }
                     });
                 });
+
+                // 6b. Playlist dropdown picker logic (load / add / refresh after creating)
+                const retroSelect = document.getElementById('retroPlaylistSelect');
+                const retroAddBtn = document.getElementById('retroPlaylistAddBtn');
+                const retroNoMsg = saveContent ? saveContent.querySelector('#noPlaylistsMessage') : null;
+                const retroParams = new URLSearchParams(window.location.search);
+                let retroVideoSrc = '';
+                try {
+                    retroVideoSrc = decodeURIComponent(retroParams.get('src') || '');
+                } catch (e) {
+                    retroVideoSrc = retroParams.get('src') || '';
+                }
+
+                window.loadRetroPlaylists = async function() {
+                    if (!retroSelect || !retroAddBtn) return;
+                    try {
+                        const res = await fetch('/user-playlists');
+                        if (!res.ok) throw new Error('not logged in');
+                        const playlists = await res.json();
+                        const names = Object.keys(playlists);
+                        retroSelect.innerHTML = '';
+                        if (retroNoMsg) retroNoMsg.style.display = names.length === 0 ? 'block' : 'none';
+                        if (names.length === 0) {
+                            const opt = document.createElement('option');
+                            opt.textContent = getLang('No playlists yet', 'Noch keine Playlists');
+                            retroSelect.appendChild(opt);
+                            retroSelect.disabled = true;
+                            retroAddBtn.disabled = true;
+                            return;
+                        }
+                        retroSelect.disabled = false;
+                        retroAddBtn.disabled = false;
+                        names.forEach(name => {
+                            const opt = document.createElement('option');
+                            opt.value = name;
+                            opt.textContent = `${name} (${playlists[name].length} ${getLang('videos', 'Videos')})`;
+                            if (playlists[name].includes(retroVideoSrc)) {
+                                opt.textContent += ' ✓';
+                                opt.disabled = true;
+                            }
+                            retroSelect.appendChild(opt);
+                        });
+                    } catch (e) {
+                        if (retroNoMsg) retroNoMsg.style.display = 'none';
+                        retroSelect.innerHTML = '';
+                        const opt = document.createElement('option');
+                        opt.textContent = getLang('Please log in to save videos', 'Bitte loggen Sie sich ein, um Videos zu speichern');
+                        retroSelect.appendChild(opt);
+                        retroSelect.disabled = true;
+                        retroAddBtn.disabled = true;
+                    }
+                };
+
+                if (retroAddBtn) {
+                    retroAddBtn.addEventListener('click', async () => {
+                        const name = retroSelect.value;
+                        if (!name || retroSelect.disabled) return;
+                        try {
+                            const res = await fetch('/save-to-playlist', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ playlist: name, video: retroVideoSrc })
+                            });
+                            if (res.status === 409) { window.loadRetroPlaylists(); return; }
+                            if (!res.ok) { alert('Error saving to playlist.'); return; }
+                            const saveIcon = document.getElementById('saveIcon');
+                            if (saveIcon) saveIcon.src = 'LocalYT-Rev-Files/saved.svg';
+                            const saveMsg = document.getElementById('saveMessage');
+                            if (saveMsg) {
+                                saveMsg.textContent = localStorage.getItem('language') === 'de' ? `Zu ${name} hinzugefügt` : `Added to ${name}`;
+                                saveMsg.style.display = 'block';
+                                setTimeout(() => { saveMsg.style.display = 'none'; }, 2000);
+                            }
+                            window.loadRetroPlaylists();
+                        } catch (e) {
+                            console.error('Error saving to playlist:', e);
+                        }
+                    });
+                }
+
+                // Refresh the picker after a playlist is created from the pane
+                if (saveContent) {
+                    const retroCreateBtn = saveContent.querySelector('#createPlaylistBtn');
+                    const retroNewName = saveContent.querySelector('#newPlaylistName');
+                    const retroRefresh = () => setTimeout(() => { if (typeof window.loadRetroPlaylists === 'function') window.loadRetroPlaylists(); }, 600);
+                    if (retroCreateBtn) retroCreateBtn.addEventListener('click', retroRefresh);
+                    if (retroNewName) retroNewName.addEventListener('keydown', retroRefresh);
+                }
+
+                // Initial load of the playlist picker
+                if (typeof window.loadRetroPlaylists === 'function') window.loadRetroPlaylists();
 
                 // 7. NEW: Create Large Like/Dislike Buttons for Retro Layout
                 const largeActions = document.createElement('div');

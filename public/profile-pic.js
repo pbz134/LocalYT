@@ -405,27 +405,27 @@
            .comment-text { color: #000000 !important; }
 
             /* --- Description Toggle Light Mode Fixes --- */
-            .description-toggle { 
+            html:not(.retro-theme) .description-toggle {
                 color: #065fd4 !important; /* YouTube Blue */
             }
-            .description-toggle:hover {
+            html:not(.retro-theme) .description-toggle:hover {
                 text-decoration: underline !important;
             }
             
-            /* Classic Layout overrides for Light Mode */
-            .classic-layout-active .video-description,
-            body[data-video-layout="classic"] .video-description {
+            /* Classic Layout overrides for Light Mode (retro excluded — it has its own toggle styling) */
+            html:not(.retro-theme) .classic-layout-active .video-description,
+            html:not(.retro-theme) body[data-video-layout="classic"] .video-description {
                 color: #0f0f0f !important;
             }
-            .classic-layout-active .description-toggle,
-            body[data-video-layout="classic"] .description-toggle {
+            html:not(.retro-theme) .classic-layout-active .description-toggle,
+            html:not(.retro-theme) body[data-video-layout="classic"] .description-toggle {
                 background-color: #ffffff !important;
                 border-top-color: #e0e0e0 !important;
                 color: #666666 !important;
                 text-decoration: none !important;
             }
-            .classic-layout-active .description-toggle:hover,
-            body[data-video-layout="classic"] .description-toggle:hover {
+            html:not(.retro-theme) .classic-layout-active .description-toggle:hover,
+            html:not(.retro-theme) body[data-video-layout="classic"] .description-toggle:hover {
                 background-color: #ffffff !important;
                 color: #0f0f0f !important;
                 text-decoration: none !important;
@@ -492,6 +492,42 @@
             .toggle-slider { background-color: #ccc !important; }
             .toggle-switch input:checked + .toggle-slider { background-color: #2196F3 !important; }
             .toggle-slider:before { background-color: #fff !important; }
+        `;
+
+        // Retro Theme: restore the classic light look in Light Mode
+        // (styles.css now defaults these elements to Dark-Mode-compatible colors)
+        styleText += `
+            html.retro-theme .view-count-classic { color: #333333 !important; }
+            html.retro-theme .retro-video-count { color: #666666 !important; }
+            html.retro-theme #pane-share .modal-content,
+            html.retro-theme #pane-save .save-modal-content { color: #333333 !important; }
+            html.retro-theme #pane-save .save-playlist-item { color: #333333 !important; border-bottom-color: #eeeeee !important; }
+            html.retro-theme #pane-save .save-playlist-item:hover { background-color: #f1f1f1 !important; }
+            html.retro-theme #pane-save .create-playlist-row input { background: #ffffff !important; border-color: #999999 !important; color: #333333 !important; }
+            html.retro-theme #retroPlaylistSelect { background: linear-gradient(to bottom, #ffffff 0%, #f1f1f1 100%) !important; border-color: #b3b3b3 !important; color: #333333 !important; }
+            html.retro-theme #retroPlaylistAddBtn { background: linear-gradient(to bottom, #fefefe 0%, #e1e1e1 100%) !important; border-color: #b3b3b3 !important; color: #333333 !important; }
+            html.retro-theme #pane-share button { background: linear-gradient(to bottom, #fefefe 0%, #e1e1e1 100%) !important; border-color: #b3b3b3 !important; color: #333333 !important; }
+            html.retro-theme #pane-share button:hover { background: linear-gradient(to bottom, #f9f9f9 0%, #dcdcdc 100%) !important; border-color: #999999 !important; }
+            html.retro-theme #pane-about .video-description,
+            html.retro-theme #currentVideoDescription { color: #333333 !important; }
+            html.retro-theme .retro-tabs-container { border-bottom-color: #ccc !important; }
+            html.retro-theme .retro-tab { color: #777 !important; }
+            html.retro-theme .retro-tab:hover,
+            html.retro-theme .retro-tab.active { color: #333 !important; }
+            html.retro-theme .description-toggle { color: #666 !important; }
+            html.retro-theme .description-toggle::before,
+            html.retro-theme .description-toggle::after { background-color: #ddd !important; }
+            html.retro-theme .sub-count {
+                background: linear-gradient(to bottom, #ffffff 0%, #f1f1f1 100%) !important;
+                border-color: #b3b3b3 !important;
+                color: #666 !important;
+                box-shadow: inset 0 1px 0 #fff !important;
+            }
+            html.retro-theme .sub-count::before {
+                background: #fefefe !important;
+                border-left-color: #b3b3b3 !important;
+                border-bottom-color: #b3b3b3 !important;
+            }
         `;
 
         if (!isBlueTitles) {

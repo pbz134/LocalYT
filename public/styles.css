@@ -1430,6 +1430,7 @@ html.retro-theme #dislikeCount {
 
 html.retro-theme .retro-video-count {
     display: inline-block;
+    color: #aaa;
 }
 
 html.retro-theme #shareContainer,
@@ -1439,8 +1440,8 @@ html.retro-theme #saveContainer {
 
 html.retro-theme .retro-tabs-container {
     display: flex !important;
-    justify-content: flex-end !important; 
-    border-bottom: 1px solid #ccc !important;
+    justify-content: flex-end !important;
+    border-bottom: 1px solid #3f3f3f !important;
     margin: 10px 0 15px 0 !important;
     padding-top: 10px !important;
     width: 100% !important;
@@ -1453,7 +1454,7 @@ html.retro-theme .retro-tab {
     font-family: 'RobotoRegular', Arial, sans-serif !important;
     font-size: 15px !important;
     font-weight: bold !important;
-    color: #777 !important;
+    color: #aaa !important;
     cursor: pointer !important;
     position: relative !important;
     outline: none !important;
@@ -1462,7 +1463,7 @@ html.retro-theme .retro-tab {
 
 html.retro-theme .retro-tab:hover,
 html.retro-theme .retro-tab.active {
-    color: #333 !important;
+    color: #f1f1f1 !important;
 }
 
 html.retro-theme .retro-tab::after {
@@ -1500,16 +1501,30 @@ html.retro-theme .retro-tab-pane {
     padding: 10px 0 !important;
 }
 
+/* Share and Add to panes: keep content clear of the outer dividers on both sides
+   (pane-about relies on the per-element left:15px shifts instead) */
+html.retro-theme #pane-share,
+html.retro-theme #pane-save {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+}
+
+/* No-comments message: same 15px inset as the other retro elements */
+html.retro-theme .no-comments {
+    position: relative;
+    left: 15px;
+}
+
 html.retro-theme #pane-about .video-description {
     margin-top: 0 !important;
     padding: 0 !important;
     background: transparent !important;
-    color: #555 !important;
+    color: #aaa !important;
 }
 
 html.retro-theme #pane-share .modal-content,
 html.retro-theme #pane-save .save-modal-content {
-    background: #ffffff !important;
+    background: transparent !important;
     border: none !important;
     box-shadow: none !important;
     padding: 0 !important;
@@ -1517,7 +1532,7 @@ html.retro-theme #pane-save .save-modal-content {
     width: 100% !important;
     max-height: none !important;
     overflow: visible !important;
-    color: #333 !important;
+    color: #aaa !important;
     padding-top: 15px !important;
 }
 
@@ -1528,38 +1543,85 @@ html.retro-theme #pane-save .save-modal-content > * {
 }
 
 html.retro-theme #pane-share button {
-    background-color: #f1f1f1 !important;
-    border: 1px solid #999 !important;
-    color: #333 !important;
-    padding: 6px 12px !important;
-    font-size: 13px !important;
+    background: linear-gradient(to bottom, #3a3a3a 0%, #2f2f2f 100%) !important;
+    border: 1px solid #555 !important;
+    color: #ccc !important;
+    height: 26px;
+    padding: 0 12px !important;
+    font-size: 12px !important;
     font-weight: bold !important;
     cursor: pointer !important;
     border-radius: 2px !important;
     margin-right: 8px !important;
 }
 html.retro-theme #pane-share button:hover {
-    background-color: #e0e0e0 !important;
-    border-color: #666 !important;
+    background: linear-gradient(to bottom, #444444 0%, #383838 100%) !important;
+    border-color: #555 !important;
 }
 
 html.retro-theme #pane-save .save-playlist-item {
-    color: #333 !important;
-    border-bottom: 1px solid #eee !important;
+    color: #aaa !important;
+    border-bottom: 1px solid #333 !important;
 }
 html.retro-theme #pane-save .save-playlist-item:hover {
-    background-color: #f1f1f1 !important;
+    background-color: #2f2f2f !important;
 }
 html.retro-theme #pane-save .create-playlist-row input {
-    border: 1px solid #999 !important;
-    background: #fff !important;
-    color: #333 !important;
+    border: 1px solid #555 !important;
+    background: #222222 !important;
+    color: #ccc !important;
 }
 html.retro-theme #pane-save .create-playlist-row button {
     background-color: #e62117 !important;
     color: #fff !important;
     border: none !important;
     font-weight: bold !important;
+}
+
+/* Retro "Add to" playlist dropdown picker */
+html.retro-theme .retro-playlist-picker-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0 12px;
+}
+
+html.retro-theme #retroPlaylistSelect {
+    flex: 1;
+    max-width: 280px;
+    height: 26px;
+    background: linear-gradient(to bottom, #3a3a3a 0%, #2f2f2f 100%) !important;
+    border: 1px solid #555 !important;
+    border-radius: 2px !important;
+    color: #ccc !important;
+    font-family: 'RobotoRegular', Arial, sans-serif !important;
+    font-size: 12px !important;
+    padding: 0 4px !important;
+    cursor: pointer !important;
+}
+
+html.retro-theme #retroPlaylistAddBtn {
+    height: 26px;
+    background: linear-gradient(to bottom, #3a3a3a 0%, #2f2f2f 100%) !important;
+    border: 1px solid #555 !important;
+    border-radius: 2px !important;
+    color: #ccc !important;
+    font-family: 'RobotoRegular', Arial, sans-serif !important;
+    font-size: 12px !important;
+    font-weight: bold !important;
+    padding: 0 12px !important;
+    cursor: pointer !important;
+    margin-right: 0 !important;
+}
+
+html.retro-theme #retroPlaylistAddBtn:hover {
+    background: linear-gradient(to bottom, #444444 0%, #383838 100%) !important;
+}
+
+html.retro-theme #retroPlaylistSelect:disabled,
+html.retro-theme #retroPlaylistAddBtn:disabled {
+    opacity: 0.6 !important;
+    cursor: default !important;
 }
 
 html.retro-theme #classicInfoBoxWrapper {
@@ -1570,10 +1632,13 @@ html.retro-theme #classicInfoBoxWrapper {
     margin: 0 !important;
 }
 
-html.retro-theme .view-count-classic,
+html.retro-theme .view-count-classic {
+    color: #f1f1f1 !important;
+}
+
 html.retro-theme #pane-about .video-description,
 html.retro-theme #currentVideoDescription {
-    color: #333333 !important;
+    color: #aaaaaa !important;
 }
 
 html.retro-theme .view-count-classic {
@@ -1631,10 +1696,7 @@ html.retro-theme .retro-action-btn {
     transition: color 0.15s ease;
 }
 
-html.retro-theme .retro-action-btn:hover {
-    color: #e62117;
-}
-
+/* No hover color change on Like/Dislike buttons — text keeps its base color */
 html.retro-theme .retro-action-btn > img,
 html.retro-theme .retro-action-btn > svg {
     width: 18px;
@@ -1645,9 +1707,14 @@ html.retro-theme .retro-action-btn > svg {
     transition: filter 0.15s ease;
 }
 
+/* Hover: icons only get a bit darker (no green/red tint) */
 html.retro-theme .retro-action-btn:hover > img,
-html.retro-theme .retro-action-btn:hover > svg {
-    filter: invert(35%) sepia(40%) saturate(400%) hue-rotate(20deg) brightness(80%);
+html.retro-theme .retro-action-btn:hover > svg,
+html.retro-theme .retro-action-btn.like-btn:not(:has(img)):hover::before,
+html.retro-theme .retro-action-btn[data-action="like"]:not(:has(img)):hover::before,
+html.retro-theme .retro-action-btn.dislike-btn:not(:has(img)):hover::before,
+html.retro-theme .retro-action-btn[data-action="dislike"]:not(:has(img)):hover::before {
+    filter: invert(57%) sepia(4%) saturate(2%) hue-rotate(176deg) brightness(70%) contrast(88%);
 }
 
 html.retro-theme .retro-action-btn > span {
@@ -1857,15 +1924,69 @@ html.retro-theme .description-toggle {
     width: 60% !important;
     margin: 0 auto !important;
     padding: 12px 0 !important;
-    color: #666 !important;
+    color: #aaa !important;
 }
 
+/* Retro "Show more/less" hover: classic beveled 3D button around the TEXT only
+   (.description-toggle-text, created by the retro layout script).
+   The container keeps its full width, so the divider lines on both sides stay visible. */
+html.retro-theme .description-toggle-text {
+    display: inline-block;
+    padding: 4px 15px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+}
+
+/* Keep the container itself free of any hover background (same padding as resting
+   state — the text span has the same height in both, so nothing shifts) */
 html.retro-theme .description-toggle:hover,
 html.retro-theme .description-toggle:active,
 html.retro-theme .description-toggle:focus {
     background: none !important;
     background-color: transparent !important;
+    background-image: none !important;
+    border: none !important;
     box-shadow: none !important;
+    padding: 12px 0 !important;
+    width: 60% !important;
+}
+
+/* Light Mode: bevel as in the reference screenshot */
+html.retro-theme body.light-mode .description-toggle:hover .description-toggle-text,
+html.retro-theme body.light-mode .description-toggle:focus .description-toggle-text {
+    background: linear-gradient(to bottom, #fcfcfc 0%, #ececec 100%);
+    background-color: #f1f1f1;
+    border-color: #c6c6c6;
+    border-bottom-color: #999999;
+    box-shadow: inset 0 1px 0 #ffffff, 0 1px 1px rgba(0, 0, 0, 0.08);
+    color: #333333 !important;
+}
+
+html.retro-theme body.light-mode .description-toggle:active .description-toggle-text {
+    background: linear-gradient(to bottom, #e3e3e3 0%, #d6d6d6 100%);
+    background-color: #d6d6d6;
+    border-color: #b3b3b3;
+    border-bottom-color: #888888;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+/* Dark Mode: same bevel in dark colors */
+html.retro-theme body:not(.light-mode) .description-toggle:hover .description-toggle-text,
+html.retro-theme body:not(.light-mode) .description-toggle:focus .description-toggle-text {
+    background: linear-gradient(to bottom, #3a3a3a 0%, #2f2f2f 100%);
+    background-color: #333333;
+    border-color: #555555;
+    border-bottom-color: #1c1c1c;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 1px 1px rgba(0, 0, 0, 0.3);
+    color: #cccccc !important;
+}
+
+html.retro-theme body:not(.light-mode) .description-toggle:active .description-toggle-text {
+    background: linear-gradient(to bottom, #2a2a2a 0%, #232323 100%);
+    background-color: #262626;
+    border-color: #444444;
+    border-bottom-color: #111111;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 html.retro-theme .description-toggle::before,
@@ -1873,7 +1994,7 @@ html.retro-theme .description-toggle::after {
     content: '';
     flex: 1;
     height: 1px;
-    background-color: #ddd !important;
+    background-color: #444 !important;
 }
 
 html.retro-theme .description-toggle::before {
@@ -1908,6 +2029,8 @@ html.retro-theme .video-description.collapsed {
 html.retro-theme .comments-count {
     position: relative;
     left: 15px;
+    /* compensate the 15px shift so the gap to #commentsTotalAmount keeps its 4px visual space */
+    margin-right: 19px !important;
 }
 
 html.retro-theme .subscribe-button {
@@ -1950,10 +2073,10 @@ html.retro-theme .subscribe-button::before {
 }
 
 html.retro-theme .sub-count {
-    background: linear-gradient(to bottom, #ffffff 0%, #f1f1f1 100%) !important;
-    border: 1px solid #b3b3b3 !important;
+    background: linear-gradient(to bottom, #3a3a3a 0%, #2b2b2b 100%) !important;
+    border: 1px solid #555 !important;
     border-radius: 2px !important;
-    color: #666 !important;
+    color: #aaa !important;
     height: 26px !important;
     display: inline-flex !important;
     align-items: center !important;
@@ -1963,7 +2086,7 @@ html.retro-theme .sub-count {
     font-size: 13px !important;
     position: relative !important;
     box-sizing: border-box !important;
-    box-shadow: inset 0 1px 0 #fff !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
     transform: translateX(8px) !important;
 }
 
@@ -1974,9 +2097,9 @@ html.retro-theme .sub-count::before {
     top: 50% !important;
     width: 10px !important;
     height: 10px !important;
-    background: #fefefe !important; 
-    border-left: 1px solid #b3b3b3 !important;
-    border-bottom: 1px solid #b3b3b3 !important;
+    background: #3a3a3a !important;
+    border-left: 1px solid #555 !important;
+    border-bottom: 1px solid #555 !important;
     transform: translateY(-50%) rotate(45deg) !important;
     z-index: 1 !important;
 }
