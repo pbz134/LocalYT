@@ -10,7 +10,7 @@ const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const sharp = require('sharp');
 const cliProgress = require('cli-progress');
-const upload = multer({ dest: path.join(__dirname, 'temp-uploads') });
+const upload = multer({ dest: path.join(__dirname, 'temp') });
 const { spawn } = require('child_process');
 const compression = require('compression');
 
@@ -18,7 +18,7 @@ const compression = require('compression');
 // Separate from `upload` (used for profile pics / topic images) because we
 // need multiple named fields and a bigger file-size limit.
 const videoUpload = multer({
-    dest: path.join(__dirname, 'temp-uploads'),
+    dest: path.join(__dirname, 'temp'),
     limits: { fileSize: 50 * 1024 * 1024 * 1024 }, // 50 GB
     fileFilter: (req, file, cb) => {
         if (file.fieldname === 'video') {
@@ -279,7 +279,9 @@ process.on('unhandledRejection', (err) => {
     console.error('[Fatal] Unhandled rejection:', err);
 });
 
-const tempUploadsDir = path.join(__dirname, 'temp-uploads');
+// Shared temp directory: holds in-flight multer uploads AND the transcode
+// cache (which lives in per-quality subdirectories like temp/480p/).
+const tempUploadsDir = path.join(__dirname, 'temp');
 if (!fs.existsSync(tempUploadsDir)) {
     fs.mkdirSync(tempUploadsDir, { recursive: true });
 }
@@ -477,7 +479,6 @@ app.use('/topic-images', express.static(path.join(__dirname, 'topic-images')));
 app.use('/playlist-descriptions', express.static(path.join(__dirname, 'playlist-descriptions')));
 app.use('/playlist-orders', express.static(path.join(__dirname, 'playlist-orders')));
 app.use('/favicon.png', express.static(path.join(__dirname, 'favicon.png')));
-app.use('/playlist_cache.json', express.static(path.join(__dirname, 'playlist_cache.json')));
 app.use('/video_date_cache.json', express.static(path.join(__dirname, 'video_date_cache.json')));
 app.use('/videoresolutions', express.static(path.join(__dirname, 'videoresolutions')));
 
@@ -822,9 +823,9 @@ function ensureUserTopicsFile() {
 }
 ensureUserTopicsFile();
 
-// --- PLAYLIST THUMBNAIL CACHE SYSTEM ---
-const playlistCacheFilePath = path.join(__dirname, 'playlist_cache.json');
-let playlistThumbnailCache = {};
+// --- PLAYLIST THUMBNAILS (generated on-demand from JSONL order files) ---
+// The old playlist_cache.json file is deprecated; thumbnails are resolved
+// from playlist-orders/*.jsonl at request time instead.
 
 function getPlaylistThumbnailFromOrder(channel, playlistPath) {
     try {
@@ -862,33 +863,6 @@ app.get('/playlist-order-thumbnail/:channel/:playlist*', (req, res) => {
         res.status(404).send('Thumbnail not found');
     }
 });
-
-function loadPlaylistThumbnailCache() {
-    if (fs.existsSync(playlistCacheFilePath)) {
-        try {
-            const data = fs.readFileSync(playlistCacheFilePath, 'utf8');
-            playlistThumbnailCache = JSON.parse(data);
-            console.log(`Loaded playlist thumbnail cache (${Object.keys(playlistThumbnailCache).length} entries).`);
-        } catch (err) {
-            console.log('Failed to read playlist cache, using on-demand generation.');
-            playlistThumbnailCache = {};
-        }
-    } else {
-        console.log('playlist_cache.json not found, using on-demand generation.');
-        playlistThumbnailCache = {};
-    }
-}
-
-function buildPlaylistThumbnailCache() {
-    console.log('Playlist thumbnail cache is now generated on-demand from JSONL order files.');
-    try {
-        if (!fs.existsSync(playlistCacheFilePath)) {
-            fs.writeFileSync(playlistCacheFilePath, JSON.stringify({}, null, 2));
-        }
-    } catch (err) {
-        console.error('Error writing playlist cache:', err);
-    }
-}
 
 // ======================================================================
 // OPTIMIZED CACHING SYSTEM WITH INCREMENTAL SCAN
@@ -4958,7 +4932,9 @@ app.get('/upload-status/:jobId', (req, res) => {
 // "cacheMaxAgeDays: 60" means "evict after 60 days of no watches" - not
 // "evict 60 days after it was created".
 
-const TRANSCODE_CACHE_DIR = path.join(__dirname, 'transcode-cache');
+// Transcode cache now lives inside the shared 'temp' directory (same one
+// multer uses for in-flight uploads), in per-quality subdirectories.
+const TRANSCODE_CACHE_DIR = path.join(__dirname, 'temp');
 if (!fs.existsSync(TRANSCODE_CACHE_DIR)) {
     fs.mkdirSync(TRANSCODE_CACHE_DIR, { recursive: true });
 }
@@ -5472,11 +5448,10 @@ console.log(`[Transcode] Initialized. Engine: ${getTranscodeConfig().engine}, ` 
     await initializeVideoCache();
     initializeShortLinks();
     initializeRecommendationIndex();
-    loadPlaylistThumbnailCache();
     initializePlaylistShortLinks();
     initializeChannelShortLinks();
 
     app.listen(PORT, '0.0.0.0', () => {
-        console.log(`\nServer is running on http://localhost:${PORT}`);
+        console.log(`\nServer is running on http://localhost:${PORT}, Public link: https://www.localyt.net`);
     });
 })();
