@@ -37,7 +37,7 @@ admin_config.json looks like this by default (see below for an explanation):
 
 
 Upload Policy:
-- Set uploadPolicy to "none" if you want to hide the upload button everywhere
+- Set uploadPolicy to "none" if you want to hide the upload button for everyone
 - Set uploadPolicy to "admin" if you only want admins to access the upload button
 - Set uploadPolicy to "list" to specify a list of allowed users in "allowedUploaders" by their username from users.json:
   "allowedUploaders": ["Jane Doe", "John Doe", "Scam Saltman"],
