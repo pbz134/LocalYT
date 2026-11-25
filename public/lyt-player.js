@@ -1049,7 +1049,13 @@
                         transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
                         transform-origin: center;
                     }
-                    
+
+                    /* Classic gear has 8 teeth — rotate a full tooth (45°) so it lands cleanly */
+                    .fluid_video_wrapper.lyt_style_classic .lyt_settings_menu.lyt_show ~ .lyt_btn_settings .lyt_icon_classic svg,
+                    .fluid_video_wrapper.lyt_style_classic .lyt_btn_settings.lyt_open .lyt_icon_classic svg {
+                        transform: rotate(45deg);
+                    }
+
                     .lyt_settings_menu.lyt_show ~ .lyt_btn_settings svg,
                     .lyt_btn_settings.lyt_open svg {
                         transform: rotate(30deg);
