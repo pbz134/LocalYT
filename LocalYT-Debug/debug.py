@@ -9,7 +9,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHANNEL_FOLDERS = ['videos', 'subtitles', 'livechats', 'playlist-descriptions', 'playlist-orders', 'channelposts', 'thumbnails', 'thumbnails-small', 'spriteimages', 'videolengths', 'videoresolutions', 'videostats', 'viewcounts', 'descriptions', 'filedates', 'filenames', 'comments', 'channeldesc', 'channelstats', 'channel-home-meta-cache', 'channel-home-previews']
 CHANNEL_FILES = ['channelbanner', 'channelpic', 'subcount']
 MEDIA_EXTENSIONS = ('.mp4', '.mp3', '.mkv', '.flac', '.wav', '.mp3')
-JSON_FILES = ['users.json', 'userPreferences.json', 'userTopics.json', 'userCommentLikes.json', 'userSearchHistory.json', 'userSettings.json', 'subscriptions.json', 'watchHistory.json', 'likes.json', 'dislikes.json', 'recommendation_index.json', 'video_cache.json', 'login_attempts.json', 'playlist_cache.json']
+JSON_FILES = ['users.json', 'userPreferences.json', 'userTopics.json', 'userCommentLikes.json', 'userSearchHistory.json', 'userSettings.json', 'subscriptions.json', 'watchHistory.json', 'likes.json', 'dislikes.json', 'recommendation_index.json', 'video_cache.json', 'login_attempts.json']
 SESSIONS_DIR = os.path.join(BASE_DIR, 'sessions')
 SERVER_SCRIPT = os.path.join(BASE_DIR, 'server.js')
 USER_PROFILES_DIR = os.path.join(BASE_DIR, 'user-profiles')
@@ -117,6 +117,134 @@ def get_channel_length(channel):
                     except: pass
     except: pass
     return total_seconds
+
+def get_channel_size_from_playlist_orders(channel):
+    """Get the size of the playlist-orders folder for a channel"""
+    total_size = 0
+    try:
+        target = os.path.join(BASE_DIR, 'playlist-orders', channel)
+        if os.path.exists(target):
+            for root, _, files in os.walk(target):
+                for file in files:
+                    try:
+                        total_size += os.path.getsize(os.path.join(root, file))
+                    except: pass
+    except: pass
+    return total_size
+
+# --- KEYBOARD HELPERS FOR INTERACTIVE UI ---
+
+def get_key():
+    """Get a single keypress cross-platform.
+    Returns 'up', 'down', 'left', 'right', 'escape', or the raw character.
+    """
+    if os.name == 'nt':
+        import msvcrt
+        ch = msvcrt.getch()
+        if ch in (b'\x00', b'\xe0'):
+            ch2 = msvcrt.getch()
+            return {b'H': 'up', b'P': 'down', b'K': 'left', b'M': 'right'}.get(ch2)
+        try:
+            return ch.decode('utf-8', errors='ignore')
+        except:
+            return None
+    else:
+        import sys, termios, tty, select
+        fd = sys.stdin.fileno()
+        old = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            ch = sys.stdin.read(1)
+            if ch == '\x1b':
+                r, _, _ = select.select([sys.stdin], [], [], 0.05)
+                if r:
+                    ch2 = sys.stdin.read(1)
+                    if ch2 == '[':
+                        r2, _, _ = select.select([sys.stdin], [], [], 0.05)
+                        if r2:
+                            ch3 = sys.stdin.read(1)
+                            if ch3 == 'A': return 'up'
+                            if ch3 == 'B': return 'down'
+                            if ch3 == 'C': return 'right'
+                            if ch3 == 'D': return 'left'
+                return 'escape'
+            return ch
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old)
+
+# --- INTERACTIVE VIEW: ALL CHANNEL SIZES ---
+
+def view_all_channel_sizes():
+    """Interactive view of all channel storage sizes.
+    Up/Down: change sort order, Left/Right: page, q/Esc: quit.
+    """
+    channels = []
+    try:
+        vid_dir = os.path.join(BASE_DIR, 'videos')
+        if not os.path.exists(vid_dir):
+            print("\n[-] No channels found.\n")
+            return
+        for ch in os.listdir(vid_dir):
+            if os.path.isdir(os.path.join(vid_dir, ch)):
+                size = get_channel_size(ch)
+                channels.append((ch, size))
+    except Exception as e:
+        print(f"\n[-] Error reading channels: {e}\n")
+        return
+
+    if not channels:
+        print("\n[-] No channels found.\n")
+        return
+
+    sort_asc = False   # False = descending (largest first)
+    page = 0
+    per_page = 10
+    total_size = sum(s for _, s in channels)
+
+    while True:
+        # Sort
+        channels.sort(key=lambda x: x[1], reverse=not sort_asc)
+        total_pages = max(1, (len(channels) + per_page - 1) // per_page)
+        if page >= total_pages:
+            page = total_pages - 1
+        start = page * per_page
+        end = start + per_page
+        current = channels[start:end]
+
+        clear_screen()
+        print("=" * 62)
+        print("  All Channel Storage Sizes")
+        print("=" * 62)
+        sort_label = "Ascending (smallest first)" if sort_asc else "Descending (largest first)"
+        print(f"  Sort: {sort_label}")
+        print(f"  Page: {page + 1}/{total_pages}  |  Total channels: {len(channels)}")
+        print("-" * 62)
+        print(f"  {'#':<4} {'Channel':<35} {'Size':>18}")
+        print("-" * 62)
+        for i, (name, size) in enumerate(current, start=start + 1):
+            display_name = name if len(name) <= 35 else name[:32] + '...'
+            print(f"  {i:<4} {display_name:<35} {format_size(size):>18}")
+        print("-" * 62)
+        print(f"  {'':<4} {'TOTAL':<35} {format_size(total_size):>18}")
+        print("=" * 62)
+        print("  [\u2191/\u2193] Change sort   [\u2190/\u2192] Page   [q/Esc] Quit")
+        print("=" * 62)
+
+        key = get_key()
+        if key == 'up':
+            sort_asc = True
+        elif key == 'down':
+            sort_asc = False
+        elif key == 'left':
+            if page > 0:
+                page -= 1
+        elif key == 'right':
+            if page < total_pages - 1:
+                page += 1
+        elif key in ('q', 'Q', 'escape', '\x1b'):
+            break
+
+    clear_screen()
 
 # --- JSON UPDATE HELPERS FOR CHANNEL RENAME ---
 
@@ -305,6 +433,24 @@ def update_json_shortlinks(json_file, old_name, new_name):
             print(f"  [+] Updated paths in {json_file}")
     except Exception as e:
         print(f"  [-] Error updating {json_file}: {e}")
+
+def update_json_channel_shortlinks(old_name, new_name):
+    """Rename channel key in channel_shortlinks.json (server root)"""
+    try:
+        j_path = os.path.join(BASE_DIR, 'channel_shortlinks.json')
+        if not os.path.exists(j_path):
+            return
+        
+        with open(j_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        if old_name in data:
+            data[new_name] = data.pop(old_name)
+            with open(j_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2)
+            print(f"  [+] Updated channel key in channel_shortlinks.json")
+    except Exception as e:
+        print(f"  [-] Error updating channel_shortlinks.json: {e}")
 
 # --- JSON UPDATE HELPERS FOR CHANNEL DELETE ---
 
@@ -502,6 +648,24 @@ def remove_json_playlist_shortlinks(json_file, channel_name):
     except Exception as e:
         print(f"  [-] Error updating {json_file}: {e}")
 
+def remove_channel_shortlink(channel_name):
+    """Remove channel entry from channel_shortlinks.json (server root)"""
+    try:
+        j_path = os.path.join(BASE_DIR, 'channel_shortlinks.json')
+        if not os.path.exists(j_path):
+            return
+        
+        with open(j_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        if channel_name in data:
+            del data[channel_name]
+            with open(j_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2)
+            print(f"  [+] Removed channel shortlink from channel_shortlinks.json")
+    except Exception as e:
+        print(f"  [-] Error updating channel_shortlinks.json: {e}")
+
 def remove_channel_from_cache(json_file, channel_name):
     """Remove channel entries from cache JSON files"""
     try:
@@ -611,8 +775,11 @@ def rename_channel(old_name, new_name):
     update_json_history('watchHistory.json', old_name, new_name)
     update_json_shortlinks('shortlinks.json', old_name, new_name)
     
-    # UPDATE: Verify playlist short links for renamed channel
+    # Verify playlist short links for renamed channel
     update_json_playlist_shortlinks('playlist_shortlinks.json', old_name, new_name)
+    
+    # Update channel shortlinks key
+    update_json_channel_shortlinks(old_name, new_name)
     
     print("[*] Channel rename complete!\n")
 
@@ -622,6 +789,9 @@ def delete_channel(channel_name):
     # IMPORTANT: Remove playlist short links BEFORE deleting folders,
     # so we can still scan the directory structure
     remove_json_playlist_shortlinks('playlist_shortlinks.json', channel_name)
+    
+    # Remove channel shortlink entry
+    remove_channel_shortlink(channel_name)
     
     # Delete folders (including playlist-orders)
     for folder in CHANNEL_FOLDERS:
@@ -1182,19 +1352,20 @@ def main_menu():
             print("=" * 45)
             print(" 1.  Return LocalYT Stats")
             print(" 2.  Return Total Storage Size of a Channel")
-            print(" 3.  Return Amount of Videos in a Channel")
-            print(" 4.  Return Total Amount of Channels")
-            print(" 5.  Return Total Amount of Users")
-            print(" 6.  Return Total Amount of Media Files")
-            print(" 7.  Return Total Video Length of a Channel")
-            print(" 8.  Rename a Channel & Metadata")
-            print(" 9.  Delete a Channel & Metadata (DANGEROUS)")
-            print(" 10. Clear Database (DANGEROUS)")
-            print(" 11. List & Delete Accounts")
-            print(" 12. Reset User Password")
-            print(" 13. Re-initiate Cache Scan")
-            print(" 14. Reboot Server")
-            print(" 15. Log Out All Users")
+            print(" 3.  Return Total Storage Size of All Channels")
+            print(" 4.  Return Amount of Videos in a Channel")
+            print(" 5.  Return Total Amount of Channels")
+            print(" 6.  Return Total Amount of Users")
+            print(" 7.  Return Total Amount of Media Files")
+            print(" 8.  Return Total Video Length of a Channel")
+            print(" 9.  Rename a Channel & Metadata")
+            print(" 10. Delete a Channel & Metadata (DANGEROUS)")
+            print(" 11. Clear Database (DANGEROUS)")
+            print(" 12. List & Delete Accounts")
+            print(" 13. Reset User Password")
+            print(" 14. Re-initiate Cache Scan")
+            print(" 15. Reboot Server")
+            print(" 16. Log Out All Users")
             print(" ---")
             print(" 0.  Exit")
             print("=" * 45)
@@ -1211,29 +1382,32 @@ def main_menu():
                 input("Press Enter to return...")
             
             elif choice == '3':
+                view_all_channel_sizes()
+            
+            elif choice == '4':
                 ch = input("Enter channel name: ")
                 print(f"\nTotal Videos: {get_channel_video_count(ch)}\n")
                 input("Press Enter to return...")
             
-            elif choice == '4':
+            elif choice == '5':
                 print(f"\nTotal Channels: {get_total_channels()}\n")
                 input("Press Enter to return...")
             
-            elif choice == '5':
+            elif choice == '6':
                 print(f"\nTotal Users: {get_total_users()}\n")
                 input("Press Enter to return...")
             
-            elif choice == '6':
+            elif choice == '7':
                 print(f"\nTotal Media Files: {get_total_media_files()}\n")
                 input("Press Enter to return...")
             
-            elif choice == '7':
+            elif choice == '8':
                 ch = input("Enter channel name: ")
                 secs = get_channel_length(ch)
                 print(f"\nTotal Length: {format_time(secs)} ({int(secs)} seconds)\n")
                 input("Press Enter to return...")
             
-            elif choice == '8':
+            elif choice == '9':
                 old = input("Enter CURRENT channel name: ")
                 new = input("Enter NEW channel name: ")
                 if old and new and old != new:
@@ -1242,7 +1416,7 @@ def main_menu():
                     print("\n[-] Invalid input.\n")
                 input("Press Enter to return...")
             
-            elif choice == '9':
+            elif choice == '10':
                 ch = input("Enter channel name to DELETE: ")
                 if ch:
                     # Show channel info before deletion
@@ -1268,27 +1442,27 @@ def main_menu():
                     print("\n[-] Invalid input.\n")
                 input("Press Enter to return...")
             
-            elif choice == '10':
+            elif choice == '11':
                 clear_database()
                 input("Press Enter to return...")
             
-            elif choice == '11':
+            elif choice == '12':
                 manage_accounts()
                 input("Press Enter to return...")
             
-            elif choice == '12':
+            elif choice == '13':
                 reset_user_password()
                 input("Press Enter to return...")
             
-            elif choice == '13':
+            elif choice == '14':
                 reinitiate_cache_scan()
                 input("Press Enter to return...")
             
-            elif choice == '14':
+            elif choice == '15':
                 reboot_server()
                 input("Press Enter to return...")
             
-            elif choice == '15':
+            elif choice == '16':
                 logout_all_users()
                 input("Press Enter to return...")
             
@@ -1301,20 +1475,6 @@ def main_menu():
             print("\nExiting..."); break
         except:
             pass  # Silently ignore any other unexpected errors
-
-def get_channel_size_from_playlist_orders(channel):
-    """Get the size of the playlist-orders folder for a channel"""
-    total_size = 0
-    try:
-        target = os.path.join(BASE_DIR, 'playlist-orders', channel)
-        if os.path.exists(target):
-            for root, _, files in os.walk(target):
-                for file in files:
-                    try:
-                        total_size += os.path.getsize(os.path.join(root, file))
-                    except: pass
-    except: pass
-    return total_size
 
 if __name__ == "__main__":
     main_menu()
