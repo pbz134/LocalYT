@@ -2584,6 +2584,9 @@
             let posterImageUrl = '';
             let currentChannel = '';
             let myFP = null;
+            // Description text loaded before the player exists; handed to the
+            // player right after player initialization (see below).
+            let pendingDescriptionText = null;
 
             // ----- FILTER BUTTONS VARIABLES -----
             let filterButtons = null;
@@ -2854,9 +2857,10 @@
             if (descriptionText) {
                 const html = await detectAndStyleLinks(descriptionText);
                 currentVideoDescription.innerHTML = currentVideoDescription.textContent + html;
-                if (myFP && typeof myFP.setDescription === 'function') {
-                    myFP.setDescription(descriptionText);
-                }
+                // The player is created further down in this handler, so myFP is
+                // still null here. Store the text; setDescription is called after
+                // player initialization below.
+                pendingDescriptionText = descriptionText;
             } else {
                 currentVideoDescription.innerHTML = currentVideoDescription.textContent +
                     '<span class="no-description">' + getLang(
@@ -3383,6 +3387,12 @@
                 myFP = null;
                 videoPlayer.removeAttribute('controlsList');
                 videoPlayer.controls = true;
+            }
+
+            // Now that the player exists, give it the description so it can
+            // parse chapters and render the chapter markers.
+            if (pendingDescriptionText && myFP && typeof myFP.setDescription === 'function') {
+                myFP.setDescription(pendingDescriptionText);
             }
 
             // Re-render chapter markers once video duration is known
